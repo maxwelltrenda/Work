@@ -20,6 +20,12 @@ const LABEL_SIZES = {
   'zebra-4x6': { name: 'Shipping — 4" × 6"', w: 4, h: 6 },
 };
 
+// Logo mark: three stacked crates.
+const MARK = `<svg viewBox="0 0 40 40" width="26" height="26" fill="none" aria-hidden="true">
+  <rect x="6" y="22" width="12" height="11" rx="1.5" fill="currentColor" opacity=".45"/>
+  <rect x="21" y="22" width="12" height="11" rx="1.5" fill="currentColor" opacity=".7"/>
+  <rect x="13.5" y="9" width="12" height="11" rx="1.5" fill="#a67c3d"/></svg>`;
+
 const state = {
   session: null,
   me: null,
@@ -34,6 +40,9 @@ const state = {
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isAdmin = () => state.me?.role === 'admin';
+const LOADER = '<div class="loader" role="status" aria-label="Loading"><span></span><span></span><span></span></div>';
+const pageHead = (eyebrow, title, sub = '') =>
+  `<header class="page-head"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${sub ? `<p class="lede">${sub}</p>` : ''}</header>`;
 const isKiosk = () => state.me?.role === 'kiosk';
 
 function fmtDate(ts) {
@@ -124,7 +133,7 @@ const loadTools = () => q(sb.from('tools').select('*').order('name'));
 // Auth & boot
 // ---------------------------------------------------------------------------
 
-document.getElementById('brand').textContent = APP_NAME;
+document.getElementById('brand').innerHTML = `<a href="#/kiosk" class="brand-link"><span class="brand-mark">${MARK}</span><span class="brand-name">${esc(APP_NAME)}</span></a>`;
 document.title = APP_NAME;
 
 sb.auth.onAuthStateChange((event, session) => {
@@ -136,7 +145,26 @@ sb.auth.onAuthStateChange((event, session) => {
   }
 });
 
+// Keep the splash up briefly so it reads as intentional rather than a flicker.
+const bootStarted = Date.now();
+function hideSplash() {
+  const el = document.getElementById('splash');
+  if (!el || el.classList.contains('gone')) return;
+  setTimeout(() => {
+    el.classList.add('gone');
+    setTimeout(() => el.remove(), 500);
+  }, Math.max(0, 700 - (Date.now() - bootStarted)));
+}
+
 async function boot() {
+  try {
+    await bootInner();
+  } finally {
+    hideSplash();
+  }
+}
+
+async function bootInner() {
   const { data } = await sb.auth.getSession();
   state.session = data.session;
   state.me = null;
@@ -155,7 +183,7 @@ async function boot() {
     return;
   }
   renderTopbar();
-  route();
+  await route();
 }
 
 function renderTopbar() {
@@ -179,13 +207,15 @@ function renderTopbar() {
 function renderLogin(mode = 'signin', note = '') {
   const titles = { signin: 'Sign in', signup: 'Create your account', forgot: 'Reset password' };
   app.innerHTML = `
-    <div class="auth card">
-      <h1>${titles[mode]}</h1>
+    <div class="auth">
+      <div class="auth-mark">${MARK}</div>
+      <div class="eyebrow">${esc(APP_NAME)}</div>
+      <h1>${{ signin: 'Welcome <span class="accent">back</span>.', signup: 'Create your <span class="accent">account</span>.', forgot: 'Reset your <span class="accent">password</span>.' }[mode]}</h1>
       ${note ? `<p class="big-status info" style="font-size:15px">${esc(note)}</p>` : ''}
       <form id="auth-form">
         <label>Work email <input type="email" name="email" required autocomplete="email"></label>
         ${mode !== 'forgot' ? `<label>Password <input type="password" name="password" required minlength="8" autocomplete="${mode === 'signup' ? 'new-password' : 'current-password'}"></label>` : ''}
-        <button class="btn primary" type="submit">${titles[mode]}</button>
+        <button class="btn primary block" type="submit">${titles[mode]}</button>
       </form>
       <p class="muted" style="margin-top:14px">
         ${mode === 'signin' ? `New here? <a href="#" data-mode="signup">Create an account</a> · <a href="#" data-mode="forgot">Forgot password?</a>` : `<a href="#" data-mode="signin">Back to sign in</a>`}
@@ -222,7 +252,7 @@ function renderLogin(mode = 'signin', note = '') {
 
 function renderSetPassword() {
   app.innerHTML = `
-    <div class="auth card"><h1>Choose a new password</h1>
+    <div class="auth"><div class="auth-mark">${MARK}</div><h1>Choose a new <span class="accent">password</span>.</h1>
       <form id="pw-form"><label>New password <input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
       <button class="btn primary">Save password</button></form></div>`;
   app.querySelector('#pw-form').addEventListener('submit', async (e) => {
@@ -237,7 +267,7 @@ function renderSetPassword() {
 
 function renderClaimAdmin() {
   app.innerHTML = `
-    <div class="auth card"><h1>Set up the app</h1>
+    <div class="auth"><div class="auth-mark">${MARK}</div><div class="eyebrow">First-time setup</div><h1>Set up the <span class="accent">shop</span>.</h1>
       <p>Nobody has set this app up yet. You'll become the admin and can add the rest of your team.</p>
       <form id="claim"><label>Your name <input name="name" required></label><button class="btn primary">Make me the admin</button></form></div>`;
   app.querySelector('#claim').addEventListener('submit', async (e) => {
@@ -251,7 +281,7 @@ function renderClaimAdmin() {
 
 function renderNotOnList() {
   app.innerHTML = `
-    <div class="auth card"><h1>Almost there</h1>
+    <div class="auth"><div class="auth-mark">${MARK}</div><h1>Almost <span class="accent">there</span>.</h1>
       <p>You're signed in as <b>${esc(state.session.user.email)}</b>, but you're not on the team list yet.</p>
       <p class="muted">Ask an admin to add this email on the People page, then reload.</p>
       <button class="btn" onclick="location.reload()">Reload</button></div>`;
@@ -275,7 +305,7 @@ async function route() {
   const fn = (isKiosk() && !kioskOnly.includes(name) ? null : routes[name]) || renderKiosk;
   if (name !== 'kiosk') clearTimeout(state.kiosk.idle);
   renderTopbar();
-  app.innerHTML = '<p class="muted">Loading…</p>';
+  app.innerHTML = LOADER;
   try {
     await fn(...args);
   } catch (e) {
@@ -295,7 +325,7 @@ async function renderStock() {
   if (state.stockMode === 'adjust' && !isAdmin()) state.stockMode = 'out';
 
   app.innerHTML = `
-    <h1>Scan Stock</h1>
+    ${pageHead('Stock room', 'Scan <span class="accent">stock</span>', 'Counts, restocks and quick pulls from your own device.')}
     <div class="card">
       <div class="modes" id="modes">${modes.map(([k, t, c]) => `<button class="btn ${c} ${state.stockMode === k ? 'on' : ''}" data-mode="${k}">${t}</button>`).join('')}</div>
       <div class="row" style="margin-top:14px">
@@ -454,8 +484,9 @@ async function renderKiosk() {
     if (!k.person) {
       el.innerHTML = `
         <div class="card">
-          <h1 style="margin-bottom:6px">Who are you?</h1>
-          <p class="muted" style="margin-top:0">Scan your name label or tap your name. <b>Just returning something?</b> Scan it — no name needed.</p>
+          <div class="eyebrow">Check in / out</div>
+          <h1 class="kiosk-title">Who are <span class="accent">you</span>?</h1>
+          <p class="lede">Scan your name label or tap your name. <b>Just returning something?</b> Scan it — no name needed.</p>
           <div class="people-pick">${crew.map((m) => `<button class="btn" data-person="${m.id}">${esc(m.name)}</button>`).join('')}</div>
         </div>`;
       el.querySelectorAll('[data-person]').forEach((b) => b.addEventListener('click', () => {
@@ -468,10 +499,10 @@ async function renderKiosk() {
     el.innerHTML = `
       <div class="card">
         <div class="row" style="justify-content:space-between;align-items:center">
-          <h1 style="margin:0">Hi ${esc(k.person.name)}</h1>
+          <div><div class="eyebrow">Signed in at the kiosk</div><h1 class="kiosk-title" style="margin:0">Hi, <span class="accent">${esc(k.person.name)}</span></h1></div>
           <button class="btn bad" id="k-done" style="font-size:18px;padding:10px 22px">Done</button>
         </div>
-        <h2 style="margin-top:14px">Where is it going?</h2>
+        <h2 style="margin-top:22px">Where is it going?</h2>
         <div class="modes" id="k-event">
           <button class="btn ${k.event ? '' : 'on primary'}" data-event="">Shop use</button>
           ${events.map((e) => `<button class="btn ${k.event?.id === e.id ? 'on primary' : ''}" data-event="${e.id}">${esc(e.name)}${e.starts_on ? ` <span style="font-weight:400">· ${new Date(`${e.starts_on}T12:00`).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>` : ''}</button>`).join('')}
@@ -640,9 +671,8 @@ async function renderEvents() {
     <td class="num">${outBy[e.id] ? `<b>${outBy[e.id]}</b> out` : ''}</td></tr>`).join('');
 
   app.innerHTML = `
-    <h1>Events</h1>
-    <p class="muted">Plan an offsite job, then pick it on the Check In/Out screen when loading out. Everything scanned goes on the event's list.</p>
-    <details class="card" ${live.length ? '' : 'open'}><summary><b>+ New event</b></summary>
+    ${pageHead('Offsite', 'Events', 'Plan an offsite job, then pick it on the Check In / Out screen when loading the truck. Everything scanned goes on the event’s list.')}
+    <details class="card" ${live.length ? '' : 'open'}><summary><b>New event</b></summary>
       <form id="add" style="margin-top:12px">${eventForm()}
         <h2>Crew</h2><div class="people-pick">${crew.map((m) => `<label class="chip"><input type="checkbox" name="crew" value="${m.id}"> ${esc(m.name)}</label>`).join('')}</div>
         <div style="margin-top:12px"><button class="btn primary">Create event</button></div></form></details>
@@ -775,7 +805,7 @@ async function renderOut() {
   open.forEach((c) => (groups[who[c.borrower_id] || '?'] ||= []).push(c));
 
   app.innerHTML = `
-    <h1>Who Has What</h1>
+    ${pageHead('Right now', 'Who has <span class="accent">what</span>')}
     <div class="stats">
       <div class="stat"><b>${active.length}</b><span>tools total</span></div>
       <div class="stat"><b>${active.filter((t) => t.status === 'available').length}</b><span>in the crib</span></div>
@@ -817,12 +847,12 @@ async function renderItems() {
   const low = show.filter((i) => i.reorder_level > 0 && i.quantity <= i.reorder_level);
 
   app.innerHTML = `
-    <h1>Inventory</h1>
+    ${pageHead('Stock room', 'Inventory')}
     <div class="stats">
       <div class="stat"><b>${show.length}</b><span>items</span></div>
       <div class="stat"><b style="color:${low.length ? 'var(--warn)' : 'inherit'}">${low.length}</b><span>at or below reorder level</span></div>
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>+ Add an item</b></summary><form id="add" style="margin-top:12px">${itemForm()}<div style="margin-top:12px"><button class="btn primary">Add item</button></div></form></details>` : ''}
+    ${isAdmin() ? `<details class="card"><summary><b>Add an item</b></summary><form id="add" style="margin-top:12px">${itemForm()}<div style="margin-top:12px"><button class="btn primary">Add item</button></div></form></details>` : ''}
     <div class="row" style="margin-bottom:10px">
       <input id="filter" placeholder="Search…" style="flex:1;min-width:200px">
       <label class="row" style="flex-direction:row;align-items:center"><input type="checkbox" id="lowonly"> Low only</label>
@@ -933,12 +963,12 @@ async function renderToolList() {
   const total = show.reduce((s, t) => s + Number(t.value || 0), 0);
 
   app.innerHTML = `
-    <h1>Tools</h1>
+    ${pageHead('Equipment', 'Tools')}
     <div class="stats">
       <div class="stat"><b>${show.length}</b><span>tools</span></div>
       <div class="stat"><b>${total ? `$${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}</b><span>total value</span></div>
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>+ Add a tool</b></summary><form id="add" style="margin-top:12px">${toolForm()}<div style="margin-top:12px"><button class="btn primary">Add tool</button></div></form></details>` : ''}
+    ${isAdmin() ? `<details class="card"><summary><b>Add a tool</b></summary><form id="add" style="margin-top:12px">${toolForm()}<div style="margin-top:12px"><button class="btn primary">Add tool</button></div></form></details>` : ''}
     <div class="row" style="margin-bottom:10px"><input id="filter" placeholder="Search…" style="flex:1;min-width:200px"><button class="btn" id="csv">Export CSV</button></div>
     <div class="table-wrap"><table id="tbl"></table></div>`;
 
@@ -1013,14 +1043,14 @@ async function renderTool(id) {
 async function renderHistory() {
   const from = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   app.innerHTML = `
-    <h1>History</h1>
+    ${pageHead('Records', 'History')}
     <div class="row" style="margin-bottom:12px">
       <label>From <input type="date" id="from" value="${from}"></label>
       <label>To <input type="date" id="to" value="${new Date().toISOString().slice(0, 10)}"></label>
       <label>Show <select id="kind"><option value="stock">Stock scans</option><option value="tools">Tool sign-outs</option></select></label>
       <button class="btn" id="csv">Export CSV</button>
     </div>
-    <div id="out"><p class="muted">Loading…</p></div>`;
+    <div id="out">${LOADER}</div>`;
 
   const [items, tools, members, events] = await Promise.all([loadItems(), loadTools(), loadMembers(), q(sb.from('events').select('id, name'))]);
   const evName = Object.fromEntries(events.map((e) => [e.id, e.name]));
@@ -1059,7 +1089,7 @@ async function renderHistory() {
 async function renderPeople() {
   const members = await loadMembers();
   app.innerHTML = `
-    <h1>People</h1>
+    ${pageHead('Team', 'People')}
     <p class="muted">Anyone with an email here can sign in (they create their own password with that email). People without an email can still use the warehouse iPad with their name label.
       <b>Kiosk</b> is for the shared iPad's login: it can check things in and out for whoever scans their name, but can't change settings.</p>
     ${isAdmin() ? `<div class="card"><form id="add" class="row">
@@ -1140,7 +1170,7 @@ async function renderLabels(kind, id) {
   const sizeKey = getPref('labelSize', 'brother-dk1201');
 
   app.innerHTML = `
-    <h1>Print Labels</h1>
+    ${pageHead('Print', 'Labels', 'Barcode labels for your Brother label printer.')}
     <div class="card">
       <div class="row">
         <label>What <select id="kind">
