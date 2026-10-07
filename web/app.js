@@ -1371,13 +1371,13 @@ function pdfBarcode(pdf, code, x, y, bw, bh) {
     }
   }
   pdf.setFont('courier', 'normal');
-  pdf.setFontSize(Math.max(6, Math.min(11, textH * 72 * 0.85)));
+  pdf.setFontSize(Math.max(6, Math.min(bh > 1.5 ? 16 : 11, textH * 72 * 0.85)));
   pdf.text(code, x + bw / 2, y + bh - 0.01, { align: 'center', baseline: 'bottom' });
 }
 
 // Fit a name into at most two lines by shrinking the font if needed.
 function pdfName(pdf, name, sub, x, y, cw, ch, align) {
-  let fs = Math.min(13, Math.max(7, ch * 72 * 0.34));
+  let fs = Math.min(ch > 1.5 ? 26 : 13, Math.max(7, ch * 72 * 0.34));
   let lines;
   pdf.setFont('helvetica', 'bold');
   for (; fs >= 6; fs -= 0.5) {
@@ -1432,13 +1432,28 @@ function buildLabelPdf(rows, size) {
   return pdf;
 }
 
-// Letter-paper sheet of labels for any printer: 3 × 8 grid with light cut
-// lines and a header, so it can be cut into labels or kept as a scan sheet.
-function buildSheetPdf(rows, title) {
+// Letter-sheet grids, biggest labels first. 'auto' picks the biggest one that
+// fits everything on one page; past that it uses the smallest (the per-page cap).
+const SHEET_LAYOUTS = [
+  { per: 4, cols: 1, rows: 4 },
+  { per: 8, cols: 2, rows: 4 },
+  { per: 12, cols: 2, rows: 6 },
+  { per: 24, cols: 3, rows: 8 },
+  { per: 30, cols: 3, rows: 10 },
+];
+function sheetLayout(count, perPage = 'auto') {
+  if (perPage !== 'auto') return SHEET_LAYOUTS.find((l) => l.per === Number(perPage)) || SHEET_LAYOUTS.at(-1);
+  return SHEET_LAYOUTS.find((l) => l.per >= count) || SHEET_LAYOUTS.at(-1);
+}
+
+// Letter-paper sheet of labels for any printer: a grid with light cut lines
+// and a header, so it can be cut into labels or kept as a scan sheet.
+function buildSheetPdf(rows, title, perPageChoice = 'auto') {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' });
-  const cols = 3;
-  const perCol = 8;
+  const layout = sheetLayout(rows.length, perPageChoice);
+  const cols = layout.cols;
+  const perCol = layout.rows;
   const margin = 0.5;
   const top = 0.95;
   const cw = (8.5 - margin * 2) / cols;
@@ -1540,7 +1555,10 @@ async function renderLabels(kind, id) {
         <label>Label size <select id="size">${Object.entries(LABEL_SIZES).map(([k, s]) => `<option value="${k}" ${k === sizeKey ? 'selected' : ''}>${s.name}</option>`).join('')}</select></label>
         <label>Copies each <input id="copies" type="number" min="1" max="20" value="1" style="width:80px"></label>
         <button class="btn primary" id="print">Print labels</button>
-        <button class="btn" id="print-sheet" title="3 × 8 grid on regular letter paper, for any printer">Print on letter paper</button>
+        <button class="btn" id="print-sheet" title="A grid on regular letter paper, for any printer">Print on letter paper</button>
+        <label>Per page (letter) <select id="per-page">
+          <option value="auto">Auto</option>${SHEET_LAYOUTS.map((l) => `<option value="${l.per}">${l.per} (${l.cols} × ${l.rows})</option>`).join('')}
+        </select></label>
       </div>
       <p class="scan-hint">Opens a PDF sized exactly to one label per page. Print it to the Brother at <b>100% / Actual size</b> (not "Fit"). On iPad, tap the Share button on the PDF, then <b>Print</b>.</p>
       ${/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
@@ -1612,7 +1630,7 @@ async function renderLabels(kind, id) {
     if (!window.jspdf || !window.JsBarcode) return toast('Still loading — try again in a second', true);
     const copies = Math.min(20, Math.max(1, parseInt(app.querySelector('#copies').value, 10) || 1));
     const title = { facilities: 'Facilities stock', events: 'Event stock', tool: 'Tools', people: 'Team', commands: 'Command barcodes' }[tab];
-    openPdf(buildSheetPdf(rows.flatMap((r) => Array(copies).fill(r)), title));
+    openPdf(buildSheetPdf(rows.flatMap((r) => Array(copies).fill(r)), title, app.querySelector('#per-page').value));
   });
 
   // Remember what was printed; offer an undo in case the printer jammed.
