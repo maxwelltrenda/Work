@@ -1,5 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
 import { SUPABASE_URL, SUPABASE_KEY, APP_NAME } from './config.js';
+import './select.js';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app');
@@ -137,13 +138,40 @@ document.getElementById('brand').innerHTML = `<a href="#/kiosk" class="brand-lin
 document.title = APP_NAME;
 
 sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'PASSWORD_RECOVERY') return renderSetPassword();
-  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-    const changed = (session?.user?.id || null) !== (state.session?.user?.id || null);
-    state.session = session;
-    if (changed) boot();
-  }
+  // Supabase runs this callback while holding its auth lock, so calling back
+  // into sb.auth here (as boot() does) would deadlock. Defer to the next tick.
+  setTimeout(() => {
+    if (event === 'PASSWORD_RECOVERY') return renderSetPassword();
+    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      const changed = (session?.user?.id || null) !== (state.session?.user?.id || null);
+      state.session = session;
+      if (changed) boot();
+    }
+  }, 0);
 });
+
+async function signOut(expired = false) {
+  if (expired !== true && isKiosk() && !confirm('Sign the warehouse kiosk out? Someone will need its password to sign back in.')) return;
+  const btn = document.getElementById('signout');
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing out…'; }
+  try {
+    // 'local' clears this device even if the server can't be reached.
+    await sb.auth.signOut({ scope: 'local' });
+  } catch { /* fall through: we still reset the screen below */ }
+  // If the server already ended this session (e.g. signed out elsewhere), the
+  // library keeps the dead token saved. Remove it so a reload stays signed out.
+  try {
+    Object.keys(localStorage).filter((k) => /^sb-.*-auth-token/.test(k)).forEach((k) => localStorage.removeItem(k));
+  } catch { /* storage unavailable */ }
+  clearTimeout(state.kiosk.idle);
+  state.kiosk = { person: null, event: null, mode: 'out', qty: 1, log: [], idle: null, pendingTool: null };
+  state.stockLog = [];
+  state.session = null;
+  state.me = null;
+  history.replaceState(null, '', location.pathname);
+  renderTopbar();
+  renderLogin('signin', expired === true ? 'Your session ended. Please sign in again.' : '');
+}
 
 // Keep the splash up briefly so it reads as intentional rather than a flicker.
 const bootStarted = Date.now();
@@ -203,7 +231,7 @@ function renderTopbar() {
     nav.innerHTML = links.map(([k, t]) => `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${t}</a>`).join('');
     who.innerHTML = `<span>${esc(state.me.name)}${isAdmin() ? ' · admin' : ''}${isKiosk() ? ' · kiosk' : ''}</span><button id="signout">Sign out</button>`;
   }
-  document.getElementById('signout')?.addEventListener('click', () => sb.auth.signOut());
+  document.getElementById('signout')?.addEventListener('click', signOut);
 }
 
 function renderLogin(mode = 'signin', note = '') {
@@ -311,6 +339,7 @@ async function route() {
   try {
     await fn(...args);
   } catch (e) {
+    if (/JWT|session/i.test(errMsg(e))) return signOut(true);
     app.innerHTML = `<div class="big-status err">${esc(errMsg(e))}</div>`;
   }
 }

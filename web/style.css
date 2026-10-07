@@ -143,6 +143,43 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .card.muted { text-align: center; padding: 34px 22px; box-shadow: none; background: transparent; border-style: dashed; }
 .log li.muted { font: italic 400 17px/1.4 var(--serif); }
 
+/* ---------- Dropdowns (see select.js) ---------- */
+.dd { position: relative; display: block; min-width: 0; }
+.dd-native { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none; min-height: 0; padding: 0; border: 0; }
+.dd-btn {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  min-height: 44px; padding: 10px 12px 10px 14px; text-align: left; cursor: pointer;
+  background: #fff; color: var(--ink); border: 1px solid var(--line-strong); border-radius: 10px;
+  font-weight: 400; transition: border-color .15s, box-shadow .15s;
+}
+.dd-btn:hover { border-color: var(--muted); }
+.dd-btn:focus-visible, .dd.open .dd-btn { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+.dd-btn.placeholder .dd-label { color: var(--muted); }
+.dd-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-chev { flex: none; color: var(--muted); transition: transform .15s; }
+.dd.open .dd-chev { transform: rotate(180deg); color: var(--accent); }
+.dd-menu {
+  position: fixed; z-index: 60; overflow-y: auto; padding: 6px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(30, 42, 50, .06), 0 18px 40px -12px rgba(30, 42, 50, .25);
+  animation: dd-in .12s ease-out both; font-size: 15px;
+}
+.dd-menu.up { animation-name: dd-in-up; }
+@keyframes dd-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes dd-in-up { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.dd-group { padding: 10px 12px 4px; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.dd-opt {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 9px 12px; border-radius: 8px; cursor: pointer; color: var(--ink); white-space: nowrap;
+}
+.dd-opt.active { background: var(--paper-2); }
+.dd-opt .dd-check { visibility: hidden; color: var(--accent); flex: none; }
+.dd-opt.selected { font-weight: 600; }
+.dd-opt.selected .dd-check { visibility: visible; }
+.dd-opt.action { color: var(--accent); font-weight: 500; border-top: 1px solid var(--line); border-radius: 0 0 8px 8px; margin-top: 4px; padding-top: 11px; }
+.dd-opt.disabled { color: var(--muted); cursor: default; }
+td .dd-btn { min-height: 36px; padding: 6px 10px; }
+
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
