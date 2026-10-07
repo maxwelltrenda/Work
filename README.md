@@ -8,7 +8,7 @@ A private web app for your team that tracks three things:
 2. **Event stock**: supplies that go out to events. Same scanning, and each event shows what was taken, brought back and used.
 3. **Tools**: scan a name label and a tool to sign it out, and scan the tool again to return it. You always know who has what.
 
-Quantities are plain counts (no units). Every item and tool has a **location** picked from a shared dropdown. Admins can add a new location right from the dropdown.
+Quantities are plain counts (no units). An item can have a **per box/pack** number (e.g. a box of paper towels holds 6 rolls). You still scan and count boxes, and the app also shows the total pieces (3 boxes × 6 = 18). Every item and tool has a **location** picked from a shared dropdown. Admins can add a new location right from the dropdown.
 
 It works with any USB or Bluetooth barcode scanner (they act like a keyboard) and prints its own Code 128 barcode labels on a label printer.
 
@@ -77,7 +77,7 @@ Tools sent to an event are due back the day after the event ends, so late ones s
 6. Add items and tools, then print labels.
 
 ### Label printer tips (Brother QL-820NWB)
-- The Labels page defaults to **Brother DK-1201 (1.1" × 3.5")**, the roll currently loaded. Other DK sizes and Dymo/Zebra sizes are in the list.
+- The Labels page defaults to the **62mm continuous roll (DK-2205 / DK-2251)** that ships with the QL-820NWB, printing compact 2.4" × 1.25" labels. If you load a different roll, pick it in **Label size**. 29mm continuous and the pre-cut DK sizes are listed. The roll's DK number is printed on the side of the spool.
 - **Print labels** opens a PDF with one label per page, sized exactly to the label (3.5" × 1.1" for DK-1201), with the barcode drawn as sharp vector bars. Browsers ignore label sizes when printing a web page directly and print a letter-size page instead, which feeds about a foot of label tape. A PDF's page size is always respected.
 - **Mac / PC:** install the Brother QL-820NWB driver (USB or Wi-Fi). The print dialog opens automatically. Choose the Brother printer, set paper to **29mm × 90mm**, and set scale to **100% / Actual size**, not "Fit".
 - **iPad:** Safari only prints over Wi-Fi (AirPrint). Bluetooth pairing isn't used, so put the printer on the same Wi-Fi as the iPad. Tap **Print labels**, then the Share button on the PDF, then **Print**.

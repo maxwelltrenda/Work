@@ -9,6 +9,10 @@ const app = document.getElementById('app');
 const CMD = { IN: 'CMD-IN', OUT: 'CMD-OUT', COUNT: 'CMD-COUNT', DONE: 'CMD-DONE' };
 
 const LABEL_SIZES = {
+  // Continuous rolls: the page width is the tape width and the label is only
+  // as long as the page, so these give the shortest labels.
+  'brother-62c': { name: 'Brother 62mm continuous roll (DK-2205 / DK-2251) — 2.4" × 1.25"', w: 2.44, h: 1.25 },
+  'brother-29c': { name: 'Brother 29mm continuous roll (DK-2210) — 2.6" × 1.1"', w: 2.6, h: 1.1 },
   'brother-dk1201': { name: 'Brother DK-1201 — 1.1" × 3.5" (address)', w: 3.5, h: 1.1 },
   'brother-dk1209': { name: 'Brother DK-1209 — 1.1" × 2.4" (small address)', w: 2.4, h: 1.1 },
   'brother-dk1208': { name: 'Brother DK-1208 — 1.4" × 3.5" (large address)', w: 3.5, h: 1.4 },
@@ -441,7 +445,7 @@ async function renderStock() {
       const it = res.item;
       const verb = state.stockMode === 'adjust' ? `Count set (${res.change >= 0 ? '+' : ''}${res.change})` : `${Math.abs(res.change)} ${state.stockMode === 'in' ? 'in' : 'out'}`;
       const low = it.reorder_level > 0 && it.quantity <= it.reorder_level;
-      show('ok', `${esc(verb)} — <b>${esc(it.name)}</b>. Now ${it.quantity} on hand.${low ? ` <span class="pill low">LOW — reorder</span>` : ''}`);
+      show('ok', `${esc(verb)} — <b>${esc(it.name)}</b>. Now ${it.quantity} on hand${esc(packNote(it))}.${low ? ` <span class="pill low">LOW — reorder</span>` : ''}`);
       state.stockLog.unshift({ type: state.stockMode, text: `${verb} · ${it.name} → ${it.quantity} left`, time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) });
       state.stockLog = state.stockLog.slice(0, 50);
       paintLog();
@@ -668,7 +672,7 @@ async function renderKiosk() {
         const low = it.reorder_level > 0 && it.quantity <= it.reorder_level;
         const where = k.event ? ` (${k.event.name})` : '';
         beep(true);
-        show('ok', `${k.mode === 'in' ? 'Put back' : 'Took'} ${qty} × <b>${esc(it.name)}</b>${esc(where)}. ${it.quantity} left.${low ? ' <span class="pill low">LOW — tell the office</span>' : ''}`);
+        show('ok', `${k.mode === 'in' ? 'Put back' : 'Took'} ${qty} × <b>${esc(it.name)}</b>${esc(where)}. ${it.quantity} left${esc(packNote(it))}.${low ? ' <span class="pill low">LOW — tell the office</span>' : ''}`);
         log(k.mode, `${qty} × ${it.name}${where} · ${k.person.name}`);
         k.qty = 1;
         paintWho();
@@ -887,6 +891,9 @@ const STOCK = {
   events: { title: 'Event <span class="accent">stock</span>', plain: 'Event stock', eyebrow: 'Stock room', hash: '#/items/events' },
 };
 const stockKind = (c) => (STOCK[c] ? c : 'facilities');
+// Total pieces: e.g. 3 boxes × 6 rolls = 18.
+const pieces = (i) => i.quantity * (i.pack_size || 1);
+const packNote = (i) => ((i.pack_size || 1) > 1 ? ` (${i.pack_size} each = ${pieces(i).toLocaleString()} total)` : '');
 const loadLocations = () => q(sb.from('locations').select('name').order('name'));
 
 // Location dropdown shared by item and tool forms. Admins can add new ones inline.
@@ -935,6 +942,7 @@ function itemForm(it = {}, locations = []) {
       <label style="width:150px">Stock type <select name="category">
         <option value="facilities" ${cat === 'facilities' ? 'selected' : ''}>Facilities</option>
         <option value="events" ${cat === 'events' ? 'selected' : ''}>Event</option></select></label>
+      <label style="width:130px" title="How many pieces one box/pack holds, e.g. 6 rolls in a box of paper towels. Leave 1 for single items.">Per box/pack <input name="pack_size" type="number" min="1" value="${it.pack_size ?? 1}"></label>
       <label style="width:120px">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
       ${it.id ? '' : '<label style="width:120px">Starting qty <input name="start" type="number" min="0" value="0"></label>'}
     </div>
@@ -944,6 +952,7 @@ function itemForm(it = {}, locations = []) {
 const itemFields = (f) => ({
   name: f.get('name').trim(), location: f.get('location') || null, category: f.get('category'),
   reorder_level: parseInt(f.get('reorder_level'), 10) || 0, description: f.get('description').trim() || null,
+  pack_size: Math.max(1, parseInt(f.get('pack_size'), 10) || 1),
 });
 
 async function renderItems(category) {
@@ -953,13 +962,14 @@ async function renderItems(category) {
   const items = all.filter((i) => i.category === kind);
   const show = items.filter((i) => i.active);
   const low = show.filter((i) => i.reorder_level > 0 && i.quantity <= i.reorder_level);
-  const total = show.reduce((s, i) => s + i.quantity, 0);
+  const total = show.reduce((s, i) => s + pieces(i), 0);
+  const hasPacks = show.some((i) => (i.pack_size || 1) > 1);
 
   app.innerHTML = `
     ${pageHead(meta.eyebrow, meta.title)}
     <div class="stats">
       <div class="stat"><b>${show.length}</b><span>items</span></div>
-      <div class="stat"><b>${total.toLocaleString()}</b><span>on hand in total</span></div>
+      <div class="stat"><b>${total.toLocaleString()}</b><span>${hasPacks ? 'pieces on hand in total' : 'on hand in total'}</span></div>
       <div class="stat"><b style="color:${low.length ? 'var(--warn)' : 'inherit'}">${low.length}</b><span>at or below reorder level</span></div>
     </div>
     ${isAdmin() ? `<details class="card"><summary><b>Add ${meta.plain.toLowerCase()}</b></summary><form id="add" style="margin-top:14px">${itemForm({ category: kind }, locations)}<div style="margin-top:14px"><button class="btn primary">Add item</button></div></form></details>` : ''}
@@ -978,15 +988,15 @@ async function renderItems(category) {
     const lowOnly = app.querySelector('#lowonly').checked;
     const rows = show.filter((i) => (!f || `${i.name} ${i.code} ${i.location} ${i.description}`.toLowerCase().includes(f))
       && (!loc || i.location === loc) && (!lowOnly || low.includes(i)));
-    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Item</th><th>Location</th><th class="num">On hand</th><th class="num">Reorder at</th></tr>
-      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a href="#/item/${i.id}">${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td><td class="num">${i.reorder_level || ''}</td></tr>`).join('')
-      || `<tr><td colspan="5" class="muted">No ${meta.plain.toLowerCase()} yet.</td></tr>`}`;
+    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Item</th><th>Location</th><th class="num">On hand</th>${hasPacks ? '<th class="num">Per pack</th><th class="num">Total</th>' : ''}<th class="num">Reorder at</th></tr>
+      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a href="#/item/${i.id}">${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td>${hasPacks ? `<td class="num">${(i.pack_size || 1) > 1 ? `× ${i.pack_size}` : ''}</td><td class="num"><b>${pieces(i).toLocaleString()}</b></td>` : ''}<td class="num">${i.reorder_level || ''}</td></tr>`).join('')
+      || `<tr><td colspan="${hasPacks ? 7 : 5}" class="muted">No ${meta.plain.toLowerCase()} yet.</td></tr>`}`;
   };
   app.querySelector('#filter').addEventListener('input', paint);
   app.querySelector('#locfilter').addEventListener('change', paint);
   app.querySelector('#lowonly').addEventListener('change', paint);
   app.querySelector('#csv').addEventListener('click', () => downloadCsv(`${kind}-stock.csv`, show.map((i) => ({
-    code: i.code, name: i.name, location: i.location, on_hand: i.quantity, reorder_at: i.reorder_level, description: i.description,
+    code: i.code, name: i.name, location: i.location, on_hand: i.quantity, per_pack: i.pack_size || 1, total_pieces: pieces(i), reorder_at: i.reorder_level, description: i.description,
   }))));
   const add = app.querySelector('#add');
   if (add) {
@@ -1021,7 +1031,8 @@ async function renderItem(id) {
     <p><a href="${meta.hash}">← ${meta.plain}</a></p>
     <h1>${esc(it.name)} <span class="code muted">${esc(it.code)}</span></h1>
     <div class="stats">
-      <div class="stat"><b>${it.quantity}</b><span>on hand</span></div>
+      <div class="stat"><b>${it.quantity}</b><span>on hand${(it.pack_size || 1) > 1 ? ` (${it.pack_size} per pack)` : ''}</span></div>
+      ${(it.pack_size || 1) > 1 ? `<div class="stat"><b>${pieces(it).toLocaleString()}</b><span>pieces in total</span></div>` : ''}
       <div class="stat"><b>${it.reorder_level || '—'}</b><span>reorder at</span></div>
       <div class="stat"><b>${esc(it.location || '—')}</b><span>location</span></div>
     </div>
@@ -1371,7 +1382,7 @@ async function renderLabels(kind, id) {
   const trackKind = { facilities: 'item', events: 'item', tool: 'tool', people: 'person' }[tab];
   const unprinted = trackKind ? sources[tab].filter((r) => !r.printed).length : 0;
   const preselect = new Set(id ? [id] : []);
-  const sizeKey = getPref('labelSize', 'brother-dk1201');
+  const sizeKey = getPref('labelSize2', 'brother-62c');
 
   app.innerHTML = `
     ${pageHead('Print', 'Labels', 'Barcode labels for your Brother label printer.')}
@@ -1436,7 +1447,7 @@ async function renderLabels(kind, id) {
   };
 
   app.querySelector('#kind').addEventListener('change', (e) => (location.hash = `#/labels/${e.target.value}`));
-  app.querySelector('#size').addEventListener('change', (e) => { setPref('labelSize', e.target.value); paintPreview(); });
+  app.querySelector('#size').addEventListener('change', (e) => { setPref('labelSize2', e.target.value); paintPreview(); });
   app.querySelector('#unprinted')?.addEventListener('click', () => {
     app.querySelectorAll('.pick').forEach((c) => (c.checked = !sources[tab].find((r) => r.id === c.value)?.printed));
     paintPreview();
