@@ -1,5 +1,7 @@
 # Shop Inventory & Tool Sign-Out
 
+**Live app:** https://shop-inventory-one-omega.vercel.app
+
 A private web app for your team that does two things:
 
 1. **Inventory**: scan consumables in and out, see what's on hand, and get flagged when something drops to its reorder level.
