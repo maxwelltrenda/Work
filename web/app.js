@@ -961,7 +961,7 @@ async function renderItems(category) {
     const rows = show.filter((i) => (!f || `${i.name} ${i.code} ${i.location} ${i.description}`.toLowerCase().includes(f))
       && (!loc || i.location === loc) && (!lowOnly || low.includes(i)));
     app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Item</th><th>Location</th><th class="num">On hand</th><th class="num">Reorder at</th></tr>
-      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a href="#/item/${i.id}">${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}</td><td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td><td class="num">${i.reorder_level || ''}</td></tr>`).join('')
+      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a href="#/item/${i.id}">${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td><td class="num">${i.reorder_level || ''}</td></tr>`).join('')
       || `<tr><td colspan="5" class="muted">No ${meta.plain.toLowerCase()} yet.</td></tr>`}`;
   };
   app.querySelector('#filter').addEventListener('input', paint);
@@ -1007,7 +1007,8 @@ async function renderItem(id) {
       <div class="stat"><b>${it.reorder_level || '—'}</b><span>reorder at</span></div>
       <div class="stat"><b>${esc(it.location || '—')}</b><span>location</span></div>
     </div>
-    <div class="row" style="margin-bottom:16px"><a class="btn" href="#/labels/${stockKind(it.category)}/${it.id}">Print label</a></div>
+    <div class="row" style="margin-bottom:16px"><a class="btn" href="#/labels/${stockKind(it.category)}/${it.id}">Print label</a>
+      <span class="muted" style="align-self:center;font-size:14px">${it.label_printed_at ? `Label printed ${fmtDate(it.label_printed_at)}` : 'Label not printed yet'}</span></div>
     ${isAdmin() ? `<details class="card"><summary><b>Edit item</b></summary><form id="edit" style="margin-top:14px">${itemForm(it, locations)}
       <div class="row" style="margin-top:14px"><button class="btn primary">Save</button>
       <button type="button" class="btn ${it.active ? 'bad' : ''}" id="archive">${it.active ? 'Archive item' : 'Restore item'}</button></div></form></details>` : ''}
@@ -1075,7 +1076,7 @@ async function renderToolList() {
     const f = app.querySelector('#filter').value.toLowerCase();
     const rows = show.filter((t) => !f || `${t.name} ${t.code} ${t.serial_number} ${t.location}`.toLowerCase().includes(f));
     app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Tool</th><th>Serial</th><th>Status</th><th>With</th></tr>
-      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a href="#/tool/${t.id}">${esc(t.name)}</a></td><td class="code">${esc(t.serial_number)}</td><td><span class="pill ${t.status}">${t.status}</span></td><td>${openBy[t.id] ? `${esc(who[openBy[t.id].borrower_id])} <span class="muted">(${since(openBy[t.id].checked_out_at)})</span>` : ''}</td></tr>`).join('')
+      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a href="#/tool/${t.id}">${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td class="code">${esc(t.serial_number)}</td><td><span class="pill ${t.status}">${t.status}</span></td><td>${openBy[t.id] ? `${esc(who[openBy[t.id].borrower_id])} <span class="muted">(${since(openBy[t.id].checked_out_at)})</span>` : ''}</td></tr>`).join('')
       || '<tr><td colspan="5" class="muted">No tools yet.</td></tr>'}`;
   };
   app.querySelector('#filter').addEventListener('input', paint);
@@ -1114,6 +1115,7 @@ async function renderTool(id) {
       <div class="stat"><b>${hist.length}</b><span>times signed out</span></div>
     </div>
     <div class="row" style="margin-bottom:16px"><a class="btn" href="#/labels/tool/${t.id}">Print label</a>
+      <span class="muted" style="align-self:center;font-size:14px">${t.label_printed_at ? `Label printed ${fmtDate(t.label_printed_at)}` : 'Label not printed yet'}</span>
       ${isAdmin() && t.status !== 'out' ? `<select id="status">${['available', 'repair', 'lost', 'retired'].map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" id="set-status">Set status</button>` : ''}
     </div>
     ${isAdmin() ? `<details class="card"><summary><b>Edit tool</b></summary><form id="edit" style="margin-top:14px">${toolForm(t, locations)}
@@ -1335,10 +1337,10 @@ function setPref(key, value) {
 async function renderLabels(kind, id) {
   const [items, tools, members] = await Promise.all([loadItems(), loadTools(), loadMembers()]);
   const sources = {
-    facilities: items.filter((i) => i.active && i.category === 'facilities').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '' })),
-    events: items.filter((i) => i.active && i.category === 'events').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '' })),
-    people: people(members).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '' })),
-    tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.serial_number ? `S/N ${t.serial_number}` : '' })),
+    facilities: items.filter((i) => i.active && i.category === 'facilities').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
+    events: items.filter((i) => i.active && i.category === 'events').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
+    people: people(members).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '', printed: m.label_printed_at })),
+    tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.serial_number ? `S/N ${t.serial_number}` : '', printed: t.label_printed_at })),
     commands: [
       { id: 'in', code: CMD.IN, name: 'SCAN IN mode', sub: 'Scan Stock page' },
       { id: 'out', code: CMD.OUT, name: 'SCAN OUT mode', sub: 'Scan Stock page' },
@@ -1347,6 +1349,9 @@ async function renderLabels(kind, id) {
     ],
   };
   const tab = sources[kind] ? kind : 'facilities';
+  // Which table remembers when these labels were printed (commands aren't tracked).
+  const trackKind = { facilities: 'item', events: 'item', tool: 'tool', people: 'person' }[tab];
+  const unprinted = trackKind ? sources[tab].filter((r) => !r.printed).length : 0;
   const preselect = new Set(id ? [id] : []);
   const sizeKey = getPref('labelSize', 'brother-dk1201');
 
@@ -1368,12 +1373,27 @@ async function renderLabels(kind, id) {
       ${/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
         ? '<p class="scan-hint"><b>On iPad:</b> the Print button only finds printers over Wi-Fi (AirPrint). Bluetooth pairing isn\'t used. Put the label printer on the same Wi-Fi as this iPad, or print labels from a computer instead.</p>' : ''}
     </div>
-    <div class="row" style="margin-bottom:8px"><button class="btn small" id="all">Select all</button><button class="btn small" id="none">Select none</button></div>
-    <div class="table-wrap"><table><tr><th></th><th>Code</th><th>Name</th></tr>
-      ${sources[tab].map((r) => `<tr><td><input type="checkbox" class="pick" value="${r.id}" ${preselect.has(r.id) ? 'checked' : ''}></td><td class="code">${esc(r.code)}</td><td>${esc(r.name)}</td></tr>`).join('')
-      || '<tr><td colspan="3" class="muted">Nothing here yet.</td></tr>'}</table></div>
+    <div class="row" style="margin-bottom:10px;align-items:center">
+      ${trackKind ? `<button class="btn small" id="unprinted" ${unprinted ? '' : 'disabled'}>Select unprinted (${unprinted})</button>` : ''}
+      <button class="btn small" id="all">Select all</button><button class="btn small" id="none">Select none</button>
+      <span id="print-status" class="muted" style="font-size:14px"></span>
+    </div>
+    <div class="table-wrap"><table id="label-table"></table></div>
     <h2>Preview</h2>
     <div class="label-preview" id="preview"></div>`;
+
+  const paintTable = () => {
+    const checked = new Set([...app.querySelectorAll('.pick:checked')].map((c) => c.value));
+    const keep = (r) => checked.has(r.id) || (!app.querySelector('.pick') && preselect.has(r.id));
+    app.querySelector('#label-table').innerHTML = `<tr><th></th><th>Code</th><th>Name</th>${trackKind ? '<th>Label</th>' : ''}</tr>
+      ${sources[tab].map((r) => `<tr><td><input type="checkbox" class="pick" value="${r.id}" ${keep(r) ? 'checked' : ''}></td><td class="code">${esc(r.code)}</td><td>${esc(r.name)}</td>
+        ${trackKind ? `<td>${r.printed ? `<span class="pill good">Printed ${new Date(r.printed).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>` : '<span class="pill low">Not printed</span>'}</td>` : ''}</tr>`).join('')
+      || `<tr><td colspan="${trackKind ? 4 : 3}" class="muted">Nothing here yet.</td></tr>`}`;
+    app.querySelectorAll('.pick').forEach((c) => c.addEventListener('change', paintPreview));
+    const n = sources[tab].filter((r) => !r.printed).length;
+    const btn = app.querySelector('#unprinted');
+    if (btn) { btn.textContent = `Select unprinted (${n})`; btn.disabled = !n; }
+  };
 
   const size = () => LABEL_SIZES[app.querySelector('#size').value];
   const picked = () => {
@@ -1399,7 +1419,10 @@ async function renderLabels(kind, id) {
 
   app.querySelector('#kind').addEventListener('change', (e) => (location.hash = `#/labels/${e.target.value}`));
   app.querySelector('#size').addEventListener('change', (e) => { setPref('labelSize', e.target.value); paintPreview(); });
-  app.querySelectorAll('.pick').forEach((c) => c.addEventListener('change', paintPreview));
+  app.querySelector('#unprinted')?.addEventListener('click', () => {
+    app.querySelectorAll('.pick').forEach((c) => (c.checked = !sources[tab].find((r) => r.id === c.value)?.printed));
+    paintPreview();
+  });
   app.querySelector('#all').addEventListener('click', () => { app.querySelectorAll('.pick').forEach((c) => (c.checked = true)); paintPreview(); });
   app.querySelector('#none').addEventListener('click', () => { app.querySelectorAll('.pick').forEach((c) => (c.checked = false)); paintPreview(); });
   app.querySelector('#print').addEventListener('click', () => {
@@ -1413,7 +1436,28 @@ async function renderLabels(kind, id) {
     // Opened synchronously from the click so pop-up blockers allow it.
     const win = window.open(url, '_blank');
     if (!win) location.href = url;
+    if (trackKind) markPrinted(rows, true);
   });
+
+  // Remember what was printed; offer an undo in case the printer jammed.
+  async function markPrinted(rows, printed) {
+    const status = app.querySelector('#print-status');
+    try {
+      await rpc('mark_labels_printed', { p_kind: trackKind, p_ids: rows.map((r) => r.id), p_printed: printed });
+      const now = new Date().toISOString();
+      rows.forEach((r) => (r.printed = printed ? now : null));
+      paintTable();
+      if (!status) return;
+      if (printed) {
+        status.innerHTML = `Marked ${rows.length} label${rows.length === 1 ? '' : 's'} as printed. <a href="#" id="undo-print">Undo</a>`;
+        status.querySelector('#undo-print').addEventListener('click', (e) => { e.preventDefault(); markPrinted(rows, false); });
+      } else {
+        status.textContent = `Unmarked ${rows.length} label${rows.length === 1 ? '' : 's'}.`;
+      }
+    } catch (e) { toast(errMsg(e), true); }
+  }
+
+  paintTable();
   paintPreview();
 }
 
