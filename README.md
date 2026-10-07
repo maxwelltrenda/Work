@@ -26,7 +26,7 @@ It works with any USB or Bluetooth barcode scanner (they act like a keyboard) an
 | `FAC-` | Facilities stock item | `FAC-0001` |
 | `EVS-` | Event stock item | `EVS-0001` |
 | `TL-` | Tool | `TL-0001` |
-| `P-` | Person (name label, since there are no ID badges) | `P-001` |
+| `P-` | Person name label (optional; people can also just tap their name) | `P-001` |
 | `CMD-` | Mode switches: `CMD-IN`, `CMD-OUT`, `CMD-COUNT`, `CMD-DONE` | |
 
 Codes are assigned automatically when you add something. Print them from the **Labels** page.
@@ -35,7 +35,7 @@ Codes are assigned automatically when you add something. Print them from the **L
 
 **Scan Stock**: pick **Scan IN** or **Scan OUT** (or scan a `CMD-IN` / `CMD-OUT` label), type a quantity if it isn't 1, and scan the item. Admins also get **Set COUNT** for cycle counts.
 
-**Check In / Out** (what the warehouse iPad shows):
+**Check In / Out** (what the warehouse iPad shows). On your own login it assumes it's you, so you can scan straight away. On the shared kiosk login, people tap their name first:
 - *Taking tools:* scan your name label, then scan each tool. If you scan a tool first, it asks who's taking it.
 - *Returning:* scan the tool, then press Enter (or scan it again) for "Good", or tap Damaged / Needs repair. Damaged tools are blocked from sign-out until an admin marks them available.
 - Scan `CMD-DONE` or tap **Done** when you're finished. It also clears itself after 2 idle minutes.
@@ -52,7 +52,7 @@ Mount an iPad in the warehouse and leave it signed in to a **kiosk** login, so n
 4. Optional: turn on **Guided Access** (Settings → Accessibility) to lock the iPad to this app.
 
 At the iPad:
-- **Taking anything:** scan your name label (or tap your name), choose **Shop use** or an event, then scan tools and items. Tap **Done** or scan `CMD-DONE` when finished. It also clears itself after 90 idle seconds.
+- **Taking anything:** tap your name (or scan your name label), choose **Shop use** or an event, then scan tools and items. Tap **Done** or scan `CMD-DONE` when finished. It also clears itself after 90 idle seconds.
 - **Returning a tool:** just scan it, no name needed. If it's damaged, tap **Damaged** or **Needs repair** and it's blocked from going out until an admin clears it.
 - **Putting stock back:** scan your name, tap **Putting back**, and scan.
 

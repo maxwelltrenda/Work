@@ -464,11 +464,15 @@ async function renderKiosk() {
   const crew = people(members);
   const k = state.kiosk;
   if (k.event && !events.some((e) => e.id === k.event.id)) k.event = null;
+  // On someone's own login it's them doing the scanning; only the shared
+  // kiosk login has to ask who's there.
+  const self = isKiosk() ? null : crew.find((m) => m.id === state.me.id) || null;
+  if (!k.person && self) k.person = self;
 
   app.innerHTML = `
     <div class="kiosk">
       <div id="k-who"></div>
-      <input id="scan" class="scanbox" placeholder="Scan a name label, tool or item…" autocomplete="off" autocapitalize="characters">
+      <input id="scan" class="scanbox" placeholder="Scan a tool, item or name label…" autocomplete="off" autocapitalize="characters">
       <div id="status"></div>
       <div id="k-panel"></div>
       <h2>This session</h2>
@@ -492,10 +496,10 @@ async function renderKiosk() {
 
   const resetIdle = () => {
     clearTimeout(k.idle);
-    if (k.person) k.idle = setTimeout(() => { endSession(); show('info', 'Timed out — scan your name label to start again.'); }, KIOSK_IDLE_MS);
+    if (k.person && isKiosk()) k.idle = setTimeout(() => { endSession(); show('info', 'Timed out — tap your name to start again.'); }, KIOSK_IDLE_MS);
   };
   const endSession = () => {
-    k.person = null;
+    k.person = self;
     k.event = null;
     k.mode = 'out';
     k.qty = 1;
@@ -517,7 +521,7 @@ async function renderKiosk() {
         <div class="card">
           <div class="eyebrow">Check in / out</div>
           <h1 class="kiosk-title">Who are <span class="accent">you</span>?</h1>
-          <p class="lede">Scan your name label or tap your name. <b>Just returning something?</b> Scan it — no name needed.</p>
+          <p class="lede">Tap your name (or scan your name label) to start. <b>Just returning a tool?</b> Scan it — no name needed.</p>
           <div class="people-pick">${crew.map((m) => `<button class="btn" data-person="${m.id}">${esc(m.name)}</button>`).join('')}</div>
         </div>`;
       el.querySelectorAll('[data-person]').forEach((b) => b.addEventListener('click', () => {
@@ -530,7 +534,7 @@ async function renderKiosk() {
     el.innerHTML = `
       <div class="card">
         <div class="row" style="justify-content:space-between;align-items:center">
-          <div><div class="eyebrow">Signed in at the kiosk</div><h1 class="kiosk-title" style="margin:0">Hi, <span class="accent">${esc(k.person.name)}</span></h1></div>
+          <div><div class="eyebrow">${isKiosk() ? 'Signed in at the kiosk' : 'Checking in / out as'}</div><h1 class="kiosk-title" style="margin:0">Hi, <span class="accent">${esc(k.person.name)}</span></h1></div>
           <button class="btn bad" id="k-done" style="font-size:18px;padding:10px 22px">Done</button>
         </div>
         <h2 style="margin-top:22px">Where is it going?</h2>
@@ -607,7 +611,7 @@ async function renderKiosk() {
     resetIdle();
     if (upper === CMD.DONE) { endSession(); return show('ok', 'All set — thanks!'); }
     if (upper === CMD.IN || upper === CMD.OUT) {
-      if (!k.person) return show('err', 'Scan your name label first.');
+      if (!k.person) return show('err', 'Tap your name first.');
       k.mode = upper === CMD.IN ? 'in' : 'out';
       paintWho();
       return show('info', k.mode === 'in' ? 'Putting stock back.' : 'Taking stock.');
@@ -618,7 +622,7 @@ async function renderKiosk() {
 
     if (hit.kind === 'person') {
       const m = crew.find((x) => x.id === hit.record.id);
-      if (!m) { beep(false); return show('err', 'That name label is inactive.'); }
+      if (!m) { beep(false); return show('err', 'That person is inactive.'); }
       startSession(m);
       beep(true);
       if (k.pendingTool) { const t = k.pendingTool; k.pendingTool = null; return doCheckout(t); }
@@ -632,13 +636,13 @@ async function renderKiosk() {
       if (!k.person) {
         k.pendingTool = tool;
         beep(false);
-        return show('info', `Who's taking <b>${esc(tool.name)}</b>? Scan your name label or tap your name above.`);
+        return show('info', `Who's taking <b>${esc(tool.name)}</b>? Tap your name above.`);
       }
       return doCheckout(tool);
     }
 
     if (hit.kind === 'item') {
-      if (!k.person) { beep(false); return show('err', 'Scan your name label first.'); }
+      if (!k.person) { beep(false); return show('err', 'Tap your name first.'); }
       const qty = k.qty;
       try {
         const res = await rpc('scan_item', { p_code: code, p_type: k.mode, p_qty: qty, p_member: k.person.id, p_event: k.event?.id || null });
@@ -1188,7 +1192,7 @@ async function renderPeople() {
   const members = await loadMembers();
   app.innerHTML = `
     ${pageHead('Team', 'People')}
-    <p class="muted">Anyone with an email here can sign in (they create their own password with that email). People without an email can still use the warehouse iPad with their name label.
+    <p class="muted">Anyone with an email here can sign in (they create their own password with that email). People without an email can still use the warehouse iPad by tapping their name.
       <b>Kiosk</b> is for the shared iPad's login: it can check things in and out for whoever scans their name, but can't change settings.</p>
     ${isAdmin() ? `<div class="card"><form id="add" class="row">
       <label style="flex:1;min-width:160px">Name <input name="name" required></label>
@@ -1333,8 +1337,8 @@ async function renderLabels(kind, id) {
   const sources = {
     facilities: items.filter((i) => i.active && i.category === 'facilities').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '' })),
     events: items.filter((i) => i.active && i.category === 'events').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '' })),
-    tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.serial_number ? `S/N ${t.serial_number}` : '' })),
     people: people(members).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '' })),
+    tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.serial_number ? `S/N ${t.serial_number}` : '' })),
     commands: [
       { id: 'in', code: CMD.IN, name: 'SCAN IN mode', sub: 'Scan Stock page' },
       { id: 'out', code: CMD.OUT, name: 'SCAN OUT mode', sub: 'Scan Stock page' },
