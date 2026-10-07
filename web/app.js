@@ -24,7 +24,7 @@ const LABEL_SIZES = {
 const MARK = `<svg viewBox="0 0 40 40" width="26" height="26" fill="none" aria-hidden="true">
   <rect x="6" y="22" width="12" height="11" rx="1.5" fill="currentColor" opacity=".45"/>
   <rect x="21" y="22" width="12" height="11" rx="1.5" fill="currentColor" opacity=".7"/>
-  <rect x="13.5" y="9" width="12" height="11" rx="1.5" fill="#a67c3d"/></svg>`;
+  <rect x="13.5" y="9" width="12" height="11" rx="1.5" fill="#ad4e12"/></svg>`;
 
 const state = {
   session: null,
