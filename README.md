@@ -52,7 +52,7 @@ Mount an iPad in the warehouse and leave it signed in to a **kiosk** login, so n
 4. Optional: turn on **Guided Access** (Settings → Accessibility) to lock the iPad to this app.
 
 At the iPad:
-- **Taking anything:** tap your name (or scan your name label), choose **Shop use** or an event, then scan tools and items. Tap **Done** or scan `CMD-DONE` when finished. It also clears itself after 90 idle seconds.
+- **Taking anything:** tap your name (or scan your name label). Under **Where is it going?** pick **Shop use** or a location (admins can **+ Add** one), or pick an **Offsite event** from the dropdown. Then scan tools and items. Tap **Done** or scan `CMD-DONE` when finished. It also clears itself after 90 idle seconds.
 - **Returning a tool:** just scan it, no name needed. If it's damaged, tap **Damaged** or **Needs repair** and it's blocked from going out until an admin clears it.
 - **Putting stock back:** scan your name, tap **Putting back**, and scan.
 

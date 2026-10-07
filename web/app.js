@@ -36,7 +36,7 @@ const state = {
   me: null,
   stockMode: 'out',
   stockLog: [],
-  kiosk: { person: null, event: null, mode: 'out', qty: 1, log: [], idle: null, pendingTool: null },
+  kiosk: { person: null, event: null, dest: null, mode: 'out', qty: 1, log: [], idle: null, pendingTool: null },
 };
 
 // ---------------------------------------------------------------------------
@@ -186,7 +186,7 @@ async function signOut(expired = false) {
     Object.keys(localStorage).filter((k) => /^sb-.*-auth-token/.test(k)).forEach((k) => localStorage.removeItem(k));
   } catch { /* storage unavailable */ }
   clearTimeout(state.kiosk.idle);
-  state.kiosk = { person: null, event: null, mode: 'out', qty: 1, log: [], idle: null, pendingTool: null };
+  state.kiosk = { person: null, event: null, dest: null, mode: 'out', qty: 1, log: [], idle: null, pendingTool: null };
   state.stockLog = [];
   state.session = null;
   state.me = null;
@@ -482,10 +482,13 @@ const people = (members) => members.filter((m) => m.active && m.role !== 'kiosk'
 const openEvents = async () => q(sb.from('events').select('*').neq('status', 'closed').order('starts_on', { ascending: true, nullsFirst: false }));
 
 async function renderKiosk() {
-  const [members, events] = await Promise.all([loadMembers(), openEvents()]);
+  const [members, events, locations] = await Promise.all([loadMembers(), openEvents(), loadLocations()]);
   const crew = people(members);
   const k = state.kiosk;
   if (k.event && !events.some((e) => e.id === k.event.id)) k.event = null;
+  if (k.dest && !locations.some((l) => l.name === k.dest)) k.dest = null;
+  // Where things are going: a location, an offsite event, or (neither) shop use.
+  const whereText = () => (k.event ? k.event.name : k.dest || '');
   // On someone's own login it's them doing the scanning; only the shared
   // kiosk login has to ask who's there.
   const self = isKiosk() ? null : crew.find((m) => m.id === state.me.id) || null;
@@ -523,6 +526,7 @@ async function renderKiosk() {
   const endSession = () => {
     k.person = self;
     k.event = null;
+    k.dest = null;
     k.mode = 'out';
     k.qty = 1;
     k.pendingTool = null;
@@ -560,10 +564,18 @@ async function renderKiosk() {
           <button class="btn bad" id="k-done" style="font-size:18px;padding:10px 22px">Done</button>
         </div>
         <h2 style="margin-top:22px">Where is it going?</h2>
-        <div class="modes" id="k-event">
-          <button class="btn ${k.event ? '' : 'on primary'}" data-event="">Shop use</button>
-          ${events.map((e) => `<button class="btn ${k.event?.id === e.id ? 'on primary' : ''}" data-event="${e.id}">${esc(e.name)}${e.starts_on ? ` <span style="font-weight:400">· ${new Date(`${e.starts_on}T12:00`).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>` : ''}</button>`).join('')}
+        <div class="modes" id="k-dest">
+          <button class="btn ${!k.dest && !k.event ? 'on primary' : ''}" data-dest="">Shop use</button>
+          ${locations.map((l) => `<button class="btn ${k.dest === l.name ? 'on primary' : ''}" data-dest="${esc(l.name)}">${esc(l.name)}</button>`).join('')}
+          ${isAdmin() ? '<button class="btn" id="k-add-dest" title="Add a location">+ Add</button>' : ''}
         </div>
+        ${events.length ? `<div class="row" style="margin-top:12px;align-items:center">
+          <label style="flex-direction:row;align-items:center;gap:10px;font-size:15px">Offsite event
+            <select id="k-event" style="min-width:240px">
+              <option value="">— None —</option>
+              ${events.map((e) => `<option value="${e.id}" ${k.event?.id === e.id ? 'selected' : ''}>${esc(e.name)}${e.starts_on ? ` · ${new Date(`${e.starts_on}T12:00`).toLocaleDateString([], { month: 'short', day: 'numeric' })}` : ''}</option>`).join('')}
+            </select></label>
+        </div>` : ''}
         <h2>Stock items</h2>
         <div class="row" style="align-items:center">
           <div class="modes" id="k-mode">
@@ -579,10 +591,31 @@ async function renderKiosk() {
         <p class="scan-hint">Tools: scan to sign out, scan again later to return. Items: set the quantity, then scan.</p>
       </div>`;
     el.querySelector('#k-done').addEventListener('click', () => { endSession(); show('ok', 'All set — thanks!'); });
-    el.querySelectorAll('[data-event]').forEach((b) => b.addEventListener('click', () => {
-      k.event = events.find((e) => e.id === b.dataset.event) || null;
+    // A location and an event are alternatives: picking one clears the other.
+    el.querySelectorAll('[data-dest]').forEach((b) => b.addEventListener('click', () => {
+      k.dest = b.dataset.dest || null;
+      k.event = null;
       paintWho(); resetIdle(); scan.focus();
     }));
+    el.querySelector('#k-event')?.addEventListener('change', (e) => {
+      k.event = events.find((ev) => ev.id === e.target.value) || null;
+      if (k.event) k.dest = null;
+      paintWho(); resetIdle(); scan.focus();
+    });
+    el.querySelector('#k-add-dest')?.addEventListener('click', async () => {
+      const name = (prompt('New location (e.g. "Main Building", "Youth Room"):') || '').trim();
+      if (!name) return scan.focus();
+      try {
+        await q(sb.from('locations').insert({ name }).select());
+      } catch (err) {
+        if (!/duplicate|unique/i.test(errMsg(err))) { toast(errMsg(err), true); return scan.focus(); }
+      }
+      if (!locations.some((l) => l.name === name)) locations.push({ name });
+      locations.sort((a, b) => a.name.localeCompare(b.name));
+      k.dest = name;
+      k.event = null;
+      paintWho(); resetIdle(); scan.focus();
+    });
     el.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
       k.mode = b.dataset.mode;
       paintWho(); resetIdle(); scan.focus();
@@ -598,9 +631,9 @@ async function renderKiosk() {
 
   async function doCheckout(tool) {
     try {
-      await rpc('checkout_tool', { p_code: tool.code, p_borrower: k.person.id, p_event: k.event?.id || null });
+      await rpc('checkout_tool', { p_code: tool.code, p_borrower: k.person.id, p_event: k.event?.id || null, p_destination: k.event ? null : k.dest });
       beep(true);
-      const where = k.event ? ` for ${k.event.name}` : '';
+      const where = whereText() ? ` for ${whereText()}` : '';
       show('ok', `<b>${esc(tool.name)}</b> signed out to <b>${esc(k.person.name)}</b>${esc(where)}.`);
       log('out', `${tool.name} → ${k.person.name}${where}`);
     } catch (e) { beep(false); show('err', esc(errMsg(e))); }
@@ -667,10 +700,10 @@ async function renderKiosk() {
       if (!k.person) { beep(false); return show('err', 'Tap your name first.'); }
       const qty = k.qty;
       try {
-        const res = await rpc('scan_item', { p_code: code, p_type: k.mode, p_qty: qty, p_member: k.person.id, p_event: k.event?.id || null });
+        const res = await rpc('scan_item', { p_code: code, p_type: k.mode, p_qty: qty, p_member: k.person.id, p_event: k.event?.id || null, p_destination: k.event ? null : k.dest });
         const it = res.item;
         const low = it.reorder_level > 0 && it.quantity <= it.reorder_level;
-        const where = k.event ? ` (${k.event.name})` : '';
+        const where = whereText() ? ` (${whereText()})` : '';
         beep(true);
         show('ok', `${k.mode === 'in' ? 'Put back' : 'Took'} ${qty} × <b>${esc(it.name)}</b>${esc(where)}. ${it.quantity} left${esc(packNote(it))}.${low ? ' <span class="pill low">LOW — tell the office</span>' : ''}`);
         log(k.mode, `${qty} × ${it.name}${where} · ${k.person.name}`);
@@ -876,7 +909,7 @@ async function renderOut() {
       ${groups[name].map((c) => {
         const t = byId[c.tool_id];
         const late = c.due_at && new Date(c.due_at) < new Date();
-        return `<tr class="${late ? 'overdue' : ''}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a></td><td class="code">${esc(t?.code)}</td><td>${c.event_id ? `<a href="#/event/${c.event_id}">${esc(evName[c.event_id])}</a>` : '<span class="muted">shop</span>'}</td><td>${fmtDate(c.checked_out_at)} <span class="muted">(${since(c.checked_out_at)})</span></td><td>${c.due_at ? new Date(c.due_at).toLocaleDateString() : ''}${late ? ' <span class="pill overdue">OVERDUE</span>' : ''}</td><td>${esc(c.out_note)}</td></tr>`;
+        return `<tr class="${late ? 'overdue' : ''}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a></td><td class="code">${esc(t?.code)}</td><td>${c.event_id ? `<a href="#/event/${c.event_id}">${esc(evName[c.event_id])}</a>` : c.destination ? esc(c.destination) : '<span class="muted">shop</span>'}</td><td>${fmtDate(c.checked_out_at)} <span class="muted">(${since(c.checked_out_at)})</span></td><td>${c.due_at ? new Date(c.due_at).toLocaleDateString() : ''}${late ? ' <span class="pill overdue">OVERDUE</span>' : ''}</td><td>${esc(c.out_note)}</td></tr>`;
       }).join('')}</table></div>`).join('') || '<div class="card muted">Every tool is in.</div>'}
     ${flagged.length ? `<h2>Needs attention</h2><div class="table-wrap"><table><tr><th>Tool</th><th>Code</th><th>Status</th></tr>
       ${flagged.map((t) => `<tr><td><a href="#/tool/${t.id}">${esc(t.name)}</a></td><td class="code">${esc(t.code)}</td><td><span class="pill ${t.status}">${t.status}</span></td></tr>`).join('')}</table></div>` : ''}`;
@@ -1198,14 +1231,14 @@ async function renderHistory() {
     const out = app.querySelector('#out');
     if (app.querySelector('#kind').value === 'stock') {
       const tx = await q(sb.from('item_transactions').select('*').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false }).limit(2000));
-      rows = tx.map((t) => ({ when: fmtDate(t.created_at), type: t.type, code: itemBy[t.item_id]?.code, item: itemBy[t.item_id]?.name, change: t.qty, after: t.qty_after, stock: STOCK[itemBy[t.item_id]?.category]?.plain || '', who: who[t.member_id], event: evName[t.event_id] || '', recorded_by: t.recorded_by && t.recorded_by !== t.member_id ? who[t.recorded_by] : '', note: t.note }));
-      out.innerHTML = `<div class="table-wrap"><table><tr><th>When</th><th>Type</th><th>Item</th><th class="num">Change</th><th class="num">After</th><th>Who</th><th>Event</th><th>Note</th></tr>
+      rows = tx.map((t) => ({ when: fmtDate(t.created_at), type: t.type, code: itemBy[t.item_id]?.code, item: itemBy[t.item_id]?.name, change: t.qty, after: t.qty_after, stock: STOCK[itemBy[t.item_id]?.category]?.plain || '', who: who[t.member_id], event: evName[t.event_id] || t.destination || '', recorded_by: t.recorded_by && t.recorded_by !== t.member_id ? who[t.recorded_by] : '', note: t.note }));
+      out.innerHTML = `<div class="table-wrap"><table><tr><th>When</th><th>Type</th><th>Item</th><th class="num">Change</th><th class="num">After</th><th>Who</th><th>Where</th><th>Note</th></tr>
         ${rows.map((r) => `<tr><td>${r.when}</td><td><span class="pill ${r.type}">${r.type}</span></td><td>${esc(r.item)} <span class="code muted">${esc(r.code)}</span><div class="muted" style="font-size:13px">${esc(r.stock)}</div></td><td class="num">${r.change > 0 ? '+' : ''}${r.change}</td><td class="num">${r.after}</td><td>${esc(r.who)}${r.recorded_by ? ` <span class="muted">(at ${esc(r.recorded_by)})</span>` : ''}</td><td>${esc(r.event)}</td><td>${esc(r.note)}</td></tr>`).join('')
         || '<tr><td colspan="8" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
     } else {
       const co = await q(sb.from('tool_checkouts').select('*').gte('checked_out_at', start).lte('checked_out_at', end).order('checked_out_at', { ascending: false }).limit(2000));
-      rows = co.map((c) => ({ out: fmtDate(c.checked_out_at), code: toolBy[c.tool_id]?.code, tool: toolBy[c.tool_id]?.name, who: who[c.borrower_id], event: evName[c.event_id] || '', returned: c.returned_at ? fmtDate(c.returned_at) : 'still out', condition: c.return_condition, notes: [c.out_note, c.return_note].filter(Boolean).join(' / ') }));
-      out.innerHTML = `<div class="table-wrap"><table><tr><th>Out</th><th>Tool</th><th>Who</th><th>Event</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
+      rows = co.map((c) => ({ out: fmtDate(c.checked_out_at), code: toolBy[c.tool_id]?.code, tool: toolBy[c.tool_id]?.name, who: who[c.borrower_id], event: evName[c.event_id] || c.destination || '', returned: c.returned_at ? fmtDate(c.returned_at) : 'still out', condition: c.return_condition, notes: [c.out_note, c.return_note].filter(Boolean).join(' / ') }));
+      out.innerHTML = `<div class="table-wrap"><table><tr><th>Out</th><th>Tool</th><th>Who</th><th>Where</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
         ${rows.map((r) => `<tr><td>${r.out}</td><td>${esc(r.tool)} <span class="code muted">${esc(r.code)}</span></td><td>${esc(r.who)}</td><td>${esc(r.event)}</td><td>${r.returned}</td><td>${r.condition ? `<span class="pill ${r.condition}">${r.condition.replace('_', ' ')}</span>` : ''}</td><td>${esc(r.notes)}</td></tr>`).join('')
         || '<tr><td colspan="7" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
     }
