@@ -123,6 +123,24 @@ function bindScanner(input, onScan) {
     if (!e.target.closest('input, select, textarea, button, a')) input.focus();
   };
   document.addEventListener('click', refocus);
+
+  // A scan typed while something else has focus (a button, a dropdown, the
+  // page itself, or the quantity box) still goes to the scan box: the first
+  // character moves focus there, and the rest of the scan plus Enter follow.
+  const capture = (e) => {
+    if (!document.body.contains(input)) return document.removeEventListener('keydown', capture, true);
+    if (e.target === input || e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
+    if (document.querySelector('.dd-menu')) return; // typing to jump in an open dropdown
+    const t = e.target;
+    const isText = t.matches?.('textarea, input:not([type]), input[type=text], input[type=search], input[type=email], input[type=password]');
+    const isNumber = t.matches?.('input[type=number], input[type=date]');
+    if (isText) return; // someone is typing a note or a name
+    if (isNumber && /[0-9.\-]/.test(e.key)) return; // typing a quantity
+    e.preventDefault();
+    input.focus();
+    input.value += e.key;
+  };
+  document.addEventListener('keydown', capture, true);
   input.focus();
 }
 
