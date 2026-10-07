@@ -42,6 +42,19 @@ Codes are assigned automatically when you add something. Print them from the **L
 
 **Who Has What**: everything signed out, grouped by person, with overdue items highlighted.
 
+## Roles
+
+| Role | Sees | Can change things |
+|---|---|---|
+| **Admin** | Everything | Yes: edits, scans, labels, people, locations |
+| **Kiosk** | Check In / Out, Who Has What, Events | Scans and check-ins/outs for whoever taps their name |
+| **Facilities & Maintenance** (member) | Facilities stock, tools, and their history | View only |
+| **Maintenance manager** | Tools, Who Has What, tool history | View only |
+| **Custodian manager** | Facilities stock and its history | View only |
+| **Oversight** | Everything we have, where it is, all check-ins/outs | View only |
+
+These rules are enforced in the database, not just hidden on screen. Anyone on the team list can still check things out at the warehouse iPad by tapping their name.
+
 ## Warehouse iPad (shared kiosk)
 
 Mount an iPad in the warehouse and leave it signed in to a **kiosk** login, so nobody needs their own device.

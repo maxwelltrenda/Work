@@ -50,6 +50,32 @@ const pageHead = (eyebrow, title, sub = '') =>
   `<header class="page-head"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${sub ? `<p class="lede">${sub}</p>` : ''}</header>`;
 const isKiosk = () => state.me?.role === 'kiosk';
 
+// What each role can open. Only admin and the kiosk can change anything; the
+// database enforces the same rules (see 0008_view_roles.sql).
+const ALL_PAGES = [
+  ['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
+  ['items/facilities', 'Facilities Stock'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
+  ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'],
+];
+const ROLES = {
+  admin: { label: 'Admin', act: true, home: 'kiosk', stock: ['facilities', 'events'], tools: true,
+    pages: [...ALL_PAGES.map(([k]) => k), 'item', 'tool', 'event'] },
+  kiosk: { label: 'Kiosk (shared iPad)', act: true, home: 'kiosk', stock: ['facilities', 'events'], tools: true,
+    pages: ['kiosk', 'out', 'events', 'event'] },
+  member: { label: 'Facilities & Maintenance', act: false, home: 'items/facilities', stock: ['facilities'], tools: true,
+    pages: ['items/facilities', 'toollist', 'out', 'history', 'item', 'tool'] },
+  maintenance: { label: 'Maintenance manager', act: false, home: 'toollist', stock: [], tools: true,
+    pages: ['toollist', 'out', 'history', 'tool'] },
+  custodian: { label: 'Custodian manager', act: false, home: 'items/facilities', stock: ['facilities'], tools: false,
+    pages: ['items/facilities', 'history', 'item'] },
+  oversight: { label: 'Oversight', act: false, home: 'out', stock: ['facilities', 'events'], tools: true,
+    pages: ['out', 'events', 'items/facilities', 'items/events', 'toollist', 'history', 'locations', 'item', 'tool', 'event'] },
+};
+const ROLE_ORDER = ['member', 'maintenance', 'custodian', 'oversight', 'admin', 'kiosk'];
+const myRole = () => ROLES[state.me?.role] || ROLES.member;
+const canAct = () => myRole().act;
+const pageKey = (name, arg) => (name === 'items' ? `items/${stockKind(arg)}` : name);
+
 function fmtDate(ts) {
   if (!ts) return '';
   return new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -243,16 +269,11 @@ function renderTopbar() {
     nav.innerHTML = '';
     who.innerHTML = state.session ? `<button id="signout">Sign out</button>` : '';
   } else {
-    const links = isKiosk()
-      ? [['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events']]
-      : [['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
-        ['items/facilities', 'Facilities Stock'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
-        ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'],
-        ...(isAdmin() ? [['locations', 'Locations']] : [])];
+    const links = ALL_PAGES.filter(([k]) => myRole().pages.includes(k));
     const [h0, h1] = location.hash.slice(2).split('/');
-    const cur = h0 === 'items' ? `items/${stockKind(h1)}` : (h0 || 'kiosk');
+    const cur = h0 ? pageKey(h0, h1) : myRole().home;
     nav.innerHTML = links.map(([k, t]) => `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${t}</a>`).join('');
-    who.innerHTML = `<span>${esc(state.me.name)}${isAdmin() ? ' · admin' : ''}${isKiosk() ? ' · kiosk' : ''}</span><button id="signout">Sign out</button>`;
+    who.innerHTML = `<span>${esc(state.me.name)} · ${esc(myRole().label)}</span><button id="signout">Sign out</button>`;
   }
   document.getElementById('signout')?.addEventListener('click', signOut);
 }
@@ -355,8 +376,12 @@ window.addEventListener('hashchange', () => state.me && route());
 
 async function route() {
   const [name, ...args] = location.hash.slice(2).split('/');
-  const kioskOnly = ['kiosk', 'out', 'events', 'event'];
-  const fn = (isKiosk() && !kioskOnly.includes(name) ? null : routes[name]) || renderKiosk;
+  // Anything a role can't open goes to that role's home page.
+  if (!name || !routes[name] || !myRole().pages.includes(pageKey(name, args[0]))) {
+    const home = `#/${myRole().home}`;
+    if (location.hash !== home) { location.hash = home; return; }
+  }
+  const fn = routes[name] || renderKiosk;
   if (name !== 'kiosk') clearTimeout(state.kiosk.idle);
   renderTopbar();
   app.innerHTML = LOADER;
@@ -762,7 +787,7 @@ async function renderEvents() {
 
   app.innerHTML = `
     ${pageHead('Offsite', 'Events', 'Plan an offsite job, then pick it on the Check In / Out screen when loading the truck. Everything scanned goes on the event’s list.')}
-    <details class="card" ${live.length ? '' : 'open'}><summary><b>New event</b></summary>
+    <details class="card" ${live.length ? '' : 'open'} ${canAct() ? '' : 'hidden'}><summary><b>New event</b></summary>
       <form id="add" style="margin-top:12px">${eventForm()}
         <h2>Crew</h2><div class="people-pick">${crew.map((m) => `<label class="chip"><input type="checkbox" name="crew" value="${m.id}"> ${esc(m.name)}</label>`).join('')}</div>
         <div style="margin-top:12px"><button class="btn primary">Create event</button></div></form></details>
@@ -823,15 +848,15 @@ async function renderEvent(id) {
 
     <h2>Crew</h2>
     <div class="card"><div class="people-pick">
-      ${[...crewIds].map((mid) => `<span class="chip">${esc(who[mid])} ${ev.status !== 'closed' ? `<button class="x" data-remove="${mid}" title="Remove">×</button>` : ''}</span>`).join('') || '<span class="muted">No crew yet.</span>'}
-      ${ev.status !== 'closed' && notCrew.length ? `<select id="add-crew"><option value="">+ Add person…</option>${notCrew.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>` : ''}
+      ${[...crewIds].map((mid) => `<span class="chip">${esc(who[mid])} ${ev.status !== 'closed' && canAct() ? `<button class="x" data-remove="${mid}" title="Remove">×</button>` : ''}</span>`).join('') || '<span class="muted">No crew yet.</span>'}
+      ${ev.status !== 'closed' && notCrew.length && canAct() ? `<select id="add-crew"><option value="">+ Add person…</option>${notCrew.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>` : ''}
     </div></div>
 
     <h2>Tools</h2>
     <div class="table-wrap"><table><tr><th>Tool</th><th>Signed out by</th><th>Out</th><th>Back</th><th></th></tr>
       ${checkouts.map((c) => { const t = toolBy[c.tool_id]; return `<tr class="${c.returned_at ? '' : 'overdue'}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a> <span class="code muted">${esc(t?.code)}</span></td><td>${esc(who[c.borrower_id])}</td><td>${fmtDate(c.checked_out_at)}</td>
         <td>${c.returned_at ? `${fmtDate(c.returned_at)}${c.return_condition && c.return_condition !== 'good' ? ` <span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}` : '<span class="pill out">NOT BACK</span>'}</td>
-        <td>${c.returned_at ? '' : `<button class="btn small bad" data-lost="${c.tool_id}">Mark lost</button>`}</td></tr>`; }).join('')
+        <td>${c.returned_at || !canAct() ? '' : `<button class="btn small bad" data-lost="${c.tool_id}">Mark lost</button>`}</td></tr>`; }).join('')
       || '<tr><td colspan="5" class="muted">No tools signed out to this event yet. Pick this event on the Check In/Out screen and scan.</td></tr>'}</table></div>
 
     <h2>Stock</h2>
@@ -840,10 +865,10 @@ async function renderEvent(id) {
       || '<tr><td colspan="4" class="muted">No stock scanned for this event.</td></tr>'}</table></div>
 
     <div class="row" style="margin-top:18px">
-      ${ev.status !== 'closed' ? '<button class="btn primary" id="close">Close event</button>' : '<button class="btn" id="reopen">Reopen event</button>'}
+      ${!canAct() ? '' : ev.status !== 'closed' ? '<button class="btn primary" id="close">Close event</button>' : '<button class="btn" id="reopen">Reopen event</button>'}
       <button class="btn" id="csv">Export CSV</button>
     </div>
-    ${ev.status !== 'closed' ? `<details class="card" style="margin-top:16px"><summary><b>Edit event details</b></summary><form id="edit" style="margin-top:12px">${eventForm(ev)}<div style="margin-top:12px"><button class="btn primary">Save</button></div></form></details>` : ''}`;
+    ${ev.status !== 'closed' && canAct() ? `<details class="card" style="margin-top:16px"><summary><b>Edit event details</b></summary><form id="edit" style="margin-top:12px">${eventForm(ev)}<div style="margin-top:12px"><button class="btn primary">Save</button></div></form></details>` : ''}`;
 
   const reload = () => route();
   app.querySelectorAll('[data-remove]').forEach((b) => b.addEventListener('click', async () => {
@@ -1074,7 +1099,7 @@ async function renderItem(id) {
       <div class="stat"><b>${it.reorder_level || '—'}</b><span>reorder at</span></div>
       <div class="stat"><b>${esc(it.location || '—')}</b><span>location</span></div>
     </div>
-    <div class="row" style="margin-bottom:16px"><a class="btn" href="#/labels/${stockKind(it.category)}/${it.id}">Print label</a>
+    <div class="row" style="margin-bottom:16px">${canAct() ? `<a class="btn" href="#/labels/${stockKind(it.category)}/${it.id}">Print label</a>` : ''}
       <span class="muted" style="align-self:center;font-size:14px">${it.label_printed_at ? `Label printed ${fmtDate(it.label_printed_at)}` : 'Label not printed yet'}</span></div>
     ${isAdmin() ? `<details class="card"><summary><b>Edit item</b></summary><form id="edit" style="margin-top:14px">${itemForm(it, locations)}
       <div class="row" style="margin-top:14px"><button class="btn primary">Save</button>
@@ -1181,7 +1206,7 @@ async function renderTool(id) {
       <div class="stat"><b>${t.value ? `$${Number(t.value).toLocaleString()}` : '—'}</b><span>value</span></div>
       <div class="stat"><b>${hist.length}</b><span>times signed out</span></div>
     </div>
-    <div class="row" style="margin-bottom:16px"><a class="btn" href="#/labels/tool/${t.id}">Print label</a>
+    <div class="row" style="margin-bottom:16px">${canAct() ? `<a class="btn" href="#/labels/tool/${t.id}">Print label</a>` : ''}
       <span class="muted" style="align-self:center;font-size:14px">${t.label_printed_at ? `Label printed ${fmtDate(t.label_printed_at)}` : 'Label not printed yet'}</span>
       ${isAdmin() && t.status !== 'out' ? `<select id="status">${['available', 'repair', 'lost', 'retired'].map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" id="set-status">Set status</button>` : ''}
     </div>
@@ -1218,7 +1243,7 @@ async function renderHistory() {
     <div class="row" style="margin-bottom:12px">
       <label>From <input type="date" id="from" value="${from}"></label>
       <label>To <input type="date" id="to" value="${new Date().toISOString().slice(0, 10)}"></label>
-      <label>Show <select id="kind"><option value="stock">Stock scans</option><option value="tools">Tool sign-outs</option></select></label>
+      <label>Show <select id="kind">${myRole().stock.length ? '<option value="stock">Stock scans</option>' : ''}${myRole().tools ? '<option value="tools">Tool sign-outs</option>' : ''}</select></label>
       <button class="btn" id="csv">Export CSV</button>
     </div>
     <div id="out">${LOADER}</div>`;
@@ -1262,14 +1287,16 @@ async function renderPeople() {
   app.innerHTML = `
     ${pageHead('Team', 'People')}
     <p class="muted">Anyone with an email here can sign in (they create their own password with that email). People without an email can still use the warehouse iPad by tapping their name.
-      <b>Kiosk</b> is for the shared iPad's login: it can check things in and out for whoever scans their name, but can't change settings.</p>
+      Only <b>Admins</b> and the <b>Kiosk</b> (the shared iPad) can scan, check things in and out, or edit. Everyone else is view-only:
+      <b>Facilities &amp; Maintenance</b> sees facilities stock, tools and their history; <b>Maintenance manager</b> sees tools and tool history;
+      <b>Custodian manager</b> sees facilities stock and its history; <b>Oversight</b> sees everything. Anyone can still check things out at the iPad by tapping their name.</p>
     ${isAdmin() ? `<div class="card"><form id="add" class="row">
       <label style="flex:1;min-width:160px">Name <input name="name" required></label>
       <label style="flex:1;min-width:200px">Email (for sign-in) <input name="email" type="email"></label>
-      <label>Role <select name="role"><option value="member">Member</option><option value="admin">Admin</option><option value="kiosk">Kiosk (shared iPad)</option></select></label>
+      <label>Role <select name="role">${ROLE_ORDER.map((r) => `<option value="${r}">${ROLES[r].label}</option>`).join('')}</select></label>
       <button class="btn primary">Add person</button></form></div>` : ''}
     <div class="table-wrap"><table><tr><th>Name</th><th>Label code</th><th>Email</th><th>Role</th><th></th></tr>
-      ${members.map((m) => `<tr style="${m.active ? '' : 'opacity:.5'}"><td>${esc(m.name)}</td><td class="code">${esc(m.code)}</td><td>${esc(m.email)}</td><td>${isAdmin() && m.id !== state.me.id ? `<select data-role="${m.id}">${['member', 'admin', 'kiosk'].map((r) => `<option ${r === m.role ? 'selected' : ''}>${r}</option>`).join('')}</select>` : m.role}</td>
+      ${members.map((m) => `<tr style="${m.active ? '' : 'opacity:.5'}"><td>${esc(m.name)}</td><td class="code">${esc(m.code)}</td><td>${esc(m.email)}</td><td>${isAdmin() && m.id !== state.me.id ? `<select data-role="${m.id}">${ROLE_ORDER.map((r) => `<option value="${r}" ${r === m.role ? 'selected' : ''}>${ROLES[r].label}</option>`).join('')}</select>` : esc(ROLES[m.role]?.label || m.role)}</td>
         <td>${isAdmin() && m.id !== state.me.id ? `
           <button class="btn small" data-active="${m.id}">${m.active ? 'Deactivate' : 'Reactivate'}</button>
           <button class="btn small" data-email="${m.id}">Edit email</button>` : ''}</td></tr>`).join('')}</table></div>
