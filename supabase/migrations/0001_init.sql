@@ -130,7 +130,7 @@ create policy admin_update on tools for update to authenticated using (is_team_a
 -- Quantity and tool status are owned by the scan functions, not by edit forms:
 -- these triggers reject any change to them that doesn't come through one.
 create or replace function guard_scan_columns() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = public as $$
 begin
   if coalesce(current_setting('app.via_scan', true), '') = 'on' then
     return new;

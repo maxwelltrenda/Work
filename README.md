@@ -29,12 +29,37 @@ Codes are assigned automatically when you add something. Print them from the **L
 
 **Scan Stock**: pick **Scan IN** or **Scan OUT** (or scan a `CMD-IN` / `CMD-OUT` label), type a quantity if it isn't 1, and scan the item. Admins also get **Set COUNT** for cycle counts.
 
-**Tool Sign-Out** (good to leave open on a shop computer):
+**Check In / Out** (what the warehouse iPad shows):
 - *Taking tools:* scan your name label, then scan each tool. If you scan a tool first, it asks who's taking it.
 - *Returning:* scan the tool, then press Enter (or scan it again) for "Good", or tap Damaged / Needs repair. Damaged tools are blocked from sign-out until an admin marks them available.
 - Scan `CMD-DONE` or tap **Done** when you're finished. It also clears itself after 2 idle minutes.
 
 **Who Has What**: everything signed out, grouped by person, with overdue items highlighted.
+
+## Warehouse iPad (shared kiosk)
+
+Mount an iPad in the warehouse and leave it signed in to a **kiosk** login, so nobody needs their own device.
+
+1. On **People**, add a person like "Warehouse iPad" with its own email (a shared or alias inbox works) and role **Kiosk**.
+2. On the iPad, open the app in Safari, create the account with that email, and sign in. Then tap Share → **Add to Home Screen** so it opens full-screen.
+3. Pair the barcode scanner with the iPad over Bluetooth. iPadOS treats it as a keyboard, which also hides the on-screen keyboard.
+4. Optional: turn on **Guided Access** (Settings → Accessibility) to lock the iPad to this app.
+
+At the iPad:
+- **Taking anything:** scan your name label (or tap your name), choose **Shop use** or an event, then scan tools and items. Tap **Done** or scan `CMD-DONE` when finished. It also clears itself after 90 idle seconds.
+- **Returning a tool:** just scan it, no name needed. If it's damaged, tap **Damaged** or **Needs repair** and it's blocked from going out until an admin clears it.
+- **Putting stock back:** scan your name, tap **Putting back**, and scan.
+
+The kiosk login can check things in and out and plan events. It can't edit items, tools, people or counts. Admins do that from their own login on any other device.
+
+## Offsite events
+
+On **Events**, create the event (name, place, dates, crew). At the iPad, pick the event under "Where is it going?" and scan everything going on the truck. When it comes back, scan the tools in and put leftover stock back with the event selected. The event page shows:
+- every tool sent and whether it's back, with a **Mark lost** button for anything that isn't
+- stock taken, brought back, and actually used
+- a CSV export, and **Close event** when you're done
+
+Tools sent to an event are due back the day after the event ends, so late ones show as overdue on **Who Has What**.
 
 ## First-time setup
 

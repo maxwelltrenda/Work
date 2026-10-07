@@ -1,4 +1,4 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
 import { SUPABASE_URL, SUPABASE_KEY, APP_NAME } from './config.js';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -25,9 +25,7 @@ const state = {
   me: null,
   stockMode: 'out',
   stockLog: [],
-  borrower: null,
-  borrowerTimer: null,
-  pending: null, // tools page: { kind: 'checkout'|'return', tool, checkout }
+  kiosk: { person: null, event: null, mode: 'out', qty: 1, log: [], idle: null, pendingTool: null },
 };
 
 // ---------------------------------------------------------------------------
@@ -36,6 +34,7 @@ const state = {
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isAdmin = () => state.me?.role === 'admin';
+const isKiosk = () => state.me?.role === 'kiosk';
 
 function fmtDate(ts) {
   if (!ts) return '';
@@ -166,13 +165,13 @@ function renderTopbar() {
     nav.innerHTML = '';
     who.innerHTML = state.session ? `<button id="signout">Sign out</button>` : '';
   } else {
-    const links = [
-      ['stock', 'Scan Stock'], ['tools', 'Tool Sign-Out'], ['out', 'Who Has What'],
-      ['items', 'Inventory'], ['toollist', 'Tools'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'],
-    ];
-    const cur = location.hash.slice(2).split('/')[0] || 'stock';
+    const links = isKiosk()
+      ? [['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events']]
+      : [['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'], ['stock', 'Scan Stock'],
+        ['items', 'Inventory'], ['toollist', 'Tools'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People']];
+    const cur = location.hash.slice(2).split('/')[0] || 'kiosk';
     nav.innerHTML = links.map(([k, t]) => `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${t}</a>`).join('');
-    who.innerHTML = `<span>${esc(state.me.name)}${isAdmin() ? ' · admin' : ''}</span><button id="signout">Sign out</button>`;
+    who.innerHTML = `<span>${esc(state.me.name)}${isAdmin() ? ' · admin' : ''}${isKiosk() ? ' · kiosk' : ''}</span><button id="signout">Sign out</button>`;
   }
   document.getElementById('signout')?.addEventListener('click', () => sb.auth.signOut());
 }
@@ -231,7 +230,7 @@ function renderSetPassword() {
     const { error } = await sb.auth.updateUser({ password: new FormData(e.target).get('password') });
     if (error) return toast(errMsg(error), true);
     toast('Password updated');
-    location.hash = '#/stock';
+    location.hash = '#/kiosk';
     boot();
   });
 }
@@ -263,7 +262,8 @@ function renderNotOnList() {
 // ---------------------------------------------------------------------------
 
 const routes = {
-  stock: renderStock, tools: renderToolKiosk, out: renderOut, items: renderItems, item: renderItem,
+  kiosk: renderKiosk, events: renderEvents, event: renderEvent,
+  stock: renderStock, out: renderOut, items: renderItems, item: renderItem,
   toollist: renderToolList, tool: renderTool, history: renderHistory, labels: renderLabels, people: renderPeople,
 };
 
@@ -271,7 +271,9 @@ window.addEventListener('hashchange', () => state.me && route());
 
 async function route() {
   const [name, ...args] = location.hash.slice(2).split('/');
-  const fn = routes[name] || renderStock;
+  const kioskOnly = ['kiosk', 'out', 'events', 'event'];
+  const fn = (isKiosk() && !kioskOnly.includes(name) ? null : routes[name]) || renderKiosk;
+  if (name !== 'kiosk') clearTimeout(state.kiosk.idle);
   renderTopbar();
   app.innerHTML = '<p class="muted">Loading…</p>';
   try {
@@ -372,7 +374,7 @@ async function renderStock() {
       let msg = errMsg(e);
       if (/No item with code/.test(msg)) {
         const hit = await rpc('lookup_code', { p_code: code }).catch(() => null);
-        if (hit?.kind === 'tool') msg = `${hit.record.name} is a tool — sign it out on the Tool Sign-Out page.`;
+        if (hit?.kind === 'tool') msg = `${hit.record.name} is a tool — use the Check In / Out page.`;
       }
       show('err', esc(msg));
     }
@@ -389,166 +391,368 @@ async function renderStock() {
 }
 
 // ---------------------------------------------------------------------------
-// Tool sign-out kiosk
+// Check In / Out — the shared warehouse kiosk (works on any device too)
 // ---------------------------------------------------------------------------
 
-async function renderToolKiosk() {
-  const members = (await loadMembers()).filter((m) => m.active);
-  state.pending = null;
+const KIOSK_IDLE_MS = 90000;
+const people = (members) => members.filter((m) => m.active && m.role !== 'kiosk');
+const openEvents = async () => q(sb.from('events').select('*').neq('status', 'closed').order('starts_on', { ascending: true, nullsFirst: false }));
+
+async function renderKiosk() {
+  const [members, events] = await Promise.all([loadMembers(), openEvents()]);
+  const crew = people(members);
+  const k = state.kiosk;
+  if (k.event && !events.some((e) => e.id === k.event.id)) k.event = null;
 
   app.innerHTML = `
-    <h1>Tool Sign-Out</h1>
-    <div class="card">
-      <div id="borrower"></div>
-      <input id="scan" class="scanbox" placeholder="Scan a tool (or your name label)…" autocomplete="off">
-      <div class="scan-hint">Taking tools: scan your name label, then each tool. Returning: just scan the tool.</div>
-      <div class="row" style="margin-top:10px">
-        <label>Due back (optional) <input id="due" type="date"></label>
-        <label style="flex:1;min-width:200px">Note (optional) <input id="note" placeholder="job site, reason…"></label>
-      </div>
-      <div id="panel"></div>
+    <div class="kiosk">
+      <div id="k-who"></div>
+      <input id="scan" class="scanbox" placeholder="Scan a name label, tool or item…" autocomplete="off" autocapitalize="characters">
       <div id="status"></div>
-    </div>
-    <h2>Signed out right now</h2>
-    <div id="outlist"></div>`;
+      <div id="k-panel"></div>
+      <h2>This session</h2>
+      <div class="card"><ul class="log" id="log"></ul></div>
+    </div>`;
 
   const scan = app.querySelector('#scan');
   const status = app.querySelector('#status');
-  const panel = app.querySelector('#panel');
   const show = (cls, html) => (status.innerHTML = `<div class="big-status ${cls}">${html}</div>`);
-
-  const paintBorrower = () => {
-    const el = app.querySelector('#borrower');
-    el.innerHTML = state.borrower
-      ? `<div class="big-status info">Signing out to <b>${esc(state.borrower.name)}</b> — scan tools now. <button class="btn small" id="clear-b">Done</button></div>`
-      : '';
-    el.querySelector('#clear-b')?.addEventListener('click', clearBorrower);
+  const stamp = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const log = (type, text) => {
+    k.log.unshift({ type, text, time: stamp() });
+    k.log = k.log.slice(0, 40);
+    paintLog();
   };
-  const clearBorrower = () => {
-    state.borrower = null;
-    clearTimeout(state.borrowerTimer);
-    paintBorrower();
+  const paintLog = () => {
+    app.querySelector('#log').innerHTML = k.log.length
+      ? k.log.map((l) => `<li><span><span class="pill ${l.type}">${l.type.toUpperCase()}</span> ${esc(l.text)}</span><span class="muted">${l.time}</span></li>`).join('')
+      : '<li class="muted">Nothing yet.</li>';
+  };
+
+  const resetIdle = () => {
+    clearTimeout(k.idle);
+    if (k.person) k.idle = setTimeout(() => { endSession(); show('info', 'Timed out — scan your name label to start again.'); }, KIOSK_IDLE_MS);
+  };
+  const endSession = () => {
+    k.person = null;
+    k.event = null;
+    k.mode = 'out';
+    k.qty = 1;
+    k.pendingTool = null;
+    clearTimeout(k.idle);
+    paintWho();
     scan.focus();
   };
-  const setBorrower = (m) => {
-    state.borrower = m;
-    clearTimeout(state.borrowerTimer);
-    // Forget the person after 2 idle minutes so the next person doesn't inherit them.
-    state.borrowerTimer = setTimeout(clearBorrower, 120000);
-    paintBorrower();
+  const startSession = (m) => {
+    k.person = m;
+    paintWho();
+    resetIdle();
   };
 
-  const paintOut = async () => {
-    const [tools, open] = await Promise.all([loadTools(), q(sb.from('tool_checkouts').select('*').is('returned_at', null).order('checked_out_at'))]);
-    const byId = Object.fromEntries(tools.map((t) => [t.id, t]));
-    const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
-    app.querySelector('#outlist').innerHTML = open.length
-      ? `<div class="table-wrap"><table><tr><th>Tool</th><th>Who</th><th>Out</th><th>Due</th></tr>${open.map((c) => {
-          const overdue = c.due_at && new Date(c.due_at) < new Date();
-          return `<tr class="${overdue ? 'overdue' : ''}"><td>${esc(byId[c.tool_id]?.name)} <span class="code muted">${esc(byId[c.tool_id]?.code)}</span></td><td>${esc(who[c.borrower_id] || '?')}</td><td>${since(c.checked_out_at)} ago</td><td>${c.due_at ? `${new Date(c.due_at).toLocaleDateString()}${overdue ? ' <span class="pill overdue">OVERDUE</span>' : ''}` : ''}</td></tr>`;
-        }).join('')}</table></div>`
-      : '<div class="card muted">Every tool is in.</div>';
-  };
+  function paintWho() {
+    const el = app.querySelector('#k-who');
+    if (!k.person) {
+      el.innerHTML = `
+        <div class="card">
+          <h1 style="margin-bottom:6px">Who are you?</h1>
+          <p class="muted" style="margin-top:0">Scan your name label or tap your name. <b>Just returning something?</b> Scan it — no name needed.</p>
+          <div class="people-pick">${crew.map((m) => `<button class="btn" data-person="${m.id}">${esc(m.name)}</button>`).join('')}</div>
+        </div>`;
+      el.querySelectorAll('[data-person]').forEach((b) => b.addEventListener('click', () => {
+        startSession(crew.find((m) => m.id === b.dataset.person));
+        if (k.pendingTool) { const t = k.pendingTool; k.pendingTool = null; doCheckout(t); }
+        scan.focus();
+      }));
+      return;
+    }
+    el.innerHTML = `
+      <div class="card">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h1 style="margin:0">Hi ${esc(k.person.name)}</h1>
+          <button class="btn bad" id="k-done" style="font-size:18px;padding:10px 22px">Done</button>
+        </div>
+        <h2 style="margin-top:14px">Where is it going?</h2>
+        <div class="modes" id="k-event">
+          <button class="btn ${k.event ? '' : 'on primary'}" data-event="">Shop use</button>
+          ${events.map((e) => `<button class="btn ${k.event?.id === e.id ? 'on primary' : ''}" data-event="${e.id}">${esc(e.name)}${e.starts_on ? ` <span style="font-weight:400">· ${new Date(`${e.starts_on}T12:00`).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>` : ''}</button>`).join('')}
+        </div>
+        <h2>Stock items</h2>
+        <div class="row" style="align-items:center">
+          <div class="modes" id="k-mode">
+            <button class="btn out ${k.mode === 'out' ? 'on' : ''}" data-mode="out">Taking</button>
+            <button class="btn in ${k.mode === 'in' ? 'on' : ''}" data-mode="in">Putting back</button>
+          </div>
+          <div class="stepper">
+            <button class="btn" data-step="-1">−</button>
+            <input id="k-qty" type="number" min="1" value="${k.qty}" inputmode="numeric">
+            <button class="btn" data-step="1">+</button>
+          </div>
+        </div>
+        <p class="scan-hint">Tools: scan to sign out, scan again later to return. Items: set the quantity, then scan.</p>
+      </div>`;
+    el.querySelector('#k-done').addEventListener('click', () => { endSession(); show('ok', 'All set — thanks!'); });
+    el.querySelectorAll('[data-event]').forEach((b) => b.addEventListener('click', () => {
+      k.event = events.find((e) => e.id === b.dataset.event) || null;
+      paintWho(); resetIdle(); scan.focus();
+    }));
+    el.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+      k.mode = b.dataset.mode;
+      paintWho(); resetIdle(); scan.focus();
+    }));
+    const qtyEl = el.querySelector('#k-qty');
+    qtyEl.addEventListener('change', () => { k.qty = Math.max(1, parseInt(qtyEl.value, 10) || 1); qtyEl.value = k.qty; });
+    el.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => {
+      k.qty = Math.max(1, k.qty + Number(b.dataset.step));
+      qtyEl.value = k.qty;
+      resetIdle();
+    }));
+  }
 
-  const dueValue = () => {
-    const d = app.querySelector('#due').value;
-    return d ? new Date(`${d}T17:00:00`).toISOString() : null;
-  };
-  const noteEl = app.querySelector('#note');
-
-  async function doCheckout(tool, member) {
+  async function doCheckout(tool) {
     try {
-      await rpc('checkout_tool', { p_code: tool.code, p_borrower: member.id, p_due: dueValue(), p_note: noteEl.value });
-      show('ok', `<b>${esc(tool.name)}</b> signed out to <b>${esc(member.name)}</b>.`);
+      await rpc('checkout_tool', { p_code: tool.code, p_borrower: k.person.id, p_event: k.event?.id || null });
       beep(true);
-      noteEl.value = '';
-      paintOut();
+      const where = k.event ? ` for ${k.event.name}` : '';
+      show('ok', `<b>${esc(tool.name)}</b> signed out to <b>${esc(k.person.name)}</b>${esc(where)}.`);
+      log('out', `${tool.name} → ${k.person.name}${where}`);
     } catch (e) { beep(false); show('err', esc(errMsg(e))); }
-    panel.innerHTML = '';
-    state.pending = null;
-    scan.focus();
   }
 
-  async function doReturn(tool, condition) {
+  async function doReturn(tool, checkout) {
     try {
-      await rpc('return_tool', { p_code: tool.code, p_condition: condition, p_note: noteEl.value });
-      show(condition === 'good' ? 'ok' : 'info', `<b>${esc(tool.name)}</b> returned${condition === 'good' ? '' : ` — flagged ${condition.replace('_', ' ')}`}.`);
+      await rpc('return_tool', { p_code: tool.code, p_condition: 'good' });
       beep(true);
-      noteEl.value = '';
-      paintOut();
+      status.innerHTML = `
+        <div class="big-status ok"><b>${esc(tool.name)}</b> returned (was out to ${esc(checkout.borrower_name)} for ${since(checkout.checked_out_at)}).
+          <div class="row" style="margin-top:10px"><span style="font-size:15px;font-weight:400">Something wrong with it?</span>
+            <button class="btn out small" data-c="damaged">Damaged</button>
+            <button class="btn bad small" data-c="needs_repair">Needs repair</button></div></div>`;
+      status.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', async () => {
+        const note = prompt('What\'s wrong with it? (optional)') || '';
+        try {
+          await rpc('report_tool_problem', { p_tool: tool.id, p_condition: b.dataset.c, p_note: note });
+          show('info', `<b>${esc(tool.name)}</b> flagged ${b.dataset.c.replace('_', ' ')} — it won't go out again until it's fixed.`);
+          log('repair', `${tool.name} flagged ${b.dataset.c.replace('_', ' ')}`);
+        } catch (e) { show('err', esc(errMsg(e))); }
+        scan.focus();
+      }));
+      log('in', `${tool.name} returned`);
     } catch (e) { beep(false); show('err', esc(errMsg(e))); }
-    panel.innerHTML = '';
-    state.pending = null;
-    scan.focus();
-  }
-
-  function askWho(tool) {
-    state.pending = { kind: 'checkout', tool };
-    status.innerHTML = '';
-    panel.innerHTML = `
-      <div class="big-status info">Who's taking <b>${esc(tool.name)}</b>? Scan your name label or tap your name.</div>
-      <div class="people-pick">${members.map((m) => `<button class="btn" data-id="${m.id}">${esc(m.name)}</button>`).join('')}
-        <button class="btn" data-cancel>Cancel</button></div>`;
-    panel.querySelectorAll('[data-id]').forEach((b) => b.addEventListener('click', () => doCheckout(tool, members.find((m) => m.id === b.dataset.id))));
-    panel.querySelector('[data-cancel]').addEventListener('click', () => { panel.innerHTML = ''; state.pending = null; scan.focus(); });
-  }
-
-  function askReturn(tool, checkout) {
-    state.pending = { kind: 'return', tool };
-    status.innerHTML = '';
-    panel.innerHTML = `
-      <div class="big-status info">Returning <b>${esc(tool.name)}</b> (out to ${esc(checkout.borrower_name)} for ${since(checkout.checked_out_at)}). What shape is it in?
-        <div class="scan-hint">Scan the tool again or press Enter for "Good".</div></div>
-      <div class="people-pick">
-        <button class="btn in" data-c="good">Good</button>
-        <button class="btn out" data-c="damaged">Damaged</button>
-        <button class="btn bad" data-c="needs_repair">Needs repair</button>
-        <button class="btn" data-cancel>Cancel</button></div>`;
-    panel.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => doReturn(tool, b.dataset.c)));
-    panel.querySelector('[data-cancel]').addEventListener('click', () => { panel.innerHTML = ''; state.pending = null; scan.focus(); });
   }
 
   async function onScan(code) {
     const upper = code.toUpperCase();
-    if (upper === CMD.DONE) {
-      panel.innerHTML = '';
-      state.pending = null;
-      clearBorrower();
-      return show('info', 'Cleared.');
+    resetIdle();
+    if (upper === CMD.DONE) { endSession(); return show('ok', 'All set — thanks!'); }
+    if (upper === CMD.IN || upper === CMD.OUT) {
+      if (!k.person) return show('err', 'Scan your name label first.');
+      k.mode = upper === CMD.IN ? 'in' : 'out';
+      paintWho();
+      return show('info', k.mode === 'in' ? 'Putting stock back.' : 'Taking stock.');
     }
+
     let hit;
     try { hit = await rpc('lookup_code', { p_code: code }); } catch (e) { return show('err', esc(errMsg(e))); }
 
     if (hit.kind === 'person') {
-      const m = members.find((x) => x.id === hit.record.id);
-      if (!m) return show('err', 'That person is inactive.');
-      if (state.pending?.kind === 'checkout') return doCheckout(state.pending.tool, m);
-      setBorrower(m);
-      return show('info', `Hi ${esc(m.name)} — scan the tools you're taking.`);
+      const m = crew.find((x) => x.id === hit.record.id);
+      if (!m) { beep(false); return show('err', 'That name label is inactive.'); }
+      startSession(m);
+      beep(true);
+      if (k.pendingTool) { const t = k.pendingTool; k.pendingTool = null; return doCheckout(t); }
+      return show('info', `Hi ${esc(m.name)} — scan what you're taking or returning.`);
     }
+
     if (hit.kind === 'tool') {
       const tool = hit.record;
-      if (state.pending?.kind === 'return' && state.pending.tool.id === tool.id) return doReturn(tool, 'good');
-      if (hit.checkout) return askReturn(tool, hit.checkout);
-      if (!tool.active || tool.status !== 'available') { beep(false); return show('err', `${esc(tool.name)} is marked <b>${esc(tool.status)}</b> and can't be signed out.`); }
-      if (state.borrower) { setBorrower(state.borrower); return doCheckout(tool, state.borrower); }
-      return askWho(tool);
+      if (hit.checkout) return doReturn(tool, hit.checkout);
+      if (!tool.active || tool.status !== 'available') { beep(false); return show('err', `${esc(tool.name)} is marked <b>${esc(tool.status)}</b> and can't go out.`); }
+      if (!k.person) {
+        k.pendingTool = tool;
+        beep(false);
+        return show('info', `Who's taking <b>${esc(tool.name)}</b>? Scan your name label or tap your name above.`);
+      }
+      return doCheckout(tool);
     }
+
+    if (hit.kind === 'item') {
+      if (!k.person) { beep(false); return show('err', 'Scan your name label first.'); }
+      const qty = k.qty;
+      try {
+        const res = await rpc('scan_item', { p_code: code, p_type: k.mode, p_qty: qty, p_member: k.person.id, p_event: k.event?.id || null });
+        const it = res.item;
+        const low = it.reorder_level > 0 && it.quantity <= it.reorder_level;
+        const where = k.event ? ` (${k.event.name})` : '';
+        beep(true);
+        show('ok', `${k.mode === 'in' ? 'Put back' : 'Took'} ${qty} ${esc(it.unit)} <b>${esc(it.name)}</b>${esc(where)}. ${it.quantity} left.${low ? ' <span class="pill low">LOW — tell the office</span>' : ''}`);
+        log(k.mode, `${qty} ${it.unit} ${it.name}${where} · ${k.person.name}`);
+        k.qty = 1;
+        paintWho();
+      } catch (e) { beep(false); show('err', esc(errMsg(e))); }
+      return;
+    }
+
     beep(false);
-    if (hit.kind === 'item') return show('err', `${esc(hit.record.name)} is a stock item — use Scan Stock.`);
     show('err', `Unknown barcode: ${esc(code)}`);
   }
 
-  scan.addEventListener('keydown', (e) => {
-    // Empty Enter confirms a pending "Good" return.
-    if (e.key === 'Enter' && !scan.value.trim() && state.pending?.kind === 'return') {
-      e.preventDefault();
-      doReturn(state.pending.tool, 'good');
-    }
-  });
   bindScanner(scan, onScan);
-  paintBorrower();
-  paintOut();
+  paintWho();
+  paintLog();
+  resetIdle();
+}
+
+// ---------------------------------------------------------------------------
+// Events (offsite jobs)
+// ---------------------------------------------------------------------------
+
+const fmtDay = (d) => (d ? new Date(`${d}T12:00`).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '');
+
+function eventForm(ev = {}) {
+  return `
+    <div class="row">
+      <label style="flex:2;min-width:200px">Event name <input name="name" required value="${esc(ev.name)}" placeholder="County fair booth"></label>
+      <label style="flex:1;min-width:160px">Location <input name="location" value="${esc(ev.location)}"></label>
+      <label>Starts <input name="starts_on" type="date" value="${esc(ev.starts_on)}"></label>
+      <label>Ends <input name="ends_on" type="date" value="${esc(ev.ends_on)}"></label>
+    </div>
+    <label style="margin-top:10px">Notes <input name="notes" value="${esc(ev.notes)}"></label>`;
+}
+
+const eventFields = (f) => ({
+  name: f.get('name').trim(), location: f.get('location').trim() || null,
+  starts_on: f.get('starts_on') || null, ends_on: f.get('ends_on') || null, notes: f.get('notes').trim() || null,
+});
+
+async function renderEvents() {
+  const [events, members, open] = await Promise.all([
+    q(sb.from('events').select('*').order('starts_on', { ascending: false, nullsFirst: true })),
+    loadMembers(),
+    q(sb.from('tool_checkouts').select('event_id').is('returned_at', null).not('event_id', 'is', null)),
+  ]);
+  const crew = people(members);
+  const outBy = {};
+  open.forEach((c) => (outBy[c.event_id] = (outBy[c.event_id] || 0) + 1));
+  const live = events.filter((e) => e.status !== 'closed');
+  const closed = events.filter((e) => e.status === 'closed');
+  const rows = (list) => list.map((e) => `<tr><td class="code">${esc(e.code)}</td><td><a href="#/event/${e.id}">${esc(e.name)}</a></td><td>${esc(e.location)}</td>
+    <td>${fmtDay(e.starts_on)}${e.ends_on && e.ends_on !== e.starts_on ? ` – ${fmtDay(e.ends_on)}` : ''}</td><td><span class="pill ${e.status}">${e.status}</span></td>
+    <td class="num">${outBy[e.id] ? `<b>${outBy[e.id]}</b> out` : ''}</td></tr>`).join('');
+
+  app.innerHTML = `
+    <h1>Events</h1>
+    <p class="muted">Plan an offsite job, then pick it on the Check In/Out screen when loading out. Everything scanned goes on the event's list.</p>
+    <details class="card" ${live.length ? '' : 'open'}><summary><b>+ New event</b></summary>
+      <form id="add" style="margin-top:12px">${eventForm()}
+        <h2>Crew</h2><div class="people-pick">${crew.map((m) => `<label class="chip"><input type="checkbox" name="crew" value="${m.id}"> ${esc(m.name)}</label>`).join('')}</div>
+        <div style="margin-top:12px"><button class="btn primary">Create event</button></div></form></details>
+    <h2>Upcoming &amp; active</h2>
+    <div class="table-wrap"><table><tr><th>Code</th><th>Event</th><th>Where</th><th>When</th><th>Status</th><th class="num">Tools</th></tr>
+      ${rows(live) || '<tr><td colspan="6" class="muted">No open events.</td></tr>'}</table></div>
+    ${closed.length ? `<h2>Closed</h2><div class="table-wrap"><table><tr><th>Code</th><th>Event</th><th>Where</th><th>When</th><th>Status</th><th class="num">Tools</th></tr>${rows(closed)}</table></div>` : ''}`;
+
+  app.querySelector('#add').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    try {
+      const [ev] = await q(sb.from('events').insert(eventFields(f)).select());
+      const ids = f.getAll('crew');
+      if (ids.length) await q(sb.from('event_crew').insert(ids.map((member_id) => ({ event_id: ev.id, member_id }))).select());
+      toast(`Created ${ev.name}`);
+      location.hash = `#/event/${ev.id}`;
+    } catch (err) { toast(errMsg(err), true); }
+  });
+}
+
+async function renderEvent(id) {
+  const [[ev], members, crewRows, checkouts, tx, tools, items] = await Promise.all([
+    q(sb.from('events').select('*').eq('id', id)),
+    loadMembers(),
+    q(sb.from('event_crew').select('member_id').eq('event_id', id)),
+    q(sb.from('tool_checkouts').select('*').eq('event_id', id).order('checked_out_at')),
+    q(sb.from('item_transactions').select('*').eq('event_id', id).order('created_at')),
+    loadTools(),
+    loadItems(),
+  ]);
+  if (!ev) throw new Error('Event not found');
+  const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
+  const toolBy = Object.fromEntries(tools.map((t) => [t.id, t]));
+  const itemBy = Object.fromEntries(items.map((i) => [i.id, i]));
+  const crewIds = new Set(crewRows.map((c) => c.member_id));
+  const notCrew = people(members).filter((m) => !crewIds.has(m.id));
+  const stillOut = checkouts.filter((c) => !c.returned_at);
+
+  // Net stock per item: taken (out) vs brought back (in).
+  const stock = {};
+  tx.forEach((t) => {
+    const s = (stock[t.item_id] ||= { taken: 0, back: 0 });
+    if (t.type === 'out') s.taken += -t.qty;
+    if (t.type === 'in') s.back += t.qty;
+  });
+
+  app.innerHTML = `
+    <p><a href="#/events">← Events</a></p>
+    <h1>${esc(ev.name)} <span class="code muted">${esc(ev.code)}</span> <span class="pill ${ev.status}">${ev.status}</span></h1>
+    <p class="muted" style="margin-top:-6px">${esc(ev.location || '')}${ev.location && ev.starts_on ? ' · ' : ''}${fmtDay(ev.starts_on)}${ev.ends_on && ev.ends_on !== ev.starts_on ? ` – ${fmtDay(ev.ends_on)}` : ''}${ev.notes ? ` · ${esc(ev.notes)}` : ''}</p>
+    <div class="stats">
+      <div class="stat"><b>${crewIds.size}</b><span>crew</span></div>
+      <div class="stat"><b>${checkouts.length}</b><span>tools sent</span></div>
+      <div class="stat"><b style="color:${stillOut.length ? 'var(--out)' : 'var(--in)'}">${stillOut.length}</b><span>tools not back yet</span></div>
+      <div class="stat"><b>${Object.keys(stock).length}</b><span>stock items used</span></div>
+    </div>
+
+    <h2>Crew</h2>
+    <div class="card"><div class="people-pick">
+      ${[...crewIds].map((mid) => `<span class="chip">${esc(who[mid])} ${ev.status !== 'closed' ? `<button class="x" data-remove="${mid}" title="Remove">×</button>` : ''}</span>`).join('') || '<span class="muted">No crew yet.</span>'}
+      ${ev.status !== 'closed' && notCrew.length ? `<select id="add-crew"><option value="">+ Add person…</option>${notCrew.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>` : ''}
+    </div></div>
+
+    <h2>Tools</h2>
+    <div class="table-wrap"><table><tr><th>Tool</th><th>Signed out by</th><th>Out</th><th>Back</th><th></th></tr>
+      ${checkouts.map((c) => { const t = toolBy[c.tool_id]; return `<tr class="${c.returned_at ? '' : 'overdue'}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a> <span class="code muted">${esc(t?.code)}</span></td><td>${esc(who[c.borrower_id])}</td><td>${fmtDate(c.checked_out_at)}</td>
+        <td>${c.returned_at ? `${fmtDate(c.returned_at)}${c.return_condition && c.return_condition !== 'good' ? ` <span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}` : '<span class="pill out">NOT BACK</span>'}</td>
+        <td>${c.returned_at ? '' : `<button class="btn small bad" data-lost="${c.tool_id}">Mark lost</button>`}</td></tr>`; }).join('')
+      || '<tr><td colspan="5" class="muted">No tools signed out to this event yet. Pick this event on the Check In/Out screen and scan.</td></tr>'}</table></div>
+
+    <h2>Stock</h2>
+    <div class="table-wrap"><table><tr><th>Item</th><th class="num">Taken</th><th class="num">Brought back</th><th class="num">Used</th></tr>
+      ${Object.entries(stock).map(([iid, s]) => { const it = itemBy[iid]; return `<tr><td>${esc(it?.name)} <span class="code muted">${esc(it?.code)}</span></td><td class="num">${s.taken}</td><td class="num">${s.back}</td><td class="num"><b>${s.taken - s.back}</b> ${esc(it?.unit)}</td></tr>`; }).join('')
+      || '<tr><td colspan="4" class="muted">No stock scanned for this event.</td></tr>'}</table></div>
+
+    <div class="row" style="margin-top:18px">
+      ${ev.status !== 'closed' ? '<button class="btn primary" id="close">Close event</button>' : '<button class="btn" id="reopen">Reopen event</button>'}
+      <button class="btn" id="csv">Export CSV</button>
+    </div>
+    ${ev.status !== 'closed' ? `<details class="card" style="margin-top:16px"><summary><b>Edit event details</b></summary><form id="edit" style="margin-top:12px">${eventForm(ev)}<div style="margin-top:12px"><button class="btn primary">Save</button></div></form></details>` : ''}`;
+
+  const reload = () => route();
+  app.querySelectorAll('[data-remove]').forEach((b) => b.addEventListener('click', async () => {
+    try { await q(sb.from('event_crew').delete().eq('event_id', id).eq('member_id', b.dataset.remove).select()); reload(); } catch (e) { toast(errMsg(e), true); }
+  }));
+  app.querySelector('#add-crew')?.addEventListener('change', async (e) => {
+    if (!e.target.value) return;
+    try { await q(sb.from('event_crew').insert({ event_id: id, member_id: e.target.value }).select()); reload(); } catch (err) { toast(errMsg(err), true); }
+  });
+  app.querySelectorAll('[data-lost]').forEach((b) => b.addEventListener('click', async () => {
+    const t = toolBy[b.dataset.lost];
+    if (!confirm(`Mark ${t?.name} as LOST? It will be taken off the available list.`)) return;
+    try { await rpc('mark_tool_lost', { p_tool: b.dataset.lost, p_note: `Not returned from ${ev.name}` }); reload(); } catch (e) { toast(errMsg(e), true); }
+  }));
+  app.querySelector('#close')?.addEventListener('click', async () => {
+    if (stillOut.length && !confirm(`${stillOut.length} tool(s) still aren't back. Close the event anyway? They'll stay signed out to the person who took them.`)) return;
+    try { await q(sb.from('events').update({ status: 'closed' }).eq('id', id).select()); toast('Event closed'); reload(); } catch (e) { toast(errMsg(e), true); }
+  });
+  app.querySelector('#reopen')?.addEventListener('click', async () => {
+    try { await q(sb.from('events').update({ status: 'active' }).eq('id', id).select()); reload(); } catch (e) { toast(errMsg(e), true); }
+  });
+  app.querySelector('#edit')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await q(sb.from('events').update(eventFields(new FormData(e.target))).eq('id', id).select()); toast('Saved'); reload(); } catch (err) { toast(errMsg(err), true); }
+  });
+  app.querySelector('#csv').addEventListener('click', () => downloadCsv(`${ev.code}-${ev.name}.csv`, [
+    ...checkouts.map((c) => ({ kind: 'tool', code: toolBy[c.tool_id]?.code, name: toolBy[c.tool_id]?.name, who: who[c.borrower_id], out: fmtDate(c.checked_out_at), back: c.returned_at ? fmtDate(c.returned_at) : 'NOT BACK', qty: '', condition: c.return_condition || '' })),
+    ...Object.entries(stock).map(([iid, s]) => ({ kind: 'stock', code: itemBy[iid]?.code, name: itemBy[iid]?.name, who: '', out: s.taken, back: s.back, qty: s.taken - s.back, condition: '' })),
+  ]));
 }
 
 // ---------------------------------------------------------------------------
@@ -556,9 +760,11 @@ async function renderToolKiosk() {
 // ---------------------------------------------------------------------------
 
 async function renderOut() {
-  const [tools, members, open] = await Promise.all([
+  const [tools, members, open, events] = await Promise.all([
     loadTools(), loadMembers(), q(sb.from('tool_checkouts').select('*').is('returned_at', null).order('checked_out_at')),
+    q(sb.from('events').select('id, name')),
   ]);
+  const evName = Object.fromEntries(events.map((e) => [e.id, e.name]));
   const byId = Object.fromEntries(tools.map((t) => [t.id, t]));
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const active = tools.filter((t) => t.active);
@@ -579,11 +785,11 @@ async function renderOut() {
     </div>
     ${Object.keys(groups).sort().map((name) => `
       <h2>${esc(name)} <span class="muted">(${groups[name].length})</span></h2>
-      <div class="table-wrap"><table><tr><th>Tool</th><th>Code</th><th>Out since</th><th>Due</th><th>Note</th></tr>
+      <div class="table-wrap"><table><tr><th>Tool</th><th>Code</th><th>For</th><th>Out since</th><th>Due</th><th>Note</th></tr>
       ${groups[name].map((c) => {
         const t = byId[c.tool_id];
         const late = c.due_at && new Date(c.due_at) < new Date();
-        return `<tr class="${late ? 'overdue' : ''}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a></td><td class="code">${esc(t?.code)}</td><td>${fmtDate(c.checked_out_at)} <span class="muted">(${since(c.checked_out_at)})</span></td><td>${c.due_at ? new Date(c.due_at).toLocaleDateString() : ''}${late ? ' <span class="pill overdue">OVERDUE</span>' : ''}</td><td>${esc(c.out_note)}</td></tr>`;
+        return `<tr class="${late ? 'overdue' : ''}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a></td><td class="code">${esc(t?.code)}</td><td>${c.event_id ? `<a href="#/event/${c.event_id}">${esc(evName[c.event_id])}</a>` : '<span class="muted">shop</span>'}</td><td>${fmtDate(c.checked_out_at)} <span class="muted">(${since(c.checked_out_at)})</span></td><td>${c.due_at ? new Date(c.due_at).toLocaleDateString() : ''}${late ? ' <span class="pill overdue">OVERDUE</span>' : ''}</td><td>${esc(c.out_note)}</td></tr>`;
       }).join('')}</table></div>`).join('') || '<div class="card muted">Every tool is in.</div>'}
     ${flagged.length ? `<h2>Needs attention</h2><div class="table-wrap"><table><tr><th>Tool</th><th>Code</th><th>Status</th></tr>
       ${flagged.map((t) => `<tr><td><a href="#/tool/${t.id}">${esc(t.name)}</a></td><td class="code">${esc(t.code)}</td><td><span class="pill ${t.status}">${t.status}</span></td></tr>`).join('')}</table></div>` : ''}`;
@@ -816,7 +1022,8 @@ async function renderHistory() {
     </div>
     <div id="out"><p class="muted">Loading…</p></div>`;
 
-  const [items, tools, members] = await Promise.all([loadItems(), loadTools(), loadMembers()]);
+  const [items, tools, members, events] = await Promise.all([loadItems(), loadTools(), loadMembers(), q(sb.from('events').select('id, name'))]);
+  const evName = Object.fromEntries(events.map((e) => [e.id, e.name]));
   const itemBy = Object.fromEntries(items.map((i) => [i.id, i]));
   const toolBy = Object.fromEntries(tools.map((t) => [t.id, t]));
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
@@ -828,16 +1035,16 @@ async function renderHistory() {
     const out = app.querySelector('#out');
     if (app.querySelector('#kind').value === 'stock') {
       const tx = await q(sb.from('item_transactions').select('*').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false }).limit(2000));
-      rows = tx.map((t) => ({ when: fmtDate(t.created_at), type: t.type, code: itemBy[t.item_id]?.code, item: itemBy[t.item_id]?.name, change: t.qty, after: t.qty_after, unit: itemBy[t.item_id]?.unit, who: who[t.member_id], note: t.note }));
-      out.innerHTML = `<div class="table-wrap"><table><tr><th>When</th><th>Type</th><th>Item</th><th class="num">Change</th><th class="num">After</th><th>Who</th><th>Note</th></tr>
-        ${rows.map((r) => `<tr><td>${r.when}</td><td><span class="pill ${r.type}">${r.type}</span></td><td>${esc(r.item)} <span class="code muted">${esc(r.code)}</span></td><td class="num">${r.change > 0 ? '+' : ''}${r.change}</td><td class="num">${r.after} ${esc(r.unit)}</td><td>${esc(r.who)}</td><td>${esc(r.note)}</td></tr>`).join('')
-        || '<tr><td colspan="7" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
+      rows = tx.map((t) => ({ when: fmtDate(t.created_at), type: t.type, code: itemBy[t.item_id]?.code, item: itemBy[t.item_id]?.name, change: t.qty, after: t.qty_after, unit: itemBy[t.item_id]?.unit, who: who[t.member_id], event: evName[t.event_id] || '', recorded_by: t.recorded_by && t.recorded_by !== t.member_id ? who[t.recorded_by] : '', note: t.note }));
+      out.innerHTML = `<div class="table-wrap"><table><tr><th>When</th><th>Type</th><th>Item</th><th class="num">Change</th><th class="num">After</th><th>Who</th><th>Event</th><th>Note</th></tr>
+        ${rows.map((r) => `<tr><td>${r.when}</td><td><span class="pill ${r.type}">${r.type}</span></td><td>${esc(r.item)} <span class="code muted">${esc(r.code)}</span></td><td class="num">${r.change > 0 ? '+' : ''}${r.change}</td><td class="num">${r.after} ${esc(r.unit)}</td><td>${esc(r.who)}${r.recorded_by ? ` <span class="muted">(at ${esc(r.recorded_by)})</span>` : ''}</td><td>${esc(r.event)}</td><td>${esc(r.note)}</td></tr>`).join('')
+        || '<tr><td colspan="8" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
     } else {
       const co = await q(sb.from('tool_checkouts').select('*').gte('checked_out_at', start).lte('checked_out_at', end).order('checked_out_at', { ascending: false }).limit(2000));
-      rows = co.map((c) => ({ out: fmtDate(c.checked_out_at), code: toolBy[c.tool_id]?.code, tool: toolBy[c.tool_id]?.name, who: who[c.borrower_id], returned: c.returned_at ? fmtDate(c.returned_at) : 'still out', condition: c.return_condition, notes: [c.out_note, c.return_note].filter(Boolean).join(' / ') }));
-      out.innerHTML = `<div class="table-wrap"><table><tr><th>Out</th><th>Tool</th><th>Who</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
-        ${rows.map((r) => `<tr><td>${r.out}</td><td>${esc(r.tool)} <span class="code muted">${esc(r.code)}</span></td><td>${esc(r.who)}</td><td>${r.returned}</td><td>${r.condition ? `<span class="pill ${r.condition}">${r.condition.replace('_', ' ')}</span>` : ''}</td><td>${esc(r.notes)}</td></tr>`).join('')
-        || '<tr><td colspan="6" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
+      rows = co.map((c) => ({ out: fmtDate(c.checked_out_at), code: toolBy[c.tool_id]?.code, tool: toolBy[c.tool_id]?.name, who: who[c.borrower_id], event: evName[c.event_id] || '', returned: c.returned_at ? fmtDate(c.returned_at) : 'still out', condition: c.return_condition, notes: [c.out_note, c.return_note].filter(Boolean).join(' / ') }));
+      out.innerHTML = `<div class="table-wrap"><table><tr><th>Out</th><th>Tool</th><th>Who</th><th>Event</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
+        ${rows.map((r) => `<tr><td>${r.out}</td><td>${esc(r.tool)} <span class="code muted">${esc(r.code)}</span></td><td>${esc(r.who)}</td><td>${esc(r.event)}</td><td>${r.returned}</td><td>${r.condition ? `<span class="pill ${r.condition}">${r.condition.replace('_', ' ')}</span>` : ''}</td><td>${esc(r.notes)}</td></tr>`).join('')
+        || '<tr><td colspan="7" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
     }
   };
   ['from', 'to', 'kind'].forEach((id) => app.querySelector(`#${id}`).addEventListener('change', () => load().catch((e) => toast(errMsg(e), true))));
@@ -853,15 +1060,16 @@ async function renderPeople() {
   const members = await loadMembers();
   app.innerHTML = `
     <h1>People</h1>
-    <p class="muted">Anyone with an email here can sign in (they create their own password with that email). People without an email can still borrow tools using their name label.</p>
+    <p class="muted">Anyone with an email here can sign in (they create their own password with that email). People without an email can still use the warehouse iPad with their name label.
+      <b>Kiosk</b> is for the shared iPad's login: it can check things in and out for whoever scans their name, but can't change settings.</p>
     ${isAdmin() ? `<div class="card"><form id="add" class="row">
       <label style="flex:1;min-width:160px">Name <input name="name" required></label>
       <label style="flex:1;min-width:200px">Email (for sign-in) <input name="email" type="email"></label>
-      <label>Role <select name="role"><option value="member">Member</option><option value="admin">Admin</option></select></label>
+      <label>Role <select name="role"><option value="member">Member</option><option value="admin">Admin</option><option value="kiosk">Kiosk (shared iPad)</option></select></label>
       <button class="btn primary">Add person</button></form></div>` : ''}
     <div class="table-wrap"><table><tr><th>Name</th><th>Label code</th><th>Email</th><th>Role</th><th></th></tr>
-      ${members.map((m) => `<tr style="${m.active ? '' : 'opacity:.5'}"><td>${esc(m.name)}</td><td class="code">${esc(m.code)}</td><td>${esc(m.email)}</td><td>${m.role}</td>
-        <td>${isAdmin() && m.id !== state.me.id ? `<button class="btn small" data-role="${m.id}">${m.role === 'admin' ? 'Make member' : 'Make admin'}</button>
+      ${members.map((m) => `<tr style="${m.active ? '' : 'opacity:.5'}"><td>${esc(m.name)}</td><td class="code">${esc(m.code)}</td><td>${esc(m.email)}</td><td>${isAdmin() && m.id !== state.me.id ? `<select data-role="${m.id}">${['member', 'admin', 'kiosk'].map((r) => `<option ${r === m.role ? 'selected' : ''}>${r}</option>`).join('')}</select>` : m.role}</td>
+        <td>${isAdmin() && m.id !== state.me.id ? `
           <button class="btn small" data-active="${m.id}">${m.active ? 'Deactivate' : 'Reactivate'}</button>
           <button class="btn small" data-email="${m.id}">Edit email</button>` : ''}</td></tr>`).join('')}</table></div>
     <p><a class="btn" href="#/labels/people">Print name labels</a></p>`;
@@ -869,10 +1077,7 @@ async function renderPeople() {
   const update = async (id, patch) => {
     try { await q(sb.from('team_members').update(patch).eq('id', id).select()); route(); } catch (err) { toast(errMsg(err), true); }
   };
-  app.querySelectorAll('[data-role]').forEach((b) => b.addEventListener('click', () => {
-    const m = members.find((x) => x.id === b.dataset.role);
-    update(m.id, { role: m.role === 'admin' ? 'member' : 'admin' });
-  }));
+  app.querySelectorAll('[data-role]').forEach((sel) => sel.addEventListener('change', () => update(sel.dataset.role, { role: sel.value })));
   app.querySelectorAll('[data-active]').forEach((b) => b.addEventListener('click', () => {
     const m = members.find((x) => x.id === b.dataset.active);
     update(m.id, { active: !m.active });
@@ -922,7 +1127,7 @@ async function renderLabels(kind, id) {
   const sources = {
     item: items.filter((i) => i.active).map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '' })),
     tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.serial_number ? `S/N ${t.serial_number}` : '' })),
-    people: members.filter((m) => m.active).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '' })),
+    people: people(members).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '' })),
     commands: [
       { id: 'in', code: CMD.IN, name: 'SCAN IN mode', sub: 'Scan Stock page' },
       { id: 'out', code: CMD.OUT, name: 'SCAN OUT mode', sub: 'Scan Stock page' },
