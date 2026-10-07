@@ -1283,6 +1283,8 @@ async function renderLabels(kind, id) {
         <button class="btn primary" id="print">Print selected</button>
       </div>
       <p class="scan-hint">In the print dialog, choose your label printer, set the paper to the same label size, margins to "None", and scale to 100%.</p>
+      ${/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+        ? '<p class="scan-hint"><b>On iPad:</b> the Print button only finds printers over Wi-Fi (AirPrint). Bluetooth pairing isn\'t used. Put the label printer on the same Wi-Fi as this iPad, or print labels from a computer instead.</p>' : ''}
     </div>
     <div class="row" style="margin-bottom:8px"><button class="btn small" id="all">Select all</button><button class="btn small" id="none">Select none</button></div>
     <div class="table-wrap"><table><tr><th></th><th>Code</th><th>Name</th></tr>
