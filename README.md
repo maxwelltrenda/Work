@@ -78,6 +78,7 @@ Tools sent to an event are due back the day after the event ends, so late ones s
 
 ### Label printer tips (Brother QL-820NWB)
 - The Labels page defaults to **Brother DK-1201 (1.1" × 3.5")**, the roll currently loaded. Other DK sizes and Dymo/Zebra sizes are in the list.
-- Install the Brother QL-820NWB driver on the computer that prints (USB or Wi-Fi both work).
-- In the browser print dialog, choose the Brother printer. Under *More settings*, set paper size to **29mm × 90mm** (DK-1201), margins to **None**, scale to **100%**, and turn off headers and footers. Chrome remembers these after the first time.
+- **Print labels** opens a PDF with one label per page, sized exactly to the label (3.5" × 1.1" for DK-1201), with the barcode drawn as sharp vector bars. Browsers ignore label sizes when printing a web page directly and print a letter-size page instead, which feeds about a foot of label tape. A PDF's page size is always respected.
+- **Mac / PC:** install the Brother QL-820NWB driver (USB or Wi-Fi). The print dialog opens automatically. Choose the Brother printer, set paper to **29mm × 90mm**, and set scale to **100% / Actual size**, not "Fit".
+- **iPad:** Safari only prints over Wi-Fi (AirPrint). Bluetooth pairing isn't used, so put the printer on the same Wi-Fi as the iPad. Tap **Print labels**, then the Share button on the PDF, then **Print**.
 - Most scanners send Enter after each scan by default. If yours sends Tab, switch it to Enter using the setup barcodes in its manual.

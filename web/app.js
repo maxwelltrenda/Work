@@ -1230,6 +1230,84 @@ async function renderPeople() {
 // Labels
 // ---------------------------------------------------------------------------
 
+// Build a PDF whose pages are exactly the label size, with the barcode drawn
+// as vector bars. Browsers (iPad Safari especially) ignore CSS page sizes and
+// print on letter paper, which feeds a foot of label tape; a PDF's page size
+// is always respected.
+function buildLabelPdf(rows, size) {
+  const { jsPDF } = window.jspdf;
+  const { w, h } = size;
+  const pdf = new jsPDF({ orientation: w > h ? 'landscape' : 'portrait', unit: 'in', format: [w, h] });
+  const wide = w / h >= 2.2;
+  const pad = 0.07;
+
+  // Draw a Code 128 barcode as filled rectangles inside the given box.
+  const drawBarcode = (code, x, y, bw, bh) => {
+    const enc = {};
+    window.JsBarcode(enc, code, { format: 'CODE128' });
+    const bits = enc.encodings.map((e) => e.data).join('');
+    const quiet = 10; // modules of blank space each side, so scanners lock on
+    const module = bw / (bits.length + quiet * 2);
+    const textH = Math.min(0.16, bh * 0.22);
+    const barH = bh - textH - 0.02;
+    let i = 0;
+    while (i < bits.length) {
+      if (bits[i] === '1') {
+        let run = 1;
+        while (bits[i + run] === '1') run++;
+        pdf.rect(x + (quiet + i) * module, y, run * module, barH, 'F');
+        i += run;
+      } else {
+        i++;
+      }
+    }
+    pdf.setFont('courier', 'normal');
+    pdf.setFontSize(Math.max(6, Math.min(11, textH * 72 * 0.85)));
+    pdf.text(code, x + bw / 2, y + bh - 0.01, { align: 'center', baseline: 'bottom' });
+  };
+
+  // Fit a name into at most two lines by shrinking the font if needed.
+  const drawName = (name, sub, x, y, cw, ch, align) => {
+    let fs = Math.min(13, Math.max(7, ch * 72 * 0.34));
+    let lines;
+    pdf.setFont('helvetica', 'bold');
+    for (; fs >= 6; fs -= 0.5) {
+      pdf.setFontSize(fs);
+      lines = pdf.splitTextToSize(name, cw);
+      if (lines.length <= 2) break;
+    }
+    lines = lines.slice(0, 2);
+    const lineH = (fs / 72) * 1.15;
+    const subFs = Math.max(6, fs * 0.7);
+    const subH = sub ? (subFs / 72) * 1.3 : 0;
+    const blockH = lines.length * lineH + subH;
+    let ty = y + Math.max(0, (ch - blockH) / 2) + lineH * 0.8;
+    const tx = align === 'center' ? x + cw / 2 : x;
+    lines.forEach((ln) => { pdf.text(ln, tx, ty, { align }); ty += lineH; });
+    if (sub) {
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(subFs);
+      pdf.text(pdf.splitTextToSize(sub, cw)[0], tx, ty - lineH + subH + lineH * 0.2, { align });
+    }
+  };
+
+  rows.forEach((r, n) => {
+    if (n > 0) pdf.addPage([w, h], w > h ? 'landscape' : 'portrait');
+    pdf.setFillColor(0, 0, 0);
+    pdf.setTextColor(0, 0, 0);
+    if (wide) {
+      const bw = (w - pad * 3) * 0.6;
+      drawBarcode(r.code, pad, pad, bw, h - pad * 2);
+      drawName(r.name, r.sub, pad * 2 + bw, pad, w - bw - pad * 3, h - pad * 2, 'left');
+    } else {
+      const bh = (h - pad * 2) * 0.62;
+      drawBarcode(r.code, pad, pad, w - pad * 2, bh);
+      drawName(r.name, r.sub, pad, pad + bh + 0.02, w - pad * 2, h - pad * 2 - bh - 0.02, 'center');
+    }
+  });
+  return pdf;
+}
+
 function labelHtml(code, name, sub = '') {
   return `<div class="label"><svg data-code="${esc(code)}"></svg><div class="ltext"><div class="lname">${esc(name)}</div>${sub ? `<div class="lsub">${esc(sub)}</div>` : ''}</div></div>`;
 }
@@ -1261,7 +1339,7 @@ async function renderLabels(kind, id) {
       { id: 'in', code: CMD.IN, name: 'SCAN IN mode', sub: 'Scan Stock page' },
       { id: 'out', code: CMD.OUT, name: 'SCAN OUT mode', sub: 'Scan Stock page' },
       { id: 'count', code: CMD.COUNT, name: 'SET COUNT mode', sub: 'Admins only' },
-      { id: 'done', code: CMD.DONE, name: 'DONE / CLEAR', sub: 'Finish a person or reset' },
+      { id: 'done', code: CMD.DONE, name: 'DONE / CLEAR', sub: 'Finish or reset' },
     ],
   };
   const tab = sources[kind] ? kind : 'facilities';
@@ -1280,9 +1358,9 @@ async function renderLabels(kind, id) {
           <option value="commands" ${tab === 'commands' ? 'selected' : ''}>Command barcodes</option></select></label>
         <label>Label size <select id="size">${Object.entries(LABEL_SIZES).map(([k, s]) => `<option value="${k}" ${k === sizeKey ? 'selected' : ''}>${s.name}</option>`).join('')}</select></label>
         <label>Copies each <input id="copies" type="number" min="1" max="20" value="1" style="width:80px"></label>
-        <button class="btn primary" id="print">Print selected</button>
+        <button class="btn primary" id="print">Print labels</button>
       </div>
-      <p class="scan-hint">In the print dialog, choose your label printer, set the paper to the same label size, margins to "None", and scale to 100%.</p>
+      <p class="scan-hint">Opens a PDF sized exactly to one label per page. Print it to the Brother at <b>100% / Actual size</b> (not "Fit"). On iPad, tap the Share button on the PDF, then <b>Print</b>.</p>
       ${/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
         ? '<p class="scan-hint"><b>On iPad:</b> the Print button only finds printers over Wi-Fi (AirPrint). Bluetooth pairing isn\'t used. Put the label printer on the same Wi-Fi as this iPad, or print labels from a computer instead.</p>' : ''}
     </div>
@@ -1323,19 +1401,14 @@ async function renderLabels(kind, id) {
   app.querySelector('#print').addEventListener('click', () => {
     const rows = picked();
     if (!rows.length) return toast('Select at least one label');
+    if (!window.jspdf || !window.JsBarcode) return toast('Still loading — try again in a second', true);
     const copies = Math.min(20, Math.max(1, parseInt(app.querySelector('#copies').value, 10) || 1));
-    const area = document.getElementById('print-area');
-    area.innerHTML = rows.flatMap((r) => Array(copies).fill(labelHtml(r.code, r.name, r.sub))).join('');
-    applySize(area);
-    drawBarcodes(area, size());
-    let pageStyle = document.getElementById('page-size');
-    if (!pageStyle) {
-      pageStyle = document.createElement('style');
-      pageStyle.id = 'page-size';
-      document.head.appendChild(pageStyle);
-    }
-    pageStyle.textContent = `@page { size: ${size().w}in ${size().h}in; margin: 0; }`;
-    window.print();
+    const pdf = buildLabelPdf(rows.flatMap((r) => Array(copies).fill(r)), size());
+    pdf.autoPrint(); // opens the print dialog straight away in desktop PDF viewers
+    const url = pdf.output('bloburl');
+    // Opened synchronously from the click so pop-up blockers allow it.
+    const win = window.open(url, '_blank');
+    if (!win) location.href = url;
   });
   paintPreview();
 }
