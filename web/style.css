@@ -89,6 +89,9 @@ tr.overdue td { background: #fef2f2; }
 .label-preview .label { border: 1px dashed var(--muted); background: #fff; }
 .label { width: var(--lw); height: var(--lh); padding: .06in .1in; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; text-align: center; color: #000; }
 .label svg { width: 100%; height: auto; max-height: 62%; }
+.wide .label { flex-direction: row; gap: .1in; padding: .08in .12in; }
+.wide .label svg { width: 60%; max-height: 100%; height: 100%; flex: none; }
+.wide .label .ltext { flex: 1; text-align: left; min-width: 0; }
 .label .lname { font-weight: 700; font-size: var(--lfont, 11pt); line-height: 1.1; max-height: 2.3em; overflow: hidden; }
 .label .lsub { font-size: 8pt; }
 

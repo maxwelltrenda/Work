@@ -45,7 +45,8 @@ Codes are assigned automatically when you add something. Print them from the **L
 5. On **People**, add your team. Anyone with an email can create an account with that email. People without an email can still borrow tools with their name label.
 6. Add items and tools, then print labels.
 
-### Label printer tips
-- Pick your label size on the Labels page (Dymo 30334, Zebra 2×1, and others).
-- In the browser print dialog, choose the label printer, set the paper size to match, set margins to **None**, and set scale to **100%**.
+### Label printer tips (Brother QL-820NWB)
+- The Labels page defaults to **Brother DK-1201 (1.1" × 3.5")**, the roll currently loaded. Other DK sizes and Dymo/Zebra sizes are in the list.
+- Install the Brother QL-820NWB driver on the computer that prints (USB or Wi-Fi both work).
+- In the browser print dialog, choose the Brother printer. Under *More settings*, set paper size to **29mm × 90mm** (DK-1201), margins to **None**, scale to **100%**, and turn off headers and footers. Chrome remembers these after the first time.
 - Most scanners send Enter after each scan by default. If yours sends Tab, switch it to Enter using the setup barcodes in its manual.

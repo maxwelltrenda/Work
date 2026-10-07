@@ -8,6 +8,10 @@ const app = document.getElementById('app');
 const CMD = { IN: 'CMD-IN', OUT: 'CMD-OUT', COUNT: 'CMD-COUNT', DONE: 'CMD-DONE' };
 
 const LABEL_SIZES = {
+  'brother-dk1201': { name: 'Brother DK-1201 — 1.1" × 3.5" (address)', w: 3.5, h: 1.1 },
+  'brother-dk1209': { name: 'Brother DK-1209 — 1.1" × 2.4" (small address)', w: 2.4, h: 1.1 },
+  'brother-dk1208': { name: 'Brother DK-1208 — 1.4" × 3.5" (large address)', w: 3.5, h: 1.4 },
+  'brother-dk1202': { name: 'Brother DK-1202 — 2.4" × 3.9" (shipping)', w: 3.9, h: 2.4 },
   'dymo-30334': { name: 'Dymo 30334 — 2¼" × 1¼"', w: 2.25, h: 1.25 },
   'dymo-30252': { name: 'Dymo 30252 — 3½" × 1⅛" (address)', w: 3.5, h: 1.125 },
   'dymo-30336': { name: 'Dymo 30336 — 2⅛" × 1"', w: 2.125, h: 1 },
@@ -894,14 +898,14 @@ async function renderPeople() {
 // ---------------------------------------------------------------------------
 
 function labelHtml(code, name, sub = '') {
-  return `<div class="label"><svg data-code="${esc(code)}"></svg><div class="lname">${esc(name)}</div>${sub ? `<div class="lsub">${esc(sub)}</div>` : ''}</div>`;
+  return `<div class="label"><svg data-code="${esc(code)}"></svg><div class="ltext"><div class="lname">${esc(name)}</div>${sub ? `<div class="lsub">${esc(sub)}</div>` : ''}</div></div>`;
 }
 
 function drawBarcodes(root, size) {
   root.querySelectorAll('svg[data-code]').forEach((svg) => {
     window.JsBarcode(svg, svg.dataset.code, {
       format: 'CODE128', displayValue: true, margin: 0, fontSize: 14, textMargin: 1,
-      height: Math.max(30, Math.round(size.h * 45)), width: 2,
+      height: size.w / size.h >= 2.2 ? 80 : Math.max(30, Math.round(size.h * 45)), width: 2,
     });
   });
 }
@@ -928,7 +932,7 @@ async function renderLabels(kind, id) {
   };
   const tab = sources[kind] ? kind : 'item';
   const preselect = new Set(id ? [id] : []);
-  const sizeKey = getPref('labelSize', 'dymo-30334');
+  const sizeKey = getPref('labelSize', 'brother-dk1201');
 
   app.innerHTML = `
     <h1>Print Labels</h1>
@@ -961,7 +965,10 @@ async function renderLabels(kind, id) {
     const s = size();
     el.style.setProperty('--lw', `${s.w}in`);
     el.style.setProperty('--lh', `${s.h}in`);
-    el.style.setProperty('--lfont', s.h <= 1.1 ? '8pt' : s.h <= 1.3 ? '10pt' : '13pt');
+    el.style.setProperty('--lfont', s.h <= 1.1 ? '9pt' : s.h <= 1.3 ? '10pt' : '13pt');
+    // Short, wide labels (like Brother DK-1201) put the barcode beside the text
+    // so the bars can use the full label height.
+    el.classList.toggle('wide', s.w / s.h >= 2.2);
   };
   const paintPreview = () => {
     const prev = app.querySelector('#preview');
