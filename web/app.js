@@ -247,7 +247,8 @@ function renderTopbar() {
       ? [['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events']]
       : [['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
         ['items/facilities', 'Facilities Stock'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
-        ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People']];
+        ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'],
+        ...(isAdmin() ? [['locations', 'Locations']] : [])];
     const [h0, h1] = location.hash.slice(2).split('/');
     const cur = h0 === 'items' ? `items/${stockKind(h1)}` : (h0 || 'kiosk');
     nav.innerHTML = links.map(([k, t]) => `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${t}</a>`).join('');
@@ -347,6 +348,7 @@ const routes = {
   kiosk: renderKiosk, events: renderEvents, event: renderEvent,
   stock: renderStock, out: renderOut, items: renderItems, item: renderItem,
   toollist: renderToolList, tool: renderTool, history: renderHistory, labels: renderLabels, people: renderPeople,
+  locations: renderLocations,
 };
 
 window.addEventListener('hashchange', () => state.me && route());
@@ -606,10 +608,8 @@ async function renderKiosk() {
       const name = (prompt('New location (e.g. "Main Building", "Youth Room"):') || '').trim();
       if (!name) return scan.focus();
       try {
-        await q(sb.from('locations').insert({ name }).select());
-      } catch (err) {
-        if (!/duplicate|unique/i.test(errMsg(err))) { toast(errMsg(err), true); return scan.focus(); }
-      }
+        await rpc('add_location', { p_name: name });
+      } catch (err) { toast(errMsg(err), true); return scan.focus(); }
       if (!locations.some((l) => l.name === name)) locations.push({ name });
       locations.sort((a, b) => a.name.localeCompare(b.name));
       k.dest = name;
@@ -927,7 +927,7 @@ const stockKind = (c) => (STOCK[c] ? c : 'facilities');
 // Total pieces: e.g. 3 boxes × 6 rolls = 18.
 const pieces = (i) => i.quantity * (i.pack_size || 1);
 const packNote = (i) => ((i.pack_size || 1) > 1 ? ` (${i.pack_size} each = ${pieces(i).toLocaleString()} total)` : '');
-const loadLocations = () => q(sb.from('locations').select('name').order('name'));
+const loadLocations = () => q(sb.from('locations').select('name').eq('active', true).order('name'));
 
 // Location dropdown shared by item and tool forms. Admins can add new ones inline.
 function locationSelect(locations, current, label = 'Location') {
@@ -937,7 +937,7 @@ function locationSelect(locations, current, label = 'Location') {
     <select name="location" data-location>
       <option value="">— None —</option>
       ${names.map((n) => `<option ${n === current ? 'selected' : ''}>${esc(n)}</option>`).join('')}
-      ${isAdmin() ? '<option value="__new">+ Add new location…</option>' : ''}
+      ${isAdmin() ? '<option value="__new">+ Add new location…</option><option value="__manage">Manage locations…</option>' : ''}
     </select></label>`;
 }
 
@@ -945,14 +945,13 @@ function bindLocationSelects(root) {
   root.querySelectorAll('select[data-location]').forEach((sel) => {
     let last = sel.value;
     sel.addEventListener('change', async () => {
+      if (sel.value === '__manage') { sel.value = last; location.hash = '#/locations'; return; }
       if (sel.value !== '__new') { last = sel.value; return; }
       const name = (prompt('New location name (e.g. "Shelf A3", "Trailer 2"):') || '').trim();
       if (!name) { sel.value = last; return; }
       try {
-        await q(sb.from('locations').insert({ name }).select());
-      } catch (err) {
-        if (!/duplicate|unique/i.test(errMsg(err))) { toast(errMsg(err), true); sel.value = last; return; }
-      }
+        await rpc('add_location', { p_name: name });
+      } catch (err) { toast(errMsg(err), true); sel.value = last; return; }
       // Add it to every location dropdown on the page and pick it here.
       root.querySelectorAll('select[data-location]').forEach((s) => {
         if (![...s.options].some((o) => o.value === name)) {
@@ -1011,6 +1010,7 @@ async function renderItems(category) {
       <select id="locfilter"><option value="">All locations</option>${locations.map((l) => `<option>${esc(l.name)}</option>`).join('')}</select>
       <label class="row" style="flex-direction:row;align-items:center"><input type="checkbox" id="lowonly"> Low only</label>
       <button class="btn" id="csv">Export CSV</button>
+      <button class="btn" id="sheet" title="Every ${meta.plain.toLowerCase()} label on letter paper, sorted by location">Print sheet</button>
     </div>
     <div class="table-wrap"><table id="tbl"></table></div>
     ${items.length > show.length ? `<p class="muted">${items.length - show.length} archived item(s) hidden.</p>` : ''}`;
@@ -1028,6 +1028,11 @@ async function renderItems(category) {
   app.querySelector('#filter').addEventListener('input', paint);
   app.querySelector('#locfilter').addEventListener('change', paint);
   app.querySelector('#lowonly').addEventListener('change', paint);
+  app.querySelector('#sheet').addEventListener('click', () => {
+    if (!show.length) return toast('Nothing to print yet');
+    if (!window.jspdf || !window.JsBarcode) return toast('Still loading — try again in a second', true);
+    openPdf(buildSheetPdf(stockSheetRows(all, kind), meta.plain.charAt(0).toUpperCase() + meta.plain.slice(1)));
+  });
   app.querySelector('#csv').addEventListener('click', () => downloadCsv(`${kind}-stock.csv`, show.map((i) => ({
     code: i.code, name: i.name, location: i.location, on_hand: i.quantity, per_pack: i.pack_size || 1, total_pieces: pieces(i), reorder_at: i.reorder_level, description: i.description,
   }))));
@@ -1295,8 +1300,121 @@ async function renderPeople() {
 }
 
 // ---------------------------------------------------------------------------
+// Locations (shared list for storage spots and where things go)
+// ---------------------------------------------------------------------------
+
+async function renderLocations() {
+  const [locations, items, tools] = await Promise.all([
+    loadLocations(),
+    q(sb.from('items').select('location').eq('active', true)),
+    q(sb.from('tools').select('location').eq('active', true)),
+  ]);
+  const count = (rows, name) => rows.filter((r) => r.location === name).length;
+
+  app.innerHTML = `
+    ${pageHead('Settings', 'Locations', 'Shelves, rooms and places used for storing stock and tools, and on Check In / Out for where things are going.')}
+    ${isAdmin() ? `<div class="card"><form id="add" class="row">
+      <label style="flex:1;min-width:220px">New location <input name="name" required placeholder="e.g. Janitor closet, Youth Room, Trailer 2"></label>
+      <button class="btn primary">Add location</button></form></div>` : ''}
+    <div class="table-wrap"><table><tr><th>Location</th><th class="num">Stock items</th><th class="num">Tools</th><th></th></tr>
+      ${locations.map((l) => `<tr><td><b>${esc(l.name)}</b></td><td class="num">${count(items, l.name) || ''}</td><td class="num">${count(tools, l.name) || ''}</td>
+        <td style="text-align:right;white-space:nowrap">${isAdmin() ? `<button class="btn small" data-rename="${esc(l.name)}">Rename</button>
+          <button class="btn small bad" data-remove="${esc(l.name)}">Delete</button>` : ''}</td></tr>`).join('')
+      || '<tr><td colspan="4" class="muted">No locations yet.</td></tr>'}</table></div>
+    <p class="muted" style="font-size:14px;margin-top:12px">Renaming updates every item and tool stored there. Deleting removes it from all lists; history that mentions it keeps the name.</p>`;
+
+  app.querySelector('#add')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await rpc('add_location', { p_name: new FormData(e.target).get('name') }); toast('Location added'); route(); } catch (err) { toast(errMsg(err), true); }
+  });
+  app.querySelectorAll('[data-rename]').forEach((b) => b.addEventListener('click', async () => {
+    const old = b.dataset.rename;
+    const name = (prompt(`Rename "${old}" to:`, old) || '').trim();
+    if (!name || name === old) return;
+    if (locations.some((l) => l.name === name)) return toast(`There's already a location called ${name}`, true);
+    try { await q(sb.from('locations').update({ name }).eq('name', old).select()); toast('Renamed'); route(); } catch (err) { toast(errMsg(err), true); }
+  }));
+  app.querySelectorAll('[data-remove]').forEach((b) => b.addEventListener('click', async () => {
+    const name = b.dataset.remove;
+    const n = count(items, name) + count(tools, name);
+    if (!confirm(n ? `Delete "${name}"? ${n} item${n === 1 ? '' : 's'}/tool${n === 1 ? '' : 's'} stored there will be left with no location.` : `Delete "${name}"?`)) return;
+    try { await rpc('remove_location', { p_name: name }); toast(`Deleted ${name}`); route(); } catch (err) { toast(errMsg(err), true); }
+  }));
+}
+
+// ---------------------------------------------------------------------------
 // Labels
 // ---------------------------------------------------------------------------
+
+// Build a PDF whose pages are exactly the label size, with the barcode drawn
+// as vector bars. Browsers (iPad Safari especially) ignore CSS page sizes and
+// print on letter paper, which feeds a foot of label tape; a PDF's page size
+// is always respected.
+// Draw a Code 128 barcode as filled rectangles inside the given box.
+function pdfBarcode(pdf, code, x, y, bw, bh) {
+  const enc = {};
+  window.JsBarcode(enc, code, { format: 'CODE128' });
+  const bits = enc.encodings.map((e) => e.data).join('');
+  const quiet = 10; // modules of blank space each side, so scanners lock on
+  const module = bw / (bits.length + quiet * 2);
+  const textH = Math.min(0.16, bh * 0.22);
+  const barH = bh - textH - 0.02;
+  let i = 0;
+  while (i < bits.length) {
+    if (bits[i] === '1') {
+      let run = 1;
+      while (bits[i + run] === '1') run++;
+      pdf.rect(x + (quiet + i) * module, y, run * module, barH, 'F');
+      i += run;
+    } else {
+      i++;
+    }
+  }
+  pdf.setFont('courier', 'normal');
+  pdf.setFontSize(Math.max(6, Math.min(11, textH * 72 * 0.85)));
+  pdf.text(code, x + bw / 2, y + bh - 0.01, { align: 'center', baseline: 'bottom' });
+}
+
+// Fit a name into at most two lines by shrinking the font if needed.
+function pdfName(pdf, name, sub, x, y, cw, ch, align) {
+  let fs = Math.min(13, Math.max(7, ch * 72 * 0.34));
+  let lines;
+  pdf.setFont('helvetica', 'bold');
+  for (; fs >= 6; fs -= 0.5) {
+    pdf.setFontSize(fs);
+    lines = pdf.splitTextToSize(name, cw);
+    if (lines.length <= 2) break;
+  }
+  lines = lines.slice(0, 2);
+  const lineH = (fs / 72) * 1.15;
+  const subFs = Math.max(6, fs * 0.7);
+  const subH = sub ? (subFs / 72) * 1.3 : 0;
+  const blockH = lines.length * lineH + subH;
+  let ty = y + Math.max(0, (ch - blockH) / 2) + lineH * 0.8;
+  const tx = align === 'center' ? x + cw / 2 : x;
+  lines.forEach((ln) => { pdf.text(ln, tx, ty, { align }); ty += lineH; });
+  if (sub) {
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(subFs);
+    pdf.text(pdf.splitTextToSize(sub, cw)[0], tx, ty - lineH + subH + lineH * 0.2, { align });
+  }
+}
+
+// One label (barcode + name) in a w×h box at (x, y).
+function pdfLabel(pdf, r, x, y, w, h) {
+  const pad = 0.07;
+  pdf.setFillColor(0, 0, 0);
+  pdf.setTextColor(0, 0, 0);
+  if (w / h >= 2.2) {
+    const bw = (w - pad * 3) * 0.6;
+    pdfBarcode(pdf, r.code, x + pad, y + pad, bw, h - pad * 2);
+    pdfName(pdf, r.name, r.sub, x + pad * 2 + bw, y + pad, w - bw - pad * 3, h - pad * 2, 'left');
+  } else {
+    const bh = (h - pad * 2) * 0.62;
+    pdfBarcode(pdf, r.code, x + pad, y + pad, w - pad * 2, bh);
+    pdfName(pdf, r.name, r.sub, x + pad, y + pad + bh + 0.02, w - pad * 2, h - pad * 2 - bh - 0.02, 'center');
+  }
+}
 
 // Build a PDF whose pages are exactly the label size, with the barcode drawn
 // as vector bars. Browsers (iPad Safari especially) ignore CSS page sizes and
@@ -1305,75 +1423,67 @@ async function renderPeople() {
 function buildLabelPdf(rows, size) {
   const { jsPDF } = window.jspdf;
   const { w, h } = size;
-  const pdf = new jsPDF({ orientation: w > h ? 'landscape' : 'portrait', unit: 'in', format: [w, h] });
-  const wide = w / h >= 2.2;
-  const pad = 0.07;
-
-  // Draw a Code 128 barcode as filled rectangles inside the given box.
-  const drawBarcode = (code, x, y, bw, bh) => {
-    const enc = {};
-    window.JsBarcode(enc, code, { format: 'CODE128' });
-    const bits = enc.encodings.map((e) => e.data).join('');
-    const quiet = 10; // modules of blank space each side, so scanners lock on
-    const module = bw / (bits.length + quiet * 2);
-    const textH = Math.min(0.16, bh * 0.22);
-    const barH = bh - textH - 0.02;
-    let i = 0;
-    while (i < bits.length) {
-      if (bits[i] === '1') {
-        let run = 1;
-        while (bits[i + run] === '1') run++;
-        pdf.rect(x + (quiet + i) * module, y, run * module, barH, 'F');
-        i += run;
-      } else {
-        i++;
-      }
-    }
-    pdf.setFont('courier', 'normal');
-    pdf.setFontSize(Math.max(6, Math.min(11, textH * 72 * 0.85)));
-    pdf.text(code, x + bw / 2, y + bh - 0.01, { align: 'center', baseline: 'bottom' });
-  };
-
-  // Fit a name into at most two lines by shrinking the font if needed.
-  const drawName = (name, sub, x, y, cw, ch, align) => {
-    let fs = Math.min(13, Math.max(7, ch * 72 * 0.34));
-    let lines;
-    pdf.setFont('helvetica', 'bold');
-    for (; fs >= 6; fs -= 0.5) {
-      pdf.setFontSize(fs);
-      lines = pdf.splitTextToSize(name, cw);
-      if (lines.length <= 2) break;
-    }
-    lines = lines.slice(0, 2);
-    const lineH = (fs / 72) * 1.15;
-    const subFs = Math.max(6, fs * 0.7);
-    const subH = sub ? (subFs / 72) * 1.3 : 0;
-    const blockH = lines.length * lineH + subH;
-    let ty = y + Math.max(0, (ch - blockH) / 2) + lineH * 0.8;
-    const tx = align === 'center' ? x + cw / 2 : x;
-    lines.forEach((ln) => { pdf.text(ln, tx, ty, { align }); ty += lineH; });
-    if (sub) {
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(subFs);
-      pdf.text(pdf.splitTextToSize(sub, cw)[0], tx, ty - lineH + subH + lineH * 0.2, { align });
-    }
-  };
-
+  const orient = w > h ? 'landscape' : 'portrait';
+  const pdf = new jsPDF({ orientation: orient, unit: 'in', format: [w, h] });
   rows.forEach((r, n) => {
-    if (n > 0) pdf.addPage([w, h], w > h ? 'landscape' : 'portrait');
-    pdf.setFillColor(0, 0, 0);
-    pdf.setTextColor(0, 0, 0);
-    if (wide) {
-      const bw = (w - pad * 3) * 0.6;
-      drawBarcode(r.code, pad, pad, bw, h - pad * 2);
-      drawName(r.name, r.sub, pad * 2 + bw, pad, w - bw - pad * 3, h - pad * 2, 'left');
-    } else {
-      const bh = (h - pad * 2) * 0.62;
-      drawBarcode(r.code, pad, pad, w - pad * 2, bh);
-      drawName(r.name, r.sub, pad, pad + bh + 0.02, w - pad * 2, h - pad * 2 - bh - 0.02, 'center');
-    }
+    if (n > 0) pdf.addPage([w, h], orient);
+    pdfLabel(pdf, r, 0, 0, w, h);
   });
   return pdf;
+}
+
+// Letter-paper sheet of labels for any printer: 3 × 8 grid with light cut
+// lines and a header, so it can be cut into labels or kept as a scan sheet.
+function buildSheetPdf(rows, title) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' });
+  const cols = 3;
+  const perCol = 8;
+  const margin = 0.5;
+  const top = 0.95;
+  const cw = (8.5 - margin * 2) / cols;
+  const ch = (11 - top - 0.55) / perCol;
+  const perPage = cols * perCol;
+  const pages = Math.max(1, Math.ceil(rows.length / perPage));
+  const stamp = new Date().toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  for (let p = 0; p < pages; p++) {
+    if (p > 0) pdf.addPage('letter', 'portrait');
+    pdf.setTextColor(30, 42, 50);
+    pdf.setFont('times', 'italic');
+    pdf.setFontSize(18);
+    pdf.text(title, margin, 0.62);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(110, 114, 117);
+    pdf.text(`${rows.length} item${rows.length === 1 ? '' : 's'} · printed ${stamp} · page ${p + 1} of ${pages}`, 8.5 - margin, 0.62, { align: 'right' });
+    pdf.setDrawColor(200, 196, 188);
+    pdf.setLineWidth(0.005);
+    pdf.setLineDashPattern([0.04, 0.04], 0);
+    rows.slice(p * perPage, (p + 1) * perPage).forEach((r, i) => {
+      const x = margin + (i % cols) * cw;
+      const y = top + Math.floor(i / cols) * ch;
+      pdf.rect(x, y, cw, ch, 'S');
+      pdfLabel(pdf, r, x + 0.04, y + 0.04, cw - 0.08, ch - 0.08);
+    });
+    pdf.setLineDashPattern([], 0);
+  }
+  return pdf;
+}
+
+// Open a generated PDF from a click (pop-up blockers allow it then).
+function openPdf(pdf) {
+  pdf.autoPrint(); // opens the print dialog straight away in desktop PDF viewers
+  const url = pdf.output('bloburl');
+  const win = window.open(url, '_blank');
+  if (!win) location.href = url;
+}
+
+// Rows for a stock sheet: sorted by location, then name.
+function stockSheetRows(items, category) {
+  return items
+    .filter((i) => i.active && i.category === category)
+    .sort((a, b) => (a.location || '\uffff').localeCompare(b.location || '\uffff') || a.name.localeCompare(b.name))
+    .map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '' }));
 }
 
 function labelHtml(code, name, sub = '') {
@@ -1430,6 +1540,7 @@ async function renderLabels(kind, id) {
         <label>Label size <select id="size">${Object.entries(LABEL_SIZES).map(([k, s]) => `<option value="${k}" ${k === sizeKey ? 'selected' : ''}>${s.name}</option>`).join('')}</select></label>
         <label>Copies each <input id="copies" type="number" min="1" max="20" value="1" style="width:80px"></label>
         <button class="btn primary" id="print">Print labels</button>
+        <button class="btn" id="print-sheet" title="3 × 8 grid on regular letter paper, for any printer">Print on letter paper</button>
       </div>
       <p class="scan-hint">Opens a PDF sized exactly to one label per page. Print it to the Brother at <b>100% / Actual size</b> (not "Fit"). On iPad, tap the Share button on the PDF, then <b>Print</b>.</p>
       ${/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
@@ -1492,13 +1603,16 @@ async function renderLabels(kind, id) {
     if (!rows.length) return toast('Select at least one label');
     if (!window.jspdf || !window.JsBarcode) return toast('Still loading — try again in a second', true);
     const copies = Math.min(20, Math.max(1, parseInt(app.querySelector('#copies').value, 10) || 1));
-    const pdf = buildLabelPdf(rows.flatMap((r) => Array(copies).fill(r)), size());
-    pdf.autoPrint(); // opens the print dialog straight away in desktop PDF viewers
-    const url = pdf.output('bloburl');
-    // Opened synchronously from the click so pop-up blockers allow it.
-    const win = window.open(url, '_blank');
-    if (!win) location.href = url;
+    openPdf(buildLabelPdf(rows.flatMap((r) => Array(copies).fill(r)), size()));
     if (trackKind) markPrinted(rows, true);
+  });
+  app.querySelector('#print-sheet').addEventListener('click', () => {
+    const rows = picked();
+    if (!rows.length) return toast('Select at least one label');
+    if (!window.jspdf || !window.JsBarcode) return toast('Still loading — try again in a second', true);
+    const copies = Math.min(20, Math.max(1, parseInt(app.querySelector('#copies').value, 10) || 1));
+    const title = { facilities: 'Facilities stock', events: 'Event stock', tool: 'Tools', people: 'Team', commands: 'Command barcodes' }[tab];
+    openPdf(buildSheetPdf(rows.flatMap((r) => Array(copies).fill(r)), title));
   });
 
   // Remember what was printed; offer an undo in case the printer jammed.
