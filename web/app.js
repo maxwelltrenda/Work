@@ -195,9 +195,11 @@ function renderTopbar() {
   } else {
     const links = isKiosk()
       ? [['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events']]
-      : [['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'], ['stock', 'Scan Stock'],
-        ['items', 'Inventory'], ['toollist', 'Tools'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People']];
-    const cur = location.hash.slice(2).split('/')[0] || 'kiosk';
+      : [['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
+        ['items/facilities', 'Facilities Stock'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
+        ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People']];
+    const [h0, h1] = location.hash.slice(2).split('/');
+    const cur = h0 === 'items' ? `items/${stockKind(h1)}` : (h0 || 'kiosk');
     nav.innerHTML = links.map(([k, t]) => `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${t}</a>`).join('');
     who.innerHTML = `<span>${esc(state.me.name)}${isAdmin() ? ' · admin' : ''}${isKiosk() ? ' · kiosk' : ''}</span><button id="signout">Sign out</button>`;
   }
@@ -339,7 +341,7 @@ async function renderStock() {
       <div id="status"></div>
       <details style="margin-top:8px"><summary class="muted">No label? Pick the item instead</summary>
         <div class="row" style="margin-top:8px">
-          <select id="pick" style="flex:1;min-width:200px"><option value="">Choose an item…</option>${active.map((i) => `<option value="${esc(i.code)}">${esc(i.name)} (${i.quantity} ${esc(i.unit)})</option>`).join('')}</select>
+          <select id="pick" style="flex:1;min-width:200px"><option value="">Choose an item…</option>${Object.entries(STOCK).map(([k, m]) => `<optgroup label="${m.plain}">${active.filter((i) => i.category === k).map((i) => `<option value="${esc(i.code)}">${esc(i.name)} (${i.quantity} on hand)</option>`).join('')}</optgroup>`).join('')}</select>
           <button class="btn primary" id="pick-go">Apply</button>
         </div>
       </details>
@@ -390,10 +392,10 @@ async function renderStock() {
     try {
       const res = await rpc('scan_item', { p_code: code, p_type: state.stockMode, p_qty: Number.isNaN(n) ? 1 : n, p_note: note.value });
       const it = res.item;
-      const verb = state.stockMode === 'adjust' ? `Count set (${res.change >= 0 ? '+' : ''}${res.change})` : `${Math.abs(res.change)} ${it.unit} ${state.stockMode === 'in' ? 'in' : 'out'}`;
+      const verb = state.stockMode === 'adjust' ? `Count set (${res.change >= 0 ? '+' : ''}${res.change})` : `${Math.abs(res.change)} ${state.stockMode === 'in' ? 'in' : 'out'}`;
       const low = it.reorder_level > 0 && it.quantity <= it.reorder_level;
-      show('ok', `${esc(verb)} — <b>${esc(it.name)}</b>. Now ${it.quantity} ${esc(it.unit)} on hand.${low ? ` <span class="pill low">LOW — reorder</span>` : ''}`);
-      state.stockLog.unshift({ type: state.stockMode, text: `${verb} · ${it.name} → ${it.quantity} ${it.unit}`, time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) });
+      show('ok', `${esc(verb)} — <b>${esc(it.name)}</b>. Now ${it.quantity} on hand.${low ? ` <span class="pill low">LOW — reorder</span>` : ''}`);
+      state.stockLog.unshift({ type: state.stockMode, text: `${verb} · ${it.name} → ${it.quantity} left`, time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) });
       state.stockLog = state.stockLog.slice(0, 50);
       paintLog();
       qty.value = 1;
@@ -615,8 +617,8 @@ async function renderKiosk() {
         const low = it.reorder_level > 0 && it.quantity <= it.reorder_level;
         const where = k.event ? ` (${k.event.name})` : '';
         beep(true);
-        show('ok', `${k.mode === 'in' ? 'Put back' : 'Took'} ${qty} ${esc(it.unit)} <b>${esc(it.name)}</b>${esc(where)}. ${it.quantity} left.${low ? ' <span class="pill low">LOW — tell the office</span>' : ''}`);
-        log(k.mode, `${qty} ${it.unit} ${it.name}${where} · ${k.person.name}`);
+        show('ok', `${k.mode === 'in' ? 'Put back' : 'Took'} ${qty} × <b>${esc(it.name)}</b>${esc(where)}. ${it.quantity} left.${low ? ' <span class="pill low">LOW — tell the office</span>' : ''}`);
+        log(k.mode, `${qty} × ${it.name}${where} · ${k.person.name}`);
         k.qty = 1;
         paintWho();
       } catch (e) { beep(false); show('err', esc(errMsg(e))); }
@@ -746,7 +748,7 @@ async function renderEvent(id) {
 
     <h2>Stock</h2>
     <div class="table-wrap"><table><tr><th>Item</th><th class="num">Taken</th><th class="num">Brought back</th><th class="num">Used</th></tr>
-      ${Object.entries(stock).map(([iid, s]) => { const it = itemBy[iid]; return `<tr><td>${esc(it?.name)} <span class="code muted">${esc(it?.code)}</span></td><td class="num">${s.taken}</td><td class="num">${s.back}</td><td class="num"><b>${s.taken - s.back}</b> ${esc(it?.unit)}</td></tr>`; }).join('')
+      ${Object.entries(stock).map(([iid, s]) => { const it = itemBy[iid]; return `<tr><td>${esc(it?.name)} <span class="code muted">${esc(it?.code)}</span></td><td class="num">${s.taken}</td><td class="num">${s.back}</td><td class="num"><b>${s.taken - s.back}</b></td></tr>`; }).join('')
       || '<tr><td colspan="4" class="muted">No stock scanned for this event.</td></tr>'}</table></div>
 
     <div class="row" style="margin-top:18px">
@@ -826,35 +828,93 @@ async function renderOut() {
 }
 
 // ---------------------------------------------------------------------------
-// Inventory list & item detail
+// Stock (Facilities / Event) lists & item detail
 // ---------------------------------------------------------------------------
 
-function itemForm(it = {}) {
+const STOCK = {
+  facilities: { title: 'Facilities <span class="accent">stock</span>', plain: 'Facilities stock', eyebrow: 'Stock room', hash: '#/items/facilities' },
+  events: { title: 'Event <span class="accent">stock</span>', plain: 'Event stock', eyebrow: 'Stock room', hash: '#/items/events' },
+};
+const stockKind = (c) => (STOCK[c] ? c : 'facilities');
+const loadLocations = () => q(sb.from('locations').select('name').order('name'));
+
+// Location dropdown shared by item and tool forms. Admins can add new ones inline.
+function locationSelect(locations, current, label = 'Location') {
+  const names = locations.map((l) => l.name);
+  if (current && !names.includes(current)) names.push(current);
+  return `<label style="flex:1;min-width:170px">${label}
+    <select name="location" data-location>
+      <option value="">— None —</option>
+      ${names.map((n) => `<option ${n === current ? 'selected' : ''}>${esc(n)}</option>`).join('')}
+      ${isAdmin() ? '<option value="__new">+ Add new location…</option>' : ''}
+    </select></label>`;
+}
+
+function bindLocationSelects(root) {
+  root.querySelectorAll('select[data-location]').forEach((sel) => {
+    let last = sel.value;
+    sel.addEventListener('change', async () => {
+      if (sel.value !== '__new') { last = sel.value; return; }
+      const name = (prompt('New location name (e.g. "Shelf A3", "Trailer 2"):') || '').trim();
+      if (!name) { sel.value = last; return; }
+      try {
+        await q(sb.from('locations').insert({ name }).select());
+      } catch (err) {
+        if (!/duplicate|unique/i.test(errMsg(err))) { toast(errMsg(err), true); sel.value = last; return; }
+      }
+      // Add it to every location dropdown on the page and pick it here.
+      root.querySelectorAll('select[data-location]').forEach((s) => {
+        if (![...s.options].some((o) => o.value === name)) {
+          s.querySelector('option[value="__new"]').insertAdjacentHTML('beforebegin', `<option>${esc(name)}</option>`);
+        }
+      });
+      sel.value = name;
+      last = name;
+      toast(`Added location ${name}`);
+    });
+  });
+}
+
+function itemForm(it = {}, locations = []) {
+  const cat = it.category || 'facilities';
   return `
     <div class="row">
       <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(it.name)}"></label>
-      <label style="flex:1;min-width:140px">Location <input name="location" value="${esc(it.location)}" placeholder="Shelf A3"></label>
-      <label style="width:100px">Unit <input name="unit" value="${esc(it.unit || 'ea')}" placeholder="ea, box, ft"></label>
+      ${locationSelect(locations, it.location)}
+      <label style="width:150px">Stock type <select name="category">
+        <option value="facilities" ${cat === 'facilities' ? 'selected' : ''}>Facilities</option>
+        <option value="events" ${cat === 'events' ? 'selected' : ''}>Event</option></select></label>
       <label style="width:120px">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
       ${it.id ? '' : '<label style="width:120px">Starting qty <input name="start" type="number" min="0" value="0"></label>'}
     </div>
-    <label style="margin-top:10px">Description <input name="description" value="${esc(it.description)}"></label>`;
+    <label style="margin-top:12px">Description <input name="description" value="${esc(it.description)}"></label>`;
 }
 
-async function renderItems() {
-  const items = await loadItems();
+const itemFields = (f) => ({
+  name: f.get('name').trim(), location: f.get('location') || null, category: f.get('category'),
+  reorder_level: parseInt(f.get('reorder_level'), 10) || 0, description: f.get('description').trim() || null,
+});
+
+async function renderItems(category) {
+  const kind = stockKind(category);
+  const meta = STOCK[kind];
+  const [all, locations] = await Promise.all([loadItems(), loadLocations()]);
+  const items = all.filter((i) => i.category === kind);
   const show = items.filter((i) => i.active);
   const low = show.filter((i) => i.reorder_level > 0 && i.quantity <= i.reorder_level);
+  const total = show.reduce((s, i) => s + i.quantity, 0);
 
   app.innerHTML = `
-    ${pageHead('Stock room', 'Inventory')}
+    ${pageHead(meta.eyebrow, meta.title)}
     <div class="stats">
       <div class="stat"><b>${show.length}</b><span>items</span></div>
+      <div class="stat"><b>${total.toLocaleString()}</b><span>on hand in total</span></div>
       <div class="stat"><b style="color:${low.length ? 'var(--warn)' : 'inherit'}">${low.length}</b><span>at or below reorder level</span></div>
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>Add an item</b></summary><form id="add" style="margin-top:12px">${itemForm()}<div style="margin-top:12px"><button class="btn primary">Add item</button></div></form></details>` : ''}
-    <div class="row" style="margin-bottom:10px">
-      <input id="filter" placeholder="Search…" style="flex:1;min-width:200px">
+    ${isAdmin() ? `<details class="card"><summary><b>Add ${meta.plain.toLowerCase()}</b></summary><form id="add" style="margin-top:14px">${itemForm({ category: kind }, locations)}<div style="margin-top:14px"><button class="btn primary">Add item</button></div></form></details>` : ''}
+    <div class="row" style="margin-bottom:12px">
+      <input id="filter" placeholder="Search name, code or location…" style="flex:1;min-width:200px">
+      <select id="locfilter"><option value="">All locations</option>${locations.map((l) => `<option>${esc(l.name)}</option>`).join('')}</select>
       <label class="row" style="flex-direction:row;align-items:center"><input type="checkbox" id="lowonly"> Low only</label>
       <button class="btn" id="csv">Export CSV</button>
     </div>
@@ -863,72 +923,78 @@ async function renderItems() {
 
   const paint = () => {
     const f = app.querySelector('#filter').value.toLowerCase();
+    const loc = app.querySelector('#locfilter').value;
     const lowOnly = app.querySelector('#lowonly').checked;
-    const rows = show.filter((i) => (!f || `${i.name} ${i.code} ${i.location} ${i.description}`.toLowerCase().includes(f)) && (!lowOnly || low.includes(i)));
+    const rows = show.filter((i) => (!f || `${i.name} ${i.code} ${i.location} ${i.description}`.toLowerCase().includes(f))
+      && (!loc || i.location === loc) && (!lowOnly || low.includes(i)));
     app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Item</th><th>Location</th><th class="num">On hand</th><th class="num">Reorder at</th></tr>
-      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a href="#/item/${i.id}">${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}</td><td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b> ${esc(i.unit)}</td><td class="num">${i.reorder_level || ''}</td></tr>`).join('')
-      || '<tr><td colspan="5" class="muted">No items yet.</td></tr>'}`;
+      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a href="#/item/${i.id}">${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}</td><td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td><td class="num">${i.reorder_level || ''}</td></tr>`).join('')
+      || `<tr><td colspan="5" class="muted">No ${meta.plain.toLowerCase()} yet.</td></tr>`}`;
   };
   app.querySelector('#filter').addEventListener('input', paint);
+  app.querySelector('#locfilter').addEventListener('change', paint);
   app.querySelector('#lowonly').addEventListener('change', paint);
-  app.querySelector('#csv').addEventListener('click', () => downloadCsv('inventory.csv', show.map((i) => ({
-    code: i.code, name: i.name, location: i.location, on_hand: i.quantity, unit: i.unit, reorder_at: i.reorder_level, description: i.description,
+  app.querySelector('#csv').addEventListener('click', () => downloadCsv(`${kind}-stock.csv`, show.map((i) => ({
+    code: i.code, name: i.name, location: i.location, on_hand: i.quantity, reorder_at: i.reorder_level, description: i.description,
   }))));
-  app.querySelector('#add')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    try {
-      const [row] = await q(sb.from('items').insert({
-        name: f.get('name').trim(), location: f.get('location').trim() || null, unit: f.get('unit').trim() || 'ea',
-        reorder_level: parseInt(f.get('reorder_level'), 10) || 0, description: f.get('description').trim() || null,
-      }).select());
-      const start = parseInt(f.get('start'), 10) || 0;
-      if (start > 0) await rpc('scan_item', { p_code: row.code, p_type: 'adjust', p_qty: start, p_note: 'Starting count' });
-      toast(`Added ${row.name} as ${row.code}`);
-      route();
-    } catch (err) { toast(errMsg(err), true); }
-  });
+  const add = app.querySelector('#add');
+  if (add) {
+    bindLocationSelects(add);
+    add.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      try {
+        const [row] = await q(sb.from('items').insert(itemFields(f)).select());
+        const start = parseInt(f.get('start'), 10) || 0;
+        if (start > 0) await rpc('scan_item', { p_code: row.code, p_type: 'adjust', p_qty: start, p_note: 'Starting count' });
+        toast(`Added ${row.name} as ${row.code}`);
+        if (row.category !== kind) location.hash = STOCK[row.category].hash; else route();
+      } catch (err) { toast(errMsg(err), true); }
+    });
+  }
   paint();
 }
 
 async function renderItem(id) {
-  const [[it], tx, members] = await Promise.all([
+  const [[it], tx, members, locations] = await Promise.all([
     q(sb.from('items').select('*').eq('id', id)),
     q(sb.from('item_transactions').select('*').eq('item_id', id).order('created_at', { ascending: false }).limit(300)),
     loadMembers(),
+    loadLocations(),
   ]);
   if (!it) throw new Error('Item not found');
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
+  const meta = STOCK[stockKind(it.category)];
 
   app.innerHTML = `
-    <p><a href="#/items">← Inventory</a></p>
+    <p><a href="${meta.hash}">← ${meta.plain}</a></p>
     <h1>${esc(it.name)} <span class="code muted">${esc(it.code)}</span></h1>
     <div class="stats">
-      <div class="stat"><b>${it.quantity}</b><span>${esc(it.unit)} on hand</span></div>
+      <div class="stat"><b>${it.quantity}</b><span>on hand</span></div>
       <div class="stat"><b>${it.reorder_level || '—'}</b><span>reorder at</span></div>
       <div class="stat"><b>${esc(it.location || '—')}</b><span>location</span></div>
     </div>
-    <div class="row" style="margin-bottom:16px"><a class="btn" href="#/labels/item/${it.id}">Print label</a></div>
-    ${isAdmin() ? `<details class="card"><summary><b>Edit item</b></summary><form id="edit" style="margin-top:12px">${itemForm(it)}
-      <div class="row" style="margin-top:12px"><button class="btn primary">Save</button>
+    <div class="row" style="margin-bottom:16px"><a class="btn" href="#/labels/${stockKind(it.category)}/${it.id}">Print label</a></div>
+    ${isAdmin() ? `<details class="card"><summary><b>Edit item</b></summary><form id="edit" style="margin-top:14px">${itemForm(it, locations)}
+      <div class="row" style="margin-top:14px"><button class="btn primary">Save</button>
       <button type="button" class="btn ${it.active ? 'bad' : ''}" id="archive">${it.active ? 'Archive item' : 'Restore item'}</button></div></form></details>` : ''}
     <h2>History</h2>
     <div class="table-wrap"><table><tr><th>When</th><th>Type</th><th class="num">Change</th><th class="num">After</th><th>Who</th><th>Note</th></tr>
       ${tx.map((t) => `<tr><td>${fmtDate(t.created_at)}</td><td><span class="pill ${t.type}">${t.type}</span></td><td class="num">${t.qty > 0 ? '+' : ''}${t.qty}</td><td class="num">${t.qty_after}</td><td>${esc(who[t.member_id])}</td><td>${esc(t.note)}</td></tr>`).join('')
       || '<tr><td colspan="6" class="muted">No activity yet.</td></tr>'}</table></div>`;
 
-  app.querySelector('#edit')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const f = new FormData(e.target);
-    try {
-      await q(sb.from('items').update({
-        name: f.get('name').trim(), location: f.get('location').trim() || null, unit: f.get('unit').trim() || 'ea',
-        reorder_level: parseInt(f.get('reorder_level'), 10) || 0, description: f.get('description').trim() || null,
-      }).eq('id', it.id).select());
-      toast('Saved');
-      route();
-    } catch (err) { toast(errMsg(err), true); }
-  });
+  const edit = app.querySelector('#edit');
+  if (edit) {
+    bindLocationSelects(edit);
+    edit.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        await q(sb.from('items').update(itemFields(new FormData(e.target))).eq('id', it.id).select());
+        toast('Saved');
+        route();
+      } catch (err) { toast(errMsg(err), true); }
+    });
+  }
   app.querySelector('#archive')?.addEventListener('click', async () => {
     if (it.active && !confirm(`Archive ${it.name}? It will stop scanning but keep its history.`)) return;
     try { await q(sb.from('items').update({ active: !it.active }).eq('id', it.id).select()); route(); } catch (err) { toast(errMsg(err), true); }
@@ -939,24 +1005,24 @@ async function renderItem(id) {
 // Tool list & tool detail
 // ---------------------------------------------------------------------------
 
-function toolForm(t = {}) {
+function toolForm(t = {}, locations = []) {
   return `
     <div class="row">
       <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(t.name)}" placeholder="Hilti TE 30 hammer drill"></label>
       <label style="flex:1;min-width:140px">Serial # <input name="serial_number" value="${esc(t.serial_number)}"></label>
-      <label style="flex:1;min-width:120px">Home location <input name="location" value="${esc(t.location)}"></label>
+      ${locationSelect(locations, t.location, 'Home location')}
       <label style="width:120px">Value ($) <input name="value" type="number" min="0" step="0.01" value="${t.value ?? ''}"></label>
     </div>
-    <label style="margin-top:10px">Description <input name="description" value="${esc(t.description)}"></label>`;
+    <label style="margin-top:12px">Description <input name="description" value="${esc(t.description)}"></label>`;
 }
 
 const toolFields = (f) => ({
-  name: f.get('name').trim(), serial_number: f.get('serial_number').trim() || null, location: f.get('location').trim() || null,
+  name: f.get('name').trim(), serial_number: f.get('serial_number').trim() || null, location: f.get('location') || null,
   value: f.get('value') ? Number(f.get('value')) : null, description: f.get('description').trim() || null,
 });
 
 async function renderToolList() {
-  const [tools, members, open] = await Promise.all([loadTools(), loadMembers(), q(sb.from('tool_checkouts').select('tool_id, borrower_id, checked_out_at').is('returned_at', null))]);
+  const [tools, members, open, locations] = await Promise.all([loadTools(), loadMembers(), q(sb.from('tool_checkouts').select('tool_id, borrower_id, checked_out_at').is('returned_at', null)), loadLocations()]);
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const openBy = Object.fromEntries(open.map((c) => [c.tool_id, c]));
   const show = tools.filter((t) => t.active);
@@ -968,7 +1034,7 @@ async function renderToolList() {
       <div class="stat"><b>${show.length}</b><span>tools</span></div>
       <div class="stat"><b>${total ? `$${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}</b><span>total value</span></div>
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>Add a tool</b></summary><form id="add" style="margin-top:12px">${toolForm()}<div style="margin-top:12px"><button class="btn primary">Add tool</button></div></form></details>` : ''}
+    ${isAdmin() ? `<details class="card"><summary><b>Add a tool</b></summary><form id="add" style="margin-top:14px">${toolForm({}, locations)}<div style="margin-top:12px"><button class="btn primary">Add tool</button></div></form></details>` : ''}
     <div class="row" style="margin-bottom:10px"><input id="filter" placeholder="Search…" style="flex:1;min-width:200px"><button class="btn" id="csv">Export CSV</button></div>
     <div class="table-wrap"><table id="tbl"></table></div>`;
 
@@ -983,6 +1049,7 @@ async function renderToolList() {
   app.querySelector('#csv').addEventListener('click', () => downloadCsv('tools.csv', show.map((t) => ({
     code: t.code, name: t.name, serial: t.serial_number, status: t.status, with: openBy[t.id] ? who[openBy[t.id].borrower_id] : '', location: t.location, value: t.value,
   }))));
+  if (app.querySelector('#add')) bindLocationSelects(app.querySelector('#add'));
   app.querySelector('#add')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
@@ -995,10 +1062,11 @@ async function renderToolList() {
 }
 
 async function renderTool(id) {
-  const [[t], hist, members] = await Promise.all([
+  const [[t], hist, members, locations] = await Promise.all([
     q(sb.from('tools').select('*').eq('id', id)),
     q(sb.from('tool_checkouts').select('*').eq('tool_id', id).order('checked_out_at', { ascending: false }).limit(300)),
     loadMembers(),
+    loadLocations(),
   ]);
   if (!t) throw new Error('Tool not found');
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
@@ -1015,7 +1083,7 @@ async function renderTool(id) {
     <div class="row" style="margin-bottom:16px"><a class="btn" href="#/labels/tool/${t.id}">Print label</a>
       ${isAdmin() && t.status !== 'out' ? `<select id="status">${['available', 'repair', 'lost', 'retired'].map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" id="set-status">Set status</button>` : ''}
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>Edit tool</b></summary><form id="edit" style="margin-top:12px">${toolForm(t)}
+    ${isAdmin() ? `<details class="card"><summary><b>Edit tool</b></summary><form id="edit" style="margin-top:14px">${toolForm(t, locations)}
       <div class="row" style="margin-top:12px"><button class="btn primary">Save</button>
       <button type="button" class="btn ${t.active ? 'bad' : ''}" id="archive">${t.active ? 'Archive tool' : 'Restore tool'}</button></div></form></details>` : ''}
     <h2>Sign-out history</h2>
@@ -1026,6 +1094,7 @@ async function renderTool(id) {
   app.querySelector('#set-status')?.addEventListener('click', async () => {
     try { await rpc('set_tool_status', { p_tool: t.id, p_status: app.querySelector('#status').value }); toast('Status updated'); route(); } catch (err) { toast(errMsg(err), true); }
   });
+  if (app.querySelector('#edit')) bindLocationSelects(app.querySelector('#edit'));
   app.querySelector('#edit')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try { await q(sb.from('tools').update(toolFields(new FormData(e.target))).eq('id', t.id).select()); toast('Saved'); route(); } catch (err) { toast(errMsg(err), true); }
@@ -1065,9 +1134,9 @@ async function renderHistory() {
     const out = app.querySelector('#out');
     if (app.querySelector('#kind').value === 'stock') {
       const tx = await q(sb.from('item_transactions').select('*').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false }).limit(2000));
-      rows = tx.map((t) => ({ when: fmtDate(t.created_at), type: t.type, code: itemBy[t.item_id]?.code, item: itemBy[t.item_id]?.name, change: t.qty, after: t.qty_after, unit: itemBy[t.item_id]?.unit, who: who[t.member_id], event: evName[t.event_id] || '', recorded_by: t.recorded_by && t.recorded_by !== t.member_id ? who[t.recorded_by] : '', note: t.note }));
+      rows = tx.map((t) => ({ when: fmtDate(t.created_at), type: t.type, code: itemBy[t.item_id]?.code, item: itemBy[t.item_id]?.name, change: t.qty, after: t.qty_after, stock: STOCK[itemBy[t.item_id]?.category]?.plain || '', who: who[t.member_id], event: evName[t.event_id] || '', recorded_by: t.recorded_by && t.recorded_by !== t.member_id ? who[t.recorded_by] : '', note: t.note }));
       out.innerHTML = `<div class="table-wrap"><table><tr><th>When</th><th>Type</th><th>Item</th><th class="num">Change</th><th class="num">After</th><th>Who</th><th>Event</th><th>Note</th></tr>
-        ${rows.map((r) => `<tr><td>${r.when}</td><td><span class="pill ${r.type}">${r.type}</span></td><td>${esc(r.item)} <span class="code muted">${esc(r.code)}</span></td><td class="num">${r.change > 0 ? '+' : ''}${r.change}</td><td class="num">${r.after} ${esc(r.unit)}</td><td>${esc(r.who)}${r.recorded_by ? ` <span class="muted">(at ${esc(r.recorded_by)})</span>` : ''}</td><td>${esc(r.event)}</td><td>${esc(r.note)}</td></tr>`).join('')
+        ${rows.map((r) => `<tr><td>${r.when}</td><td><span class="pill ${r.type}">${r.type}</span></td><td>${esc(r.item)} <span class="code muted">${esc(r.code)}</span><div class="muted" style="font-size:13px">${esc(r.stock)}</div></td><td class="num">${r.change > 0 ? '+' : ''}${r.change}</td><td class="num">${r.after}</td><td>${esc(r.who)}${r.recorded_by ? ` <span class="muted">(at ${esc(r.recorded_by)})</span>` : ''}</td><td>${esc(r.event)}</td><td>${esc(r.note)}</td></tr>`).join('')
         || '<tr><td colspan="8" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
     } else {
       const co = await q(sb.from('tool_checkouts').select('*').gte('checked_out_at', start).lte('checked_out_at', end).order('checked_out_at', { ascending: false }).limit(2000));
@@ -1155,7 +1224,8 @@ function setPref(key, value) {
 async function renderLabels(kind, id) {
   const [items, tools, members] = await Promise.all([loadItems(), loadTools(), loadMembers()]);
   const sources = {
-    item: items.filter((i) => i.active).map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '' })),
+    facilities: items.filter((i) => i.active && i.category === 'facilities').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '' })),
+    events: items.filter((i) => i.active && i.category === 'events').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '' })),
     tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.serial_number ? `S/N ${t.serial_number}` : '' })),
     people: people(members).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '' })),
     commands: [
@@ -1165,7 +1235,7 @@ async function renderLabels(kind, id) {
       { id: 'done', code: CMD.DONE, name: 'DONE / CLEAR', sub: 'Finish a person or reset' },
     ],
   };
-  const tab = sources[kind] ? kind : 'item';
+  const tab = sources[kind] ? kind : 'facilities';
   const preselect = new Set(id ? [id] : []);
   const sizeKey = getPref('labelSize', 'brother-dk1201');
 
@@ -1174,7 +1244,8 @@ async function renderLabels(kind, id) {
     <div class="card">
       <div class="row">
         <label>What <select id="kind">
-          <option value="item" ${tab === 'item' ? 'selected' : ''}>Inventory items</option>
+          <option value="facilities" ${tab === 'facilities' ? 'selected' : ''}>Facilities stock</option>
+          <option value="events" ${tab === 'events' ? 'selected' : ''}>Event stock</option>
           <option value="tool" ${tab === 'tool' ? 'selected' : ''}>Tools</option>
           <option value="people" ${tab === 'people' ? 'selected' : ''}>People (name labels)</option>
           <option value="commands" ${tab === 'commands' ? 'selected' : ''}>Command barcodes</option></select></label>

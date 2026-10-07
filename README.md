@@ -2,10 +2,13 @@
 
 **Live app:** https://shop-inventory-one-omega.vercel.app
 
-A private web app for your team that does two things:
+A private web app for your team that tracks three things:
 
-1. **Inventory**: scan consumables in and out, see what's on hand, and get flagged when something drops to its reorder level.
-2. **Tool sign-out**: scan a name label and a tool to sign it out, and scan the tool again to return it. You always know who has what.
+1. **Facilities stock**: supplies for the building. Scan them in and out, see what's on hand, and get flagged when something drops to its reorder level.
+2. **Event stock**: supplies that go out to events. Same scanning, and each event shows what was taken, brought back and used.
+3. **Tools**: scan a name label and a tool to sign it out, and scan the tool again to return it. You always know who has what.
+
+Quantities are plain counts (no units). Every item and tool has a **location** picked from a shared dropdown. Admins can add a new location right from the dropdown.
 
 It works with any USB or Bluetooth barcode scanner (they act like a keyboard) and prints its own Code 128 barcode labels on a label printer.
 
@@ -20,7 +23,8 @@ It works with any USB or Bluetooth barcode scanner (they act like a keyboard) an
 
 | Prefix | What | Example |
 |---|---|---|
-| `INV-` | Inventory item | `INV-0001` |
+| `FAC-` | Facilities stock item | `FAC-0001` |
+| `EVS-` | Event stock item | `EVS-0001` |
 | `TL-` | Tool | `TL-0001` |
 | `P-` | Person (name label, since there are no ID badges) | `P-001` |
 | `CMD-` | Mode switches: `CMD-IN`, `CMD-OUT`, `CMD-COUNT`, `CMD-DONE` | |
@@ -65,7 +69,7 @@ Tools sent to an event are due back the day after the event ends, so late ones s
 
 ## First-time setup
 
-1. Create a Supabase project and run `supabase/migrations/0001_init.sql` in its SQL editor.
+1. Create a Supabase project and run the files in `supabase/migrations/` in order in its SQL editor.
 2. In Supabase → Authentication → URL Configuration, set **Site URL** to the app's web address. Confirmation and password-reset emails link there.
 3. Put the project URL and publishable key in `web/config.js` and deploy the `web/` folder to Vercel (or any static host).
 4. Open the app, create an account, and the first person to sign in becomes the admin.
