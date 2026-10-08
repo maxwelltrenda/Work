@@ -715,6 +715,7 @@ async function renderKiosk() {
     sheetEl?.remove();
     sheetEl = null;
     k.picker = null;
+    k.toolSheet = null;
     if (document.body.contains(scan)) scan.focus();
   }
 
@@ -733,7 +734,7 @@ async function renderKiosk() {
       <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button></div>`;
     const choose = (key) => { closeSheet(); setPlace(key); checkoutNow(tool); };
     const cancel = () => { closeSheet(); show('info', `Nothing signed out — <b>${esc(tool.name)}</b> is still here.`); };
-    k.picker = { code: tool.code.toUpperCase(), selected: sel, choose, cancel };
+    k.picker = { code: tool.code.toUpperCase(), onSame: () => (sel ? choose(sel) : undefined), cancel };
     bindPlaceChips(sheet, choose);
     sheet.querySelector('[data-cancel]').addEventListener('click', cancel);
     (sheet.querySelector('.place.on') || sheet.querySelector('.place'))?.focus();
@@ -742,7 +743,8 @@ async function renderKiosk() {
   }
 
   async function checkoutNow(tool) {
-    try {      await rpc('checkout_tool', { p_code: tool.code, p_borrower: k.person.id, p_event: k.event?.id || null, p_destination: k.event ? null : k.dest });
+    try {
+      await rpc('checkout_tool', { p_code: tool.code, p_borrower: k.person.id, p_event: k.event?.id || null, p_destination: k.event ? null : k.dest, p_qty: 1 });
       beep(true);
       const where = whereText() ? ` for ${whereText()}` : '';
       show('ok', `<b>${esc(tool.name)}</b> signed out to <b>${esc(k.person.name)}</b>${esc(where)}.`);
@@ -757,18 +759,23 @@ async function renderKiosk() {
     beep(true);
     log('in', `${tool.name} returned`);
     show('ok', `<b>${esc(tool.name)}</b> returned (was out to ${esc(checkout.borrower_name)} for ${since(checkout.checked_out_at)}).`);
-    // Ask about its condition in a pop-up; "No" is the default (Enter or scan it again).
+    askCondition(tool, 1, checkout.borrower_name);
+  }
+
+  // After a return: anything wrong? "No" is the default (Enter or scan it again).
+  function askCondition(tool, n, borrower) {
+    const many = n > 1;
     const sheet = openSheet();
     sheet.innerHTML = `
       <div class="sheet-head">
         <div class="sheet-photo" id="pk-photo"></div>
-        <div><div class="eyebrow">Returned · was out to ${esc(checkout.borrower_name)}</div>
-          <h3>Is anything wrong with <span class="accent">${esc(tool.name)}</span>?</h3></div>
+        <div><div class="eyebrow">Returned${many ? ` ${n}` : ''} · was out to ${esc(borrower)}</div>
+          <h3>Is anything wrong with ${many ? 'any of them' : `<span class="accent">${esc(tool.name)}</span>`}?</h3></div>
       </div>
       <div class="cond-grid">
-        <button type="button" class="btn in big" data-cond="good">No, it's fine</button>
-        <button type="button" class="btn out big" data-cond="damaged">Damaged</button>
-        <button type="button" class="btn bad big" data-cond="needs_repair">Needs repair</button>
+        <button type="button" class="btn in big" data-cond="good">No, ${many ? "they're" : "it's"} fine</button>
+        <button type="button" class="btn out big" data-cond="damaged">${many ? 'One is damaged' : 'Damaged'}</button>
+        <button type="button" class="btn bad big" data-cond="needs_repair">${many ? 'One needs repair' : 'Needs repair'}</button>
       </div>
       <p class="scan-hint">Press Enter or scan it again for <b>No</b>.</p>`;
     const fine = () => closeSheet();
@@ -776,17 +783,108 @@ async function renderKiosk() {
       closeSheet();
       const note = (await askText("What's wrong with it?", { placeholder: 'Optional', required: false, ok: 'Save' })) || '';
       try {
-        await rpc('report_tool_problem', { p_tool: tool.id, p_condition: cond, p_note: note });
-        show('info', `<b>${esc(tool.name)}</b> flagged ${cond.replace('_', ' ')} — it won't go out again until it's fixed.`);
+        await rpc('report_tool_problem', { p_tool: tool.id, p_condition: cond, p_note: note, p_qty: 1 });
+        show('info', many || (tool.quantity || 1) > 1
+          ? `One <b>${esc(tool.name)}</b> flagged ${cond.replace('_', ' ')} — it's held back until it's fixed.`
+          : `<b>${esc(tool.name)}</b> flagged ${cond.replace('_', ' ')} — it won't go out again until it's fixed.`);
         log('repair', `${tool.name} flagged ${cond.replace('_', ' ')}`);
       } catch (e) { show('err', esc(errMsg(e))); }
       showToolPhoto(tool);
       scan.focus();
     };
-    k.picker = { code: tool.code.toUpperCase(), selected: 'good', choose: fine, cancel: fine };
+    k.picker = { code: tool.code.toUpperCase(), onSame: fine, cancel: fine };
     sheet.querySelectorAll('[data-cond]').forEach((b) => b.addEventListener('click', () => (b.dataset.cond === 'good' ? fine() : flag(b.dataset.cond))));
     sheet.querySelector('[data-cond="good"]').focus();
     photoUrl(tool.photo_path).then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
+  }
+
+  // Tools with a quantity (e.g. Hammer x6): one pop-up shows who has some
+  // (with Return buttons) and lets the person here take some.
+  function openToolSheet(tool, checkouts, msg = '') {
+    const ts = k.toolSheet && k.toolSheet.tool.id === tool.id ? k.toolSheet : { qty: 1, place: placeKey() };
+    ts.tool = tool;
+    ts.checkouts = checkouts;
+    const out = checkouts.reduce((n, c) => n + c.qty, 0);
+    const avail = Math.max(0, tool.quantity - out - (tool.repair_qty || 0));
+    ts.qty = Math.min(Math.max(1, ts.qty), Math.max(avail, 1));
+    const blocked = !tool.active || ['lost', 'retired'].includes(tool.status);
+    const mine = k.person ? checkouts.filter((c) => c.borrower_id === k.person.id) : [];
+    const rows = [...mine, ...checkouts.filter((c) => !mine.includes(c))];
+    const sheet = openSheet();
+    k.toolSheet = ts;
+    sheet.innerHTML = `
+      <div class="sheet-head">
+        <div class="sheet-photo" id="pk-photo"></div>
+        <div><div class="eyebrow">Tool · ${esc(tool.code)}</div>
+          <h3>${esc(tool.name)}</h3>
+          <div class="muted" style="font-size:15px"><b>${avail}</b> of ${tool.quantity} in${out ? ` · ${out} signed out` : ''}${tool.repair_qty ? ` · ${tool.repair_qty} in repair` : ''}</div></div>
+        <button type="button" class="btn small" data-cancel>Close</button>
+      </div>
+      ${rows.length ? `<div class="qty-label">Signed out</div><div class="co-list">${rows.map((c) => `
+        <div class="co-row"><div><b>${esc(c.borrower_name)}</b> has <b>${c.qty}</b>
+          <span class="muted">· ${since(c.checked_out_at)}${c.destination ? ` · ${esc(c.destination)}` : ''}</span></div>
+          <div class="co-actions">${c.qty > 1 ? `<button type="button" class="btn small" data-ret="${c.id}" data-n="1">Return 1</button>` : ''}
+            <button type="button" class="btn in small" data-ret="${c.id}" data-n="${c.qty}">Return${c.qty > 1 ? ` all ${c.qty}` : ''}</button></div></div>`).join('')}</div>` : ''}
+      ${blocked ? `<div class="sheet-msg">${esc(tool.name)} is marked ${esc(tool.status)} and can't go out.</div>`
+        : !k.person ? `<div class="qty-label" style="margin-top:16px">Taking some? Who are you?</div>
+          <div class="people-pick">${crew.map((m) => `<button type="button" class="btn" data-sheet-person="${m.id}">${esc(m.name)}</button>`).join('')}</div>`
+        : avail < 1 ? '<div class="sheet-msg">None left to take right now.</div>'
+        : `<div class="qty-label" style="margin-top:16px">How many is ${esc(k.person.name)} taking?</div>
+          <div class="stepper">
+            <button type="button" class="btn" data-tstep="-1" aria-label="One less">−</button>
+            <input id="t-qty" type="number" min="1" max="${avail}" value="${ts.qty}" inputmode="numeric" aria-label="Quantity">
+            <button type="button" class="btn" data-tstep="1" aria-label="One more">+</button>
+          </div>
+          <div class="qty-label" style="margin-top:16px">Where are they going?</div>
+          ${placeChips(ts.place, ts.needPlace)}
+          <div class="row item-actions"><button type="button" class="btn out big" id="t-take"><span>Take <b class="n">${ts.qty}</b></span>${ts.place ? `<span class="sub">to ${esc(placeName(ts.place))}</span>` : ''}</button></div>`}
+      ${msg ? `<div class="sheet-msg">${msg}</div>` : ''}
+      ${k.person && avail > 0 && !blocked ? '<p class="scan-hint">Scan it again to add one more.</p>' : ''}`;
+
+    const repaint = (m = '') => openToolSheet(tool, checkouts, m);
+    const close = () => closeSheet();
+    k.picker = {
+      code: tool.code.toUpperCase(),
+      onSame: () => { if (k.person && avail > 0) { ts.qty = Math.min(avail, ts.qty + 1); beep(true); repaint(); } },
+      cancel: close,
+    };
+    sheet.querySelector('[data-cancel]').addEventListener('click', close);
+    sheet.querySelectorAll('[data-sheet-person]').forEach((b) => b.addEventListener('click', () => {
+      startSession(crew.find((m) => m.id === b.dataset.sheetPerson));
+      repaint();
+    }));
+    const qtyEl = sheet.querySelector('#t-qty');
+    const setQty = (v) => { ts.qty = Math.min(avail, Math.max(1, v)); qtyEl.value = ts.qty; sheet.querySelectorAll('.n').forEach((x) => (x.textContent = ts.qty)); resetIdle(); };
+    qtyEl?.addEventListener('focus', () => qtyEl.select());
+    qtyEl?.addEventListener('change', () => setQty(parseInt(qtyEl.value, 10) || 1));
+    sheet.querySelectorAll('[data-tstep]').forEach((b) => b.addEventListener('click', () => setQty(ts.qty + Number(b.dataset.tstep))));
+    bindPlaceChips(sheet, (key) => { ts.place = key; ts.needPlace = false; repaint(); });
+    sheet.querySelector('#t-take')?.addEventListener('click', async () => {
+      if (!ts.place) { ts.needPlace = true; beep(false); return repaint('Pick where they\'re going first.'); }
+      setPlace(ts.place);
+      try {
+        await rpc('checkout_tool', { p_code: tool.code, p_borrower: k.person.id, p_event: k.event?.id || null, p_destination: k.event ? null : k.dest, p_qty: ts.qty });
+      } catch (e) { beep(false); return repaint(esc(errMsg(e))); }
+      beep(true);
+      const n = ts.qty;
+      closeSheet();
+      show('ok', `Took ${n} × <b>${esc(tool.name)}</b> to ${esc(whereText())}. ${avail - n} of ${tool.quantity} left in.`);
+      log('out', `${n} × ${tool.name} → ${k.person.name} (${whereText()})`);
+      showToolPhoto(tool);
+    });
+    sheet.querySelectorAll('[data-ret]').forEach((b) => b.addEventListener('click', async () => {
+      const c = checkouts.find((x) => String(x.id) === b.dataset.ret);
+      const n = Number(b.dataset.n);
+      try { await rpc('return_tool_checkout', { p_checkout: c.id, p_qty: n }); } catch (e) { beep(false); return repaint(esc(errMsg(e))); }
+      beep(true);
+      closeSheet();
+      show('ok', `${n} × <b>${esc(tool.name)}</b> returned from ${esc(c.borrower_name)}.${c.qty > n ? ` They still have ${c.qty - n}.` : ''}`);
+      log('in', `${n} × ${tool.name} returned (${c.borrower_name})`);
+      askCondition(tool, n, c.borrower_name);
+    }));
+    sheet.querySelector('#t-take, .place.on, [data-ret], [data-sheet-person]')?.focus();
+    photoUrl(tool.photo_path).then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
+    resetIdle();
   }
 
   // Stock: scan first, then a pop-up for how many, where, and which way.
@@ -887,10 +985,13 @@ async function renderKiosk() {
   async function onScan(code) {
     const upper = code.toUpperCase();
     resetIdle();
+    // An open tool pop-up: scanning the same tool again is its shortcut; anything else closes it
+    // (a name label keeps a quantity-tool pop-up open for that person).
+    let reopen = null;
     if (k.picker) {
-      // Scanning the same tool again confirms the highlighted place; anything else cancels.
       const pk = k.picker;
-      if (upper === pk.code) return pk.selected ? pk.choose(pk.selected) : undefined;
+      if (upper === pk.code) return pk.onSame();
+      reopen = k.toolSheet;
       pk.cancel();
     }
     if (upper === CMD.DONE) {
@@ -911,6 +1012,7 @@ async function renderKiosk() {
       if (!m) { beep(false); return show('err', 'That person is inactive.'); }
       startSession(m);
       beep(true);
+      if (reopen) return openToolSheet(reopen.tool, reopen.checkouts);
       if (k.pendingTool) { const t = k.pendingTool; k.pendingTool = null; return doCheckout(t); }
       return show('info', `Hi ${esc(m.name)} — scan what you're taking or returning.`);
     }
@@ -918,6 +1020,11 @@ async function renderKiosk() {
     if (hit.kind === 'tool' && k.pendingItem) {
       beep(false);
       return paintItem(`Finish <b>${esc(k.pendingItem.item.name)}</b> first: tap Take or Put back, or Cancel.`);
+    }
+
+    if (hit.kind === 'tool' && (hit.record.quantity || 1) > 1) {
+      beep(true);
+      return openToolSheet(hit.record, hit.checkouts || []);
     }
 
     if (hit.kind === 'tool') {
@@ -1048,6 +1155,7 @@ async function renderEvent(id) {
   const crewIds = new Set(crewRows.map((c) => c.member_id));
   const notCrew = people(members).filter((m) => !crewIds.has(m.id));
   const stillOut = checkouts.filter((c) => !c.returned_at);
+  const sumQty = (list) => list.reduce((n, c) => n + (c.qty || 1), 0);
 
   // Net stock per item: taken (out) vs brought back (in).
   const stock = {};
@@ -1063,8 +1171,8 @@ async function renderEvent(id) {
     <p class="muted" style="margin-top:-6px">${esc(ev.location || '')}${ev.location && ev.starts_on ? ' · ' : ''}${fmtDay(ev.starts_on)}${ev.ends_on && ev.ends_on !== ev.starts_on ? ` – ${fmtDay(ev.ends_on)}` : ''}${ev.notes ? ` · ${esc(ev.notes)}` : ''}</p>
     <div class="stats">
       <div class="stat"><b>${crewIds.size}</b><span>crew</span></div>
-      <div class="stat"><b>${checkouts.length}</b><span>tools sent</span></div>
-      <div class="stat"><b style="color:${stillOut.length ? 'var(--out)' : 'var(--in)'}">${stillOut.length}</b><span>tools not back yet</span></div>
+      <div class="stat"><b>${sumQty(checkouts)}</b><span>tools sent</span></div>
+      <div class="stat"><b style="color:${stillOut.length ? 'var(--out)' : 'var(--in)'}">${sumQty(stillOut)}</b><span>tools not back yet</span></div>
       <div class="stat"><b>${Object.keys(stock).length}</b><span>stock items used</span></div>
     </div>
 
@@ -1076,9 +1184,9 @@ async function renderEvent(id) {
 
     <h2>Tools</h2>
     <div class="table-wrap"><table><tr><th>Tool</th><th>Signed out by</th><th>Out</th><th>Back</th><th></th></tr>
-      ${checkouts.map((c) => { const t = toolBy[c.tool_id]; return `<tr class="${c.returned_at ? '' : 'overdue'}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a> <span class="code muted">${esc(t?.code)}</span></td><td>${esc(who[c.borrower_id])}</td><td>${fmtDate(c.checked_out_at)}</td>
+      ${checkouts.map((c) => { const t = toolBy[c.tool_id]; return `<tr class="${c.returned_at ? '' : 'overdue'}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a>${xQty(c.qty)} <span class="code muted">${esc(t?.code)}</span></td><td>${esc(who[c.borrower_id])}</td><td>${fmtDate(c.checked_out_at)}</td>
         <td>${c.returned_at ? `${fmtDate(c.returned_at)}${c.return_condition && c.return_condition !== 'good' ? ` <span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}` : '<span class="pill out">NOT BACK</span>'}</td>
-        <td>${c.returned_at || !canAct() ? '' : `<button class="btn small bad" data-lost="${c.tool_id}">Mark lost</button>`}</td></tr>`; }).join('')
+        <td>${c.returned_at || !canAct() ? '' : `<button class="btn small bad" data-lost="${c.id}">Mark lost</button>`}</td></tr>`; }).join('')
       || '<tr><td colspan="5" class="muted">No tools signed out to this event yet. Pick this event on the Check In/Out screen and scan.</td></tr>'}</table></div>
 
     <h2>Stock</h2>
@@ -1101,12 +1209,16 @@ async function renderEvent(id) {
     try { await q(sb.from('event_crew').insert({ event_id: id, member_id: e.target.value }).select()); reload(); } catch (err) { toast(errMsg(err), true); }
   });
   app.querySelectorAll('[data-lost]').forEach((b) => b.addEventListener('click', async () => {
-    const t = toolBy[b.dataset.lost];
-    if (!(await askConfirm(`Mark ${t?.name} as lost?`, { message: 'It will be taken off the available list.', ok: 'Mark lost', danger: true }))) return;
-    try { await rpc('mark_tool_lost', { p_tool: b.dataset.lost, p_note: `Not returned from ${ev.name}` }); reload(); } catch (e) { toast(errMsg(e), true); }
+    const c = checkouts.find((x) => String(x.id) === b.dataset.lost);
+    const t = toolBy[c.tool_id];
+    const n = c.qty || 1;
+    const partOfSet = (t?.quantity || 1) > n;
+    if (!(await askConfirm(n > 1 ? `Mark ${n} × ${t?.name} as lost?` : `Mark ${t?.name} as lost?`, {
+      message: partOfSet ? `The quantity of ${t?.name} goes down by ${n}.` : 'It will be taken off the available list.', ok: 'Mark lost', danger: true }))) return;
+    try { await rpc('mark_checkout_lost', { p_checkout: c.id, p_note: `Not returned from ${ev.name}` }); reload(); } catch (e) { toast(errMsg(e), true); }
   }));
   app.querySelector('#close')?.addEventListener('click', async () => {
-    if (stillOut.length && !(await askConfirm('Close the event anyway?', { message: `${stillOut.length} tool(s) still aren't back. They'll stay signed out to the person who took them.`, ok: 'Close event' }))) return;
+    if (stillOut.length && !(await askConfirm('Close the event anyway?', { message: `${sumQty(stillOut)} tool(s) still aren't back. They'll stay signed out to the person who took them.`, ok: 'Close event' }))) return;
     try { await q(sb.from('events').update({ status: 'closed' }).eq('id', id).select()); toast('Event closed'); reload(); } catch (e) { toast(errMsg(e), true); }
   });
   app.querySelector('#reopen')?.addEventListener('click', async () => {
@@ -1135,6 +1247,7 @@ async function renderOut() {
   const byId = Object.fromEntries(tools.map((t) => [t.id, t]));
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const active = tools.filter((t) => t.active);
+  const counts = active.map((t) => toolCounts(t, open));
   const overdue = open.filter((c) => c.due_at && new Date(c.due_at) < new Date());
   const flagged = active.filter((t) => ['repair', 'lost'].includes(t.status));
 
@@ -1144,19 +1257,19 @@ async function renderOut() {
   app.innerHTML = `
     ${pageHead('Right now', 'Who has <span class="accent">what</span>')}
     <div class="stats">
-      <div class="stat"><b>${active.length}</b><span>tools total</span></div>
-      <div class="stat"><b>${active.filter((t) => t.status === 'available').length}</b><span>in the crib</span></div>
-      <div class="stat"><b>${open.length}</b><span>signed out</span></div>
+      <div class="stat"><b>${counts.reduce((n, c) => n + c.qty, 0)}</b><span>tools total</span></div>
+      <div class="stat"><b>${counts.reduce((n, c) => n + c.inQty, 0)}</b><span>in the crib</span></div>
+      <div class="stat"><b>${open.reduce((n, c) => n + (c.qty || 1), 0)}</b><span>signed out</span></div>
       <div class="stat"><b style="color:${overdue.length ? 'var(--bad)' : 'inherit'}">${overdue.length}</b><span>overdue</span></div>
       <div class="stat"><b>${flagged.length}</b><span>repair / lost</span></div>
     </div>
     ${Object.keys(groups).sort().map((name) => `
-      <h2>${esc(name)} <span class="muted">(${groups[name].length})</span></h2>
+      <h2>${esc(name)} <span class="muted">(${groups[name].reduce((n, c) => n + (c.qty || 1), 0)})</span></h2>
       <div class="table-wrap"><table><tr><th>Tool</th><th>Code</th><th>For</th><th>Out since</th><th>Due</th><th>Note</th></tr>
       ${groups[name].map((c) => {
         const t = byId[c.tool_id];
         const late = c.due_at && new Date(c.due_at) < new Date();
-        return `<tr class="${late ? 'overdue' : ''}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a></td><td class="code">${esc(t?.code)}</td><td>${c.event_id ? `<a href="#/event/${c.event_id}">${esc(evName[c.event_id])}</a>` : c.destination ? esc(c.destination) : '<span class="muted">shop</span>'}</td><td>${fmtDate(c.checked_out_at)} <span class="muted">(${since(c.checked_out_at)})</span></td><td>${c.due_at ? new Date(c.due_at).toLocaleDateString() : ''}${late ? ' <span class="pill overdue">OVERDUE</span>' : ''}</td><td>${esc(c.out_note)}</td></tr>`;
+        return `<tr class="${late ? 'overdue' : ''}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a>${xQty(c.qty)}</td><td class="code">${esc(t?.code)}</td><td>${c.event_id ? `<a href="#/event/${c.event_id}">${esc(evName[c.event_id])}</a>` : c.destination ? esc(c.destination) : '<span class="muted">shop</span>'}</td><td>${fmtDate(c.checked_out_at)} <span class="muted">(${since(c.checked_out_at)})</span></td><td>${c.due_at ? new Date(c.due_at).toLocaleDateString() : ''}${late ? ' <span class="pill overdue">OVERDUE</span>' : ''}</td><td>${esc(c.out_note)}</td></tr>`;
       }).join('')}</table></div>`).join('') || '<div class="card muted">Every tool is in.</div>'}
     ${flagged.length ? `<h2>Needs attention</h2><div class="table-wrap"><table><tr><th>Tool</th><th>Code</th><th>Status</th></tr>
       ${flagged.map((t) => `<tr><td><a href="#/tool/${t.id}">${esc(t.name)}</a></td><td class="code">${esc(t.code)}</td><td><span class="pill ${t.status}">${t.status}</span></td></tr>`).join('')}</table></div>` : ''}`;
@@ -1451,6 +1564,15 @@ async function clearToolPhoto(tool) {
 
 const PHOTO_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
 
+// How many of a tool are signed out / in, from its open sign-outs.
+const toolCounts = (t, open) => {
+  const outQty = open.filter((c) => c.tool_id === t.id && !c.returned_at).reduce((n, c) => n + (c.qty || 1), 0);
+  const qty = t.quantity || 1;
+  const inQty = ['lost', 'retired'].includes(t.status) ? 0 : Math.max(0, qty - outQty - (t.repair_qty || 0));
+  return { qty, outQty, inQty, multi: qty > 1 };
+};
+const xQty = (n) => (n > 1 ? ` <span class="muted">×${n}</span>` : '');
+
 const TOOL_CAT_SUGGESTIONS = ['Power Tools', 'Hand Tools', 'Ladders & Lifts', 'Lawn & Garden', 'Cleaning Equipment', 'Measuring & Layout', 'Electrical', 'Plumbing', 'Painting', 'Safety'];
 let knownToolCats = [];
 const rememberToolCats = (tools) => {
@@ -1463,6 +1585,7 @@ function toolForm(t = {}, locations = []) {
       <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(t.name)}" placeholder="Hilti TE 30 hammer drill"></label>
       <label style="flex:1;min-width:180px">Category <input name="category" list="toolcat-list" placeholder="e.g. Power Tools" value="${esc(t.category)}" autocomplete="off"></label>
       <datalist id="toolcat-list">${knownToolCats.map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
+      <label style="width:110px" title="How many of this tool you have under this one barcode (e.g. 6 hammers)">Quantity <input name="quantity" type="number" min="1" value="${t.quantity ?? 1}"></label>
       ${locationSelect(locations, t.location, 'Home location')}
       <label style="width:120px">Value ($) <input name="value" type="number" min="0" step="0.01" value="${t.value ?? ''}"></label>
     </div>
@@ -1470,14 +1593,21 @@ function toolForm(t = {}, locations = []) {
 }
 
 const toolFields = (f) => ({
-  name: f.get('name').trim(), category: f.get('category').trim() || null, location: f.get('location') || null,
+  name: f.get('name').trim(), category: f.get('category').trim() || null, quantity: Math.max(1, parseInt(f.get('quantity'), 10) || 1), location: f.get('location') || null,
   value: f.get('value') ? Number(f.get('value')) : null, description: f.get('description').trim() || null,
 });
 
 async function renderToolList() {
-  const [tools, members, open, locations] = await Promise.all([loadTools(), loadMembers(), q(sb.from('tool_checkouts').select('tool_id, borrower_id, checked_out_at').is('returned_at', null)), loadLocations()]);
+  const [tools, members, open, locations] = await Promise.all([loadTools(), loadMembers(), q(sb.from('tool_checkouts').select('tool_id, borrower_id, checked_out_at, qty, returned_at').is('returned_at', null)), loadLocations()]);
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
-  const openBy = Object.fromEntries(open.map((c) => [c.tool_id, c]));
+  const openBy = {};
+  open.forEach((c) => (openBy[c.tool_id] ||= []).push(c));
+  const statusCell = (t) => {
+    const n = toolCounts(t, open);
+    if (!n.multi || ['lost', 'retired'].includes(t.status)) return `<span class="pill ${t.status}">${t.status}</span>`;
+    return `<span class="pill ${n.inQty ? 'available' : t.status}">${n.inQty} of ${n.qty} in</span>`;
+  };
+  const withCell = (t) => (openBy[t.id] || []).map((c) => `${esc(who[c.borrower_id])}${xQty(c.qty)}${(t.quantity || 1) > 1 ? '' : ` <span class="muted">(${since(c.checked_out_at)})</span>`}`).join(', ');
   const show = tools.filter((t) => t.active);
   const total = show.reduce((s, t) => s + Number(t.value || 0), 0);
   rememberToolCats(tools);
@@ -1504,14 +1634,15 @@ async function renderToolList() {
     const rows = show.filter((t) => (!f || `${t.name} ${t.code} ${t.location} ${t.category || ''}`.toLowerCase().includes(f))
       && (!cat || (cat === '__none' ? !t.category : t.category === cat)));
     app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Tool</th><th>Category</th><th>Status</th><th>With</th></tr>
-      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${photos[t.photo_path] ? `<img class="thumb" src="${esc(photos[t.photo_path])}" alt="">` : '<span class="thumb empty"></span>'}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td>${esc(t.category || '')}</td><td><span class="pill ${t.status}">${t.status}</span></td><td>${openBy[t.id] ? `${esc(who[openBy[t.id].borrower_id])} <span class="muted">(${since(openBy[t.id].checked_out_at)})</span>` : ''}</td></tr>`).join('')
+      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${photos[t.photo_path] ? `<img class="thumb" src="${esc(photos[t.photo_path])}" alt="">` : '<span class="thumb empty"></span>'}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td>${esc(t.category || '')}</td><td>${statusCell(t)}</td><td>${withCell(t)}</td></tr>`).join('')
       || '<tr><td colspan="5" class="muted">No tools yet.</td></tr>'}`;
   };
   app.querySelector('#catfilter').addEventListener('change', paint);
   photoUrlsFor(show.map((t) => t.photo_path)).then((p) => { photos = p; if (app.querySelector('#tbl')) paint(); });
   app.querySelector('#filter').addEventListener('input', paint);
   app.querySelector('#csv').addEventListener('click', () => downloadCsv('tools.csv', show.map((t) => ({
-    code: t.code, name: t.name, category: t.category || '', status: t.status, with: openBy[t.id] ? who[openBy[t.id].borrower_id] : '', location: t.location, value: t.value,
+    code: t.code, name: t.name, category: t.category || '', quantity: t.quantity || 1, in: toolCounts(t, open).inQty, status: t.status,
+    with: (openBy[t.id] || []).map((c) => `${who[c.borrower_id]}${c.qty > 1 ? ` x${c.qty}` : ''}`).join('; '), location: t.location, value: t.value,
   }))));
   if (app.querySelector('#add')) bindLocationSelects(app.querySelector('#add'));
   app.querySelector('#add')?.addEventListener('submit', async (e) => {
@@ -1557,18 +1688,19 @@ async function renderTool(id) {
       <div class="stat"><b><span class="pill ${t.status}">${t.status}</span></b><span>status</span></div>
       <div class="stat"><b>${esc(t.category || '—')}</b><span>category</span></div>
       <div class="stat"><b>${t.value ? `$${Number(t.value).toLocaleString()}` : '—'}</b><span>value</span></div>
+      ${(t.quantity || 1) > 1 ? (() => { const n = toolCounts(t, hist); return `<div class="stat"><b>${n.inQty} of ${n.qty}</b><span>in right now${n.outQty ? ` · ${n.outQty} out` : ''}${t.repair_qty ? ` · ${t.repair_qty} in repair` : ''}</span></div>`; })() : ''}
       <div class="stat"><b>${hist.length}</b><span>times signed out</span></div>
     </div>
     <div class="row" style="margin-bottom:16px">${canAct() ? `<a class="btn" href="#/labels/tool/${t.id}">Print label</a>` : ''}
       <span class="muted" style="align-self:center;font-size:14px">${t.label_printed_at ? `Label printed ${fmtDate(t.label_printed_at)}` : 'Label not printed yet'}</span>
-      ${isAdmin() && t.status !== 'out' ? `<select id="status">${['available', 'repair', 'lost', 'retired'].map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" id="set-status">Set status</button>` : ''}
+      ${isAdmin() && (t.status !== 'out' || (t.quantity || 1) > 1) ? `<select id="status">${['available', 'repair', 'lost', 'retired'].map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" id="set-status">Set status</button>` : ''}
     </div>
     ${isAdmin() ? `<details class="card"><summary><b>Edit tool</b></summary><form id="edit" style="margin-top:14px">${toolForm(t, locations)}
       <div class="row" style="margin-top:12px"><button class="btn primary">Save</button>
       <button type="button" class="btn ${t.active ? 'bad' : ''}" id="archive">${t.active ? 'Archive tool' : 'Restore tool'}</button></div></form></details>` : ''}
     <h2>Sign-out history</h2>
     <div class="table-wrap"><table><tr><th>Who</th><th>Out</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
-      ${hist.map((c) => `<tr><td>${esc(who[c.borrower_id])}</td><td>${fmtDate(c.checked_out_at)}</td><td>${c.returned_at ? fmtDate(c.returned_at) : '<span class="pill out">still out</span>'}</td><td>${c.return_condition ? `<span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}</td><td>${esc([c.out_note, c.return_note].filter(Boolean).join(' / '))}</td></tr>`).join('')
+      ${hist.map((c) => `<tr><td>${esc(who[c.borrower_id])}${xQty(c.qty)}</td><td>${fmtDate(c.checked_out_at)}</td><td>${c.returned_at ? fmtDate(c.returned_at) : '<span class="pill out">still out</span>'}</td><td>${c.return_condition ? `<span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}</td><td>${esc([c.out_note, c.return_note].filter(Boolean).join(' / '))}</td></tr>`).join('')
       || '<tr><td colspan="5" class="muted">Never signed out.</td></tr>'}</table></div>`;
 
   app.querySelector('#photo')?.addEventListener('change', async (e) => {
@@ -1632,9 +1764,9 @@ async function renderHistory() {
         || '<tr><td colspan="8" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
     } else {
       const co = await q(sb.from('tool_checkouts').select('*').gte('checked_out_at', start).lte('checked_out_at', end).order('checked_out_at', { ascending: false }).limit(2000));
-      rows = co.map((c) => ({ out: fmtDate(c.checked_out_at), code: toolBy[c.tool_id]?.code, tool: toolBy[c.tool_id]?.name, who: who[c.borrower_id], event: evName[c.event_id] || c.destination || '', returned: c.returned_at ? fmtDate(c.returned_at) : 'still out', condition: c.return_condition, notes: [c.out_note, c.return_note].filter(Boolean).join(' / ') }));
+      rows = co.map((c) => ({ out: fmtDate(c.checked_out_at), code: toolBy[c.tool_id]?.code, tool: toolBy[c.tool_id]?.name, qty: c.qty || 1, who: who[c.borrower_id], event: evName[c.event_id] || c.destination || '', returned: c.returned_at ? fmtDate(c.returned_at) : 'still out', condition: c.return_condition, notes: [c.out_note, c.return_note].filter(Boolean).join(' / ') }));
       out.innerHTML = `<div class="table-wrap"><table><tr><th>Out</th><th>Tool</th><th>Who</th><th>Where</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
-        ${rows.map((r) => `<tr><td>${r.out}</td><td>${esc(r.tool)} <span class="code muted">${esc(r.code)}</span></td><td>${esc(r.who)}</td><td>${esc(r.event)}</td><td>${r.returned}</td><td>${r.condition ? `<span class="pill ${r.condition}">${r.condition.replace('_', ' ')}</span>` : ''}</td><td>${esc(r.notes)}</td></tr>`).join('')
+        ${rows.map((r) => `<tr><td>${r.out}</td><td>${esc(r.tool)}${xQty(r.qty)} <span class="code muted">${esc(r.code)}</span></td><td>${esc(r.who)}</td><td>${esc(r.event)}</td><td>${r.returned}</td><td>${r.condition ? `<span class="pill ${r.condition}">${r.condition.replace('_', ' ')}</span>` : ''}</td><td>${esc(r.notes)}</td></tr>`).join('')
         || '<tr><td colspan="7" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
     }
   };

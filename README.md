@@ -44,6 +44,8 @@ Codes are assigned automatically when you add something. Print them from the **L
 - *Returning:* scan the tool, then press Enter (or scan it again) for "Good", or tap Damaged / Needs repair. Damaged tools are blocked from sign-out until an admin marks them available.
 - Scan `CMD-DONE` or tap **Done** when you're finished. It also clears itself after 2 idle minutes.
 
+**Tool quantity**: one tool barcode can stand for several of the same tool (e.g. Hammer, quantity 6). Scanning it at the iPad opens a pop-up showing how many are in and who has the rest, with **Return 1** / **Return all** buttons for each person, plus **How many?** and **Where are they going?** for taking some. Scan it again to add one more. One-of-a-kind tools work exactly as before.
+
 **Tool categories**: give each tool a category (Power Tools, Hand Tools, Ladders & Lifts…) when adding or editing it. Type a new one to add it. The Tools list has a Category column and filter.
 
 **Tool photos**: on a tool's page, admins tap **Add photo** to take a picture or pick one (on an iPad or phone this opens the camera). Photos are shrunk before upload and show on the tool page, as thumbnails in the Tools list, and on the iPad when the tool is scanned, so people can see they grabbed the right one. Photos are private to the team.

@@ -418,3 +418,11 @@ tr.overdue td { background: #fbefec; }
 @media (max-width: 560px) { .cond-grid { grid-template-columns: 1fr; } .place-grid { grid-template-columns: 1fr 1fr; } }
 
 [hidden] { display: none !important; }
+
+/* Quantity-tool pop-up: who has some */
+.co-list { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-top: 6px; }
+.co-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 14px; font-size: 17px; }
+.co-row + .co-row { border-top: 1px solid var(--line); }
+.co-row .muted { font-size: 14px; }
+.co-actions { display: flex; gap: 8px; }
+.co-actions .btn { min-height: 42px; padding: 8px 14px; font-size: 15px; }
