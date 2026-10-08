@@ -1451,10 +1451,18 @@ async function clearToolPhoto(tool) {
 
 const PHOTO_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
 
+const TOOL_CAT_SUGGESTIONS = ['Power Tools', 'Hand Tools', 'Ladders & Lifts', 'Lawn & Garden', 'Cleaning Equipment', 'Measuring & Layout', 'Electrical', 'Plumbing', 'Painting', 'Safety'];
+let knownToolCats = [];
+const rememberToolCats = (tools) => {
+  knownToolCats = [...new Set([...tools.map((t) => t.category).filter(Boolean), ...TOOL_CAT_SUGGESTIONS])].sort((a, b) => a.localeCompare(b));
+};
+
 function toolForm(t = {}, locations = []) {
   return `
     <div class="row">
       <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(t.name)}" placeholder="Hilti TE 30 hammer drill"></label>
+      <label style="flex:1;min-width:180px">Category <input name="category" list="toolcat-list" placeholder="e.g. Power Tools" value="${esc(t.category)}" autocomplete="off"></label>
+      <datalist id="toolcat-list">${knownToolCats.map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
       ${locationSelect(locations, t.location, 'Home location')}
       <label style="width:120px">Value ($) <input name="value" type="number" min="0" step="0.01" value="${t.value ?? ''}"></label>
     </div>
@@ -1462,7 +1470,7 @@ function toolForm(t = {}, locations = []) {
 }
 
 const toolFields = (f) => ({
-  name: f.get('name').trim(), location: f.get('location') || null,
+  name: f.get('name').trim(), category: f.get('category').trim() || null, location: f.get('location') || null,
   value: f.get('value') ? Number(f.get('value')) : null, description: f.get('description').trim() || null,
 });
 
@@ -1472,6 +1480,8 @@ async function renderToolList() {
   const openBy = Object.fromEntries(open.map((c) => [c.tool_id, c]));
   const show = tools.filter((t) => t.active);
   const total = show.reduce((s, t) => s + Number(t.value || 0), 0);
+  rememberToolCats(tools);
+  const cats = [...new Set(show.map((t) => t.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   app.innerHTML = `
     ${pageHead('Equipment', 'Tools')}
@@ -1482,21 +1492,26 @@ async function renderToolList() {
     ${isAdmin() ? `<details class="card"><summary><b>Add a tool</b></summary><form id="add" style="margin-top:14px">${toolForm({}, locations)}
       <label style="margin-top:12px">Photo (optional) <input name="photo" type="file" accept="image/*"></label>
       <div style="margin-top:12px"><button class="btn primary">Add tool</button></div></form></details>` : ''}
-    <div class="row" style="margin-bottom:10px"><input id="filter" placeholder="Search…" style="flex:1;min-width:200px"><button class="btn" id="csv">Export CSV</button></div>
+    <div class="row" style="margin-bottom:10px"><input id="filter" placeholder="Search…" style="flex:1;min-width:200px">
+      <select id="catfilter"><option value="">All categories</option>${cats.map((c) => `<option>${esc(c)}</option>`).join('')}${show.some((t) => !t.category) ? '<option value="__none">No category</option>' : ''}</select>
+      <button class="btn" id="csv">Export CSV</button></div>
     <div class="table-wrap"><table id="tbl"></table></div>`;
 
   let photos = {};
   const paint = () => {
     const f = app.querySelector('#filter').value.toLowerCase();
-    const rows = show.filter((t) => !f || `${t.name} ${t.code} ${t.location}`.toLowerCase().includes(f));
-    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Tool</th><th>Status</th><th>With</th></tr>
-      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${photos[t.photo_path] ? `<img class="thumb" src="${esc(photos[t.photo_path])}" alt="">` : '<span class="thumb empty"></span>'}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td><span class="pill ${t.status}">${t.status}</span></td><td>${openBy[t.id] ? `${esc(who[openBy[t.id].borrower_id])} <span class="muted">(${since(openBy[t.id].checked_out_at)})</span>` : ''}</td></tr>`).join('')
-      || '<tr><td colspan="4" class="muted">No tools yet.</td></tr>'}`;
+    const cat = app.querySelector('#catfilter').value;
+    const rows = show.filter((t) => (!f || `${t.name} ${t.code} ${t.location} ${t.category || ''}`.toLowerCase().includes(f))
+      && (!cat || (cat === '__none' ? !t.category : t.category === cat)));
+    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Tool</th><th>Category</th><th>Status</th><th>With</th></tr>
+      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${photos[t.photo_path] ? `<img class="thumb" src="${esc(photos[t.photo_path])}" alt="">` : '<span class="thumb empty"></span>'}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td>${esc(t.category || '')}</td><td><span class="pill ${t.status}">${t.status}</span></td><td>${openBy[t.id] ? `${esc(who[openBy[t.id].borrower_id])} <span class="muted">(${since(openBy[t.id].checked_out_at)})</span>` : ''}</td></tr>`).join('')
+      || '<tr><td colspan="5" class="muted">No tools yet.</td></tr>'}`;
   };
+  app.querySelector('#catfilter').addEventListener('change', paint);
   photoUrlsFor(show.map((t) => t.photo_path)).then((p) => { photos = p; if (app.querySelector('#tbl')) paint(); });
   app.querySelector('#filter').addEventListener('input', paint);
   app.querySelector('#csv').addEventListener('click', () => downloadCsv('tools.csv', show.map((t) => ({
-    code: t.code, name: t.name, status: t.status, with: openBy[t.id] ? who[openBy[t.id].borrower_id] : '', location: t.location, value: t.value,
+    code: t.code, name: t.name, category: t.category || '', status: t.status, with: openBy[t.id] ? who[openBy[t.id].borrower_id] : '', location: t.location, value: t.value,
   }))));
   if (app.querySelector('#add')) bindLocationSelects(app.querySelector('#add'));
   app.querySelector('#add')?.addEventListener('submit', async (e) => {
@@ -1516,12 +1531,14 @@ async function renderToolList() {
 }
 
 async function renderTool(id) {
-  const [[t], hist, members, locations] = await Promise.all([
+  const [[t], hist, members, locations, allTools] = await Promise.all([
     q(sb.from('tools').select('*').eq('id', id)),
     q(sb.from('tool_checkouts').select('*').eq('tool_id', id).order('checked_out_at', { ascending: false }).limit(300)),
     loadMembers(),
     loadLocations(),
+    loadTools(),
   ]);
+  rememberToolCats(allTools);
   if (!t) throw new Error('Tool not found');
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const photo = await photoUrl(t.photo_path);
@@ -1538,6 +1555,7 @@ async function renderTool(id) {
     </div>
     <div class="stats">
       <div class="stat"><b><span class="pill ${t.status}">${t.status}</span></b><span>status</span></div>
+      <div class="stat"><b>${esc(t.category || '—')}</b><span>category</span></div>
       <div class="stat"><b>${t.value ? `$${Number(t.value).toLocaleString()}` : '—'}</b><span>value</span></div>
       <div class="stat"><b>${hist.length}</b><span>times signed out</span></div>
     </div>
