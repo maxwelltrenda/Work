@@ -508,7 +508,9 @@ async function renderStock() {
     scan.focus();
   });
 
-  async function apply(code) {
+  async function apply(scanned) {
+    const boxScan = scanned.toUpperCase().endsWith(BOX_SUFFIX);
+    const code = boxScan ? scanned.slice(0, -BOX_SUFFIX.length) : scanned;
     const upper = code.toUpperCase();
     if (upper === CMD.IN || upper === CMD.OUT || upper === CMD.COUNT) {
       const m = { [CMD.IN]: 'in', [CMD.OUT]: 'out', [CMD.COUNT]: 'adjust' }[upper];
@@ -521,7 +523,7 @@ async function renderStock() {
 
     const n = parseInt(qty.value, 10);
     try {
-      const res = await rpc('scan_item', { p_code: code, p_type: state.stockMode, p_qty: Number.isNaN(n) ? 1 : n, p_note: note.value, p_in_packs: app.querySelector('#unit').value === 'packs' });
+      const res = await rpc('scan_item', { p_code: code, p_type: state.stockMode, p_qty: Number.isNaN(n) ? 1 : n, p_note: note.value, p_in_packs: boxScan || app.querySelector('#unit').value === 'packs' });
       const it = res.item;
       const verb = state.stockMode === 'adjust' ? `Count set (${res.change >= 0 ? '+' : ''}${res.change})` : `${Math.abs(res.change)} ${state.stockMode === 'in' ? 'in' : 'out'}`;
       const low = it.reorder_level > 0 && it.quantity <= it.reorder_level;
@@ -1004,7 +1006,7 @@ async function renderKiosk() {
         <button type="button" class="btn in big" id="i-back"><span>Put back <b class="n">${p.qty}</b> <span class="u">${unitWord(p.qty)}</span></span></button>
         <button type="button" class="btn out big" id="i-take"><span>Take <b class="n">${p.qty}</b> <span class="u">${unitWord(p.qty)}</span></span>${p.place ? `<span class="sub">to ${esc(placeName(p.place))}</span>` : ''}</button>
       </div>
-      <p class="scan-hint">Scan it again to add one more.</p>`;
+      <p class="scan-hint">${pack > 1 ? 'Scan the single label to add a single, or the box label to add a box.' : 'Scan it again to add one more.'}</p>`;
     const qtyEl = sheet.querySelector('#i-qty');
     // Keep the number on the buttons in step with the box.
     const showQty = () => {
@@ -1013,7 +1015,6 @@ async function renderKiosk() {
     };
     sheet.querySelectorAll('[data-unit]').forEach((b) => b.addEventListener('click', () => {
       p.unit = b.dataset.unit;
-      setPref(`unit:${it.id}`, p.unit);
       paintItem();
     }));
     qtyEl.addEventListener('focus', () => qtyEl.select());
@@ -1085,7 +1086,10 @@ async function renderKiosk() {
   };
   document.addEventListener('keydown', sheetKeys, true);
 
-  async function onScan(code) {
+  async function onScan(scanned) {
+    // A box label is the item code + "-BOX": same item, but it means a whole box.
+    const boxScan = scanned.toUpperCase().endsWith(BOX_SUFFIX);
+    const code = boxScan ? scanned.slice(0, -BOX_SUFFIX.length) : scanned;
     const upper = code.toUpperCase();
     resetIdle();
     // An open tool pop-up: scanning the same tool again is its shortcut; anything else closes it
@@ -1153,13 +1157,18 @@ async function renderKiosk() {
       if (it.category === 'paint' && !k.pendingItem) { beep(true); status.innerHTML = ''; return openPaintSheet(it); }
       if (k.pendingItem) {
         // Same item again = one more; a different item has to wait.
-        if (k.pendingItem.item.id === it.id) { k.pendingItem.qty += 1; beep(true); return paintItem(); }
+        if (k.pendingItem.item.id === it.id) {
+          const unit = boxScan ? 'pack' : 'each';
+          if (packOf(it) > 1 && k.pendingItem.unit !== unit) { k.pendingItem.unit = unit; k.pendingItem.qty = 1; } else k.pendingItem.qty += 1;
+          beep(true);
+          return paintItem();
+        }
         beep(false);
         return paintItem(`Finish <b>${esc(k.pendingItem.item.name)}</b> first: tap Take or Put back, or Cancel.`);
       }
       beep(true);
       status.innerHTML = '';
-      k.pendingItem = { item: it, qty: 1, place: placeKey(), unit: getPref(`unit:${it.id}`, 'pack') };
+      k.pendingItem = { item: it, qty: 1, place: placeKey(), unit: boxScan ? 'pack' : 'each' };
       return paintItem();
     }
 
@@ -2396,11 +2405,19 @@ function openPdf(pdf) {
 }
 
 // Rows for a stock sheet: sorted by location, then name.
+// Items sold in packs get two labels: the item code for a single, and
+// "<code>-BOX" for a whole box (scanning it picks Box in the pop-up).
+const BOX_SUFFIX = '-BOX';
+const itemLabelRows = (i) => (packOf(i) > 1 && i.category !== 'paint'
+  ? [{ id: i.id, item: i.id, code: i.code, name: i.name, sub: ['Single', i.location].filter(Boolean).join(' · '), printed: i.label_printed_at },
+     { id: `${i.id}:box`, item: i.id, code: `${i.code}${BOX_SUFFIX}`, name: i.name, sub: [`BOX OF ${packOf(i)}`, i.location].filter(Boolean).join(' · '), printed: i.label_printed_at, box: true }]
+  : [{ id: i.id, item: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at }]);
+
 function stockSheetRows(items, category) {
   return items
     .filter((i) => i.active && i.category === category)
     .sort((a, b) => (a.location || '\uffff').localeCompare(b.location || '\uffff') || a.name.localeCompare(b.name))
-    .map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '' }));
+    .flatMap(itemLabelRows);
 }
 
 function labelHtml(code, name, sub = '') {
@@ -2426,10 +2443,10 @@ function setPref(key, value) {
 async function renderLabels(kind, id) {
   const [items, tools, members] = await Promise.all([loadItems(), loadTools(), loadMembers()]);
   const sources = {
-    facilities: items.filter((i) => i.active && i.category === 'facilities').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
-    maintenance: items.filter((i) => i.active && i.category === 'maintenance').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
-    paint: items.filter((i) => i.active && i.category === 'paint').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
-    events: items.filter((i) => i.active && i.category === 'events').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
+    facilities: items.filter((i) => i.active && i.category === 'facilities').flatMap(itemLabelRows),
+    maintenance: items.filter((i) => i.active && i.category === 'maintenance').flatMap(itemLabelRows),
+    paint: items.filter((i) => i.active && i.category === 'paint').flatMap(itemLabelRows),
+    events: items.filter((i) => i.active && i.category === 'events').flatMap(itemLabelRows),
     people: people(members).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '', printed: m.label_printed_at })),
     tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.location || '', printed: t.label_printed_at })),
     commands: [
@@ -2443,7 +2460,7 @@ async function renderLabels(kind, id) {
   // Which table remembers when these labels were printed (commands aren't tracked).
   const trackKind = { facilities: 'item', maintenance: 'item', paint: 'item', events: 'item', tool: 'tool', people: 'person' }[tab];
   const unprinted = trackKind ? sources[tab].filter((r) => !r.printed).length : 0;
-  const preselect = new Set(id ? [id] : []);
+  const preselect = new Set(id ? [id, `${id}:box`] : []);
   const sizeKey = getPref('labelSize2', 'brother-62c');
 
   app.innerHTML = `
@@ -2543,7 +2560,7 @@ async function renderLabels(kind, id) {
   async function markPrinted(rows, printed) {
     const status = app.querySelector('#print-status');
     try {
-      await rpc('mark_labels_printed', { p_kind: trackKind, p_ids: rows.map((r) => r.id), p_printed: printed });
+      await rpc('mark_labels_printed', { p_kind: trackKind, p_ids: [...new Set(rows.map((r) => r.item || r.id))], p_printed: printed });
       const now = new Date().toISOString();
       rows.forEach((r) => (r.printed = printed ? now : null));
       paintTable();
