@@ -909,7 +909,7 @@ async function renderKiosk() {
     sheet.innerHTML = `
       <div class="sheet-head">
         <div class="sheet-photo" id="pk-photo"></div>
-        <div><div class="eyebrow">Paint · ${esc(it.code)}</div>
+        <div><div class="eyebrow">Paint · ${esc(it.code)}${paintTags(it) ? ` · ${esc(paintTags(it))}` : ''}</div>
           <h3>${esc(it.name)}</h3>
           <div class="muted" style="font-size:15px"><b>${gal(sum.gallons)}</b> on hand${sum.text ? ` · ${sum.text}` : ''}</div></div>
         <button type="button" class="btn small" data-cancel>Close</button>
@@ -1394,6 +1394,9 @@ const stockKind = (c) => (STOCK[c] ? c : 'facilities');
 // Paint: one item per color; every can (1 or 5 gallons, full or partly used)
 // counts toward that color's total gallons.
 const PAINT_SIZES = [5, 1];
+const SHEENS = ['Flat', 'Matte', 'Eggshell', 'Satin', 'Semi-Gloss', 'Gloss'];
+const PAINT_USE = { interior: 'Interior', exterior: 'Exterior' };
+const paintTags = (i) => [i.paint_use ? PAINT_USE[i.paint_use] : '', i.sheen || ''].filter(Boolean).join(' · ');
 const PAINT_FILLS = [[1, 'Full'], [0.75, '¾ full'], [0.5, '½ full'], [0.25, '¼ full']];
 const canLabel = (size, fill) => `${Number(size)} gal ${Number(fill) === 1 ? 'full' : `${{ 0.75: '¾', 0.5: '½', 0.25: '¼' }[Number(fill)]} full`}`;
 const gal = (n) => `${Number(Number(n).toFixed(2))} gal`;
@@ -1508,6 +1511,8 @@ function itemForm(it = {}, locations = []) {
       ${it.id ? '' : '<label style="width:150px" data-for="facilities maintenance events" title="How many boxes/packs you have now; singles can be counted later">Starting boxes <input name="start" type="number" min="0" value="0"></label>'}
       <label style="width:140px" data-for="${HAS_COST.join(' ')}" title="What one box/pack costs (or one item, if it isn't sold in packs)">Cost ($) <input name="unit_cost" type="number" min="0" step="0.01" placeholder="per box/pack" value="${it.unit_cost ?? ''}"></label>
       <label style="flex:1;min-width:180px" data-for="${HAS_SUBCAT.join(' ')}">Category ${categorySelect('maintenance', it.subcategory, 'subcategory')}</label>
+      <label style="width:150px" data-for="paint">Interior / exterior <select name="paint_use"><option value="">—</option>${Object.entries(PAINT_USE).map(([v, l]) => `<option value="${v}" ${it.paint_use === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label style="width:150px" data-for="paint">Sheen <select name="sheen"><option value="">—</option>${SHEENS.map((x) => `<option ${it.sheen === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
     </div>
     <label style="margin-top:12px">Description <input name="description" value="${esc(it.description)}"></label>`;
 }
@@ -1526,6 +1531,8 @@ const itemFields = (f) => ({
   pack_size: Math.max(1, parseInt(f.get('pack_size'), 10) || 1),
   unit_cost: HAS_COST.includes(f.get('category')) && f.get('unit_cost') !== '' ? Number(f.get('unit_cost')) : null,
   subcategory: HAS_SUBCAT.includes(f.get('category')) ? f.get('subcategory') || null : null,
+  sheen: f.get('category') === 'paint' ? f.get('sheen') || null : null,
+  paint_use: f.get('category') === 'paint' ? f.get('paint_use') || null : null,
 });
 
 async function renderItems(category) {
@@ -1639,6 +1646,8 @@ async function renderPaint() {
       <div style="margin-top:14px"><button class="btn primary">Add color</button></div></form></details>` : ''}
     <div class="row" style="margin-bottom:12px">
       <input id="filter" placeholder="Search color, code or location…" style="flex:1;min-width:200px">
+      <select id="usefilter"><option value="">Interior & exterior</option>${Object.entries(PAINT_USE).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>
+      <select id="sheenfilter"><option value="">All sheens</option>${SHEENS.map((x) => `<option>${x}</option>`).join('')}</select>
       <label class="row" style="flex-direction:row;align-items:center"><input type="checkbox" id="lowonly"> Low only</label>
       <button class="btn" id="csv">Export CSV</button>
       <button class="btn" id="sheet" title="Every paint label on letter paper, sorted by location">Print sheet</button>
@@ -1649,17 +1658,23 @@ async function renderPaint() {
   const paint = () => {
     const f = app.querySelector('#filter').value.toLowerCase();
     const lowOnly = app.querySelector('#lowonly').checked;
-    const rows = show.filter((i) => (!f || `${i.name} ${i.code} ${i.location} ${i.description}`.toLowerCase().includes(f)) && (!lowOnly || low.includes(i)));
-    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Color</th><th>Location</th><th class="num">Gallons</th><th>Cans</th><th class="num">Reorder at</th></tr>
+    const use = app.querySelector('#usefilter').value;
+    const sheen = app.querySelector('#sheenfilter').value;
+    const rows = show.filter((i) => (!f || `${i.name} ${i.code} ${i.location} ${i.description} ${i.sheen || ''}`.toLowerCase().includes(f)) && (!lowOnly || low.includes(i))
+      && (!use || i.paint_use === use) && (!sheen || i.sheen === sheen));
+    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Color</th><th>Use</th><th>Sheen</th><th>Location</th><th class="num">Gallons</th><th>Cans</th><th class="num">Reorder at</th></tr>
       ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a class="tool-name" href="#/item/${i.id}">${thumb(photos[i.photo_path])}${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td>
+        <td>${i.paint_use ? PAINT_USE[i.paint_use] : ''}</td><td>${esc(i.sheen || '')}</td>
         <td>${esc(i.location)}</td><td class="num"><b>${gal(sum[i.id].gallons)}</b></td><td class="muted" style="font-size:14px">${sum[i.id].text || '—'}</td><td class="num">${i.reorder_level ? gal(i.reorder_level) : ''}</td></tr>`).join('')
-      || '<tr><td colspan="6" class="muted">No paint yet.</td></tr>'}`;
+      || '<tr><td colspan="8" class="muted">No paint yet.</td></tr>'}`;
   };
   photoUrlsFor(show.map((i) => i.photo_path), 'item').then((p) => { photos = p; if (app.querySelector('#tbl')) paint(); });
   app.querySelector('#filter').addEventListener('input', paint);
   app.querySelector('#lowonly').addEventListener('change', paint);
+  app.querySelector('#usefilter').addEventListener('change', paint);
+  app.querySelector('#sheenfilter').addEventListener('change', paint);
   app.querySelector('#csv').addEventListener('click', () => downloadCsv('paint.csv', show.map((i) => ({
-    code: i.code, color: i.name, location: i.location, gallons: Number(sum[i.id].gallons.toFixed(2)), cans: sum[i.id].text, reorder_at_gallons: i.reorder_level, description: i.description,
+    code: i.code, color: i.name, use: i.paint_use ? PAINT_USE[i.paint_use] : '', sheen: i.sheen || '', location: i.location, gallons: Number(sum[i.id].gallons.toFixed(2)), cans: sum[i.id].text, reorder_at_gallons: i.reorder_level, description: i.description,
   }))));
   app.querySelector('#sheet').addEventListener('click', () => {
     if (!show.length) return toast('Nothing to print yet');
@@ -1709,6 +1724,8 @@ async function renderItem(id) {
     ${isPaint ? `<div class="stats">
       <div class="stat"><b>${gal(paint.gallons)}</b><span>on hand</span></div>
       <div class="stat"><b>${paint.cans}</b><span>can${paint.cans === 1 ? '' : 's'}</span></div>
+      <div class="stat"><b>${it.paint_use ? PAINT_USE[it.paint_use] : '—'}</b><span>interior / exterior</span></div>
+      <div class="stat"><b>${esc(it.sheen || '—')}</b><span>sheen</span></div>
       <div class="stat"><b>${it.reorder_level ? gal(it.reorder_level) : '—'}</b><span>reorder at</span></div>
       <div class="stat"><b>${esc(it.location || '—')}</b><span>location</span></div>
     </div>

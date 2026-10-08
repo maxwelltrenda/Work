@@ -6,7 +6,7 @@ A private web app for your team that tracks five things:
 
 1. **Facilities stock**: supplies for the building. Scan them in and out, see what's on hand, and get flagged when something drops to its reorder level.
 2. **Maintenance stock**: supplies for maintenance work (degreaser, caulk, filters…). Same scanning and reorder flags, with its own `MNT-` labels.
-3. **Paint**: one entry per color (`PNT-` labels). Each can is tracked by size (1 or 5 gallons) and how full it is (full, ¾, ½, ¼), and they all add up to the color's total gallons.
+3. **Paint**: one entry per color (`PNT-` labels), marked **Interior / Exterior** and with its **sheen** (Flat, Matte, Eggshell, Satin, Semi-Gloss, Gloss). Each can is tracked by size (1 or 5 gallons) and how full it is (full, ¾, ½, ¼), and they all add up to the color's total gallons.
 4. **Event stock**: supplies that go out to events. Same scanning, and each event shows what was taken, brought back and used.
 5. **Tools**: scan a name label and a tool to sign it out, and scan the tool again to return it. You always know who has what.
 
