@@ -534,9 +534,9 @@ async function renderKiosk() {
       <div id="k-who"></div>
       <div class="scanrow">
         <input id="scan" class="scanbox" placeholder="${isKiosk() ? 'Scan a tool, item or name label…' : `Scan ${[myRole().scanTools && 'a tool', myRole().scanStock.length && 'stock'].filter(Boolean).join(' or ')}…`}" autocomplete="off" autocapitalize="characters">
-        <button class="btn primary cam-btn" id="cam" type="button" title="Use this device's camera as the scanner">
+        ${isKiosk() ? '' : `<button class="btn primary cam-btn" id="cam" type="button" title="Use this device's camera as the scanner">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
-          <span>Scan with camera</span></button>
+          <span>Scan with camera</span></button>`}
       </div>
       <div id="status"></div>
       <div id="k-panel"></div>
@@ -815,7 +815,7 @@ async function renderKiosk() {
   }
 
   bindScanner(scan, onScan);
-  app.querySelector('#cam').addEventListener('click', () => openCamera(async (code) => {
+  app.querySelector('#cam')?.addEventListener('click', () => openCamera(async (code) => {
     await onScan(code);
     // A stock item now needs "how many / take or put back": close the camera so the card is visible.
     if (k.pendingItem) return { close: true };

@@ -55,7 +55,7 @@ Codes are assigned automatically when you add something. Print them from the **L
 
 These rules are enforced in the database, not just hidden on screen. Editing items, counts, people and settings is admin-only. Anyone on the team list can still check things out at the warehouse iPad by tapping their name.
 
-**Phone camera:** on **Check In / Out**, **Scan with camera** turns any phone or tablet camera into a barcode scanner, with nothing to install. The first time, the browser asks for camera permission.
+**Phone camera:** on your own login, **Check In / Out** has **Scan with camera**, which turns any phone or tablet camera into a barcode scanner with nothing to install. The first time, the browser asks for camera permission. The shared kiosk login has no camera button; it uses the barcode scanner only.
 
 ## Warehouse iPad (shared kiosk)
 
