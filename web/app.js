@@ -55,29 +55,29 @@ const isKiosk = () => state.me?.role === 'kiosk';
 // database enforces the same rules (see 0008_view_roles.sql).
 const ALL_PAGES = [
   ['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
-  ['items/facilities', 'Facilities Stock'], ['items/maintenance', 'Maintenance Stock'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
+  ['items/facilities', 'Facilities Stock'], ['items/maintenance', 'Maintenance Stock'], ['items/paint', 'Paint'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
   ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories'],
 ];
 const ROLES = {
-  admin: { label: 'Admin', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'events'], tools: true,
-    scanStock: ['facilities', 'maintenance', 'events'], scanTools: true,
+  admin: { label: 'Admin', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'paint', 'events'], tools: true,
+    scanStock: ['facilities', 'maintenance', 'paint', 'events'], scanTools: true,
     pages: [...ALL_PAGES.map(([k]) => k), 'item', 'tool', 'event'] },
-  kiosk: { label: 'Kiosk (shared iPad)', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'events'], tools: true,
-    scanStock: ['facilities', 'maintenance', 'events'], scanTools: true,
+  kiosk: { label: 'Kiosk (shared iPad)', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'paint', 'events'], tools: true,
+    scanStock: ['facilities', 'maintenance', 'paint', 'events'], scanTools: true,
     pages: ['kiosk', 'out', 'events', 'event'] },
   // Team roles scan their own area from their own login (phone camera or scanner).
-  member: { label: 'Facilities & Maintenance', act: false, home: 'kiosk', stock: ['facilities', 'maintenance'], tools: true,
-    scanStock: ['facilities', 'maintenance'], scanTools: true,
-    pages: ['kiosk', 'items/facilities', 'items/maintenance', 'toollist', 'out', 'history', 'item', 'tool'] },
-  maintenance: { label: 'Maintenance manager', act: false, home: 'kiosk', stock: ['maintenance'], tools: true,
-    scanStock: ['maintenance'], scanTools: true,
-    pages: ['kiosk', 'items/maintenance', 'toollist', 'out', 'history', 'item', 'tool'] },
+  member: { label: 'Facilities & Maintenance', act: false, home: 'kiosk', stock: ['facilities', 'maintenance', 'paint'], tools: true,
+    scanStock: ['facilities', 'maintenance', 'paint'], scanTools: true,
+    pages: ['kiosk', 'items/facilities', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
+  maintenance: { label: 'Maintenance manager', act: false, home: 'kiosk', stock: ['maintenance', 'paint'], tools: true,
+    scanStock: ['maintenance', 'paint'], scanTools: true,
+    pages: ['kiosk', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
   custodian: { label: 'Custodian manager', act: false, home: 'kiosk', stock: ['facilities'], tools: false,
     scanStock: ['facilities'], scanTools: false,
     pages: ['kiosk', 'items/facilities', 'history', 'item'] },
-  oversight: { label: 'Oversight', act: false, home: 'out', stock: ['facilities', 'maintenance', 'events'], tools: true,
+  oversight: { label: 'Oversight', act: false, home: 'out', stock: ['facilities', 'maintenance', 'paint', 'events'], tools: true,
     scanStock: [], scanTools: false,
-    pages: ['out', 'events', 'items/facilities', 'items/maintenance', 'items/events', 'toollist', 'history', 'locations', 'item', 'tool', 'event'] },
+    pages: ['out', 'events', 'items/facilities', 'items/maintenance', 'items/paint', 'items/events', 'toollist', 'history', 'locations', 'item', 'tool', 'event'] },
 };
 const ROLE_ORDER = ['member', 'maintenance', 'custodian', 'oversight', 'admin', 'kiosk'];
 const myRole = () => ROLES[state.me?.role] || ROLES.member;
@@ -717,6 +717,7 @@ async function renderKiosk() {
     sheetEl = null;
     k.picker = null;
     k.toolSheet = null;
+    k.paintSheet = null;
     if (document.body.contains(scan)) scan.focus();
   }
 
@@ -886,6 +887,88 @@ async function renderKiosk() {
     }));
     sheet.querySelector('#t-take, .place.on, [data-ret], [data-sheet-person]')?.focus();
     photoUrl(tool.photo_path).then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
+    resetIdle();
+  }
+
+  // Paint: one pop-up to take a can (picked from what's on hand) or put one
+  // back (size + how full), all adding up to the color's gallons.
+  async function openPaintSheet(it, msg = '') {
+    let ps = k.paintSheet && k.paintSheet.item.id === it.id ? k.paintSheet : null;
+    if (!ps) {
+      ps = { item: it, mode: 'out', qty: 1, size: 1, fill: 1, pick: null, place: placeKey() };
+      ps.cans = await q(sb.from('paint_cans').select('size, fill').eq('item_id', it.id).is('removed_at', null));
+    }
+    const sum = paintSummary(ps.cans);
+    if (ps.mode === 'out' && !sum.list.some((g) => `${g.size}|${g.fill}` === ps.pick)) ps.pick = sum.list[0] ? `${sum.list[0].size}|${sum.list[0].fill}` : null;
+    const picked = sum.list.find((g) => `${g.size}|${g.fill}` === ps.pick);
+    const max = ps.mode === 'out' ? (picked?.n || 1) : 99;
+    ps.qty = Math.min(Math.max(1, ps.qty), max);
+    const sheet = openSheet();
+    k.paintSheet = ps;
+    const what = ps.mode === 'out' ? (picked ? canLabel(picked.size, picked.fill) : '') : canLabel(ps.size, ps.fill);
+    sheet.innerHTML = `
+      <div class="sheet-head">
+        <div class="sheet-photo" id="pk-photo"></div>
+        <div><div class="eyebrow">Paint · ${esc(it.code)}</div>
+          <h3>${esc(it.name)}</h3>
+          <div class="muted" style="font-size:15px"><b>${gal(sum.gallons)}</b> on hand${sum.text ? ` · ${sum.text}` : ''}</div></div>
+        <button type="button" class="btn small" data-cancel>Close</button>
+      </div>
+      <div class="unit-pick">
+        <button type="button" class="btn ${ps.mode === 'out' ? 'on primary' : ''}" data-pmode="out">Take</button>
+        <button type="button" class="btn ${ps.mode === 'in' ? 'on primary' : ''}" data-pmode="in">Put back</button></div>
+      ${ps.mode === 'out' ? (sum.list.length ? `
+        <div class="qty-label">Which can?</div>
+        <div class="place-grid">${sum.list.map((g) => `<button type="button" class="btn place ${`${g.size}|${g.fill}` === ps.pick ? 'on primary' : ''}" data-pick="${g.size}|${g.fill}">${canLabel(g.size, g.fill)} <span class="when">${g.n} on hand</span></button>`).join('')}</div>`
+        : '<div class="sheet-msg">No cans of this color on hand.</div>') : `
+        <div class="qty-label">Can size</div>
+        <div class="place-grid">${PAINT_SIZES.map((z) => `<button type="button" class="btn place ${ps.size === z ? 'on primary' : ''}" data-psize="${z}">${z} gallon</button>`).join('')}</div>
+        <div class="qty-label" style="margin-top:14px">How full is it?</div>
+        <div class="place-grid">${PAINT_FILLS.map(([f, l]) => `<button type="button" class="btn place ${ps.fill === f ? 'on primary' : ''}" data-pfill="${f}">${l}</button>`).join('')}</div>`}
+      ${ps.mode === 'out' && !picked ? '' : `
+        <div class="qty-label" style="margin-top:14px">How many cans?</div>
+        <div class="stepper">
+          <button type="button" class="btn" data-pstep="-1" aria-label="One less">−</button>
+          <input id="p-qty" type="number" min="1" max="${max}" value="${ps.qty}" inputmode="numeric" aria-label="Quantity">
+          <button type="button" class="btn" data-pstep="1" aria-label="One more">+</button>
+        </div>
+        ${ps.mode === 'out' ? `<div class="qty-label" style="margin-top:14px">Where is it going?</div>${placeChips(ps.place, ps.needPlace)}` : ''}
+        ${msg ? `<div class="sheet-msg">${msg}</div>` : ''}
+        <div class="row item-actions"><button type="button" class="btn ${ps.mode === 'out' ? 'out' : 'in'} big" id="p-go">
+          <span>${ps.mode === 'out' ? 'Take' : 'Put back'} <b class="n">${ps.qty}</b> × ${what}</span>${ps.mode === 'out' && ps.place ? `<span class="sub">to ${esc(placeName(ps.place))}</span>` : ''}</button></div>`}`;
+
+    const repaint = (m = '') => openPaintSheet(it, m);
+    k.picker = { code: it.code.toUpperCase(), onSame: () => { ps.qty = Math.min(max, ps.qty + 1); beep(true); repaint(); }, cancel: () => closeSheet() };
+    sheet.querySelector('[data-cancel]').addEventListener('click', () => closeSheet());
+    sheet.querySelectorAll('[data-pmode]').forEach((b) => b.addEventListener('click', () => { ps.mode = b.dataset.pmode; ps.qty = 1; repaint(); }));
+    sheet.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => { ps.pick = b.dataset.pick; ps.qty = 1; repaint(); }));
+    sheet.querySelectorAll('[data-psize]').forEach((b) => b.addEventListener('click', () => { ps.size = Number(b.dataset.psize); repaint(); }));
+    sheet.querySelectorAll('[data-pfill]').forEach((b) => b.addEventListener('click', () => { ps.fill = Number(b.dataset.pfill); repaint(); }));
+    const qtyEl = sheet.querySelector('#p-qty');
+    const setQty = (v) => { ps.qty = Math.min(max, Math.max(1, v)); qtyEl.value = ps.qty; sheet.querySelectorAll('.n').forEach((x) => (x.textContent = ps.qty)); resetIdle(); };
+    qtyEl?.addEventListener('focus', () => qtyEl.select());
+    qtyEl?.addEventListener('change', () => setQty(parseInt(qtyEl.value, 10) || 1));
+    sheet.querySelectorAll('[data-pstep]').forEach((b) => b.addEventListener('click', () => setQty(ps.qty + Number(b.dataset.pstep))));
+    bindPlaceChips(sheet, (key) => { ps.place = key; ps.needPlace = false; repaint(); });
+    sheet.querySelector('#p-go')?.addEventListener('click', async () => {
+      if (ps.mode === 'out' && !ps.place) { ps.needPlace = true; beep(false); return repaint('Pick where it\'s going first.'); }
+      const [size, fill] = ps.mode === 'out' ? ps.pick.split('|').map(Number) : [ps.size, ps.fill];
+      if (ps.mode === 'out') setPlace(ps.place);
+      const ev = ps.mode === 'out' ? k.event : (ps.place?.startsWith('ev:') ? events.find((e) => e.id === ps.place.slice(3)) : null);
+      let res;
+      try {
+        res = await rpc('paint_move', { p_code: it.code, p_dir: ps.mode, p_size: size, p_fill: fill, p_qty: ps.qty, p_member: k.person.id,
+          p_event: ev?.id || null, p_destination: ps.mode === 'out' && !k.event ? k.dest : null });
+      } catch (e) { beep(false); return repaint(esc(errMsg(e))); }
+      beep(true);
+      const n = ps.qty;
+      const where = ps.mode === 'out' ? ` (${placeName(ps.place)})` : '';
+      closeSheet();
+      show('ok', `${ps.mode === 'out' ? 'Took' : 'Put back'} ${n} × ${canLabel(size, fill)} of <b>${esc(it.name)}</b>${esc(where)}. ${gal(res.gallons)} on hand.`);
+      log(ps.mode, `${n} × ${canLabel(size, fill)} ${it.name}${where} · ${k.person.name}`);
+    });
+    sheet.querySelector('#p-go, .place.on')?.focus();
+    photoUrl(it.photo_path, 'item').then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
     resetIdle();
   }
 
@@ -1067,6 +1150,7 @@ async function renderKiosk() {
       if (!k.person) { beep(false); return show('err', 'Tap your name first.'); }
       const it = hit.record;
       if (!myRole().scanStock.includes(it.category)) { beep(false); return show('err', "That isn't in your area — you can only scan your own things."); }
+      if (it.category === 'paint' && !k.pendingItem) { beep(true); status.innerHTML = ''; return openPaintSheet(it); }
       if (k.pendingItem) {
         // Same item again = one more; a different item has to wait.
         if (k.pendingItem.item.id === it.id) { k.pendingItem.qty += 1; beep(true); return paintItem(); }
@@ -1302,9 +1386,26 @@ async function renderOut() {
 const STOCK = {
   facilities: { title: 'Facilities <span class="accent">stock</span>', plain: 'Facilities stock', eyebrow: 'Stock room', hash: '#/items/facilities' },
   maintenance: { title: 'Maintenance <span class="accent">stock</span>', plain: 'Maintenance stock', eyebrow: 'Stock room', hash: '#/items/maintenance' },
+  paint: { title: '<span class="accent">Paint</span>', plain: 'Paint', eyebrow: 'Stock room', hash: '#/items/paint' },
   events: { title: 'Event <span class="accent">stock</span>', plain: 'Event stock', eyebrow: 'Stock room', hash: '#/items/events' },
 };
 const stockKind = (c) => (STOCK[c] ? c : 'facilities');
+
+// Paint: one item per color; every can (1 or 5 gallons, full or partly used)
+// counts toward that color's total gallons.
+const PAINT_SIZES = [5, 1];
+const PAINT_FILLS = [[1, 'Full'], [0.75, '¾ full'], [0.5, '½ full'], [0.25, '¼ full']];
+const canLabel = (size, fill) => `${Number(size)} gal ${Number(fill) === 1 ? 'full' : `${{ 0.75: '¾', 0.5: '½', 0.25: '¼' }[Number(fill)]} full`}`;
+const gal = (n) => `${Number(Number(n).toFixed(2))} gal`;
+const loadPaintCans = () => q(sb.from('paint_cans').select('item_id, size, fill').is('removed_at', null));
+function paintSummary(cans) {
+  const groups = {};
+  cans.forEach((c) => { const k = `${Number(c.size)}|${Number(c.fill)}`; groups[k] = (groups[k] || 0) + 1; });
+  const list = Object.entries(groups).map(([k, n]) => { const [size, fill] = k.split('|').map(Number); return { size, fill, n }; })
+    .sort((a, b) => b.size - a.size || b.fill - a.fill);
+  const gallons = cans.reduce((t, c) => t + Number(c.size) * Number(c.fill), 0);
+  return { gallons, cans: cans.length, list, text: list.map((g) => `${g.n} × ${canLabel(g.size, g.fill)}`).join(' · ') };
+}
 // Cost is tracked for facilities and maintenance stock; categories for maintenance.
 const HAS_COST = ['facilities', 'maintenance'];
 const HAS_SUBCAT = ['maintenance'];
@@ -1400,10 +1501,11 @@ function itemForm(it = {}, locations = []) {
       <label style="width:150px">Stock type <select name="category">
         <option value="facilities" ${cat === 'facilities' ? 'selected' : ''}>Facilities</option>
         <option value="maintenance" ${cat === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+        <option value="paint" ${cat === 'paint' ? 'selected' : ''}>Paint</option>
         <option value="events" ${cat === 'events' ? 'selected' : ''}>Event</option></select></label>
-      <label style="width:130px" title="How many pieces one box/pack holds, e.g. 6 rolls in a box of paper towels. Leave 1 for single items.">Per box/pack <input name="pack_size" type="number" min="1" value="${it.pack_size ?? 1}"></label>
-      <label style="width:120px" title="Counted in single pieces (e.g. 6 = two boxes of 3)">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
-      ${it.id ? '' : '<label style="width:150px" title="How many boxes/packs you have now; singles can be counted later">Starting boxes <input name="start" type="number" min="0" value="0"></label>'}
+      <label style="width:130px" data-for="facilities maintenance events" title="How many pieces one box/pack holds, e.g. 6 rolls in a box of paper towels. Leave 1 for single items.">Per box/pack <input name="pack_size" type="number" min="1" value="${it.pack_size ?? 1}"></label>
+      <label style="width:120px" title="Counted in single pieces (e.g. 6 = two boxes of 3); for paint, in gallons">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
+      ${it.id ? '' : '<label style="width:150px" data-for="facilities maintenance events" title="How many boxes/packs you have now; singles can be counted later">Starting boxes <input name="start" type="number" min="0" value="0"></label>'}
       <label style="width:140px" data-for="${HAS_COST.join(' ')}" title="What one box/pack costs (or one item, if it isn't sold in packs)">Cost ($) <input name="unit_cost" type="number" min="0" step="0.01" placeholder="per box/pack" value="${it.unit_cost ?? ''}"></label>
       <label style="flex:1;min-width:180px" data-for="${HAS_SUBCAT.join(' ')}">Category ${categorySelect('maintenance', it.subcategory, 'subcategory')}</label>
     </div>
@@ -1428,6 +1530,7 @@ const itemFields = (f) => ({
 
 async function renderItems(category) {
   const kind = stockKind(category);
+  if (kind === 'paint') return renderPaint();
   const meta = STOCK[kind];
   const [all, locations] = await Promise.all([loadItems(), loadLocations()]);
   const items = all.filter((i) => i.category === kind);
@@ -1513,6 +1616,76 @@ async function renderItems(category) {
   paint();
 }
 
+async function renderPaint() {
+  const meta = STOCK.paint;
+  const [all, locations, cans] = await Promise.all([loadItems(), loadLocations(), loadPaintCans()]);
+  await refreshCategories();
+  const show = all.filter((i) => i.category === 'paint' && i.active);
+  const sum = Object.fromEntries(show.map((i) => [i.id, paintSummary(cans.filter((c) => c.item_id === i.id))]));
+  const low = show.filter((i) => i.reorder_level > 0 && sum[i.id].gallons <= i.reorder_level);
+  const totalGal = show.reduce((t, i) => t + sum[i.id].gallons, 0);
+
+  app.innerHTML = `
+    ${pageHead(meta.eyebrow, meta.title, 'One entry per color. Full and used cans all count toward the color\'s gallons.')}
+    <div class="stats">
+      <div class="stat"><b>${show.length}</b><span>colors</span></div>
+      <div class="stat"><b>${gal(totalGal)}</b><span>on hand in total</span></div>
+      <div class="stat"><b>${show.reduce((t, i) => t + sum[i.id].cans, 0)}</b><span>cans</span></div>
+      <div class="stat"><b style="color:${low.length ? 'var(--warn)' : 'inherit'}">${low.length}</b><span>at or below reorder level</span></div>
+    </div>
+    ${isAdmin() ? `<details class="card"><summary><b>Add a paint color</b></summary><form id="add" style="margin-top:14px">${itemForm({ category: 'paint' }, locations)}
+      <label style="margin-top:12px">Photo (optional) <input name="photo" type="file" accept="image/*"></label>
+      <p class="muted" style="font-size:13px;margin:10px 0 0">Name it by color, brand and sheen (e.g. "Agreeable Gray SW 7029 · Eggshell"). After adding, enter the cans you have on its page.</p>
+      <div style="margin-top:14px"><button class="btn primary">Add color</button></div></form></details>` : ''}
+    <div class="row" style="margin-bottom:12px">
+      <input id="filter" placeholder="Search color, code or location…" style="flex:1;min-width:200px">
+      <label class="row" style="flex-direction:row;align-items:center"><input type="checkbox" id="lowonly"> Low only</label>
+      <button class="btn" id="csv">Export CSV</button>
+      <button class="btn" id="sheet" title="Every paint label on letter paper, sorted by location">Print sheet</button>
+    </div>
+    <div class="table-wrap"><table id="tbl"></table></div>`;
+
+  let photos = {};
+  const paint = () => {
+    const f = app.querySelector('#filter').value.toLowerCase();
+    const lowOnly = app.querySelector('#lowonly').checked;
+    const rows = show.filter((i) => (!f || `${i.name} ${i.code} ${i.location} ${i.description}`.toLowerCase().includes(f)) && (!lowOnly || low.includes(i)));
+    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Color</th><th>Location</th><th class="num">Gallons</th><th>Cans</th><th class="num">Reorder at</th></tr>
+      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a class="tool-name" href="#/item/${i.id}">${thumb(photos[i.photo_path])}${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td>
+        <td>${esc(i.location)}</td><td class="num"><b>${gal(sum[i.id].gallons)}</b></td><td class="muted" style="font-size:14px">${sum[i.id].text || '—'}</td><td class="num">${i.reorder_level ? gal(i.reorder_level) : ''}</td></tr>`).join('')
+      || '<tr><td colspan="6" class="muted">No paint yet.</td></tr>'}`;
+  };
+  photoUrlsFor(show.map((i) => i.photo_path), 'item').then((p) => { photos = p; if (app.querySelector('#tbl')) paint(); });
+  app.querySelector('#filter').addEventListener('input', paint);
+  app.querySelector('#lowonly').addEventListener('change', paint);
+  app.querySelector('#csv').addEventListener('click', () => downloadCsv('paint.csv', show.map((i) => ({
+    code: i.code, color: i.name, location: i.location, gallons: Number(sum[i.id].gallons.toFixed(2)), cans: sum[i.id].text, reorder_at_gallons: i.reorder_level, description: i.description,
+  }))));
+  app.querySelector('#sheet').addEventListener('click', () => {
+    if (!show.length) return toast('Nothing to print yet');
+    if (!window.jspdf || !window.JsBarcode) return toast('Still loading — try again in a second', true);
+    openPdf(buildSheetPdf(stockSheetRows(all, 'paint'), 'Paint'));
+  });
+  const add = app.querySelector('#add');
+  if (add) {
+    bindLocationSelects(add);
+    bindCategorySelects(add);
+    bindItemForm(add);
+    add.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      try {
+        const [row] = await q(sb.from('items').insert(itemFields(f)).select());
+        const photo = f.get('photo');
+        if (photo?.size) await setPhoto('item', row, photo).catch((err) => toast(`Added ${row.name}, but the photo didn't upload: ${errMsg(err)}`, true));
+        toast(`Added ${row.name} as ${row.code}`);
+        location.hash = `#/item/${row.id}`;
+      } catch (err) { toast(errMsg(err), true); }
+    });
+  }
+  paint();
+}
+
 async function renderItem(id) {
   const [[it], tx, members, locations, allItems] = await Promise.all([
     q(sb.from('items').select('*').eq('id', id)),
@@ -1526,11 +1699,28 @@ async function renderItem(id) {
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const meta = STOCK[stockKind(it.category)];
   const photo = await photoUrl(it.photo_path, 'item');
+  const isPaint = it.category === 'paint';
+  const paint = isPaint ? paintSummary((await loadPaintCans()).filter((c) => c.item_id === it.id)) : null;
 
   app.innerHTML = `
     <p><a href="${meta.hash}">← ${meta.plain}</a></p>
     <h1>${esc(it.name)} <span class="code muted">${esc(it.code)}</span></h1>
     ${photoBlock(it, photo)}
+    ${isPaint ? `<div class="stats">
+      <div class="stat"><b>${gal(paint.gallons)}</b><span>on hand</span></div>
+      <div class="stat"><b>${paint.cans}</b><span>can${paint.cans === 1 ? '' : 's'}</span></div>
+      <div class="stat"><b>${it.reorder_level ? gal(it.reorder_level) : '—'}</b><span>reorder at</span></div>
+      <div class="stat"><b>${esc(it.location || '—')}</b><span>location</span></div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:16px"><table><tr><th>Can</th><th class="num">How many</th><th class="num">Gallons</th></tr>
+      ${paint.list.map((g) => `<tr><td>${canLabel(g.size, g.fill)}</td><td class="num"><b>${g.n}</b></td><td class="num">${gal(g.n * g.size * g.fill)}</td></tr>`).join('')
+        || '<tr><td colspan="3" class="muted">No cans on hand.</td></tr>'}</table></div>
+    ${isAdmin() ? `<form class="card row" id="paint-adjust" style="align-items:flex-end">
+      <label>Can <select name="size">${PAINT_SIZES.map((z) => `<option value="${z}">${z} gal</option>`).join('')}</select></label>
+      <label>How full <select name="fill">${PAINT_FILLS.map(([f, l]) => `<option value="${f}">${l}</option>`).join('')}</select></label>
+      <label style="width:90px">How many <input name="n" type="number" min="1" value="1"></label>
+      <button class="btn in" data-dir="in">Add cans</button><button class="btn" data-dir="out">Remove</button>
+      <span class="muted" style="font-size:13px;flex-basis:100%">For counting and corrections. People taking or returning paint scan it on Check In / Out.</span></form>` : ''}` : `
     <div class="stats">
       <div class="stat"><b>${it.quantity}</b><span>on hand${packOf(it) > 1 ? ` (${it.pack_size} per box)` : ''}</span></div>
       ${packOf(it) > 1 ? `<div class="stat"><b>${boxesText(it.quantity, packOf(it))}</b><span>in boxes</span></div>` : ''}
@@ -1539,18 +1729,28 @@ async function renderItem(id) {
       ${HAS_SUBCAT.includes(it.category) ? `<div class="stat"><b>${esc(it.subcategory || '—')}</b><span>category</span></div>` : ''}
       ${HAS_COST.includes(it.category) ? `<div class="stat"><b>${it.unit_cost != null ? money(it.unit_cost) : '—'}</b><span>cost${(it.pack_size || 1) > 1 ? ' per pack' : ''}</span></div>
       <div class="stat"><b>${it.unit_cost != null ? money(stockValue(it)) : '—'}</b><span>value on hand</span></div>` : ''}
-    </div>
+    </div>`}
     <div class="row" style="margin-bottom:16px">${canAct() ? `<a class="btn" href="#/labels/${stockKind(it.category)}/${it.id}">Print label</a>` : ''}
       <span class="muted" style="align-self:center;font-size:14px">${it.label_printed_at ? `Label printed ${fmtDate(it.label_printed_at)}` : 'Label not printed yet'}</span></div>
     ${isAdmin() ? `<details class="card"><summary><b>Edit item</b></summary><form id="edit" style="margin-top:14px">${itemForm(it, locations)}
       <div class="row" style="margin-top:14px"><button class="btn primary">Save</button>
       <button type="button" class="btn ${it.active ? 'bad' : ''}" id="archive">${it.active ? 'Archive item' : 'Restore item'}</button></div></form></details>` : ''}
     <h2>History</h2>
-    <div class="table-wrap"><table><tr><th>When</th><th>Type</th><th class="num">Change</th><th class="num">After</th><th>Who</th><th>Note</th></tr>
+    <div class="table-wrap"><table><tr><th>When</th><th>Type</th><th class="num">${isPaint ? 'Cans' : 'Change'}</th><th class="num">${isPaint ? 'Cans after' : 'After'}</th><th>Who</th><th>Note</th></tr>
       ${tx.map((t) => `<tr><td>${fmtDate(t.created_at)}</td><td><span class="pill ${t.type}">${t.type}</span></td><td class="num">${t.qty > 0 ? '+' : ''}${t.qty}</td><td class="num">${t.qty_after}</td><td>${esc(who[t.member_id])}</td><td>${esc(t.note)}</td></tr>`).join('')
       || '<tr><td colspan="6" class="muted">No activity yet.</td></tr>'}</table></div>`;
 
   bindPhotoBlock('item', it);
+  app.querySelectorAll('#paint-adjust [data-dir]').forEach((b) => b.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const f = new FormData(app.querySelector('#paint-adjust'));
+    try {
+      await rpc('paint_move', { p_code: it.code, p_dir: b.dataset.dir, p_size: Number(f.get('size')), p_fill: Number(f.get('fill')),
+        p_qty: Math.max(1, parseInt(f.get('n'), 10) || 1), p_note: b.dataset.dir === 'in' ? 'Added' : 'Removed (count correction)' });
+      toast(b.dataset.dir === 'in' ? 'Cans added' : 'Cans removed');
+      route();
+    } catch (err) { toast(errMsg(err), true); }
+  }));
   const edit = app.querySelector('#edit');
   if (edit) {
     bindLocationSelects(edit);
@@ -1908,7 +2108,7 @@ async function renderPeople() {
       };
       if (!patch.name) return toast('Name is required', true);
       if (!patch.code) return toast('Label code is required', true);
-      if (/^(FAC|MNT|EVS|TL|CMD)-/.test(patch.code)) return toast('That label code looks like an item, tool or command code. Use something like P-012.', true);
+      if (/^(FAC|MNT|PNT|EVS|TL|CMD)-/.test(patch.code)) return toast('That label code looks like an item, tool or command code. Use something like P-012.', true);
       if (m.id !== state.me.id) {
         patch.role = f.get('role');
         patch.active = f.get('active') === 'true';
@@ -2211,6 +2411,7 @@ async function renderLabels(kind, id) {
   const sources = {
     facilities: items.filter((i) => i.active && i.category === 'facilities').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
     maintenance: items.filter((i) => i.active && i.category === 'maintenance').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
+    paint: items.filter((i) => i.active && i.category === 'paint').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
     events: items.filter((i) => i.active && i.category === 'events').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
     people: people(members).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '', printed: m.label_printed_at })),
     tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.location || '', printed: t.label_printed_at })),
@@ -2223,7 +2424,7 @@ async function renderLabels(kind, id) {
   };
   const tab = sources[kind] ? kind : 'facilities';
   // Which table remembers when these labels were printed (commands aren't tracked).
-  const trackKind = { facilities: 'item', maintenance: 'item', events: 'item', tool: 'tool', people: 'person' }[tab];
+  const trackKind = { facilities: 'item', maintenance: 'item', paint: 'item', events: 'item', tool: 'tool', people: 'person' }[tab];
   const unprinted = trackKind ? sources[tab].filter((r) => !r.printed).length : 0;
   const preselect = new Set(id ? [id] : []);
   const sizeKey = getPref('labelSize2', 'brother-62c');
@@ -2235,6 +2436,7 @@ async function renderLabels(kind, id) {
         <label>What <select id="kind">
           <option value="facilities" ${tab === 'facilities' ? 'selected' : ''}>Facilities stock</option>
           <option value="maintenance" ${tab === 'maintenance' ? 'selected' : ''}>Maintenance stock</option>
+          <option value="paint" ${tab === 'paint' ? 'selected' : ''}>Paint</option>
           <option value="events" ${tab === 'events' ? 'selected' : ''}>Event stock</option>
           <option value="tool" ${tab === 'tool' ? 'selected' : ''}>Tools</option>
           <option value="people" ${tab === 'people' ? 'selected' : ''}>People (name labels)</option>
@@ -2316,7 +2518,7 @@ async function renderLabels(kind, id) {
     if (!rows.length) return toast('Select at least one label');
     if (!window.jspdf || !window.JsBarcode) return toast('Still loading — try again in a second', true);
     const copies = Math.min(20, Math.max(1, parseInt(app.querySelector('#copies').value, 10) || 1));
-    const title = { facilities: 'Facilities stock', maintenance: 'Maintenance stock', events: 'Event stock', tool: 'Tools', people: 'Team', commands: 'Command barcodes' }[tab];
+    const title = { facilities: 'Facilities stock', maintenance: 'Maintenance stock', paint: 'Paint', events: 'Event stock', tool: 'Tools', people: 'Team', commands: 'Command barcodes' }[tab];
     openPdf(buildSheetPdf(rows.flatMap((r) => Array(copies).fill(r)), title, app.querySelector('#per-page').value));
   });
 

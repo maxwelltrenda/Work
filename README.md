@@ -2,12 +2,13 @@
 
 **Live app:** https://shop-inventory-one-omega.vercel.app
 
-A private web app for your team that tracks four things:
+A private web app for your team that tracks five things:
 
 1. **Facilities stock**: supplies for the building. Scan them in and out, see what's on hand, and get flagged when something drops to its reorder level.
 2. **Maintenance stock**: supplies for maintenance work (degreaser, caulk, filters…). Same scanning and reorder flags, with its own `MNT-` labels.
-3. **Event stock**: supplies that go out to events. Same scanning, and each event shows what was taken, brought back and used.
-4. **Tools**: scan a name label and a tool to sign it out, and scan the tool again to return it. You always know who has what.
+3. **Paint**: one entry per color (`PNT-` labels). Each can is tracked by size (1 or 5 gallons) and how full it is (full, ¾, ½, ¼), and they all add up to the color's total gallons.
+4. **Event stock**: supplies that go out to events. Same scanning, and each event shows what was taken, brought back and used.
+5. **Tools**: scan a name label and a tool to sign it out, and scan the tool again to return it. You always know who has what.
 
 Facilities and maintenance stock can have a **cost** (per box/pack, or per item if it isn't sold in packs). Each list then shows the cost, the value of what's on hand, and a total value. Maintenance stock also has a **category** (Plumbing, Electrical, Paint & Caulk…) you can filter by. Type a new category to add one.
 
@@ -28,6 +29,7 @@ It works with any USB or Bluetooth barcode scanner (they act like a keyboard) an
 |---|---|---|
 | `FAC-` | Facilities stock item | `FAC-0001` |
 | `MNT-` | Maintenance stock item | `MNT-0001` |
+| `PNT-` | Paint color | `PNT-0001` |
 | `EVS-` | Event stock item | `EVS-0001` |
 | `TL-` | Tool | `TL-0001` |
 | `P-` | Person name label (optional; people can also just tap their name) | `P-001` |
@@ -60,8 +62,8 @@ Codes are assigned automatically when you add something. Print them from the **L
 |---|---|---|
 | **Admin** | Everything | Yes: edits, scans, labels, people, locations |
 | **Kiosk** | Check In / Out, Who Has What, Events | Scans and check-ins/outs for whoever taps their name |
-| **Facilities & Maintenance** (member) | Facilities and maintenance stock, tools, and their history | Scans their own area: tools, facilities and maintenance stock |
-| **Maintenance manager** | Maintenance stock, tools, Who Has What, and their history | Scans their own area: checks tools out and in, takes and puts back maintenance stock |
+| **Facilities & Maintenance** (member) | Facilities and maintenance stock, paint, tools, and their history | Scans their own area: tools, facilities and maintenance stock, paint |
+| **Maintenance manager** | Maintenance stock, paint, tools, Who Has What, and their history | Scans their own area: checks tools out and in, takes and puts back maintenance stock and paint |
 | **Custodian manager** | Facilities stock and its history | Scans their own area: takes and puts back facilities stock |
 | **Oversight** | Everything we have, where it is, all check-ins/outs | View only |
 
@@ -82,6 +84,7 @@ At the iPad:
 - **Taking a tool:** tap your name (or scan your name label), then scan the tool. A pop-up asks **Where is it going?**: tap a place or an offsite event (admins can **+ Add place**). The last place you used is highlighted, so pressing Enter or scanning the tool again uses it.
 - **Returning a tool:** just scan it, no name needed. A pop-up asks if anything is wrong. **No, it's fine** is the default (Enter or scan it again). **Damaged** or **Needs repair** blocks it from going out until an admin clears it.
 - **Stock:** scan the item. A pop-up asks **How many?** (type a number, use − / +, or scan the same item again to add one) and **Where is it going?**, then tap **Take** or **Put back**. The printed `CMD-OUT` / `CMD-IN` labels do the same as Take / Put back, and `CMD-DONE` cancels.
+- **Paint:** scan the color's label. The pop-up shows its gallons and cans. **Take**: pick which can (from what's on hand), how many, and where it's going. **Put back**: pick the can size and how full it is (Full, ¾, ½, ¼). A used can counts toward the total by how full it is (a 5-gal at ½ = 2.5 gal). Admins enter starting cans and corrections on the color's page.
 - Tap **Done** or scan `CMD-DONE` when finished. It also clears itself after 90 idle seconds.
 
 The kiosk login can check things in and out and plan events. It can't edit items, tools, people or counts. Admins do that from their own login on any other device.
