@@ -547,6 +547,14 @@ async function renderKiosk() {
   const scan = app.querySelector('#scan');
   const status = app.querySelector('#status');
   const show = (cls, html) => (status.innerHTML = `<div class="big-status ${cls}">${html}</div>`);
+  // Put the tool's photo beside the scan result so people can see they grabbed the right one.
+  const showToolPhoto = async (tool) => {
+    const box = status.querySelector('.big-status');
+    const url = tool.photo_path && await photoUrl(tool.photo_path);
+    if (!url || !box?.isConnected) return;
+    box.classList.add('with-photo');
+    box.innerHTML = `<img class="status-photo" src="${esc(url)}" alt=""><div>${box.innerHTML}</div>`;
+  };
   const stamp = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const log = (type, text) => {
     k.log.unshift({ type, text, time: stamp() });
@@ -784,14 +792,18 @@ async function renderKiosk() {
 
     if (hit.kind === 'tool') {
       const tool = hit.record;
-      if (hit.checkout) return doReturn(tool, hit.checkout);
-      if (!tool.active || tool.status !== 'available') { beep(false); return show('err', `${esc(tool.name)} is marked <b>${esc(tool.status)}</b> and can't go out.`); }
-      if (!k.person) {
-        k.pendingTool = tool;
-        beep(false);
-        return show('info', `Who's taking <b>${esc(tool.name)}</b>? Tap your name above.`);
-      }
-      return doCheckout(tool);
+      const result = await (async () => {
+        if (hit.checkout) return doReturn(tool, hit.checkout);
+        if (!tool.active || tool.status !== 'available') { beep(false); return show('err', `${esc(tool.name)} is marked <b>${esc(tool.status)}</b> and can't go out.`); }
+        if (!k.person) {
+          k.pendingTool = tool;
+          beep(false);
+          return show('info', `Who's taking <b>${esc(tool.name)}</b>? Tap your name above.`);
+        }
+        return doCheckout(tool);
+      })();
+      showToolPhoto(tool);
+      return result;
     }
 
     if (hit.kind === 'item') {
@@ -1211,6 +1223,60 @@ async function renderItem(id) {
 // Tool list & tool detail
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Tool photos (private Storage bucket, viewed through short-lived signed URLs)
+// ---------------------------------------------------------------------------
+
+const PHOTO_BUCKET = 'tool-photos';
+const photoUrls = new Map(); // path -> { url, until }
+
+async function photoUrlsFor(paths) {
+  const now = Date.now();
+  const need = [...new Set(paths.filter((p) => p && !(photoUrls.get(p)?.until > now)))];
+  if (need.length) {
+    const { data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrls(need, 3600);
+    if (!error) data.forEach((d) => d.signedUrl && photoUrls.set(d.path, { url: d.signedUrl, until: now + 50 * 60e3 }));
+  }
+  return Object.fromEntries(paths.filter(Boolean).map((p) => [p, photoUrls.get(p)?.url]));
+}
+const photoUrl = async (path) => (path ? (await photoUrlsFor([path]))[path] : null);
+
+// Phone and iPad photos are several MB; shrink to a sharp ~1280px JPEG first.
+async function shrinkImage(file, max = 1280) {
+  const src = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = src;
+    await img.decode().catch(() => { throw new Error("That file isn't a photo this browser can read. Try a JPEG or PNG."); });
+    const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * scale);
+    c.height = Math.round(img.naturalHeight * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('Could not process the photo'))), 'image/jpeg', 0.85));
+  } finally {
+    URL.revokeObjectURL(src);
+  }
+}
+
+async function setToolPhoto(tool, file) {
+  const old = tool.photo_path;
+  const path = `${tool.id}/${Date.now()}.jpg`;
+  const blob = await shrinkImage(file);
+  const { error } = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: 'image/jpeg' });
+  if (error) throw new Error(error.message);
+  await q(sb.from('tools').update({ photo_path: path }).eq('id', tool.id).select());
+  if (old) await sb.storage.from(PHOTO_BUCKET).remove([old]);
+}
+
+async function clearToolPhoto(tool) {
+  const old = tool.photo_path;
+  await q(sb.from('tools').update({ photo_path: null }).eq('id', tool.id).select());
+  if (old) await sb.storage.from(PHOTO_BUCKET).remove([old]);
+}
+
+const PHOTO_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
+
 function toolForm(t = {}, locations = []) {
   return `
     <div class="row">
@@ -1240,17 +1306,21 @@ async function renderToolList() {
       <div class="stat"><b>${show.length}</b><span>tools</span></div>
       <div class="stat"><b>${total ? `$${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}</b><span>total value</span></div>
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>Add a tool</b></summary><form id="add" style="margin-top:14px">${toolForm({}, locations)}<div style="margin-top:12px"><button class="btn primary">Add tool</button></div></form></details>` : ''}
+    ${isAdmin() ? `<details class="card"><summary><b>Add a tool</b></summary><form id="add" style="margin-top:14px">${toolForm({}, locations)}
+      <label style="margin-top:12px">Photo (optional) <input name="photo" type="file" accept="image/*"></label>
+      <div style="margin-top:12px"><button class="btn primary">Add tool</button></div></form></details>` : ''}
     <div class="row" style="margin-bottom:10px"><input id="filter" placeholder="Search…" style="flex:1;min-width:200px"><button class="btn" id="csv">Export CSV</button></div>
     <div class="table-wrap"><table id="tbl"></table></div>`;
 
+  let photos = {};
   const paint = () => {
     const f = app.querySelector('#filter').value.toLowerCase();
     const rows = show.filter((t) => !f || `${t.name} ${t.code} ${t.serial_number} ${t.location}`.toLowerCase().includes(f));
     app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Tool</th><th>Serial</th><th>Status</th><th>With</th></tr>
-      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a href="#/tool/${t.id}">${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td class="code">${esc(t.serial_number)}</td><td><span class="pill ${t.status}">${t.status}</span></td><td>${openBy[t.id] ? `${esc(who[openBy[t.id].borrower_id])} <span class="muted">(${since(openBy[t.id].checked_out_at)})</span>` : ''}</td></tr>`).join('')
+      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${photos[t.photo_path] ? `<img class="thumb" src="${esc(photos[t.photo_path])}" alt="">` : '<span class="thumb empty"></span>'}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td class="code">${esc(t.serial_number)}</td><td><span class="pill ${t.status}">${t.status}</span></td><td>${openBy[t.id] ? `${esc(who[openBy[t.id].borrower_id])} <span class="muted">(${since(openBy[t.id].checked_out_at)})</span>` : ''}</td></tr>`).join('')
       || '<tr><td colspan="5" class="muted">No tools yet.</td></tr>'}`;
   };
+  photoUrlsFor(show.map((t) => t.photo_path)).then((p) => { photos = p; if (app.querySelector('#tbl')) paint(); });
   app.querySelector('#filter').addEventListener('input', paint);
   app.querySelector('#csv').addEventListener('click', () => downloadCsv('tools.csv', show.map((t) => ({
     code: t.code, name: t.name, serial: t.serial_number, status: t.status, with: openBy[t.id] ? who[openBy[t.id].borrower_id] : '', location: t.location, value: t.value,
@@ -1259,7 +1329,12 @@ async function renderToolList() {
   app.querySelector('#add')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
-      const [row] = await q(sb.from('tools').insert(toolFields(new FormData(e.target))).select());
+      const f = new FormData(e.target);
+      const [row] = await q(sb.from('tools').insert(toolFields(f)).select());
+      const photo = f.get('photo');
+      if (photo?.size) {
+        try { await setToolPhoto(row, photo); } catch (err) { toast(`Added ${row.name}, but the photo didn't upload: ${errMsg(err)}`, true); return route(); }
+      }
       toast(`Added ${row.name} as ${row.code}`);
       route();
     } catch (err) { toast(errMsg(err), true); }
@@ -1276,10 +1351,18 @@ async function renderTool(id) {
   ]);
   if (!t) throw new Error('Tool not found');
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
+  const photo = await photoUrl(t.photo_path);
 
   app.innerHTML = `
     <p><a href="#/toollist">← Tools</a></p>
     <h1>${esc(t.name)} <span class="code muted">${esc(t.code)}</span></h1>
+    <div class="tool-photo-block">
+      ${photo ? `<a href="${esc(photo)}" target="_blank" rel="noopener"><img class="tool-photo" src="${esc(photo)}" alt="Photo of ${esc(t.name)}"></a>`
+        : `<div class="tool-photo empty">${PHOTO_ICON}<span>No photo yet</span></div>`}
+      ${isAdmin() ? `<div class="row">
+        <label class="btn small file-btn">${PHOTO_ICON}<span>${photo ? 'Change photo' : 'Add photo'}</span><input type="file" id="photo" accept="image/*" hidden></label>
+        ${t.photo_path ? '<button class="btn small" id="photo-remove">Remove photo</button>' : ''}</div>` : ''}
+    </div>
     <div class="stats">
       <div class="stat"><b><span class="pill ${t.status}">${t.status}</span></b><span>status</span></div>
       <div class="stat"><b>${esc(t.serial_number || '—')}</b><span>serial #</span></div>
@@ -1298,6 +1381,18 @@ async function renderTool(id) {
       ${hist.map((c) => `<tr><td>${esc(who[c.borrower_id])}</td><td>${fmtDate(c.checked_out_at)}</td><td>${c.returned_at ? fmtDate(c.returned_at) : '<span class="pill out">still out</span>'}</td><td>${c.return_condition ? `<span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}</td><td>${esc([c.out_note, c.return_note].filter(Boolean).join(' / '))}</td></tr>`).join('')
       || '<tr><td colspan="5" class="muted">Never signed out.</td></tr>'}</table></div>`;
 
+  app.querySelector('#photo')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const label = e.target.closest('label');
+    label.classList.add('busy');
+    label.querySelector('span').textContent = 'Uploading…';
+    try { await setToolPhoto(t, file); toast('Photo saved'); route(); } catch (err) { toast(errMsg(err), true); route(); }
+  });
+  app.querySelector('#photo-remove')?.addEventListener('click', async () => {
+    if (!confirm(`Remove the photo of ${t.name}?`)) return;
+    try { await clearToolPhoto(t); toast('Photo removed'); route(); } catch (err) { toast(errMsg(err), true); }
+  });
   app.querySelector('#set-status')?.addEventListener('click', async () => {
     try { await rpc('set_tool_status', { p_tool: t.id, p_status: app.querySelector('#status').value }); toast('Status updated'); route(); } catch (err) { toast(errMsg(err), true); }
   });
