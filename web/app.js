@@ -1327,7 +1327,6 @@ function toolForm(t = {}, locations = []) {
   return `
     <div class="row">
       <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(t.name)}" placeholder="Hilti TE 30 hammer drill"></label>
-      <label style="flex:1;min-width:140px">Serial # <input name="serial_number" value="${esc(t.serial_number)}"></label>
       ${locationSelect(locations, t.location, 'Home location')}
       <label style="width:120px">Value ($) <input name="value" type="number" min="0" step="0.01" value="${t.value ?? ''}"></label>
     </div>
@@ -1335,7 +1334,7 @@ function toolForm(t = {}, locations = []) {
 }
 
 const toolFields = (f) => ({
-  name: f.get('name').trim(), serial_number: f.get('serial_number').trim() || null, location: f.get('location') || null,
+  name: f.get('name').trim(), location: f.get('location') || null,
   value: f.get('value') ? Number(f.get('value')) : null, description: f.get('description').trim() || null,
 });
 
@@ -1361,15 +1360,15 @@ async function renderToolList() {
   let photos = {};
   const paint = () => {
     const f = app.querySelector('#filter').value.toLowerCase();
-    const rows = show.filter((t) => !f || `${t.name} ${t.code} ${t.serial_number} ${t.location}`.toLowerCase().includes(f));
-    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Tool</th><th>Serial</th><th>Status</th><th>With</th></tr>
-      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${photos[t.photo_path] ? `<img class="thumb" src="${esc(photos[t.photo_path])}" alt="">` : '<span class="thumb empty"></span>'}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td class="code">${esc(t.serial_number)}</td><td><span class="pill ${t.status}">${t.status}</span></td><td>${openBy[t.id] ? `${esc(who[openBy[t.id].borrower_id])} <span class="muted">(${since(openBy[t.id].checked_out_at)})</span>` : ''}</td></tr>`).join('')
-      || '<tr><td colspan="5" class="muted">No tools yet.</td></tr>'}`;
+    const rows = show.filter((t) => !f || `${t.name} ${t.code} ${t.location}`.toLowerCase().includes(f));
+    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Tool</th><th>Status</th><th>With</th></tr>
+      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${photos[t.photo_path] ? `<img class="thumb" src="${esc(photos[t.photo_path])}" alt="">` : '<span class="thumb empty"></span>'}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td><span class="pill ${t.status}">${t.status}</span></td><td>${openBy[t.id] ? `${esc(who[openBy[t.id].borrower_id])} <span class="muted">(${since(openBy[t.id].checked_out_at)})</span>` : ''}</td></tr>`).join('')
+      || '<tr><td colspan="4" class="muted">No tools yet.</td></tr>'}`;
   };
   photoUrlsFor(show.map((t) => t.photo_path)).then((p) => { photos = p; if (app.querySelector('#tbl')) paint(); });
   app.querySelector('#filter').addEventListener('input', paint);
   app.querySelector('#csv').addEventListener('click', () => downloadCsv('tools.csv', show.map((t) => ({
-    code: t.code, name: t.name, serial: t.serial_number, status: t.status, with: openBy[t.id] ? who[openBy[t.id].borrower_id] : '', location: t.location, value: t.value,
+    code: t.code, name: t.name, status: t.status, with: openBy[t.id] ? who[openBy[t.id].borrower_id] : '', location: t.location, value: t.value,
   }))));
   if (app.querySelector('#add')) bindLocationSelects(app.querySelector('#add'));
   app.querySelector('#add')?.addEventListener('submit', async (e) => {
@@ -1411,7 +1410,6 @@ async function renderTool(id) {
     </div>
     <div class="stats">
       <div class="stat"><b><span class="pill ${t.status}">${t.status}</span></b><span>status</span></div>
-      <div class="stat"><b>${esc(t.serial_number || '—')}</b><span>serial #</span></div>
       <div class="stat"><b>${t.value ? `$${Number(t.value).toLocaleString()}` : '—'}</b><span>value</span></div>
       <div class="stat"><b>${hist.length}</b><span>times signed out</span></div>
     </div>
@@ -1819,7 +1817,7 @@ async function renderLabels(kind, id) {
     maintenance: items.filter((i) => i.active && i.category === 'maintenance').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
     events: items.filter((i) => i.active && i.category === 'events').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
     people: people(members).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '', printed: m.label_printed_at })),
-    tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.serial_number ? `S/N ${t.serial_number}` : '', printed: t.label_printed_at })),
+    tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.location || '', printed: t.label_printed_at })),
     commands: [
       { id: 'in', code: CMD.IN, name: 'SCAN IN mode', sub: 'Scan Stock page' },
       { id: 'out', code: CMD.OUT, name: 'SCAN OUT mode', sub: 'Scan Stock page' },
