@@ -71,9 +71,10 @@ Mount an iPad in the warehouse and leave it signed in to a **kiosk** login, so n
 4. Optional: turn on **Guided Access** (Settings → Accessibility) to lock the iPad to this app.
 
 At the iPad:
-- **Taking anything:** tap your name (or scan your name label). Under **Where is it going?** pick **Shop use** or a location (admins can **+ Add** one), or pick an **Offsite event** from the dropdown. Then scan tools and items. Tap **Done** or scan `CMD-DONE` when finished. It also clears itself after 90 idle seconds.
-- **Returning a tool:** just scan it, no name needed. If it's damaged, tap **Damaged** or **Needs repair** and it's blocked from going out until an admin clears it.
-- **Stock:** scan the item first. A card asks **How many?** (type a number, use − / +, or scan the same item again to add one), then tap **Take** or **Put back**. The printed `CMD-OUT` / `CMD-IN` labels do the same as Take / Put back, and `CMD-DONE` cancels.
+- **Taking a tool:** tap your name (or scan your name label), then scan the tool. A pop-up asks **Where is it going?**: tap a place or an offsite event (admins can **+ Add place**). The last place you used is highlighted, so pressing Enter or scanning the tool again uses it.
+- **Returning a tool:** just scan it, no name needed. A pop-up asks if anything is wrong. **No, it's fine** is the default (Enter or scan it again). **Damaged** or **Needs repair** blocks it from going out until an admin clears it.
+- **Stock:** scan the item. A pop-up asks **How many?** (type a number, use − / +, or scan the same item again to add one) and **Where is it going?**, then tap **Take** or **Put back**. The printed `CMD-OUT` / `CMD-IN` labels do the same as Take / Put back, and `CMD-DONE` cancels.
+- Tap **Done** or scan `CMD-DONE` when finished. It also clears itself after 90 idle seconds.
 
 The kiosk login can check things in and out and plan events. It can't edit items, tools, people or counts. Admins do that from their own login on any other device.
 

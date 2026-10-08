@@ -566,7 +566,7 @@ async function renderKiosk() {
   const k = state.kiosk;
   if (k.event && !events.some((e) => e.id === k.event.id)) k.event = null;
   if (k.dest && !locations.some((l) => l.name === k.dest)) k.dest = null;
-  // Where things are going: a location, an offsite event, or (neither) shop use.
+  // Where things are going: a location or an offsite event. Tools can't go out without one.
   const whereText = () => (k.event ? k.event.name : k.dest || '');
   // On someone's own login it's them doing the scanning; only the shared
   // kiosk login has to ask who's there.
@@ -583,7 +583,6 @@ async function renderKiosk() {
           <span>Scan with camera</span></button>`}
       </div>
       <div id="status"></div>
-      <div id="k-panel"></div>
       <h2>This session</h2>
       <div class="card"><ul class="log" id="log"></ul></div>
     </div>`;
@@ -623,7 +622,7 @@ async function renderKiosk() {
     k.qty = 1;
     k.pendingTool = null;
     k.pendingItem = null;
-    app.querySelector('#k-panel').innerHTML = '';
+    closeSheet();
     clearTimeout(k.idle);
     paintWho();
     scan.focus();
@@ -657,45 +656,9 @@ async function renderKiosk() {
           <div><div class="eyebrow">${isKiosk() ? 'Signed in at the kiosk' : 'Checking in / out as'}</div><h1 class="kiosk-title" style="margin:0">Hi, <span class="accent">${esc(k.person.name)}</span></h1></div>
           <button class="btn bad" id="k-done" style="font-size:18px;padding:10px 22px">Done</button>
         </div>
-        <h2 style="margin-top:22px">Where is it going?</h2>
-        <div class="modes" id="k-dest">
-          <button class="btn ${!k.dest && !k.event ? 'on primary' : ''}" data-dest="">Shop use</button>
-          ${locations.map((l) => `<button class="btn ${k.dest === l.name ? 'on primary' : ''}" data-dest="${esc(l.name)}">${esc(l.name)}</button>`).join('')}
-          ${isAdmin() ? '<button class="btn" id="k-add-dest" title="Add a location">+ Add</button>' : ''}
-        </div>
-        ${events.length ? `<div class="row" style="margin-top:12px;align-items:center">
-          <label style="flex-direction:row;align-items:center;gap:10px;font-size:15px">Offsite event
-            <select id="k-event" style="min-width:240px">
-              <option value="">— None —</option>
-              ${events.map((e) => `<option value="${e.id}" ${k.event?.id === e.id ? 'selected' : ''}>${esc(e.name)}${e.starts_on ? ` · ${new Date(`${e.starts_on}T12:00`).toLocaleDateString([], { month: 'short', day: 'numeric' })}` : ''}</option>`).join('')}
-            </select></label>
-        </div>` : ''}
         <p class="scan-hint">${[myRole().scanTools && 'Tools: scan to sign out, scan again later to return.', myRole().scanStock.length && 'Stock: scan it, then choose how many and Take or Put back.'].filter(Boolean).join(' ')}</p>
       </div>`;
     el.querySelector('#k-done').addEventListener('click', () => { endSession(); show('ok', 'All set — thanks!'); });
-    // A location and an event are alternatives: picking one clears the other.
-    el.querySelectorAll('[data-dest]').forEach((b) => b.addEventListener('click', () => {
-      k.dest = b.dataset.dest || null;
-      k.event = null;
-      paintWho(); resetIdle(); scan.focus();
-    }));
-    el.querySelector('#k-event')?.addEventListener('change', (e) => {
-      k.event = events.find((ev) => ev.id === e.target.value) || null;
-      if (k.event) k.dest = null;
-      paintWho(); resetIdle(); scan.focus();
-    });
-    el.querySelector('#k-add-dest')?.addEventListener('click', async () => {
-      const name = (await askText('New location', { placeholder: 'e.g. Main Building, Youth Room', ok: 'Add' })) || '';
-      if (!name) return scan.focus();
-      try {
-        await rpc('add_location', { p_name: name });
-      } catch (err) { toast(errMsg(err), true); return scan.focus(); }
-      if (!locations.some((l) => l.name === name)) locations.push({ name });
-      locations.sort((a, b) => a.name.localeCompare(b.name));
-      k.dest = name;
-      k.event = null;
-      paintWho(); resetIdle(); scan.focus();
-    });
     el.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
       k.mode = b.dataset.mode;
       paintWho(); resetIdle(); scan.focus();
@@ -709,9 +672,77 @@ async function renderKiosk() {
     }));
   }
 
-  async function doCheckout(tool) {
-    try {
-      await rpc('checkout_tool', { p_code: tool.code, p_borrower: k.person.id, p_event: k.event?.id || null, p_destination: k.event ? null : k.dest });
+  // ---- Pop-up sheets (where is it going? / how many?) ----
+  // Places are "loc:<name>" or "ev:<event id>"; the last one used is remembered
+  // for the session and highlighted next time.
+  const placeKey = () => (k.event ? `ev:${k.event.id}` : k.dest ? `loc:${k.dest}` : '');
+  const setPlace = (key) => {
+    k.event = key?.startsWith('ev:') ? events.find((e) => e.id === key.slice(3)) || null : null;
+    k.dest = key?.startsWith('loc:') ? key.slice(4) : null;
+  };
+  const placeName = (key) => (key?.startsWith('ev:') ? events.find((e) => e.id === key.slice(3))?.name : key?.slice(4)) || '';
+  const placeChips = (sel, attention) => `
+    <div class="place-grid ${attention ? 'needs-pick' : ''}">
+      ${locations.map((l) => `<button type="button" class="btn place ${sel === `loc:${l.name}` ? 'on primary' : ''}" data-place="loc:${esc(l.name)}">${esc(l.name)}</button>`).join('')}
+      ${isAdmin() ? '<button type="button" class="btn place add" data-add-place>+ Add place</button>' : ''}
+    </div>
+    ${events.length ? `<div class="place-sub">Offsite events</div><div class="place-grid">
+      ${events.map((e) => `<button type="button" class="btn place event ${sel === `ev:${e.id}` ? 'on primary' : ''}" data-place="ev:${e.id}">${esc(e.name)}${e.starts_on ? ` <span class="when">${new Date(`${e.starts_on}T12:00`).toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>` : ''}</button>`).join('')}
+    </div>` : ''}`;
+  const bindPlaceChips = (root, onPick) => {
+    root.querySelectorAll('[data-place]').forEach((b) => b.addEventListener('click', () => onPick(b.dataset.place)));
+    root.querySelector('[data-add-place]')?.addEventListener('click', async () => {
+      const name = await askText('New place', { placeholder: 'e.g. Maintenance, Youth Room', ok: 'Add' });
+      if (!name) return;
+      try { await rpc('add_location', { p_name: name }); } catch (err) { return toast(errMsg(err), true); }
+      if (!locations.some((l) => l.name === name)) locations.push({ name });
+      locations.sort((a, b) => a.name.localeCompare(b.name));
+      onPick(`loc:${name}`);
+    });
+  };
+
+  let sheetEl = null;
+  function openSheet() {
+    if (!sheetEl) {
+      sheetEl = document.createElement('div');
+      sheetEl.className = 'modal-back kiosk-sheet';
+      sheetEl.innerHTML = '<div class="modal sheet" role="dialog" aria-modal="true"></div>';
+      document.body.appendChild(sheetEl);
+    }
+    return sheetEl.firstElementChild;
+  }
+  function closeSheet() {
+    sheetEl?.remove();
+    sheetEl = null;
+    k.picker = null;
+    if (document.body.contains(scan)) scan.focus();
+  }
+
+  // Tools: always ask where it's going, with the last place highlighted.
+  function doCheckout(tool) {
+    const sheet = openSheet();
+    const sel = placeKey();
+    sheet.innerHTML = `
+      <div class="sheet-head">
+        <div class="sheet-photo" id="pk-photo"></div>
+        <div><div class="eyebrow">Signing out to ${esc(k.person.name)}</div>
+          <h3>Where is <span class="accent">${esc(tool.name)}</span> going?</h3></div>
+      </div>
+      ${placeChips(sel)}
+      <p class="scan-hint">${sel ? `Press Enter or scan it again for <b>${esc(placeName(sel))}</b>.` : 'Tap where it\'s going.'}</p>
+      <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button></div>`;
+    const choose = (key) => { closeSheet(); setPlace(key); checkoutNow(tool); };
+    const cancel = () => { closeSheet(); show('info', `Nothing signed out — <b>${esc(tool.name)}</b> is still here.`); };
+    k.picker = { code: tool.code.toUpperCase(), selected: sel, choose, cancel };
+    bindPlaceChips(sheet, choose);
+    sheet.querySelector('[data-cancel]').addEventListener('click', cancel);
+    (sheet.querySelector('.place.on') || sheet.querySelector('.place'))?.focus();
+    photoUrl(tool.photo_path).then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
+    resetIdle();
+  }
+
+  async function checkoutNow(tool) {
+    try {      await rpc('checkout_tool', { p_code: tool.code, p_borrower: k.person.id, p_event: k.event?.id || null, p_destination: k.event ? null : k.dest });
       beep(true);
       const where = whereText() ? ` for ${whereText()}` : '';
       show('ok', `<b>${esc(tool.name)}</b> signed out to <b>${esc(k.person.name)}</b>${esc(where)}.`);
@@ -722,96 +753,146 @@ async function renderKiosk() {
   async function doReturn(tool, checkout) {
     try {
       await rpc('return_tool', { p_code: tool.code, p_condition: 'good' });
-      beep(true);
-      status.innerHTML = `
-        <div class="big-status ok"><b>${esc(tool.name)}</b> returned (was out to ${esc(checkout.borrower_name)} for ${since(checkout.checked_out_at)}).
-          <div class="row" style="margin-top:10px"><span style="font-size:15px;font-weight:400">Something wrong with it?</span>
-            <button class="btn out small" data-c="damaged">Damaged</button>
-            <button class="btn bad small" data-c="needs_repair">Needs repair</button></div></div>`;
-      status.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', async () => {
-        const note = (await askText("What's wrong with it?", { placeholder: 'Optional', required: false, ok: 'Save' })) || '';
-        try {
-          await rpc('report_tool_problem', { p_tool: tool.id, p_condition: b.dataset.c, p_note: note });
-          show('info', `<b>${esc(tool.name)}</b> flagged ${b.dataset.c.replace('_', ' ')} — it won't go out again until it's fixed.`);
-          log('repair', `${tool.name} flagged ${b.dataset.c.replace('_', ' ')}`);
-        } catch (e) { show('err', esc(errMsg(e))); }
-        scan.focus();
-      }));
-      log('in', `${tool.name} returned`);
-    } catch (e) { beep(false); show('err', esc(errMsg(e))); }
+    } catch (e) { beep(false); return show('err', esc(errMsg(e))); }
+    beep(true);
+    log('in', `${tool.name} returned`);
+    show('ok', `<b>${esc(tool.name)}</b> returned (was out to ${esc(checkout.borrower_name)} for ${since(checkout.checked_out_at)}).`);
+    // Ask about its condition in a pop-up; "No" is the default (Enter or scan it again).
+    const sheet = openSheet();
+    sheet.innerHTML = `
+      <div class="sheet-head">
+        <div class="sheet-photo" id="pk-photo"></div>
+        <div><div class="eyebrow">Returned · was out to ${esc(checkout.borrower_name)}</div>
+          <h3>Is anything wrong with <span class="accent">${esc(tool.name)}</span>?</h3></div>
+      </div>
+      <div class="cond-grid">
+        <button type="button" class="btn in big" data-cond="good">No, it's fine</button>
+        <button type="button" class="btn out big" data-cond="damaged">Damaged</button>
+        <button type="button" class="btn bad big" data-cond="needs_repair">Needs repair</button>
+      </div>
+      <p class="scan-hint">Press Enter or scan it again for <b>No</b>.</p>`;
+    const fine = () => closeSheet();
+    const flag = async (cond) => {
+      closeSheet();
+      const note = (await askText("What's wrong with it?", { placeholder: 'Optional', required: false, ok: 'Save' })) || '';
+      try {
+        await rpc('report_tool_problem', { p_tool: tool.id, p_condition: cond, p_note: note });
+        show('info', `<b>${esc(tool.name)}</b> flagged ${cond.replace('_', ' ')} — it won't go out again until it's fixed.`);
+        log('repair', `${tool.name} flagged ${cond.replace('_', ' ')}`);
+      } catch (e) { show('err', esc(errMsg(e))); }
+      showToolPhoto(tool);
+      scan.focus();
+    };
+    k.picker = { code: tool.code.toUpperCase(), selected: 'good', choose: fine, cancel: fine };
+    sheet.querySelectorAll('[data-cond]').forEach((b) => b.addEventListener('click', () => (b.dataset.cond === 'good' ? fine() : flag(b.dataset.cond))));
+    sheet.querySelector('[data-cond="good"]').focus();
+    photoUrl(tool.photo_path).then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
   }
 
-  // Stock: scan first, then choose how many and which way.
-  function paintItem() {
+  // Stock: scan first, then a pop-up for how many, where, and which way.
+  function paintItem(msg = '') {
     const p = k.pendingItem;
-    const panel = app.querySelector('#k-panel');
-    if (!p) { panel.innerHTML = ''; return; }
+    if (!p) return closeSheet();
     const it = p.item;
-    panel.innerHTML = `
-      <div class="card item-card">
-        <div class="row" style="justify-content:space-between;align-items:flex-start">
-          <div><div class="eyebrow">Scanned</div>
-            <h2 style="margin:0 0 4px">${esc(it.name)}</h2>
-            <div class="muted" style="font-size:14px"><span class="code">${esc(it.code)}</span> · ${it.quantity} on hand${esc(packNote(it))}${it.location ? ` · ${esc(it.location)}` : ''}</div></div>
-          <button class="btn small" id="i-cancel">Cancel</button>
-        </div>
-        <div class="row item-actions">
-          <div class="qty-group"><div class="qty-label">How many?</div><div class="stepper">
-            <button class="btn" data-istep="-1" aria-label="One less">−</button>
-            <input id="i-qty" type="number" min="1" value="${p.qty}" inputmode="numeric" aria-label="Quantity">
-            <button class="btn" data-istep="1" aria-label="One more">+</button>
-          </div></div>
-          <button class="btn out big" id="i-take"><span>Take <b class="n">${p.qty}</b></span>${whereText() ? `<span class="sub">to ${esc(whereText())}</span>` : ''}</button>
-          <button class="btn in big" id="i-back"><span>Put back <b class="n">${p.qty}</b></span></button>
-        </div>
-        <p class="scan-hint">Scan it again to add one more.</p>
-      </div>`;
-    const qtyEl = panel.querySelector('#i-qty');
+    const sheet = openSheet();
+    sheet.innerHTML = `
+      <div class="sheet-head">
+        <div><div class="eyebrow">Scanned</div>
+          <h3>${esc(it.name)}</h3>
+          <div class="muted" style="font-size:14px"><span class="code">${esc(it.code)}</span> · ${it.quantity} on hand${esc(packNote(it))}${it.location ? ` · ${esc(it.location)}` : ''}</div></div>
+        <button type="button" class="btn small" id="i-cancel">Cancel</button>
+      </div>
+      <div class="qty-group"><div class="qty-label">How many?</div><div class="stepper">
+        <button type="button" class="btn" data-istep="-1" aria-label="One less">−</button>
+        <input id="i-qty" type="number" min="1" value="${p.qty}" inputmode="numeric" aria-label="Quantity">
+        <button type="button" class="btn" data-istep="1" aria-label="One more">+</button>
+      </div></div>
+      <div class="qty-label" style="margin-top:16px">Where is it going?</div>
+      ${placeChips(p.place, p.needPlace)}
+      ${msg ? `<div class="sheet-msg">${msg}</div>` : ''}
+      <div class="row item-actions">
+        <button type="button" class="btn in big" id="i-back"><span>Put back <b class="n">${p.qty}</b></span></button>
+        <button type="button" class="btn out big" id="i-take"><span>Take <b class="n">${p.qty}</b></span>${p.place ? `<span class="sub">to ${esc(placeName(p.place))}</span>` : ''}</button>
+      </div>
+      <p class="scan-hint">Scan it again to add one more.</p>`;
+    const qtyEl = sheet.querySelector('#i-qty');
     // Keep the number on the buttons in step with the box.
-    const showQty = () => panel.querySelectorAll('.n').forEach((n) => (n.textContent = p.qty));
+    const showQty = () => sheet.querySelectorAll('.n').forEach((n) => (n.textContent = p.qty));
     qtyEl.addEventListener('focus', () => qtyEl.select());
     qtyEl.addEventListener('input', () => { const v = parseInt(qtyEl.value, 10); if (v >= 1) { p.qty = v; showQty(); } resetIdle(); });
     qtyEl.addEventListener('change', () => { p.qty = Math.max(1, parseInt(qtyEl.value, 10) || 1); qtyEl.value = p.qty; showQty(); });
-    panel.querySelectorAll('[data-istep]').forEach((b) => b.addEventListener('click', () => {
+    sheet.querySelectorAll('[data-istep]').forEach((b) => b.addEventListener('click', () => {
       p.qty = Math.max(1, p.qty + Number(b.dataset.istep));
       qtyEl.value = p.qty;
       showQty();
       resetIdle();
     }));
-    panel.querySelector('#i-take').addEventListener('click', () => doStock('out'));
-    panel.querySelector('#i-back').addEventListener('click', () => doStock('in'));
-    panel.querySelector('#i-cancel').addEventListener('click', () => { cancelItem(); scan.focus(); });
+    bindPlaceChips(sheet, (key) => { p.place = key; p.needPlace = false; paintItem(); });
+    sheet.querySelector('#i-take').addEventListener('click', () => doStock('out'));
+    sheet.querySelector('#i-back').addEventListener('click', () => doStock('in'));
+    sheet.querySelector('#i-cancel').addEventListener('click', () => { cancelItem(); show('info', 'Cancelled.'); });
+    sheet.querySelector(p.place ? '#i-take' : '.place')?.focus();
     resetIdle();
   }
 
   function cancelItem() {
     k.pendingItem = null;
-    paintItem();
+    closeSheet();
   }
 
   async function doStock(type) {
     const p = k.pendingItem;
     if (!p) return;
-    const qtyEl = app.querySelector('#i-qty');
+    if (type === 'out' && !p.place) { p.needPlace = true; beep(false); return paintItem('Pick where it\'s going first.'); }
+    const qtyEl = document.querySelector('#i-qty');
     if (qtyEl) p.qty = Math.max(1, parseInt(qtyEl.value, 10) || p.qty);
+    // Taking: remember the place for next time. Putting back: only an event matters (event returns).
+    if (type === 'out') setPlace(p.place);
+    const ev = p.place?.startsWith('ev:') ? events.find((e) => e.id === p.place.slice(3)) : null;
     try {
-      const res = await rpc('scan_item', { p_code: p.item.code, p_type: type, p_qty: p.qty, p_member: k.person.id, p_event: k.event?.id || null, p_destination: k.event ? null : k.dest });
+      const res = await rpc('scan_item', { p_code: p.item.code, p_type: type, p_qty: p.qty, p_member: k.person.id,
+        p_event: ev?.id || null, p_destination: type === 'out' && !ev ? k.dest : null });
       const it = res.item;
       const low = it.reorder_level > 0 && it.quantity <= it.reorder_level;
-      const where = type === 'out' && whereText() ? ` (${whereText()})` : '';
+      const where = type === 'out' ? ` (${placeName(p.place)})` : ev ? ` (from ${ev.name})` : '';
       beep(true);
       k.pendingItem = null;
-      paintItem();
+      closeSheet();
       show('ok', `${type === 'in' ? 'Put back' : 'Took'} ${p.qty} × <b>${esc(it.name)}</b>${esc(where)}. ${it.quantity} left${esc(packNote(it))}.${low ? ' <span class="pill low">LOW — tell the office</span>' : ''}`);
       log(type, `${p.qty} × ${it.name}${where} · ${k.person.name}`);
-    } catch (e) { beep(false); show('err', esc(errMsg(e))); }
+    } catch (e) { beep(false); paintItem(esc(errMsg(e))); }
     resetIdle();
-    scan.focus();
   }
+
+  // While a pop-up is open the scanner still works: keystrokes are collected
+  // here and handed to onScan when Enter arrives.
+  let sheetBuf = '';
+  const sheetKeys = (e) => {
+    if (!document.body.contains(scan)) return document.removeEventListener('keydown', sheetKeys, true);
+    if (!sheetEl || document.querySelector('.modal-back:not(.kiosk-sheet)')) return;
+    if (e.key === 'Escape') { e.preventDefault(); sheetBuf = ''; if (k.picker) k.picker.cancel(); else { cancelItem(); show('info', 'Cancelled.'); } return; }
+    if (e.target.matches?.('input[type=number]') && /[0-9]/.test(e.key) && !sheetBuf) return; // typing a quantity
+    if (e.key === 'Enter') {
+      if (!sheetBuf) return; // Enter on the highlighted button
+      e.preventDefault();
+      const code = sheetBuf;
+      sheetBuf = '';
+      onScan(code);
+      return;
+    }
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); sheetBuf += e.key; }
+  };
+  document.addEventListener('keydown', sheetKeys, true);
 
   async function onScan(code) {
     const upper = code.toUpperCase();
     resetIdle();
+    if (k.picker) {
+      // Scanning the same tool again confirms the highlighted place; anything else cancels.
+      const pk = k.picker;
+      if (upper === pk.code) return pk.selected ? pk.choose(pk.selected) : undefined;
+      pk.cancel();
+    }
     if (upper === CMD.DONE) {
       if (k.pendingItem) { cancelItem(); return show('info', 'Cancelled.'); }
       endSession();
@@ -832,6 +913,11 @@ async function renderKiosk() {
       beep(true);
       if (k.pendingTool) { const t = k.pendingTool; k.pendingTool = null; return doCheckout(t); }
       return show('info', `Hi ${esc(m.name)} — scan what you're taking or returning.`);
+    }
+
+    if (hit.kind === 'tool' && k.pendingItem) {
+      beep(false);
+      return paintItem(`Finish <b>${esc(k.pendingItem.item.name)}</b> first: tap Take or Put back, or Cancel.`);
     }
 
     if (hit.kind === 'tool') {
@@ -858,11 +944,11 @@ async function renderKiosk() {
         // Same item again = one more; a different item has to wait.
         if (k.pendingItem.item.id === it.id) { k.pendingItem.qty += 1; beep(true); return paintItem(); }
         beep(false);
-        return show('err', `Finish <b>${esc(k.pendingItem.item.name)}</b> first: tap Take or Put back, or Cancel.`);
+        return paintItem(`Finish <b>${esc(k.pendingItem.item.name)}</b> first: tap Take or Put back, or Cancel.`);
       }
       beep(true);
       status.innerHTML = '';
-      k.pendingItem = { item: it, qty: 1 };
+      k.pendingItem = { item: it, qty: 1, place: placeKey() };
       return paintItem();
     }
 
@@ -874,8 +960,8 @@ async function renderKiosk() {
   bindScanner(scan, onScan);
   app.querySelector('#cam')?.addEventListener('click', () => openCamera(async (code) => {
     await onScan(code);
-    // A stock item now needs "how many / take or put back": close the camera so the card is visible.
-    if (k.pendingItem) return { close: true };
+    // A pop-up now needs an answer (where / how many): close the camera so it's visible.
+    if (k.pendingItem || k.picker) return { close: true };
     const box = status.querySelector('.big-status');
     return { ok: !box?.classList.contains('err'), text: box?.textContent.replace(/\s+/g, ' ').trim() };
   }));
