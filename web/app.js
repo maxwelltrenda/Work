@@ -797,6 +797,7 @@ async function renderKiosk() {
     if (hit.kind === 'item') {
       if (!k.person) { beep(false); return show('err', 'Tap your name first.'); }
       const it = hit.record;
+      if (!myRole().scanStock.includes(it.category)) { beep(false); return show('err', "That isn't in your area — you can only scan your own things."); }
       if (k.pendingItem) {
         // Same item again = one more; a different item has to wait.
         if (k.pendingItem.item.id === it.id) { k.pendingItem.qty += 1; beep(true); return paintItem(); }
