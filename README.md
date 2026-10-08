@@ -44,6 +44,8 @@ Codes are assigned automatically when you add something. Print them from the **L
 - *Returning:* scan the tool, then press Enter (or scan it again) for "Good", or tap Damaged / Needs repair. Damaged tools are blocked from sign-out until an admin marks them available.
 - Scan `CMD-DONE` or tap **Done** when you're finished. It also clears itself after 2 idle minutes.
 
+**Categories**: tool and maintenance categories are an editable list on the **Categories** page (admins). Add, rename or delete them there. Renaming updates every tool or item in that category, renaming onto an existing name merges the two, and deleting leaves those tools or items with no category. Item and tool forms pick from the list, and admins can add a new one right from the dropdown.
+
 **Tool quantity**: one tool barcode can stand for several of the same tool (e.g. Hammer, quantity 6). Scanning it at the iPad opens a pop-up showing how many are in and who has the rest, with **Return 1** / **Return all** buttons for each person, plus **How many?** and **Where are they going?** for taking some. Scan it again to add one more. One-of-a-kind tools work exactly as before.
 
 **Tool categories**: give each tool a category (Power Tools, Hand Tools, Ladders & Lifts…) when adding or editing it. Type a new one to add it. The Tools list has a Category column and filter.

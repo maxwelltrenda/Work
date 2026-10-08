@@ -56,7 +56,7 @@ const isKiosk = () => state.me?.role === 'kiosk';
 const ALL_PAGES = [
   ['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
   ['items/facilities', 'Facilities Stock'], ['items/maintenance', 'Maintenance Stock'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
-  ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'],
+  ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories'],
 ];
 const ROLES = {
   admin: { label: 'Admin', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'events'], tools: true,
@@ -421,7 +421,7 @@ const routes = {
   kiosk: renderKiosk, events: renderEvents, event: renderEvent,
   stock: renderStock, out: renderOut, items: renderItems, item: renderItem,
   toollist: renderToolList, tool: renderTool, history: renderHistory, labels: renderLabels, people: renderPeople,
-  locations: renderLocations,
+  locations: renderLocations, categories: renderCategories,
 };
 
 window.addEventListener('hashchange', () => state.me && route());
@@ -1288,11 +1288,39 @@ const stockKind = (c) => (STOCK[c] ? c : 'facilities');
 // Cost is tracked for facilities and maintenance stock; categories for maintenance.
 const HAS_COST = ['facilities', 'maintenance'];
 const HAS_SUBCAT = ['maintenance'];
-const SUBCAT_SUGGESTIONS = ['Plumbing', 'Electrical', 'Paint & Caulk', 'Cleaning & Chemicals', 'HVAC & Filters', 'Hardware & Fasteners', 'Lighting', 'Lubricants'];
-let knownSubcats = [];
-const rememberSubcats = (items) => {
-  knownSubcats = [...new Set([...items.map((i) => i.subcategory).filter(Boolean), ...SUBCAT_SUGGESTIONS])].sort((a, b) => a.localeCompare(b));
-};
+// Categories (tools, maintenance stock) are an editable list on the Categories page.
+const catList = { tool: [], maintenance: [] };
+async function refreshCategories() {
+  const rows = await q(sb.from('categories').select('kind, name').eq('active', true).order('name'));
+  catList.tool = rows.filter((r) => r.kind === 'tool').map((r) => r.name);
+  catList.maintenance = rows.filter((r) => r.kind === 'maintenance').map((r) => r.name);
+}
+function categorySelect(kind, current, field) {
+  const names = [...catList[kind]];
+  if (current && !names.includes(current)) names.push(current);
+  return `<select name="${field}" data-category="${kind}">
+      <option value="">— None —</option>
+      ${names.map((n) => `<option ${n === current ? 'selected' : ''}>${esc(n)}</option>`).join('')}
+      ${isAdmin() ? '<option value="__new">+ Add new category…</option><option value="__manage">Manage categories…</option>' : ''}
+    </select>`;
+}
+function bindCategorySelects(root) {
+  root.querySelectorAll('select[data-category]').forEach((sel) => {
+    let last = sel.value;
+    sel.addEventListener('change', async () => {
+      if (sel.value === '__manage') { sel.value = last; location.hash = '#/categories'; return; }
+      if (sel.value !== '__new') { last = sel.value; return; }
+      const name = await askText('New category', { placeholder: sel.dataset.category === 'tool' ? 'e.g. Power Tools' : 'e.g. Plumbing', ok: 'Add' });
+      if (!name) { sel.value = last; return; }
+      try { await rpc('add_category', { p_kind: sel.dataset.category, p_name: name }); } catch (err) { toast(errMsg(err), true); sel.value = last; return; }
+      if (!catList[sel.dataset.category].includes(name)) catList[sel.dataset.category].push(name);
+      if (![...sel.options].some((o) => o.value === name)) sel.querySelector('option[value="__new"]').insertAdjacentHTML('beforebegin', `<option>${esc(name)}</option>`);
+      sel.value = name;
+      last = name;
+      toast(`Added category ${name}`);
+    });
+  });
+}
 const money = (n) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const stockValue = (i) => (i.unit_cost == null ? 0 : i.quantity * Number(i.unit_cost));
 // Total pieces: e.g. 3 boxes × 6 rolls = 18.
@@ -1350,9 +1378,8 @@ function itemForm(it = {}, locations = []) {
       <label style="width:120px">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
       ${it.id ? '' : '<label style="width:120px">Starting qty <input name="start" type="number" min="0" value="0"></label>'}
       <label style="width:140px" data-for="${HAS_COST.join(' ')}" title="What one box/pack costs (or one item, if it isn't sold in packs)">Cost ($) <input name="unit_cost" type="number" min="0" step="0.01" placeholder="per box/pack" value="${it.unit_cost ?? ''}"></label>
-      <label style="flex:1;min-width:180px" data-for="${HAS_SUBCAT.join(' ')}">Category <input name="subcategory" list="subcat-list" placeholder="e.g. Plumbing" value="${esc(it.subcategory)}" autocomplete="off"></label>
+      <label style="flex:1;min-width:180px" data-for="${HAS_SUBCAT.join(' ')}">Category ${categorySelect('maintenance', it.subcategory, 'subcategory')}</label>
     </div>
-    <datalist id="subcat-list">${knownSubcats.map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
     <label style="margin-top:12px">Description <input name="description" value="${esc(it.description)}"></label>`;
 }
 
@@ -1369,7 +1396,7 @@ const itemFields = (f) => ({
   reorder_level: parseInt(f.get('reorder_level'), 10) || 0, description: f.get('description').trim() || null,
   pack_size: Math.max(1, parseInt(f.get('pack_size'), 10) || 1),
   unit_cost: HAS_COST.includes(f.get('category')) && f.get('unit_cost') !== '' ? Number(f.get('unit_cost')) : null,
-  subcategory: HAS_SUBCAT.includes(f.get('category')) ? f.get('subcategory').trim() || null : null,
+  subcategory: HAS_SUBCAT.includes(f.get('category')) ? f.get('subcategory') || null : null,
 });
 
 async function renderItems(category) {
@@ -1384,7 +1411,7 @@ async function renderItems(category) {
   const hasCost = HAS_COST.includes(kind);
   const hasSubcat = HAS_SUBCAT.includes(kind);
   const value = show.reduce((s, i) => s + stockValue(i), 0);
-  rememberSubcats(all);
+  await refreshCategories();
   const subcats = [...new Set(show.map((i) => i.subcategory).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   app.innerHTML = `
@@ -1436,6 +1463,7 @@ async function renderItems(category) {
   const add = app.querySelector('#add');
   if (add) {
     bindLocationSelects(add);
+    bindCategorySelects(add);
     bindItemForm(add);
     add.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1461,7 +1489,7 @@ async function renderItem(id) {
     loadItems(),
   ]);
   if (!it) throw new Error('Item not found');
-  rememberSubcats(allItems);
+  await refreshCategories();
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const meta = STOCK[stockKind(it.category)];
 
@@ -1490,6 +1518,7 @@ async function renderItem(id) {
   const edit = app.querySelector('#edit');
   if (edit) {
     bindLocationSelects(edit);
+    bindCategorySelects(edit);
     bindItemForm(edit);
     edit.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1573,18 +1602,11 @@ const toolCounts = (t, open) => {
 };
 const xQty = (n) => (n > 1 ? ` <span class="muted">×${n}</span>` : '');
 
-const TOOL_CAT_SUGGESTIONS = ['Power Tools', 'Hand Tools', 'Ladders & Lifts', 'Lawn & Garden', 'Cleaning Equipment', 'Measuring & Layout', 'Electrical', 'Plumbing', 'Painting', 'Safety'];
-let knownToolCats = [];
-const rememberToolCats = (tools) => {
-  knownToolCats = [...new Set([...tools.map((t) => t.category).filter(Boolean), ...TOOL_CAT_SUGGESTIONS])].sort((a, b) => a.localeCompare(b));
-};
-
 function toolForm(t = {}, locations = []) {
   return `
     <div class="row">
       <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(t.name)}" placeholder="Hilti TE 30 hammer drill"></label>
-      <label style="flex:1;min-width:180px">Category <input name="category" list="toolcat-list" placeholder="e.g. Power Tools" value="${esc(t.category)}" autocomplete="off"></label>
-      <datalist id="toolcat-list">${knownToolCats.map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
+      <label style="flex:1;min-width:180px">Category ${categorySelect('tool', t.category, 'category')}</label>
       <label style="width:110px" title="How many of this tool you have under this one barcode (e.g. 6 hammers)">Quantity <input name="quantity" type="number" min="1" value="${t.quantity ?? 1}"></label>
       ${locationSelect(locations, t.location, 'Home location')}
       <label style="width:120px">Value ($) <input name="value" type="number" min="0" step="0.01" value="${t.value ?? ''}"></label>
@@ -1593,7 +1615,7 @@ function toolForm(t = {}, locations = []) {
 }
 
 const toolFields = (f) => ({
-  name: f.get('name').trim(), category: f.get('category').trim() || null, quantity: Math.max(1, parseInt(f.get('quantity'), 10) || 1), location: f.get('location') || null,
+  name: f.get('name').trim(), category: f.get('category') || null, quantity: Math.max(1, parseInt(f.get('quantity'), 10) || 1), location: f.get('location') || null,
   value: f.get('value') ? Number(f.get('value')) : null, description: f.get('description').trim() || null,
 });
 
@@ -1610,7 +1632,7 @@ async function renderToolList() {
   const withCell = (t) => (openBy[t.id] || []).map((c) => `${esc(who[c.borrower_id])}${xQty(c.qty)}${(t.quantity || 1) > 1 ? '' : ` <span class="muted">(${since(c.checked_out_at)})</span>`}`).join(', ');
   const show = tools.filter((t) => t.active);
   const total = show.reduce((s, t) => s + Number(t.value || 0), 0);
-  rememberToolCats(tools);
+  await refreshCategories();
   const cats = [...new Set(show.map((t) => t.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   app.innerHTML = `
@@ -1644,7 +1666,7 @@ async function renderToolList() {
     code: t.code, name: t.name, category: t.category || '', quantity: t.quantity || 1, in: toolCounts(t, open).inQty, status: t.status,
     with: (openBy[t.id] || []).map((c) => `${who[c.borrower_id]}${c.qty > 1 ? ` x${c.qty}` : ''}`).join('; '), location: t.location, value: t.value,
   }))));
-  if (app.querySelector('#add')) bindLocationSelects(app.querySelector('#add'));
+  if (app.querySelector('#add')) { bindLocationSelects(app.querySelector('#add')); bindCategorySelects(app.querySelector('#add')); }
   app.querySelector('#add')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
@@ -1669,7 +1691,7 @@ async function renderTool(id) {
     loadLocations(),
     loadTools(),
   ]);
-  rememberToolCats(allTools);
+  await refreshCategories();
   if (!t) throw new Error('Tool not found');
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const photo = await photoUrl(t.photo_path);
@@ -1718,7 +1740,7 @@ async function renderTool(id) {
   app.querySelector('#set-status')?.addEventListener('click', async () => {
     try { await rpc('set_tool_status', { p_tool: t.id, p_status: app.querySelector('#status').value }); toast('Status updated'); route(); } catch (err) { toast(errMsg(err), true); }
   });
-  if (app.querySelector('#edit')) bindLocationSelects(app.querySelector('#edit'));
+  if (app.querySelector('#edit')) { bindLocationSelects(app.querySelector('#edit')); bindCategorySelects(app.querySelector('#edit')); }
   app.querySelector('#edit')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try { await q(sb.from('tools').update(toolFields(new FormData(e.target))).eq('id', t.id).select()); toast('Saved'); route(); } catch (err) { toast(errMsg(err), true); }
@@ -1906,6 +1928,54 @@ async function renderLocations() {
     const n = count(items, name) + count(tools, name);
     if (!(await askConfirm(`Delete "${name}"?`, { message: n ? `${n} item${n === 1 ? '' : 's'}/tool${n === 1 ? '' : 's'} stored there will be left with no location.` : '', ok: 'Delete', danger: true }))) return;
     try { await rpc('remove_location', { p_name: name }); toast(`Deleted ${name}`); route(); } catch (err) { toast(errMsg(err), true); }
+  }));
+}
+
+async function renderCategories() {
+  const [tools, items] = await Promise.all([
+    q(sb.from('tools').select('category').eq('active', true)),
+    q(sb.from('items').select('subcategory').eq('active', true).eq('category', 'maintenance')),
+  ]);
+  await refreshCategories();
+  const used = { tool: tools.map((t) => t.category), maintenance: items.map((i) => i.subcategory) };
+  const count = (kind, name) => used[kind].filter((c) => c === name).length;
+  const section = (kind, title, what) => `
+    <h2>${title}</h2>
+    <form class="card row" data-add="${kind}" style="margin-bottom:12px">
+      <label style="flex:1;min-width:220px">New ${title.toLowerCase().replace(/ies$/, 'y')} <input name="name" required placeholder="${kind === 'tool' ? 'e.g. Power Tools' : 'e.g. Plumbing'}"></label>
+      <button class="btn primary">Add</button></form>
+    <div class="table-wrap"><table><tr><th>Category</th><th class="num">${what}</th><th></th></tr>
+      ${catList[kind].map((n) => `<tr><td><b>${esc(n)}</b></td><td class="num">${count(kind, n) || ''}</td>
+        <td style="text-align:right;white-space:nowrap"><button class="btn small" data-rename="${kind}" data-name="${esc(n)}">Rename</button>
+          <button class="btn small bad" data-remove="${kind}" data-name="${esc(n)}">Delete</button></td></tr>`).join('')
+      || '<tr><td colspan="3" class="muted">No categories yet.</td></tr>'}</table></div>`;
+
+  app.innerHTML = `
+    ${pageHead('Settings', 'Categories', 'The category lists for tools and maintenance stock.')}
+    ${section('tool', 'Tool categories', 'Tools')}
+    ${section('maintenance', 'Maintenance categories', 'Items')}
+    <p class="muted" style="font-size:14px;margin-top:12px">Renaming updates every tool or item in that category (renaming to an existing name merges them). Deleting takes it off the list and leaves those tools or items with no category.</p>`;
+
+  app.querySelectorAll('[data-add]').forEach((f) => f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { await rpc('add_category', { p_kind: f.dataset.add, p_name: new FormData(f).get('name') }); toast('Category added'); route(); } catch (err) { toast(errMsg(err), true); }
+  }));
+  app.querySelectorAll('[data-rename]').forEach((b) => b.addEventListener('click', async () => {
+    const kind = b.dataset.rename;
+    const old = b.dataset.name;
+    const name = await askText(`Rename "${old}"`, { value: old, ok: 'Rename' });
+    if (!name || name === old) return;
+    const merge = catList[kind].includes(name);
+    if (merge && !(await askConfirm(`Merge "${old}" into "${name}"?`, { message: `There's already a category called ${name}. Everything in ${old} will move to it.`, ok: 'Merge' }))) return;
+    try { await rpc('rename_category', { p_kind: kind, p_old: old, p_new: name }); toast(merge ? 'Merged' : 'Renamed'); route(); } catch (err) { toast(errMsg(err), true); }
+  }));
+  app.querySelectorAll('[data-remove]').forEach((b) => b.addEventListener('click', async () => {
+    const kind = b.dataset.remove;
+    const name = b.dataset.name;
+    const n = count(kind, name);
+    const thing = kind === 'tool' ? 'tool' : 'item';
+    if (!(await askConfirm(`Delete "${name}"?`, { message: n ? `${n} ${thing}${n === 1 ? '' : 's'} in it will be left with no category.` : '', ok: 'Delete', danger: true }))) return;
+    try { await rpc('remove_category', { p_kind: kind, p_name: name }); toast(`Deleted ${name}`); route(); } catch (err) { toast(errMsg(err), true); }
   }));
 }
 
