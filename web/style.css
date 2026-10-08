@@ -353,3 +353,13 @@ tr.overdue td { background: #fbefec; }
   .scanrow { flex-direction: column; }
   .cam-btn { min-height: 54px; }
 }
+
+/* Scanned stock item: how many, then Take / Put back */
+.item-card { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring), var(--shadow); animation: fade-up .2s ease both; }
+.item-actions { margin-top: 16px; align-items: center; }
+.btn.big { font-size: 19px; font-weight: 600; min-height: 60px; padding: 10px 28px; flex: 1; min-width: 150px; flex-direction: column; gap: 0; }
+.btn.big .sub { font-size: 12px; font-weight: 500; opacity: .85; }
+@media (max-width: 760px) { .item-actions .stepper { width: 100%; justify-content: center; } }
+.qty-group { display: flex; flex-direction: column; gap: 6px; }
+.qty-label { font-size: 13px; font-weight: 600; color: var(--body); }
+.item-actions { align-items: flex-end; }

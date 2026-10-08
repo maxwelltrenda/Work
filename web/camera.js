@@ -72,6 +72,7 @@ export async function openCamera(onCode, { hint = 'Point the camera at a barcode
         msg.textContent = `Scanned ${code}…`;
         try {
           const result = await onCode(code);
+          if (result?.close) { close(); return; }
           msg.className = `cam-msg ${result?.ok === false ? 'err' : 'ok'}`;
           msg.textContent = result?.text || `Scanned ${code}`;
         } finally {

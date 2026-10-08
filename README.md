@@ -69,7 +69,7 @@ Mount an iPad in the warehouse and leave it signed in to a **kiosk** login, so n
 At the iPad:
 - **Taking anything:** tap your name (or scan your name label). Under **Where is it going?** pick **Shop use** or a location (admins can **+ Add** one), or pick an **Offsite event** from the dropdown. Then scan tools and items. Tap **Done** or scan `CMD-DONE` when finished. It also clears itself after 90 idle seconds.
 - **Returning a tool:** just scan it, no name needed. If it's damaged, tap **Damaged** or **Needs repair** and it's blocked from going out until an admin clears it.
-- **Putting stock back:** scan your name, tap **Putting back**, and scan.
+- **Stock:** scan the item first. A card asks **How many?** (type a number, use − / +, or scan the same item again to add one), then tap **Take** or **Put back**. The printed `CMD-OUT` / `CMD-IN` labels do the same as Take / Put back, and `CMD-DONE` cancels.
 
 The kiosk login can check things in and out and plan events. It can't edit items, tools, people or counts. Admins do that from their own login on any other device.
 
