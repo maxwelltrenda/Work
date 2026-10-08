@@ -106,6 +106,49 @@ function toast(msg, isErr = false) {
   toastTimer = setTimeout(() => (el.className = 'toast'), 3500);
 }
 
+// In-app dialogs (instead of the browser's own prompt/confirm boxes).
+// askText resolves to the trimmed text, or null if cancelled; askConfirm to true/false.
+function dialog({ title, message = '', input = null, ok = 'OK', danger = false }) {
+  return new Promise((resolve) => {
+    const back = document.createElement('div');
+    back.className = 'modal-back';
+    back.innerHTML = `
+      <form class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <h3 id="modal-title">${esc(title)}</h3>
+        ${message ? `<p class="muted">${esc(message)}</p>` : ''}
+        ${input ? `<input class="modal-input" type="text" autocomplete="off" placeholder="${esc(input.placeholder || '')}" value="${esc(input.value || '')}">` : ''}
+        <div class="modal-actions">
+          <button type="button" class="btn" data-cancel>Cancel</button>
+          <button class="btn ${danger ? 'bad-solid' : 'primary'}">${esc(ok)}</button>
+        </div>
+      </form>`;
+    const prev = document.activeElement;
+    const field = back.querySelector('.modal-input');
+    const done = (value) => {
+      document.removeEventListener('keydown', onKey, true);
+      back.remove();
+      prev?.focus?.();
+      resolve(value);
+    };
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(input ? null : false); } };
+    back.querySelector('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!input) return done(true);
+      const v = field.value.trim();
+      if (!v && input.required !== false) { field.focus(); return; }
+      done(v);
+    });
+    back.querySelector('[data-cancel]').addEventListener('click', () => done(input ? null : false));
+    back.addEventListener('mousedown', (e) => { if (e.target === back) done(input ? null : false); });
+    document.addEventListener('keydown', onKey, true);
+    document.body.appendChild(back);
+    (field || back.querySelector('button.primary, button.bad-solid')).focus();
+    field?.select();
+  });
+}
+const askText = (title, opts = {}) => dialog({ title, input: { value: opts.value, placeholder: opts.placeholder, required: opts.required }, ok: opts.ok || 'Save', message: opts.message });
+const askConfirm = (title, opts = {}) => dialog({ title, message: opts.message, ok: opts.ok || 'OK', danger: opts.danger });
+
 function errMsg(e) {
   return e?.message || e?.error_description || String(e);
 }
@@ -158,6 +201,7 @@ function bindScanner(input, onScan) {
   });
   const refocus = (e) => {
     if (!document.body.contains(input)) return document.removeEventListener('click', refocus);
+    if (document.querySelector('.modal-back')) return;
     if (!e.target.closest('input, select, textarea, button, a')) input.focus();
   };
   document.addEventListener('click', refocus);
@@ -168,7 +212,7 @@ function bindScanner(input, onScan) {
   const capture = (e) => {
     if (!document.body.contains(input)) return document.removeEventListener('keydown', capture, true);
     if (e.target === input || e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
-    if (document.querySelector('.dd-menu')) return; // typing to jump in an open dropdown
+    if (document.querySelector('.dd-menu, .modal-back')) return; // typing in an open dropdown or dialog
     const t = e.target;
     const isText = t.matches?.('textarea, input:not([type]), input[type=text], input[type=search], input[type=email], input[type=password]');
     const isNumber = t.matches?.('input[type=number], input[type=date]');
@@ -207,7 +251,7 @@ sb.auth.onAuthStateChange((event, session) => {
 });
 
 async function signOut(expired = false) {
-  if (expired !== true && isKiosk() && !confirm('Sign the warehouse kiosk out? Someone will need its password to sign back in.')) return;
+  if (expired !== true && isKiosk() && !(await askConfirm('Sign the kiosk out?', { message: 'Someone will need its password to sign back in.', ok: 'Sign out', danger: true }))) return;
   const btn = document.getElementById('signout');
   if (btn) { btn.disabled = true; btn.textContent = 'Signing out…'; }
   try {
@@ -641,7 +685,7 @@ async function renderKiosk() {
       paintWho(); resetIdle(); scan.focus();
     });
     el.querySelector('#k-add-dest')?.addEventListener('click', async () => {
-      const name = (prompt('New location (e.g. "Main Building", "Youth Room"):') || '').trim();
+      const name = (await askText('New location', { placeholder: 'e.g. Main Building, Youth Room', ok: 'Add' })) || '';
       if (!name) return scan.focus();
       try {
         await rpc('add_location', { p_name: name });
@@ -685,7 +729,7 @@ async function renderKiosk() {
             <button class="btn out small" data-c="damaged">Damaged</button>
             <button class="btn bad small" data-c="needs_repair">Needs repair</button></div></div>`;
       status.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', async () => {
-        const note = prompt('What\'s wrong with it? (optional)') || '';
+        const note = (await askText("What's wrong with it?", { placeholder: 'Optional', required: false, ok: 'Save' })) || '';
         try {
           await rpc('report_tool_problem', { p_tool: tool.id, p_condition: b.dataset.c, p_note: note });
           show('info', `<b>${esc(tool.name)}</b> flagged ${b.dataset.c.replace('_', ' ')} — it won't go out again until it's fixed.`);
@@ -972,11 +1016,11 @@ async function renderEvent(id) {
   });
   app.querySelectorAll('[data-lost]').forEach((b) => b.addEventListener('click', async () => {
     const t = toolBy[b.dataset.lost];
-    if (!confirm(`Mark ${t?.name} as LOST? It will be taken off the available list.`)) return;
+    if (!(await askConfirm(`Mark ${t?.name} as lost?`, { message: 'It will be taken off the available list.', ok: 'Mark lost', danger: true }))) return;
     try { await rpc('mark_tool_lost', { p_tool: b.dataset.lost, p_note: `Not returned from ${ev.name}` }); reload(); } catch (e) { toast(errMsg(e), true); }
   }));
   app.querySelector('#close')?.addEventListener('click', async () => {
-    if (stillOut.length && !confirm(`${stillOut.length} tool(s) still aren't back. Close the event anyway? They'll stay signed out to the person who took them.`)) return;
+    if (stillOut.length && !(await askConfirm('Close the event anyway?', { message: `${stillOut.length} tool(s) still aren't back. They'll stay signed out to the person who took them.`, ok: 'Close event' }))) return;
     try { await q(sb.from('events').update({ status: 'closed' }).eq('id', id).select()); toast('Event closed'); reload(); } catch (e) { toast(errMsg(e), true); }
   });
   app.querySelector('#reopen')?.addEventListener('click', async () => {
@@ -1065,7 +1109,7 @@ function bindLocationSelects(root) {
     sel.addEventListener('change', async () => {
       if (sel.value === '__manage') { sel.value = last; location.hash = '#/locations'; return; }
       if (sel.value !== '__new') { last = sel.value; return; }
-      const name = (prompt('New location name (e.g. "Shelf A3", "Trailer 2"):') || '').trim();
+      const name = (await askText('New location', { placeholder: 'e.g. Shelf A3, Trailer 2', ok: 'Add' })) || '';
       if (!name) { sel.value = last; return; }
       try {
         await rpc('add_location', { p_name: name });
@@ -1216,7 +1260,7 @@ async function renderItem(id) {
     });
   }
   app.querySelector('#archive')?.addEventListener('click', async () => {
-    if (it.active && !confirm(`Archive ${it.name}? It will stop scanning but keep its history.`)) return;
+    if (it.active && !(await askConfirm(`Archive ${it.name}?`, { message: 'It will stop scanning but keep its history.', ok: 'Archive', danger: true }))) return;
     try { await q(sb.from('items').update({ active: !it.active }).eq('id', it.id).select()); route(); } catch (err) { toast(errMsg(err), true); }
   });
 }
@@ -1392,7 +1436,7 @@ async function renderTool(id) {
     try { await setToolPhoto(t, file); toast('Photo saved'); route(); } catch (err) { toast(errMsg(err), true); route(); }
   });
   app.querySelector('#photo-remove')?.addEventListener('click', async () => {
-    if (!confirm(`Remove the photo of ${t.name}?`)) return;
+    if (!(await askConfirm(`Remove the photo of ${t.name}?`, { ok: 'Remove', danger: true }))) return;
     try { await clearToolPhoto(t); toast('Photo removed'); route(); } catch (err) { toast(errMsg(err), true); }
   });
   app.querySelector('#set-status')?.addEventListener('click', async () => {
@@ -1404,7 +1448,7 @@ async function renderTool(id) {
     try { await q(sb.from('tools').update(toolFields(new FormData(e.target))).eq('id', t.id).select()); toast('Saved'); route(); } catch (err) { toast(errMsg(err), true); }
   });
   app.querySelector('#archive')?.addEventListener('click', async () => {
-    if (t.active && !confirm(`Archive ${t.name}? It will stop scanning but keep its history.`)) return;
+    if (t.active && !(await askConfirm(`Archive ${t.name}?`, { message: 'It will stop scanning but keep its history.', ok: 'Archive', danger: true }))) return;
     try { await q(sb.from('tools').update({ active: !t.active }).eq('id', t.id).select()); route(); } catch (err) { toast(errMsg(err), true); }
   });
 }
@@ -1522,7 +1566,7 @@ async function renderPeople() {
       if (m.id !== state.me.id) {
         patch.role = f.get('role');
         patch.active = f.get('active') === 'true';
-      } else if (patch.email !== m.email && !confirm(`You sign in with ${m.email}. After this change you'll need to sign in with ${patch.email || 'no email (you would be locked out)'}. Continue?`)) return;
+      } else if (patch.email !== m.email && !(await askConfirm('Change your sign-in email?', { message: `You sign in with ${m.email}. After this you'll need to sign in with ${patch.email || 'no email (you would be locked out)'}.`, ok: 'Change it' }))) return;
       // A new code means the old printed label no longer scans.
       if (patch.code !== m.code) patch.label_printed_at = null;
       try {
@@ -1576,7 +1620,7 @@ async function renderLocations() {
   });
   app.querySelectorAll('[data-rename]').forEach((b) => b.addEventListener('click', async () => {
     const old = b.dataset.rename;
-    const name = (prompt(`Rename "${old}" to:`, old) || '').trim();
+    const name = (await askText(`Rename "${old}"`, { value: old, ok: 'Rename' })) || '';
     if (!name || name === old) return;
     if (locations.some((l) => l.name === name)) return toast(`There's already a location called ${name}`, true);
     try { await q(sb.from('locations').update({ name }).eq('name', old).select()); toast('Renamed'); route(); } catch (err) { toast(errMsg(err), true); }
@@ -1584,7 +1628,7 @@ async function renderLocations() {
   app.querySelectorAll('[data-remove]').forEach((b) => b.addEventListener('click', async () => {
     const name = b.dataset.remove;
     const n = count(items, name) + count(tools, name);
-    if (!confirm(n ? `Delete "${name}"? ${n} item${n === 1 ? '' : 's'}/tool${n === 1 ? '' : 's'} stored there will be left with no location.` : `Delete "${name}"?`)) return;
+    if (!(await askConfirm(`Delete "${name}"?`, { message: n ? `${n} item${n === 1 ? '' : 's'}/tool${n === 1 ? '' : 's'} stored there will be left with no location.` : '', ok: 'Delete', danger: true }))) return;
     try { await rpc('remove_location', { p_name: name }); toast(`Deleted ${name}`); route(); } catch (err) { toast(errMsg(err), true); }
   }));
 }
