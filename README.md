@@ -50,7 +50,7 @@ Codes are assigned automatically when you add something. Print them from the **L
 
 **Tool categories**: give each tool a category (Power Tools, Hand Tools, Ladders & Lifts…) when adding or editing it. Type a new one to add it. The Tools list has a Category column and filter.
 
-**Tool photos**: on a tool's page, admins tap **Add photo** to take a picture or pick one (on an iPad or phone this opens the camera). Photos are shrunk before upload and show on the tool page, as thumbnails in the Tools list, and on the iPad when the tool is scanned, so people can see they grabbed the right one. Photos are private to the team.
+**Photos**: tools and stock items can both have a photo. On a tool's or item's page, admins tap **Add photo** to take a picture or pick one (on an iPad or phone this opens the camera), or attach one when adding it. Photos are shrunk before upload and show on the page, as thumbnails in the lists, and in the iPad pop-ups when scanned, so people can see they grabbed the right thing. Photos are private to the team, and each role only sees photos for what it can see.
 
 **Who Has What**: everything signed out, grouped by person, with overdue items highlighted.
 

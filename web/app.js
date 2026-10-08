@@ -749,6 +749,7 @@ async function renderKiosk() {
       const where = whereText() ? ` for ${whereText()}` : '';
       show('ok', `<b>${esc(tool.name)}</b> signed out to <b>${esc(k.person.name)}</b>${esc(where)}.`);
       log('out', `${tool.name} → ${k.person.name}${where}`);
+      showToolPhoto(tool);
     } catch (e) { beep(false); show('err', esc(errMsg(e))); }
   }
 
@@ -895,6 +896,7 @@ async function renderKiosk() {
     const sheet = openSheet();
     sheet.innerHTML = `
       <div class="sheet-head">
+        <div class="sheet-photo" id="pk-photo"></div>
         <div><div class="eyebrow">Scanned</div>
           <h3>${esc(it.name)}</h3>
           <div class="muted" style="font-size:14px"><span class="code">${esc(it.code)}</span> · ${it.quantity} on hand${esc(packNote(it))}${it.location ? ` · ${esc(it.location)}` : ''}</div></div>
@@ -930,6 +932,7 @@ async function renderKiosk() {
     sheet.querySelector('#i-back').addEventListener('click', () => doStock('in'));
     sheet.querySelector('#i-cancel').addEventListener('click', () => { cancelItem(); show('info', 'Cancelled.'); });
     sheet.querySelector(p.place ? '#i-take' : '.place')?.focus();
+    photoUrl(it.photo_path, 'item').then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
     resetIdle();
   }
 
@@ -1422,7 +1425,9 @@ async function renderItems(category) {
       <div class="stat"><b style="color:${low.length ? 'var(--warn)' : 'inherit'}">${low.length}</b><span>at or below reorder level</span></div>
       ${hasCost ? `<div class="stat"><b>${value ? money(value) : '—'}</b><span>value on hand</span></div>` : ''}
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>Add ${meta.plain.toLowerCase()}</b></summary><form id="add" style="margin-top:14px">${itemForm({ category: kind }, locations)}<div style="margin-top:14px"><button class="btn primary">Add item</button></div></form></details>` : ''}
+    ${isAdmin() ? `<details class="card"><summary><b>Add ${meta.plain.toLowerCase()}</b></summary><form id="add" style="margin-top:14px">${itemForm({ category: kind }, locations)}
+      <label style="margin-top:12px">Photo (optional) <input name="photo" type="file" accept="image/*"></label>
+      <div style="margin-top:14px"><button class="btn primary">Add item</button></div></form></details>` : ''}
     <div class="row" style="margin-bottom:12px">
       <input id="filter" placeholder="Search name, code or location…" style="flex:1;min-width:200px">
       ${hasSubcat ? `<select id="catfilter"><option value="">All categories</option>${subcats.map((c) => `<option>${esc(c)}</option>`).join('')}${show.some((i) => !i.subcategory) ? '<option value="__none">No category</option>' : ''}</select>` : ''}
@@ -1434,6 +1439,7 @@ async function renderItems(category) {
     <div class="table-wrap"><table id="tbl"></table></div>
     ${items.length > show.length ? `<p class="muted">${items.length - show.length} archived item(s) hidden.</p>` : ''}`;
 
+  let photos = {};
   const paint = () => {
     const f = app.querySelector('#filter').value.toLowerCase();
     const loc = app.querySelector('#locfilter').value;
@@ -1444,10 +1450,11 @@ async function renderItems(category) {
       && (!cat || (cat === '__none' ? !i.subcategory : i.subcategory === cat)));
     const cols = 5 + (hasSubcat ? 1 : 0) + (hasPacks ? 2 : 0) + (hasCost ? 2 : 0);
     app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Item</th>${hasSubcat ? '<th>Category</th>' : ''}<th>Location</th><th class="num">On hand</th>${hasPacks ? '<th class="num">Per pack</th><th class="num">Total</th>' : ''}${hasCost ? '<th class="num">Cost</th><th class="num">Value</th>' : ''}<th class="num">Reorder at</th></tr>
-      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a href="#/item/${i.id}">${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td>${hasSubcat ? `<td>${esc(i.subcategory || '')}</td>` : ''}<td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td>${hasPacks ? `<td class="num">${(i.pack_size || 1) > 1 ? `× ${i.pack_size}` : ''}</td><td class="num"><b>${pieces(i).toLocaleString()}</b></td>` : ''}${hasCost ? `<td class="num">${i.unit_cost != null ? money(i.unit_cost) : ''}</td><td class="num">${i.unit_cost != null ? money(stockValue(i)) : ''}</td>` : ''}<td class="num">${i.reorder_level || ''}</td></tr>`).join('')
+      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a class="tool-name" href="#/item/${i.id}">${thumb(photos[i.photo_path])}${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td>${hasSubcat ? `<td>${esc(i.subcategory || '')}</td>` : ''}<td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td>${hasPacks ? `<td class="num">${(i.pack_size || 1) > 1 ? `× ${i.pack_size}` : ''}</td><td class="num"><b>${pieces(i).toLocaleString()}</b></td>` : ''}${hasCost ? `<td class="num">${i.unit_cost != null ? money(i.unit_cost) : ''}</td><td class="num">${i.unit_cost != null ? money(stockValue(i)) : ''}</td>` : ''}<td class="num">${i.reorder_level || ''}</td></tr>`).join('')
       || `<tr><td colspan="${cols}" class="muted">No ${meta.plain.toLowerCase()} yet.</td></tr>`}`;
   };
   app.querySelector('#catfilter')?.addEventListener('change', paint);
+  photoUrlsFor(show.map((i) => i.photo_path), 'item').then((p) => { photos = p; if (app.querySelector('#tbl')) paint(); });
   app.querySelector('#filter').addEventListener('input', paint);
   app.querySelector('#locfilter').addEventListener('change', paint);
   app.querySelector('#lowonly').addEventListener('change', paint);
@@ -1470,6 +1477,8 @@ async function renderItems(category) {
       const f = new FormData(e.target);
       try {
         const [row] = await q(sb.from('items').insert(itemFields(f)).select());
+        const photo = f.get('photo');
+        if (photo?.size) await setPhoto('item', row, photo).catch((err) => toast(`Added ${row.name}, but the photo didn't upload: ${errMsg(err)}`, true));
         const start = parseInt(f.get('start'), 10) || 0;
         if (start > 0) await rpc('scan_item', { p_code: row.code, p_type: 'adjust', p_qty: start, p_note: 'Starting count' });
         toast(`Added ${row.name} as ${row.code}`);
@@ -1492,10 +1501,12 @@ async function renderItem(id) {
   await refreshCategories();
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const meta = STOCK[stockKind(it.category)];
+  const photo = await photoUrl(it.photo_path, 'item');
 
   app.innerHTML = `
     <p><a href="${meta.hash}">← ${meta.plain}</a></p>
     <h1>${esc(it.name)} <span class="code muted">${esc(it.code)}</span></h1>
+    ${photoBlock(it, photo)}
     <div class="stats">
       <div class="stat"><b>${it.quantity}</b><span>on hand${(it.pack_size || 1) > 1 ? ` (${it.pack_size} per pack)` : ''}</span></div>
       ${(it.pack_size || 1) > 1 ? `<div class="stat"><b>${pieces(it).toLocaleString()}</b><span>pieces in total</span></div>` : ''}
@@ -1515,6 +1526,7 @@ async function renderItem(id) {
       ${tx.map((t) => `<tr><td>${fmtDate(t.created_at)}</td><td><span class="pill ${t.type}">${t.type}</span></td><td class="num">${t.qty > 0 ? '+' : ''}${t.qty}</td><td class="num">${t.qty_after}</td><td>${esc(who[t.member_id])}</td><td>${esc(t.note)}</td></tr>`).join('')
       || '<tr><td colspan="6" class="muted">No activity yet.</td></tr>'}</table></div>`;
 
+  bindPhotoBlock('item', it);
   const edit = app.querySelector('#edit');
   if (edit) {
     bindLocationSelects(edit);
@@ -1543,19 +1555,21 @@ async function renderItem(id) {
 // Tool photos (private Storage bucket, viewed through short-lived signed URLs)
 // ---------------------------------------------------------------------------
 
-const PHOTO_BUCKET = 'tool-photos';
-const photoUrls = new Map(); // path -> { url, until }
+// Tools and stock items each have their own private bucket.
+const PHOTO_KIND = { tool: { bucket: 'tool-photos', table: 'tools' }, item: { bucket: 'item-photos', table: 'items' } };
+const photoUrls = new Map(); // "bucket:path" -> { url, until }
 
-async function photoUrlsFor(paths) {
+async function photoUrlsFor(paths, kind = 'tool') {
+  const { bucket } = PHOTO_KIND[kind];
   const now = Date.now();
-  const need = [...new Set(paths.filter((p) => p && !(photoUrls.get(p)?.until > now)))];
+  const need = [...new Set(paths.filter((p) => p && !(photoUrls.get(`${bucket}:${p}`)?.until > now)))];
   if (need.length) {
-    const { data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrls(need, 3600);
-    if (!error) data.forEach((d) => d.signedUrl && photoUrls.set(d.path, { url: d.signedUrl, until: now + 50 * 60e3 }));
+    const { data, error } = await sb.storage.from(bucket).createSignedUrls(need, 3600);
+    if (!error) data.forEach((d) => d.signedUrl && photoUrls.set(`${bucket}:${d.path}`, { url: d.signedUrl, until: now + 50 * 60e3 }));
   }
-  return Object.fromEntries(paths.filter(Boolean).map((p) => [p, photoUrls.get(p)?.url]));
+  return Object.fromEntries(paths.filter(Boolean).map((p) => [p, photoUrls.get(`${bucket}:${p}`)?.url]));
 }
-const photoUrl = async (path) => (path ? (await photoUrlsFor([path]))[path] : null);
+const photoUrl = async (path, kind = 'tool') => (path ? (await photoUrlsFor([path], kind))[path] : null);
 
 // Phone and iPad photos are several MB; shrink to a sharp ~1280px JPEG first.
 async function shrinkImage(file, max = 1280) {
@@ -1575,21 +1589,48 @@ async function shrinkImage(file, max = 1280) {
   }
 }
 
-async function setToolPhoto(tool, file) {
-  const old = tool.photo_path;
-  const path = `${tool.id}/${Date.now()}.jpg`;
+async function setPhoto(kind, rec, file) {
+  const { bucket, table } = PHOTO_KIND[kind];
+  const old = rec.photo_path;
+  const path = `${rec.id}/${Date.now()}.jpg`;
   const blob = await shrinkImage(file);
-  const { error } = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: 'image/jpeg' });
+  const { error } = await sb.storage.from(bucket).upload(path, blob, { contentType: 'image/jpeg' });
   if (error) throw new Error(error.message);
-  await q(sb.from('tools').update({ photo_path: path }).eq('id', tool.id).select());
-  if (old) await sb.storage.from(PHOTO_BUCKET).remove([old]);
+  await q(sb.from(table).update({ photo_path: path }).eq('id', rec.id).select());
+  if (old) await sb.storage.from(bucket).remove([old]);
 }
 
-async function clearToolPhoto(tool) {
-  const old = tool.photo_path;
-  await q(sb.from('tools').update({ photo_path: null }).eq('id', tool.id).select());
-  if (old) await sb.storage.from(PHOTO_BUCKET).remove([old]);
+async function clearPhoto(kind, rec) {
+  const { bucket, table } = PHOTO_KIND[kind];
+  const old = rec.photo_path;
+  await q(sb.from(table).update({ photo_path: null }).eq('id', rec.id).select());
+  if (old) await sb.storage.from(bucket).remove([old]);
 }
+
+// The photo area on a tool or item page, with admin buttons to change it.
+const photoBlock = (rec, url) => `
+    <div class="tool-photo-block">
+      ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener"><img class="tool-photo" src="${esc(url)}" alt="Photo of ${esc(rec.name)}"></a>`
+        : `<div class="tool-photo empty">${PHOTO_ICON}<span>No photo yet</span></div>`}
+      ${isAdmin() ? `<div class="row">
+        <label class="btn small file-btn">${PHOTO_ICON}<span>${url ? 'Change photo' : 'Add photo'}</span><input type="file" id="photo" accept="image/*" hidden></label>
+        ${rec.photo_path ? '<button class="btn small" id="photo-remove">Remove photo</button>' : ''}</div>` : ''}
+    </div>`;
+function bindPhotoBlock(kind, rec) {
+  app.querySelector('#photo')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const label = e.target.closest('label');
+    label.classList.add('busy');
+    label.querySelector('span').textContent = 'Uploading…';
+    try { await setPhoto(kind, rec, file); toast('Photo saved'); route(); } catch (err) { toast(errMsg(err), true); route(); }
+  });
+  app.querySelector('#photo-remove')?.addEventListener('click', async () => {
+    if (!(await askConfirm(`Remove the photo of ${rec.name}?`, { ok: 'Remove', danger: true }))) return;
+    try { await clearPhoto(kind, rec); toast('Photo removed'); route(); } catch (err) { toast(errMsg(err), true); }
+  });
+}
+const thumb = (url) => (url ? `<img class="thumb" src="${esc(url)}" alt="">` : '<span class="thumb empty"></span>');
 
 const PHOTO_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
 
@@ -1656,7 +1697,7 @@ async function renderToolList() {
     const rows = show.filter((t) => (!f || `${t.name} ${t.code} ${t.location} ${t.category || ''}`.toLowerCase().includes(f))
       && (!cat || (cat === '__none' ? !t.category : t.category === cat)));
     app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Tool</th><th>Category</th><th>Status</th><th>With</th></tr>
-      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${photos[t.photo_path] ? `<img class="thumb" src="${esc(photos[t.photo_path])}" alt="">` : '<span class="thumb empty"></span>'}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td>${esc(t.category || '')}</td><td>${statusCell(t)}</td><td>${withCell(t)}</td></tr>`).join('')
+      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${thumb(photos[t.photo_path])}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td>${esc(t.category || '')}</td><td>${statusCell(t)}</td><td>${withCell(t)}</td></tr>`).join('')
       || '<tr><td colspan="5" class="muted">No tools yet.</td></tr>'}`;
   };
   app.querySelector('#catfilter').addEventListener('change', paint);
@@ -1674,7 +1715,7 @@ async function renderToolList() {
       const [row] = await q(sb.from('tools').insert(toolFields(f)).select());
       const photo = f.get('photo');
       if (photo?.size) {
-        try { await setToolPhoto(row, photo); } catch (err) { toast(`Added ${row.name}, but the photo didn't upload: ${errMsg(err)}`, true); return route(); }
+        try { await setPhoto('tool', row, photo); } catch (err) { toast(`Added ${row.name}, but the photo didn't upload: ${errMsg(err)}`, true); return route(); }
       }
       toast(`Added ${row.name} as ${row.code}`);
       route();
@@ -1699,13 +1740,7 @@ async function renderTool(id) {
   app.innerHTML = `
     <p><a href="#/toollist">← Tools</a></p>
     <h1>${esc(t.name)} <span class="code muted">${esc(t.code)}</span></h1>
-    <div class="tool-photo-block">
-      ${photo ? `<a href="${esc(photo)}" target="_blank" rel="noopener"><img class="tool-photo" src="${esc(photo)}" alt="Photo of ${esc(t.name)}"></a>`
-        : `<div class="tool-photo empty">${PHOTO_ICON}<span>No photo yet</span></div>`}
-      ${isAdmin() ? `<div class="row">
-        <label class="btn small file-btn">${PHOTO_ICON}<span>${photo ? 'Change photo' : 'Add photo'}</span><input type="file" id="photo" accept="image/*" hidden></label>
-        ${t.photo_path ? '<button class="btn small" id="photo-remove">Remove photo</button>' : ''}</div>` : ''}
-    </div>
+    ${photoBlock(t, photo)}
     <div class="stats">
       <div class="stat"><b><span class="pill ${t.status}">${t.status}</span></b><span>status</span></div>
       <div class="stat"><b>${esc(t.category || '—')}</b><span>category</span></div>
@@ -1725,18 +1760,7 @@ async function renderTool(id) {
       ${hist.map((c) => `<tr><td>${esc(who[c.borrower_id])}${xQty(c.qty)}</td><td>${fmtDate(c.checked_out_at)}</td><td>${c.returned_at ? fmtDate(c.returned_at) : '<span class="pill out">still out</span>'}</td><td>${c.return_condition ? `<span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}</td><td>${esc([c.out_note, c.return_note].filter(Boolean).join(' / '))}</td></tr>`).join('')
       || '<tr><td colspan="5" class="muted">Never signed out.</td></tr>'}</table></div>`;
 
-  app.querySelector('#photo')?.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const label = e.target.closest('label');
-    label.classList.add('busy');
-    label.querySelector('span').textContent = 'Uploading…';
-    try { await setToolPhoto(t, file); toast('Photo saved'); route(); } catch (err) { toast(errMsg(err), true); route(); }
-  });
-  app.querySelector('#photo-remove')?.addEventListener('click', async () => {
-    if (!(await askConfirm(`Remove the photo of ${t.name}?`, { ok: 'Remove', danger: true }))) return;
-    try { await clearToolPhoto(t); toast('Photo removed'); route(); } catch (err) { toast(errMsg(err), true); }
-  });
+  bindPhotoBlock('tool', t);
   app.querySelector('#set-status')?.addEventListener('click', async () => {
     try { await rpc('set_tool_status', { p_tool: t.id, p_status: app.querySelector('#status').value }); toast('Status updated'); route(); } catch (err) { toast(errMsg(err), true); }
   });
