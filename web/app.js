@@ -1395,7 +1395,7 @@ const stockKind = (c) => (STOCK[c] ? c : 'facilities');
 // counts toward that color's total gallons.
 const PAINT_SIZES = [5, 1];
 const SHEENS = ['Flat', 'Matte', 'Eggshell', 'Satin', 'Semi-Gloss', 'Gloss'];
-const PAINT_USE = { interior: 'Interior', exterior: 'Exterior' };
+const PAINT_USE = { interior: 'Interior', exterior: 'Exterior', roof: 'Roof' };
 const paintTags = (i) => [i.paint_use ? PAINT_USE[i.paint_use] : '', i.sheen || ''].filter(Boolean).join(' · ');
 const PAINT_FILLS = [[1, 'Full'], [0.75, '¾ full'], [0.5, '½ full'], [0.25, '¼ full']];
 const canLabel = (size, fill) => `${Number(size)} gal ${Number(fill) === 1 ? 'full' : `${{ 0.75: '¾', 0.5: '½', 0.25: '¼' }[Number(fill)]} full`}`;
@@ -1511,7 +1511,7 @@ function itemForm(it = {}, locations = []) {
       ${it.id ? '' : '<label style="width:150px" data-for="facilities maintenance events" title="How many boxes/packs you have now; singles can be counted later">Starting boxes <input name="start" type="number" min="0" value="0"></label>'}
       <label style="width:140px" data-for="${HAS_COST.join(' ')}" title="What one box/pack costs (or one item, if it isn't sold in packs)">Cost ($) <input name="unit_cost" type="number" min="0" step="0.01" placeholder="per box/pack" value="${it.unit_cost ?? ''}"></label>
       <label style="flex:1;min-width:180px" data-for="${HAS_SUBCAT.join(' ')}">Category ${categorySelect('maintenance', it.subcategory, 'subcategory')}</label>
-      <label style="width:150px" data-for="paint">Interior / exterior <select name="paint_use"><option value="">—</option>${Object.entries(PAINT_USE).map(([v, l]) => `<option value="${v}" ${it.paint_use === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      <label style="width:150px" data-for="paint">Use <select name="paint_use"><option value="">—</option>${Object.entries(PAINT_USE).map(([v, l]) => `<option value="${v}" ${it.paint_use === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <label style="width:150px" data-for="paint">Sheen <select name="sheen"><option value="">—</option>${SHEENS.map((x) => `<option ${it.sheen === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
     </div>
     <label style="margin-top:12px">Description <input name="description" value="${esc(it.description)}"></label>`;
@@ -1646,7 +1646,7 @@ async function renderPaint() {
       <div style="margin-top:14px"><button class="btn primary">Add color</button></div></form></details>` : ''}
     <div class="row" style="margin-bottom:12px">
       <input id="filter" placeholder="Search color, code or location…" style="flex:1;min-width:200px">
-      <select id="usefilter"><option value="">Interior & exterior</option>${Object.entries(PAINT_USE).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>
+      <select id="usefilter"><option value="">All uses</option>${Object.entries(PAINT_USE).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>
       <select id="sheenfilter"><option value="">All sheens</option>${SHEENS.map((x) => `<option>${x}</option>`).join('')}</select>
       <label class="row" style="flex-direction:row;align-items:center"><input type="checkbox" id="lowonly"> Low only</label>
       <button class="btn" id="csv">Export CSV</button>
@@ -1724,7 +1724,7 @@ async function renderItem(id) {
     ${isPaint ? `<div class="stats">
       <div class="stat"><b>${gal(paint.gallons)}</b><span>on hand</span></div>
       <div class="stat"><b>${paint.cans}</b><span>can${paint.cans === 1 ? '' : 's'}</span></div>
-      <div class="stat"><b>${it.paint_use ? PAINT_USE[it.paint_use] : '—'}</b><span>interior / exterior</span></div>
+      <div class="stat"><b>${it.paint_use ? PAINT_USE[it.paint_use] : '—'}</b><span>use</span></div>
       <div class="stat"><b>${esc(it.sheen || '—')}</b><span>sheen</span></div>
       <div class="stat"><b>${it.reorder_level ? gal(it.reorder_level) : '—'}</b><span>reorder at</span></div>
       <div class="stat"><b>${esc(it.location || '—')}</b><span>location</span></div>
