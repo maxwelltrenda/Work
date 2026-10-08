@@ -1,6 +1,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
 import { SUPABASE_URL, SUPABASE_KEY, APP_NAME } from './config.js';
 import './select.js';
+import { openCamera } from './camera.js';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app');
@@ -59,16 +60,23 @@ const ALL_PAGES = [
 ];
 const ROLES = {
   admin: { label: 'Admin', act: true, home: 'kiosk', stock: ['facilities', 'events'], tools: true,
+    scanStock: ['facilities', 'events'], scanTools: true,
     pages: [...ALL_PAGES.map(([k]) => k), 'item', 'tool', 'event'] },
   kiosk: { label: 'Kiosk (shared iPad)', act: true, home: 'kiosk', stock: ['facilities', 'events'], tools: true,
+    scanStock: ['facilities', 'events'], scanTools: true,
     pages: ['kiosk', 'out', 'events', 'event'] },
-  member: { label: 'Facilities & Maintenance', act: false, home: 'items/facilities', stock: ['facilities'], tools: true,
-    pages: ['items/facilities', 'toollist', 'out', 'history', 'item', 'tool'] },
-  maintenance: { label: 'Maintenance manager', act: false, home: 'toollist', stock: [], tools: true,
-    pages: ['toollist', 'out', 'history', 'tool'] },
-  custodian: { label: 'Custodian manager', act: false, home: 'items/facilities', stock: ['facilities'], tools: false,
-    pages: ['items/facilities', 'history', 'item'] },
+  // Team roles scan their own area from their own login (phone camera or scanner).
+  member: { label: 'Facilities & Maintenance', act: false, home: 'kiosk', stock: ['facilities'], tools: true,
+    scanStock: ['facilities'], scanTools: true,
+    pages: ['kiosk', 'items/facilities', 'toollist', 'out', 'history', 'item', 'tool'] },
+  maintenance: { label: 'Maintenance manager', act: false, home: 'kiosk', stock: [], tools: true,
+    scanStock: [], scanTools: true,
+    pages: ['kiosk', 'toollist', 'out', 'history', 'tool'] },
+  custodian: { label: 'Custodian manager', act: false, home: 'kiosk', stock: ['facilities'], tools: false,
+    scanStock: ['facilities'], scanTools: false,
+    pages: ['kiosk', 'items/facilities', 'history', 'item'] },
   oversight: { label: 'Oversight', act: false, home: 'out', stock: ['facilities', 'events'], tools: true,
+    scanStock: [], scanTools: false,
     pages: ['out', 'events', 'items/facilities', 'items/events', 'toollist', 'history', 'locations', 'item', 'tool', 'event'] },
 };
 const ROLE_ORDER = ['member', 'maintenance', 'custodian', 'oversight', 'admin', 'kiosk'];
@@ -524,7 +532,12 @@ async function renderKiosk() {
   app.innerHTML = `
     <div class="kiosk">
       <div id="k-who"></div>
-      <input id="scan" class="scanbox" placeholder="Scan a tool, item or name label…" autocomplete="off" autocapitalize="characters">
+      <div class="scanrow">
+        <input id="scan" class="scanbox" placeholder="${isKiosk() ? 'Scan a tool, item or name label…' : `Scan ${[myRole().scanTools && 'a tool', myRole().scanStock.length && 'stock'].filter(Boolean).join(' or ')}…`}" autocomplete="off" autocapitalize="characters">
+        <button class="btn primary cam-btn" id="cam" type="button" title="Use this device's camera as the scanner">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <span>Scan with camera</span></button>
+      </div>
       <div id="status"></div>
       <div id="k-panel"></div>
       <h2>This session</h2>
@@ -603,7 +616,7 @@ async function renderKiosk() {
               ${events.map((e) => `<option value="${e.id}" ${k.event?.id === e.id ? 'selected' : ''}>${esc(e.name)}${e.starts_on ? ` · ${new Date(`${e.starts_on}T12:00`).toLocaleDateString([], { month: 'short', day: 'numeric' })}` : ''}</option>`).join('')}
             </select></label>
         </div>` : ''}
-        <h2>Stock items</h2>
+        ${myRole().scanStock.length ? `<h2>Stock items</h2>
         <div class="row" style="align-items:center">
           <div class="modes" id="k-mode">
             <button class="btn out ${k.mode === 'out' ? 'on' : ''}" data-mode="out">Taking</button>
@@ -615,7 +628,8 @@ async function renderKiosk() {
             <button class="btn" data-step="1">+</button>
           </div>
         </div>
-        <p class="scan-hint">Tools: scan to sign out, scan again later to return. Items: set the quantity, then scan.</p>
+        ` : ''}
+        <p class="scan-hint">${[myRole().scanTools && 'Tools: scan to sign out, scan again later to return.', myRole().scanStock.length && 'Stock: set the quantity, then scan.'].filter(Boolean).join(' ')}</p>
       </div>`;
     el.querySelector('#k-done').addEventListener('click', () => { endSession(); show('ok', 'All set — thanks!'); });
     // A location and an event are alternatives: picking one clears the other.
@@ -646,7 +660,7 @@ async function renderKiosk() {
       paintWho(); resetIdle(); scan.focus();
     }));
     const qtyEl = el.querySelector('#k-qty');
-    qtyEl.addEventListener('change', () => { k.qty = Math.max(1, parseInt(qtyEl.value, 10) || 1); qtyEl.value = k.qty; });
+    qtyEl?.addEventListener('change', () => { k.qty = Math.max(1, parseInt(qtyEl.value, 10) || 1); qtyEl.value = k.qty; });
     el.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', () => {
       k.qty = Math.max(1, k.qty + Number(b.dataset.step));
       qtyEl.value = k.qty;
@@ -739,10 +753,16 @@ async function renderKiosk() {
     }
 
     beep(false);
+    if (hit.kind === 'hidden') return show('err', "That isn't in your area — you can only scan your own things.");
     show('err', `Unknown barcode: ${esc(code)}`);
   }
 
   bindScanner(scan, onScan);
+  app.querySelector('#cam').addEventListener('click', () => openCamera(async (code) => {
+    await onScan(code);
+    const box = status.querySelector('.big-status');
+    return { ok: !box?.classList.contains('err'), text: box?.textContent.replace(/\s+/g, ' ').trim() };
+  }));
   paintWho();
   paintLog();
   resetIdle();

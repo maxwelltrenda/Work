@@ -336,3 +336,20 @@ tr.overdue td { background: #fbefec; }
   .stat b { font-size: 28px; }
 }
 .dd-opt.action + .dd-opt.action { border-top: 0; margin-top: 0; padding-top: 9px; }
+
+/* ---------- Camera scanner ---------- */
+.scanrow { display: flex; gap: 10px; align-items: stretch; }
+.scanrow .scanbox { flex: 1; min-width: 0; }
+.cam-btn { flex: none; border-radius: 14px; padding: 0 18px; font-size: 16px; }
+.cam-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(20, 28, 34, .82); display: flex; align-items: center; justify-content: center; padding: 16px; animation: fade-up .2s ease both; }
+.cam-box { width: min(560px, 100%); background: var(--card); border-radius: 18px; padding: 16px; box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .5); }
+.cam-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+#cam-view { width: 100%; min-height: 240px; border-radius: 12px; overflow: hidden; background: #111; }
+#cam-view video { width: 100% !important; height: auto !important; display: block; }
+.cam-msg { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--paper-2); color: var(--body); font-size: 16px; min-height: 48px; }
+.cam-msg.ok { background: var(--in-soft); color: #24452f; font-weight: 500; }
+.cam-msg.err { background: var(--bad-soft); color: #6a2020; font-weight: 500; }
+@media (max-width: 760px) {
+  .scanrow { flex-direction: column; }
+  .cam-btn { min-height: 54px; }
+}

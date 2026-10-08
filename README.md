@@ -48,12 +48,14 @@ Codes are assigned automatically when you add something. Print them from the **L
 |---|---|---|
 | **Admin** | Everything | Yes: edits, scans, labels, people, locations |
 | **Kiosk** | Check In / Out, Who Has What, Events | Scans and check-ins/outs for whoever taps their name |
-| **Facilities & Maintenance** (member) | Facilities stock, tools, and their history | View only |
-| **Maintenance manager** | Tools, Who Has What, tool history | View only |
-| **Custodian manager** | Facilities stock and its history | View only |
+| **Facilities & Maintenance** (member) | Facilities stock, tools, and their history | Scans their own area: tools and facilities stock |
+| **Maintenance manager** | Tools, Who Has What, tool history | Scans their own area: checks tools out and in |
+| **Custodian manager** | Facilities stock and its history | Scans their own area: takes and puts back facilities stock |
 | **Oversight** | Everything we have, where it is, all check-ins/outs | View only |
 
-These rules are enforced in the database, not just hidden on screen. Anyone on the team list can still check things out at the warehouse iPad by tapping their name.
+These rules are enforced in the database, not just hidden on screen. Editing items, counts, people and settings is admin-only. Anyone on the team list can still check things out at the warehouse iPad by tapping their name.
+
+**Phone camera:** on **Check In / Out**, **Scan with camera** turns any phone or tablet camera into a barcode scanner, with nothing to install. The first time, the browser asks for camera permission.
 
 ## Warehouse iPad (shared kiosk)
 
