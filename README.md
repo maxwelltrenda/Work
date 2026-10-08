@@ -9,6 +9,8 @@ A private web app for your team that tracks four things:
 3. **Event stock**: supplies that go out to events. Same scanning, and each event shows what was taken, brought back and used.
 4. **Tools**: scan a name label and a tool to sign it out, and scan the tool again to return it. You always know who has what.
 
+Facilities and maintenance stock can have a **cost** (per box/pack, or per item if it isn't sold in packs). Each list then shows the cost, the value of what's on hand, and a total value. Maintenance stock also has a **category** (Plumbing, Electrical, Paint & Caulk…) you can filter by. Type a new category to add one.
+
 Quantities are plain counts (no units). An item can have a **per box/pack** number (e.g. a box of paper towels holds 6 rolls). You still scan and count boxes, and the app also shows the total pieces (3 boxes × 6 = 18). Every item and tool has a **location** picked from a shared dropdown. Admins can add a new location right from the dropdown.
 
 It works with any USB or Bluetooth barcode scanner (they act like a keyboard) and prints its own Code 128 barcode labels on a label printer.

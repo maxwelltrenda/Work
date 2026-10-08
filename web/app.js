@@ -1172,6 +1172,16 @@ const STOCK = {
   events: { title: 'Event <span class="accent">stock</span>', plain: 'Event stock', eyebrow: 'Stock room', hash: '#/items/events' },
 };
 const stockKind = (c) => (STOCK[c] ? c : 'facilities');
+// Cost is tracked for facilities and maintenance stock; categories for maintenance.
+const HAS_COST = ['facilities', 'maintenance'];
+const HAS_SUBCAT = ['maintenance'];
+const SUBCAT_SUGGESTIONS = ['Plumbing', 'Electrical', 'Paint & Caulk', 'Cleaning & Chemicals', 'HVAC & Filters', 'Hardware & Fasteners', 'Lighting', 'Lubricants'];
+let knownSubcats = [];
+const rememberSubcats = (items) => {
+  knownSubcats = [...new Set([...items.map((i) => i.subcategory).filter(Boolean), ...SUBCAT_SUGGESTIONS])].sort((a, b) => a.localeCompare(b));
+};
+const money = (n) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const stockValue = (i) => (i.unit_cost == null ? 0 : i.quantity * Number(i.unit_cost));
 // Total pieces: e.g. 3 boxes × 6 rolls = 18.
 const pieces = (i) => i.quantity * (i.pack_size || 1);
 const packNote = (i) => ((i.pack_size || 1) > 1 ? ` (${i.pack_size} each = ${pieces(i).toLocaleString()} total)` : '');
@@ -1226,14 +1236,27 @@ function itemForm(it = {}, locations = []) {
       <label style="width:130px" title="How many pieces one box/pack holds, e.g. 6 rolls in a box of paper towels. Leave 1 for single items.">Per box/pack <input name="pack_size" type="number" min="1" value="${it.pack_size ?? 1}"></label>
       <label style="width:120px">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
       ${it.id ? '' : '<label style="width:120px">Starting qty <input name="start" type="number" min="0" value="0"></label>'}
+      <label style="width:140px" data-for="${HAS_COST.join(' ')}" title="What one box/pack costs (or one item, if it isn't sold in packs)">Cost ($) <input name="unit_cost" type="number" min="0" step="0.01" placeholder="per box/pack" value="${it.unit_cost ?? ''}"></label>
+      <label style="flex:1;min-width:180px" data-for="${HAS_SUBCAT.join(' ')}">Category <input name="subcategory" list="subcat-list" placeholder="e.g. Plumbing" value="${esc(it.subcategory)}" autocomplete="off"></label>
     </div>
+    <datalist id="subcat-list">${knownSubcats.map((c) => `<option value="${esc(c)}">`).join('')}</datalist>
     <label style="margin-top:12px">Description <input name="description" value="${esc(it.description)}"></label>`;
+}
+
+// Show the cost / category fields only for stock types that use them.
+function bindItemForm(form) {
+  const type = form.querySelector('select[name="category"]');
+  const sync = () => form.querySelectorAll('[data-for]').forEach((el) => { el.hidden = !el.dataset.for.split(' ').includes(type.value); });
+  type.addEventListener('change', sync);
+  sync();
 }
 
 const itemFields = (f) => ({
   name: f.get('name').trim(), location: f.get('location') || null, category: f.get('category'),
   reorder_level: parseInt(f.get('reorder_level'), 10) || 0, description: f.get('description').trim() || null,
   pack_size: Math.max(1, parseInt(f.get('pack_size'), 10) || 1),
+  unit_cost: HAS_COST.includes(f.get('category')) && f.get('unit_cost') !== '' ? Number(f.get('unit_cost')) : null,
+  subcategory: HAS_SUBCAT.includes(f.get('category')) ? f.get('subcategory').trim() || null : null,
 });
 
 async function renderItems(category) {
@@ -1245,6 +1268,11 @@ async function renderItems(category) {
   const low = show.filter((i) => i.reorder_level > 0 && i.quantity <= i.reorder_level);
   const total = show.reduce((s, i) => s + pieces(i), 0);
   const hasPacks = show.some((i) => (i.pack_size || 1) > 1);
+  const hasCost = HAS_COST.includes(kind);
+  const hasSubcat = HAS_SUBCAT.includes(kind);
+  const value = show.reduce((s, i) => s + stockValue(i), 0);
+  rememberSubcats(all);
+  const subcats = [...new Set(show.map((i) => i.subcategory).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   app.innerHTML = `
     ${pageHead(meta.eyebrow, meta.title)}
@@ -1252,10 +1280,12 @@ async function renderItems(category) {
       <div class="stat"><b>${show.length}</b><span>items</span></div>
       <div class="stat"><b>${total.toLocaleString()}</b><span>${hasPacks ? 'pieces on hand in total' : 'on hand in total'}</span></div>
       <div class="stat"><b style="color:${low.length ? 'var(--warn)' : 'inherit'}">${low.length}</b><span>at or below reorder level</span></div>
+      ${hasCost ? `<div class="stat"><b>${value ? money(value) : '—'}</b><span>value on hand</span></div>` : ''}
     </div>
     ${isAdmin() ? `<details class="card"><summary><b>Add ${meta.plain.toLowerCase()}</b></summary><form id="add" style="margin-top:14px">${itemForm({ category: kind }, locations)}<div style="margin-top:14px"><button class="btn primary">Add item</button></div></form></details>` : ''}
     <div class="row" style="margin-bottom:12px">
       <input id="filter" placeholder="Search name, code or location…" style="flex:1;min-width:200px">
+      ${hasSubcat ? `<select id="catfilter"><option value="">All categories</option>${subcats.map((c) => `<option>${esc(c)}</option>`).join('')}${show.some((i) => !i.subcategory) ? '<option value="__none">No category</option>' : ''}</select>` : ''}
       <select id="locfilter"><option value="">All locations</option>${locations.map((l) => `<option>${esc(l.name)}</option>`).join('')}</select>
       <label class="row" style="flex-direction:row;align-items:center"><input type="checkbox" id="lowonly"> Low only</label>
       <button class="btn" id="csv">Export CSV</button>
@@ -1268,12 +1298,16 @@ async function renderItems(category) {
     const f = app.querySelector('#filter').value.toLowerCase();
     const loc = app.querySelector('#locfilter').value;
     const lowOnly = app.querySelector('#lowonly').checked;
-    const rows = show.filter((i) => (!f || `${i.name} ${i.code} ${i.location} ${i.description}`.toLowerCase().includes(f))
-      && (!loc || i.location === loc) && (!lowOnly || low.includes(i)));
-    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Item</th><th>Location</th><th class="num">On hand</th>${hasPacks ? '<th class="num">Per pack</th><th class="num">Total</th>' : ''}<th class="num">Reorder at</th></tr>
-      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a href="#/item/${i.id}">${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td>${hasPacks ? `<td class="num">${(i.pack_size || 1) > 1 ? `× ${i.pack_size}` : ''}</td><td class="num"><b>${pieces(i).toLocaleString()}</b></td>` : ''}<td class="num">${i.reorder_level || ''}</td></tr>`).join('')
-      || `<tr><td colspan="${hasPacks ? 7 : 5}" class="muted">No ${meta.plain.toLowerCase()} yet.</td></tr>`}`;
+    const cat = app.querySelector('#catfilter')?.value || '';
+    const rows = show.filter((i) => (!f || `${i.name} ${i.code} ${i.location} ${i.description} ${i.subcategory || ''}`.toLowerCase().includes(f))
+      && (!loc || i.location === loc) && (!lowOnly || low.includes(i))
+      && (!cat || (cat === '__none' ? !i.subcategory : i.subcategory === cat)));
+    const cols = 5 + (hasSubcat ? 1 : 0) + (hasPacks ? 2 : 0) + (hasCost ? 2 : 0);
+    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Item</th>${hasSubcat ? '<th>Category</th>' : ''}<th>Location</th><th class="num">On hand</th>${hasPacks ? '<th class="num">Per pack</th><th class="num">Total</th>' : ''}${hasCost ? '<th class="num">Cost</th><th class="num">Value</th>' : ''}<th class="num">Reorder at</th></tr>
+      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a href="#/item/${i.id}">${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td>${hasSubcat ? `<td>${esc(i.subcategory || '')}</td>` : ''}<td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td>${hasPacks ? `<td class="num">${(i.pack_size || 1) > 1 ? `× ${i.pack_size}` : ''}</td><td class="num"><b>${pieces(i).toLocaleString()}</b></td>` : ''}${hasCost ? `<td class="num">${i.unit_cost != null ? money(i.unit_cost) : ''}</td><td class="num">${i.unit_cost != null ? money(stockValue(i)) : ''}</td>` : ''}<td class="num">${i.reorder_level || ''}</td></tr>`).join('')
+      || `<tr><td colspan="${cols}" class="muted">No ${meta.plain.toLowerCase()} yet.</td></tr>`}`;
   };
+  app.querySelector('#catfilter')?.addEventListener('change', paint);
   app.querySelector('#filter').addEventListener('input', paint);
   app.querySelector('#locfilter').addEventListener('change', paint);
   app.querySelector('#lowonly').addEventListener('change', paint);
@@ -1283,11 +1317,13 @@ async function renderItems(category) {
     openPdf(buildSheetPdf(stockSheetRows(all, kind), meta.plain.charAt(0).toUpperCase() + meta.plain.slice(1)));
   });
   app.querySelector('#csv').addEventListener('click', () => downloadCsv(`${kind}-stock.csv`, show.map((i) => ({
-    code: i.code, name: i.name, location: i.location, on_hand: i.quantity, per_pack: i.pack_size || 1, total_pieces: pieces(i), reorder_at: i.reorder_level, description: i.description,
+    code: i.code, name: i.name, ...(hasSubcat ? { category: i.subcategory || '' } : {}), location: i.location, on_hand: i.quantity, per_pack: i.pack_size || 1, total_pieces: pieces(i),
+    ...(hasCost ? { cost: i.unit_cost ?? '', value: i.unit_cost != null ? stockValue(i).toFixed(2) : '' } : {}), reorder_at: i.reorder_level, description: i.description,
   }))));
   const add = app.querySelector('#add');
   if (add) {
     bindLocationSelects(add);
+    bindItemForm(add);
     add.addEventListener('submit', async (e) => {
       e.preventDefault();
       const f = new FormData(e.target);
@@ -1304,13 +1340,15 @@ async function renderItems(category) {
 }
 
 async function renderItem(id) {
-  const [[it], tx, members, locations] = await Promise.all([
+  const [[it], tx, members, locations, allItems] = await Promise.all([
     q(sb.from('items').select('*').eq('id', id)),
     q(sb.from('item_transactions').select('*').eq('item_id', id).order('created_at', { ascending: false }).limit(300)),
     loadMembers(),
     loadLocations(),
+    loadItems(),
   ]);
   if (!it) throw new Error('Item not found');
+  rememberSubcats(allItems);
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const meta = STOCK[stockKind(it.category)];
 
@@ -1322,6 +1360,9 @@ async function renderItem(id) {
       ${(it.pack_size || 1) > 1 ? `<div class="stat"><b>${pieces(it).toLocaleString()}</b><span>pieces in total</span></div>` : ''}
       <div class="stat"><b>${it.reorder_level || '—'}</b><span>reorder at</span></div>
       <div class="stat"><b>${esc(it.location || '—')}</b><span>location</span></div>
+      ${HAS_SUBCAT.includes(it.category) ? `<div class="stat"><b>${esc(it.subcategory || '—')}</b><span>category</span></div>` : ''}
+      ${HAS_COST.includes(it.category) ? `<div class="stat"><b>${it.unit_cost != null ? money(it.unit_cost) : '—'}</b><span>cost${(it.pack_size || 1) > 1 ? ' per pack' : ''}</span></div>
+      <div class="stat"><b>${it.unit_cost != null ? money(stockValue(it)) : '—'}</b><span>value on hand</span></div>` : ''}
     </div>
     <div class="row" style="margin-bottom:16px">${canAct() ? `<a class="btn" href="#/labels/${stockKind(it.category)}/${it.id}">Print label</a>` : ''}
       <span class="muted" style="align-self:center;font-size:14px">${it.label_printed_at ? `Label printed ${fmtDate(it.label_printed_at)}` : 'Label not printed yet'}</span></div>
@@ -1336,6 +1377,7 @@ async function renderItem(id) {
   const edit = app.querySelector('#edit');
   if (edit) {
     bindLocationSelects(edit);
+    bindItemForm(edit);
     edit.addEventListener('submit', async (e) => {
       e.preventDefault();
       try {

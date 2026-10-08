@@ -416,3 +416,5 @@ tr.overdue td { background: #fbefec; }
 .cond-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .cond-grid .btn.big { min-width: 0; }
 @media (max-width: 560px) { .cond-grid { grid-template-columns: 1fr; } .place-grid { grid-template-columns: 1fr 1fr; } }
+
+[hidden] { display: none !important; }
