@@ -55,29 +55,29 @@ const isKiosk = () => state.me?.role === 'kiosk';
 // database enforces the same rules (see 0008_view_roles.sql).
 const ALL_PAGES = [
   ['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
-  ['items/facilities', 'Facilities Stock'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
+  ['items/facilities', 'Facilities Stock'], ['items/maintenance', 'Maintenance Stock'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
   ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'],
 ];
 const ROLES = {
-  admin: { label: 'Admin', act: true, home: 'kiosk', stock: ['facilities', 'events'], tools: true,
-    scanStock: ['facilities', 'events'], scanTools: true,
+  admin: { label: 'Admin', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'events'], tools: true,
+    scanStock: ['facilities', 'maintenance', 'events'], scanTools: true,
     pages: [...ALL_PAGES.map(([k]) => k), 'item', 'tool', 'event'] },
-  kiosk: { label: 'Kiosk (shared iPad)', act: true, home: 'kiosk', stock: ['facilities', 'events'], tools: true,
-    scanStock: ['facilities', 'events'], scanTools: true,
+  kiosk: { label: 'Kiosk (shared iPad)', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'events'], tools: true,
+    scanStock: ['facilities', 'maintenance', 'events'], scanTools: true,
     pages: ['kiosk', 'out', 'events', 'event'] },
   // Team roles scan their own area from their own login (phone camera or scanner).
-  member: { label: 'Facilities & Maintenance', act: false, home: 'kiosk', stock: ['facilities'], tools: true,
-    scanStock: ['facilities'], scanTools: true,
-    pages: ['kiosk', 'items/facilities', 'toollist', 'out', 'history', 'item', 'tool'] },
-  maintenance: { label: 'Maintenance manager', act: false, home: 'kiosk', stock: [], tools: true,
-    scanStock: [], scanTools: true,
-    pages: ['kiosk', 'toollist', 'out', 'history', 'tool'] },
+  member: { label: 'Facilities & Maintenance', act: false, home: 'kiosk', stock: ['facilities', 'maintenance'], tools: true,
+    scanStock: ['facilities', 'maintenance'], scanTools: true,
+    pages: ['kiosk', 'items/facilities', 'items/maintenance', 'toollist', 'out', 'history', 'item', 'tool'] },
+  maintenance: { label: 'Maintenance manager', act: false, home: 'kiosk', stock: ['maintenance'], tools: true,
+    scanStock: ['maintenance'], scanTools: true,
+    pages: ['kiosk', 'items/maintenance', 'toollist', 'out', 'history', 'item', 'tool'] },
   custodian: { label: 'Custodian manager', act: false, home: 'kiosk', stock: ['facilities'], tools: false,
     scanStock: ['facilities'], scanTools: false,
     pages: ['kiosk', 'items/facilities', 'history', 'item'] },
-  oversight: { label: 'Oversight', act: false, home: 'out', stock: ['facilities', 'events'], tools: true,
+  oversight: { label: 'Oversight', act: false, home: 'out', stock: ['facilities', 'maintenance', 'events'], tools: true,
     scanStock: [], scanTools: false,
-    pages: ['out', 'events', 'items/facilities', 'items/events', 'toollist', 'history', 'locations', 'item', 'tool', 'event'] },
+    pages: ['out', 'events', 'items/facilities', 'items/maintenance', 'items/events', 'toollist', 'history', 'locations', 'item', 'tool', 'event'] },
 };
 const ROLE_ORDER = ['member', 'maintenance', 'custodian', 'oversight', 'admin', 'kiosk'];
 const myRole = () => ROLES[state.me?.role] || ROLES.member;
@@ -1038,6 +1038,7 @@ async function renderOut() {
 
 const STOCK = {
   facilities: { title: 'Facilities <span class="accent">stock</span>', plain: 'Facilities stock', eyebrow: 'Stock room', hash: '#/items/facilities' },
+  maintenance: { title: 'Maintenance <span class="accent">stock</span>', plain: 'Maintenance stock', eyebrow: 'Stock room', hash: '#/items/maintenance' },
   events: { title: 'Event <span class="accent">stock</span>', plain: 'Event stock', eyebrow: 'Stock room', hash: '#/items/events' },
 };
 const stockKind = (c) => (STOCK[c] ? c : 'facilities');
@@ -1090,6 +1091,7 @@ function itemForm(it = {}, locations = []) {
       ${locationSelect(locations, it.location)}
       <label style="width:150px">Stock type <select name="category">
         <option value="facilities" ${cat === 'facilities' ? 'selected' : ''}>Facilities</option>
+        <option value="maintenance" ${cat === 'maintenance' ? 'selected' : ''}>Maintenance</option>
         <option value="events" ${cat === 'events' ? 'selected' : ''}>Event</option></select></label>
       <label style="width:130px" title="How many pieces one box/pack holds, e.g. 6 rolls in a box of paper towels. Leave 1 for single items.">Per box/pack <input name="pack_size" type="number" min="1" value="${it.pack_size ?? 1}"></label>
       <label style="width:120px">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
@@ -1481,8 +1483,8 @@ async function renderPeople() {
   app.innerHTML = `
     ${pageHead('Team', 'People')}
     <p class="muted">Anyone with an email here can sign in (they create their own password with that email). People without an email can still use the warehouse iPad by tapping their name.
-      <b>Admins</b> can edit everything. The <b>Kiosk</b> (the shared iPad) checks anything in and out. <b>Facilities &amp; Maintenance</b> scans tools and facilities stock;
-      <b>Maintenance manager</b> scans tools; <b>Custodian manager</b> scans facilities stock; <b>Oversight</b> sees everything but changes nothing. Anyone can still check things out at the iPad by tapping their name.</p>
+      <b>Admins</b> can edit everything. The <b>Kiosk</b> (the shared iPad) checks anything in and out. <b>Facilities &amp; Maintenance</b> scans tools, facilities and maintenance stock;
+      <b>Maintenance manager</b> scans tools and maintenance stock; <b>Custodian manager</b> scans facilities stock; <b>Oversight</b> sees everything but changes nothing. Anyone can still check things out at the iPad by tapping their name.</p>
     ${isAdmin() ? `<div class="card"><form id="add" class="row">
       <label style="flex:1;min-width:160px">Name <input name="name" required></label>
       <label style="flex:1;min-width:200px">Email (for sign-in) <input name="email" type="email"></label>
@@ -1516,7 +1518,7 @@ async function renderPeople() {
       };
       if (!patch.name) return toast('Name is required', true);
       if (!patch.code) return toast('Label code is required', true);
-      if (/^(FAC|EVS|TL|CMD)-/.test(patch.code)) return toast('That label code looks like an item, tool or command code. Use something like P-012.', true);
+      if (/^(FAC|MNT|EVS|TL|CMD)-/.test(patch.code)) return toast('That label code looks like an item, tool or command code. Use something like P-012.', true);
       if (m.id !== state.me.id) {
         patch.role = f.get('role');
         patch.active = f.get('active') === 'true';
@@ -1770,6 +1772,7 @@ async function renderLabels(kind, id) {
   const [items, tools, members] = await Promise.all([loadItems(), loadTools(), loadMembers()]);
   const sources = {
     facilities: items.filter((i) => i.active && i.category === 'facilities').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
+    maintenance: items.filter((i) => i.active && i.category === 'maintenance').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
     events: items.filter((i) => i.active && i.category === 'events').map((i) => ({ id: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at })),
     people: people(members).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '', printed: m.label_printed_at })),
     tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.serial_number ? `S/N ${t.serial_number}` : '', printed: t.label_printed_at })),
@@ -1782,7 +1785,7 @@ async function renderLabels(kind, id) {
   };
   const tab = sources[kind] ? kind : 'facilities';
   // Which table remembers when these labels were printed (commands aren't tracked).
-  const trackKind = { facilities: 'item', events: 'item', tool: 'tool', people: 'person' }[tab];
+  const trackKind = { facilities: 'item', maintenance: 'item', events: 'item', tool: 'tool', people: 'person' }[tab];
   const unprinted = trackKind ? sources[tab].filter((r) => !r.printed).length : 0;
   const preselect = new Set(id ? [id] : []);
   const sizeKey = getPref('labelSize2', 'brother-62c');
@@ -1793,6 +1796,7 @@ async function renderLabels(kind, id) {
       <div class="row">
         <label>What <select id="kind">
           <option value="facilities" ${tab === 'facilities' ? 'selected' : ''}>Facilities stock</option>
+          <option value="maintenance" ${tab === 'maintenance' ? 'selected' : ''}>Maintenance stock</option>
           <option value="events" ${tab === 'events' ? 'selected' : ''}>Event stock</option>
           <option value="tool" ${tab === 'tool' ? 'selected' : ''}>Tools</option>
           <option value="people" ${tab === 'people' ? 'selected' : ''}>People (name labels)</option>
@@ -1874,7 +1878,7 @@ async function renderLabels(kind, id) {
     if (!rows.length) return toast('Select at least one label');
     if (!window.jspdf || !window.JsBarcode) return toast('Still loading — try again in a second', true);
     const copies = Math.min(20, Math.max(1, parseInt(app.querySelector('#copies').value, 10) || 1));
-    const title = { facilities: 'Facilities stock', events: 'Event stock', tool: 'Tools', people: 'Team', commands: 'Command barcodes' }[tab];
+    const title = { facilities: 'Facilities stock', maintenance: 'Maintenance stock', events: 'Event stock', tool: 'Tools', people: 'Team', commands: 'Command barcodes' }[tab];
     openPdf(buildSheetPdf(rows.flatMap((r) => Array(copies).fill(r)), title, app.querySelector('#per-page').value));
   });
 
