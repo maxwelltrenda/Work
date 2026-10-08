@@ -16,6 +16,7 @@ function sync(sel) {
   const opt = sel.options[sel.selectedIndex];
   dd.label.textContent = opt ? opt.textContent : '';
   dd.btn.classList.toggle('placeholder', !sel.value);
+  dd.btn.disabled = sel.disabled;
 }
 
 // Programmatic `select.value = …` fires no event, so keep the label in step.

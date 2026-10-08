@@ -1362,39 +1362,82 @@ async function renderHistory() {
 // People
 // ---------------------------------------------------------------------------
 
+function personForm(m) {
+  const self = m.id === state.me.id;
+  return `<form class="person-form" data-person-form="${m.id}">
+    <div class="row">
+      <label style="flex:1;min-width:160px">Name <input name="name" required value="${esc(m.name)}"></label>
+      <label style="flex:1;min-width:200px">Email (for sign-in) <input name="email" type="email" value="${esc(m.email)}"></label>
+      <label style="width:130px" title="The code on their printed name label">Label code <input name="code" required value="${esc(m.code)}" autocapitalize="characters"></label>
+      <label>Role <select name="role" ${self ? 'disabled' : ''}>${ROLE_ORDER.map((r) => `<option value="${r}" ${r === m.role ? 'selected' : ''}>${ROLES[r].label}</option>`).join('')}</select></label>
+      <label>Status <select name="active" ${self ? 'disabled' : ''}>
+        <option value="true" ${m.active ? 'selected' : ''}>Active</option>
+        <option value="false" ${m.active ? '' : 'selected'}>Deactivated</option></select></label>
+    </div>
+    <p class="muted" style="margin:10px 0 0">${self
+      ? "This is you. You can't change your own role or deactivate yourself; ask another admin."
+      : 'Changing the email means they sign in with the new address (they create a password for it the first time). Changing the label code means their name label needs reprinting.'}</p>
+    <div class="row" style="margin-top:12px"><button class="btn primary">Save</button><button type="button" class="btn" data-cancel>Cancel</button></div>
+  </form>`;
+}
+
 async function renderPeople() {
   const members = await loadMembers();
   app.innerHTML = `
     ${pageHead('Team', 'People')}
     <p class="muted">Anyone with an email here can sign in (they create their own password with that email). People without an email can still use the warehouse iPad by tapping their name.
-      Only <b>Admins</b> and the <b>Kiosk</b> (the shared iPad) can scan, check things in and out, or edit. Everyone else is view-only:
-      <b>Facilities &amp; Maintenance</b> sees facilities stock, tools and their history; <b>Maintenance manager</b> sees tools and tool history;
-      <b>Custodian manager</b> sees facilities stock and its history; <b>Oversight</b> sees everything. Anyone can still check things out at the iPad by tapping their name.</p>
+      <b>Admins</b> can edit everything. The <b>Kiosk</b> (the shared iPad) checks anything in and out. <b>Facilities &amp; Maintenance</b> scans tools and facilities stock;
+      <b>Maintenance manager</b> scans tools; <b>Custodian manager</b> scans facilities stock; <b>Oversight</b> sees everything but changes nothing. Anyone can still check things out at the iPad by tapping their name.</p>
     ${isAdmin() ? `<div class="card"><form id="add" class="row">
       <label style="flex:1;min-width:160px">Name <input name="name" required></label>
       <label style="flex:1;min-width:200px">Email (for sign-in) <input name="email" type="email"></label>
       <label>Role <select name="role">${ROLE_ORDER.map((r) => `<option value="${r}">${ROLES[r].label}</option>`).join('')}</select></label>
       <button class="btn primary">Add person</button></form></div>` : ''}
     <div class="table-wrap"><table><tr><th>Name</th><th>Label code</th><th>Email</th><th>Role</th><th></th></tr>
-      ${members.map((m) => `<tr style="${m.active ? '' : 'opacity:.5'}"><td>${esc(m.name)}</td><td class="code">${esc(m.code)}</td><td>${esc(m.email)}</td><td>${isAdmin() && m.id !== state.me.id ? `<select data-role="${m.id}">${ROLE_ORDER.map((r) => `<option value="${r}" ${r === m.role ? 'selected' : ''}>${ROLES[r].label}</option>`).join('')}</select>` : esc(ROLES[m.role]?.label || m.role)}</td>
-        <td>${isAdmin() && m.id !== state.me.id ? `
-          <button class="btn small" data-active="${m.id}">${m.active ? 'Deactivate' : 'Reactivate'}</button>
-          <button class="btn small" data-email="${m.id}">Edit email</button>` : ''}</td></tr>`).join('')}</table></div>
+      ${members.map((m) => `<tr style="${m.active ? '' : 'opacity:.5'}"><td>${esc(m.name)}${m.active ? '' : ' <span class="muted">(deactivated)</span>'}</td><td class="code">${esc(m.code)}</td><td>${esc(m.email)}</td><td>${esc(ROLES[m.role]?.label || m.role)}</td>
+        <td>${isAdmin() ? `<button class="btn small" data-edit="${m.id}">Edit</button>` : ''}</td></tr>
+        ${isAdmin() ? `<tr class="edit-row" id="edit-${m.id}" hidden><td colspan="5">${personForm(m)}</td></tr>` : ''}`).join('')}</table></div>
     <p><a class="btn" href="#/labels/people">Print name labels</a></p>`;
 
-  const update = async (id, patch) => {
-    try { await q(sb.from('team_members').update(patch).eq('id', id).select()); route(); } catch (err) { toast(errMsg(err), true); }
-  };
-  app.querySelectorAll('[data-role]').forEach((sel) => sel.addEventListener('change', () => update(sel.dataset.role, { role: sel.value })));
-  app.querySelectorAll('[data-active]').forEach((b) => b.addEventListener('click', () => {
-    const m = members.find((x) => x.id === b.dataset.active);
-    update(m.id, { active: !m.active });
+  app.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
+    const row = app.querySelector(`#edit-${b.dataset.edit}`);
+    row.hidden = !row.hidden;
+    if (!row.hidden) row.querySelector('input[name="name"]').focus();
   }));
-  app.querySelectorAll('[data-email]').forEach((b) => b.addEventListener('click', () => {
-    const m = members.find((x) => x.id === b.dataset.email);
-    const email = prompt(`Sign-in email for ${m.name} (leave blank for none):`, m.email || '');
-    if (email !== null) update(m.id, { email: email.trim().toLowerCase() || null });
-  }));
+  app.querySelectorAll('form[data-person-form]').forEach((form) => {
+    const m = members.find((x) => x.id === form.dataset.personForm);
+    form.querySelector('[data-cancel]').addEventListener('click', () => {
+      form.reset();
+      form.querySelectorAll('select').forEach((sel) => sel.dispatchEvent(new Event('change')));
+      form.closest('tr').hidden = true;
+    });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = new FormData(form);
+      const patch = {
+        name: f.get('name').trim(),
+        email: f.get('email').trim().toLowerCase() || null,
+        code: f.get('code').trim().toUpperCase(),
+      };
+      if (!patch.name) return toast('Name is required', true);
+      if (!patch.code) return toast('Label code is required', true);
+      if (/^(FAC|EVS|TL|CMD)-/.test(patch.code)) return toast('That label code looks like an item, tool or command code. Use something like P-012.', true);
+      if (m.id !== state.me.id) {
+        patch.role = f.get('role');
+        patch.active = f.get('active') === 'true';
+      } else if (patch.email !== m.email && !confirm(`You sign in with ${m.email}. After this change you'll need to sign in with ${patch.email || 'no email (you would be locked out)'}. Continue?`)) return;
+      // A new code means the old printed label no longer scans.
+      if (patch.code !== m.code) patch.label_printed_at = null;
+      try {
+        await q(sb.from('team_members').update(patch).eq('id', m.id).select());
+        toast('Saved');
+        route();
+      } catch (err) {
+        const msg = errMsg(err);
+        toast(/duplicate|unique/i.test(msg) ? (/email/i.test(msg) ? 'Someone else already uses that email.' : 'Someone else already has that label code.') : msg, true);
+      }
+    });
+  });
   app.querySelector('#add')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
