@@ -11,7 +11,7 @@ A private web app for your team that tracks four things:
 
 Facilities and maintenance stock can have a **cost** (per box/pack, or per item if it isn't sold in packs). Each list then shows the cost, the value of what's on hand, and a total value. Maintenance stock also has a **category** (Plumbing, Electrical, Paint & Caulk…) you can filter by. Type a new category to add one.
 
-Quantities are plain counts (no units). An item can have a **per box/pack** number (e.g. a box of paper towels holds 6 rolls). You still scan and count boxes, and the app also shows the total pieces (3 boxes × 6 = 18). Every item and tool has a **location** picked from a shared dropdown. Admins can add a new location right from the dropdown.
+Stock is counted in single pieces. An item can have a **per box/pack** number (e.g. lights that come 3 to a pack), and lists show the count both ways: "7 (2 boxes + 1 single)". When someone scans an item sold in packs, the pop-up has **Box of 3** / **Single** buttons, so the same barcode works for pulling a whole box in the warehouse or one at a time from a closet. Each device remembers the last choice for each item. The Scan Stock page has the same **Singles / Boxes** choice. Reorder levels are in pieces, and cost is per box/pack.
 
 It works with any USB or Bluetooth barcode scanner (they act like a keyboard) and prints its own Code 128 barcode labels on a label printer.
 

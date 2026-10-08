@@ -426,3 +426,8 @@ tr.overdue td { background: #fbefec; }
 .co-row .muted { font-size: 14px; }
 .co-actions { display: flex; gap: 8px; }
 .co-actions .btn { min-height: 42px; padding: 8px 14px; font-size: 15px; }
+
+/* Box of N / Single choice in the stock pop-up */
+.unit-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.unit-pick .btn { min-height: 56px; font-size: 18px; font-weight: 600; justify-content: center; background: var(--card); color: var(--body); border-color: var(--line-strong); }
+.unit-pick .btn.on { background: var(--ink); border-color: var(--ink); color: #fff; box-shadow: 0 0 0 3px var(--accent-ring); }

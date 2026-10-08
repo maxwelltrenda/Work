@@ -462,6 +462,7 @@ async function renderStock() {
       <div class="modes" id="modes">${modes.map(([k, t, c]) => `<button class="btn ${c} ${state.stockMode === k ? 'on' : ''}" data-mode="${k}">${t}</button>`).join('')}</div>
       <div class="row" style="margin-top:14px">
         <label style="width:110px">Quantity <input id="qty" type="number" min="0" value="1"></label>
+        <label style="width:150px" title="Boxes/packs only matter for items sold in packs; other items always count singles">Counting <select id="unit"><option value="each">Singles</option><option value="packs">Boxes / packs</option></select></label>
         <label style="flex:1;min-width:200px">Note (optional) <input id="note" placeholder="job #, reason, vendor…"></label>
       </div>
       <div style="margin-top:14px">
@@ -520,7 +521,7 @@ async function renderStock() {
 
     const n = parseInt(qty.value, 10);
     try {
-      const res = await rpc('scan_item', { p_code: code, p_type: state.stockMode, p_qty: Number.isNaN(n) ? 1 : n, p_note: note.value });
+      const res = await rpc('scan_item', { p_code: code, p_type: state.stockMode, p_qty: Number.isNaN(n) ? 1 : n, p_note: note.value, p_in_packs: app.querySelector('#unit').value === 'packs' });
       const it = res.item;
       const verb = state.stockMode === 'adjust' ? `Count set (${res.change >= 0 ? '+' : ''}${res.change})` : `${Math.abs(res.change)} ${state.stockMode === 'in' ? 'in' : 'out'}`;
       const low = it.reorder_level > 0 && it.quantity <= it.reorder_level;
@@ -893,6 +894,9 @@ async function renderKiosk() {
     const p = k.pendingItem;
     if (!p) return closeSheet();
     const it = p.item;
+    const pack = packOf(it);
+    const packs = pack > 1 && p.unit === 'pack';
+    const unitWord = (n) => (pack > 1 ? (packs ? (n === 1 ? 'box' : 'boxes') : (n === 1 ? 'single' : 'singles')) : '');
     const sheet = openSheet();
     sheet.innerHTML = `
       <div class="sheet-head">
@@ -902,7 +906,10 @@ async function renderKiosk() {
           <div class="muted" style="font-size:14px"><span class="code">${esc(it.code)}</span> · ${it.quantity} on hand${esc(packNote(it))}${it.location ? ` · ${esc(it.location)}` : ''}</div></div>
         <button type="button" class="btn small" id="i-cancel">Cancel</button>
       </div>
-      <div class="qty-group"><div class="qty-label">How many?</div><div class="stepper">
+      ${pack > 1 ? `<div class="unit-pick">
+        <button type="button" class="btn ${packs ? 'on primary' : ''}" data-unit="pack">Box of ${pack}</button>
+        <button type="button" class="btn ${packs ? '' : 'on primary'}" data-unit="each">Single</button></div>` : ''}
+      <div class="qty-group"><div class="qty-label">How many${pack > 1 ? ` ${packs ? 'boxes' : 'singles'}` : ''}?</div><div class="stepper">
         <button type="button" class="btn" data-istep="-1" aria-label="One less">−</button>
         <input id="i-qty" type="number" min="1" value="${p.qty}" inputmode="numeric" aria-label="Quantity">
         <button type="button" class="btn" data-istep="1" aria-label="One more">+</button>
@@ -911,13 +918,21 @@ async function renderKiosk() {
       ${placeChips(p.place, p.needPlace)}
       ${msg ? `<div class="sheet-msg">${msg}</div>` : ''}
       <div class="row item-actions">
-        <button type="button" class="btn in big" id="i-back"><span>Put back <b class="n">${p.qty}</b></span></button>
-        <button type="button" class="btn out big" id="i-take"><span>Take <b class="n">${p.qty}</b></span>${p.place ? `<span class="sub">to ${esc(placeName(p.place))}</span>` : ''}</button>
+        <button type="button" class="btn in big" id="i-back"><span>Put back <b class="n">${p.qty}</b> <span class="u">${unitWord(p.qty)}</span></span></button>
+        <button type="button" class="btn out big" id="i-take"><span>Take <b class="n">${p.qty}</b> <span class="u">${unitWord(p.qty)}</span></span>${p.place ? `<span class="sub">to ${esc(placeName(p.place))}</span>` : ''}</button>
       </div>
       <p class="scan-hint">Scan it again to add one more.</p>`;
     const qtyEl = sheet.querySelector('#i-qty');
     // Keep the number on the buttons in step with the box.
-    const showQty = () => sheet.querySelectorAll('.n').forEach((n) => (n.textContent = p.qty));
+    const showQty = () => {
+      sheet.querySelectorAll('.n').forEach((n) => (n.textContent = p.qty));
+      sheet.querySelectorAll('.u').forEach((u) => (u.textContent = unitWord(p.qty)));
+    };
+    sheet.querySelectorAll('[data-unit]').forEach((b) => b.addEventListener('click', () => {
+      p.unit = b.dataset.unit;
+      setPref(`unit:${it.id}`, p.unit);
+      paintItem();
+    }));
     qtyEl.addEventListener('focus', () => qtyEl.select());
     qtyEl.addEventListener('input', () => { const v = parseInt(qtyEl.value, 10); if (v >= 1) { p.qty = v; showQty(); } resetIdle(); });
     qtyEl.addEventListener('change', () => { p.qty = Math.max(1, parseInt(qtyEl.value, 10) || 1); qtyEl.value = p.qty; showQty(); });
@@ -951,7 +966,8 @@ async function renderKiosk() {
     if (type === 'out') setPlace(p.place);
     const ev = p.place?.startsWith('ev:') ? events.find((e) => e.id === p.place.slice(3)) : null;
     try {
-      const res = await rpc('scan_item', { p_code: p.item.code, p_type: type, p_qty: p.qty, p_member: k.person.id,
+      const inPacks = packOf(p.item) > 1 && p.unit === 'pack';
+      const res = await rpc('scan_item', { p_code: p.item.code, p_type: type, p_qty: p.qty, p_in_packs: inPacks, p_member: k.person.id,
         p_event: ev?.id || null, p_destination: type === 'out' && !ev ? k.dest : null });
       const it = res.item;
       const low = it.reorder_level > 0 && it.quantity <= it.reorder_level;
@@ -959,8 +975,9 @@ async function renderKiosk() {
       beep(true);
       k.pendingItem = null;
       closeSheet();
-      show('ok', `${type === 'in' ? 'Put back' : 'Took'} ${p.qty} × <b>${esc(it.name)}</b>${esc(where)}. ${it.quantity} left${esc(packNote(it))}.${low ? ' <span class="pill low">LOW — tell the office</span>' : ''}`);
-      log(type, `${p.qty} × ${it.name}${where} · ${k.person.name}`);
+      const amount = packOf(it) > 1 ? `${p.qty} ${inPacks ? (p.qty === 1 ? 'box' : 'boxes') : (p.qty === 1 ? 'single' : 'singles')} of` : `${p.qty} ×`;
+      show('ok', `${type === 'in' ? 'Put back' : 'Took'} ${amount} <b>${esc(it.name)}</b>${esc(where)}. ${it.quantity} left${esc(packNote(it))}.${low ? ' <span class="pill low">LOW — tell the office</span>' : ''}`);
+      log(type, `${amount} ${it.name}${where} · ${k.person.name}`);
     } catch (e) { beep(false); paintItem(esc(errMsg(e))); }
     resetIdle();
   }
@@ -1058,7 +1075,7 @@ async function renderKiosk() {
       }
       beep(true);
       status.innerHTML = '';
-      k.pendingItem = { item: it, qty: 1, place: placeKey() };
+      k.pendingItem = { item: it, qty: 1, place: placeKey(), unit: getPref(`unit:${it.id}`, 'pack') };
       return paintItem();
     }
 
@@ -1325,10 +1342,17 @@ function bindCategorySelects(root) {
   });
 }
 const money = (n) => `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const stockValue = (i) => (i.unit_cost == null ? 0 : i.quantity * Number(i.unit_cost));
+// Cost is per box/pack (or per item when it isn't sold in packs).
+const stockValue = (i) => (i.unit_cost == null ? 0 : (i.quantity / packOf(i)) * Number(i.unit_cost));
 // Total pieces: e.g. 3 boxes × 6 rolls = 18.
-const pieces = (i) => i.quantity * (i.pack_size || 1);
-const packNote = (i) => ((i.pack_size || 1) > 1 ? ` (${i.pack_size} each = ${pieces(i).toLocaleString()} total)` : '');
+// Stock is counted in single pieces; pack_size is how many make one box/pack.
+const packOf = (i) => Math.max(1, i.pack_size || 1);
+const boxesText = (n, pack) => {
+  const b = Math.floor(n / pack);
+  const r = n % pack;
+  return [b ? `${b} box${b === 1 ? '' : 'es'}` : '', r ? `${b ? '+ ' : ''}${r} single${r === 1 ? '' : 's'}` : ''].filter(Boolean).join(' ') || '0 boxes';
+};
+const packNote = (i, n = i.quantity) => (packOf(i) > 1 ? ` (${boxesText(n, packOf(i))})` : '');
 const loadLocations = () => q(sb.from('locations').select('name').eq('active', true).order('name'));
 
 // Location dropdown shared by item and tool forms. Admins can add new ones inline.
@@ -1378,8 +1402,8 @@ function itemForm(it = {}, locations = []) {
         <option value="maintenance" ${cat === 'maintenance' ? 'selected' : ''}>Maintenance</option>
         <option value="events" ${cat === 'events' ? 'selected' : ''}>Event</option></select></label>
       <label style="width:130px" title="How many pieces one box/pack holds, e.g. 6 rolls in a box of paper towels. Leave 1 for single items.">Per box/pack <input name="pack_size" type="number" min="1" value="${it.pack_size ?? 1}"></label>
-      <label style="width:120px">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
-      ${it.id ? '' : '<label style="width:120px">Starting qty <input name="start" type="number" min="0" value="0"></label>'}
+      <label style="width:120px" title="Counted in single pieces (e.g. 6 = two boxes of 3)">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
+      ${it.id ? '' : '<label style="width:150px" title="How many boxes/packs you have now; singles can be counted later">Starting boxes <input name="start" type="number" min="0" value="0"></label>'}
       <label style="width:140px" data-for="${HAS_COST.join(' ')}" title="What one box/pack costs (or one item, if it isn't sold in packs)">Cost ($) <input name="unit_cost" type="number" min="0" step="0.01" placeholder="per box/pack" value="${it.unit_cost ?? ''}"></label>
       <label style="flex:1;min-width:180px" data-for="${HAS_SUBCAT.join(' ')}">Category ${categorySelect('maintenance', it.subcategory, 'subcategory')}</label>
     </div>
@@ -1409,7 +1433,7 @@ async function renderItems(category) {
   const items = all.filter((i) => i.category === kind);
   const show = items.filter((i) => i.active);
   const low = show.filter((i) => i.reorder_level > 0 && i.quantity <= i.reorder_level);
-  const total = show.reduce((s, i) => s + pieces(i), 0);
+  const total = show.reduce((s, i) => s + i.quantity, 0);
   const hasPacks = show.some((i) => (i.pack_size || 1) > 1);
   const hasCost = HAS_COST.includes(kind);
   const hasSubcat = HAS_SUBCAT.includes(kind);
@@ -1449,8 +1473,8 @@ async function renderItems(category) {
       && (!loc || i.location === loc) && (!lowOnly || low.includes(i))
       && (!cat || (cat === '__none' ? !i.subcategory : i.subcategory === cat)));
     const cols = 5 + (hasSubcat ? 1 : 0) + (hasPacks ? 2 : 0) + (hasCost ? 2 : 0);
-    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Item</th>${hasSubcat ? '<th>Category</th>' : ''}<th>Location</th><th class="num">On hand</th>${hasPacks ? '<th class="num">Per pack</th><th class="num">Total</th>' : ''}${hasCost ? '<th class="num">Cost</th><th class="num">Value</th>' : ''}<th class="num">Reorder at</th></tr>
-      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a class="tool-name" href="#/item/${i.id}">${thumb(photos[i.photo_path])}${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td>${hasSubcat ? `<td>${esc(i.subcategory || '')}</td>` : ''}<td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td>${hasPacks ? `<td class="num">${(i.pack_size || 1) > 1 ? `× ${i.pack_size}` : ''}</td><td class="num"><b>${pieces(i).toLocaleString()}</b></td>` : ''}${hasCost ? `<td class="num">${i.unit_cost != null ? money(i.unit_cost) : ''}</td><td class="num">${i.unit_cost != null ? money(stockValue(i)) : ''}</td>` : ''}<td class="num">${i.reorder_level || ''}</td></tr>`).join('')
+    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Item</th>${hasSubcat ? '<th>Category</th>' : ''}<th>Location</th><th class="num">On hand</th>${hasPacks ? '<th class="num">Per pack</th><th class="num">In boxes</th>' : ''}${hasCost ? '<th class="num">Cost</th><th class="num">Value</th>' : ''}<th class="num">Reorder at</th></tr>
+      ${rows.map((i) => `<tr class="${low.includes(i) ? 'low' : ''}"><td class="code">${esc(i.code)}</td><td><a class="tool-name" href="#/item/${i.id}">${thumb(photos[i.photo_path])}${esc(i.name)}</a>${low.includes(i) ? ' <span class="pill low">LOW</span>' : ''}${i.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td>${hasSubcat ? `<td>${esc(i.subcategory || '')}</td>` : ''}<td>${esc(i.location)}</td><td class="num"><b>${i.quantity}</b></td>${hasPacks ? `<td class="num">${packOf(i) > 1 ? `× ${i.pack_size}` : ''}</td><td class="num">${packOf(i) > 1 ? boxesText(i.quantity, packOf(i)) : ''}</td>` : ''}${hasCost ? `<td class="num">${i.unit_cost != null ? money(i.unit_cost) : ''}</td><td class="num">${i.unit_cost != null ? money(stockValue(i)) : ''}</td>` : ''}<td class="num">${i.reorder_level || ''}</td></tr>`).join('')
       || `<tr><td colspan="${cols}" class="muted">No ${meta.plain.toLowerCase()} yet.</td></tr>`}`;
   };
   app.querySelector('#catfilter')?.addEventListener('change', paint);
@@ -1464,7 +1488,7 @@ async function renderItems(category) {
     openPdf(buildSheetPdf(stockSheetRows(all, kind), meta.plain.charAt(0).toUpperCase() + meta.plain.slice(1)));
   });
   app.querySelector('#csv').addEventListener('click', () => downloadCsv(`${kind}-stock.csv`, show.map((i) => ({
-    code: i.code, name: i.name, ...(hasSubcat ? { category: i.subcategory || '' } : {}), location: i.location, on_hand: i.quantity, per_pack: i.pack_size || 1, total_pieces: pieces(i),
+    code: i.code, name: i.name, ...(hasSubcat ? { category: i.subcategory || '' } : {}), location: i.location, on_hand: i.quantity, per_pack: packOf(i), in_boxes: packOf(i) > 1 ? boxesText(i.quantity, packOf(i)) : '',
     ...(hasCost ? { cost: i.unit_cost ?? '', value: i.unit_cost != null ? stockValue(i).toFixed(2) : '' } : {}), reorder_at: i.reorder_level, description: i.description,
   }))));
   const add = app.querySelector('#add');
@@ -1480,7 +1504,7 @@ async function renderItems(category) {
         const photo = f.get('photo');
         if (photo?.size) await setPhoto('item', row, photo).catch((err) => toast(`Added ${row.name}, but the photo didn't upload: ${errMsg(err)}`, true));
         const start = parseInt(f.get('start'), 10) || 0;
-        if (start > 0) await rpc('scan_item', { p_code: row.code, p_type: 'adjust', p_qty: start, p_note: 'Starting count' });
+        if (start > 0) await rpc('scan_item', { p_code: row.code, p_type: 'adjust', p_qty: start, p_in_packs: true, p_note: 'Starting count' });
         toast(`Added ${row.name} as ${row.code}`);
         if (row.category !== kind) location.hash = STOCK[row.category].hash; else route();
       } catch (err) { toast(errMsg(err), true); }
@@ -1508,8 +1532,8 @@ async function renderItem(id) {
     <h1>${esc(it.name)} <span class="code muted">${esc(it.code)}</span></h1>
     ${photoBlock(it, photo)}
     <div class="stats">
-      <div class="stat"><b>${it.quantity}</b><span>on hand${(it.pack_size || 1) > 1 ? ` (${it.pack_size} per pack)` : ''}</span></div>
-      ${(it.pack_size || 1) > 1 ? `<div class="stat"><b>${pieces(it).toLocaleString()}</b><span>pieces in total</span></div>` : ''}
+      <div class="stat"><b>${it.quantity}</b><span>on hand${packOf(it) > 1 ? ` (${it.pack_size} per box)` : ''}</span></div>
+      ${packOf(it) > 1 ? `<div class="stat"><b>${boxesText(it.quantity, packOf(it))}</b><span>in boxes</span></div>` : ''}
       <div class="stat"><b>${it.reorder_level || '—'}</b><span>reorder at</span></div>
       <div class="stat"><b>${esc(it.location || '—')}</b><span>location</span></div>
       ${HAS_SUBCAT.includes(it.category) ? `<div class="stat"><b>${esc(it.subcategory || '—')}</b><span>category</span></div>` : ''}
