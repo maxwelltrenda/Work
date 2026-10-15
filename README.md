@@ -63,7 +63,7 @@ Codes are assigned automatically when you add something. Print them from the **L
 | **Admin** | Everything | Yes: edits, scans, labels, people, locations |
 | **Kiosk** | Check In / Out, Who Has What, Events | Scans and check-ins/outs for whoever taps their name |
 | **Facilities & Maintenance** (member) | Facilities and maintenance stock, paint, tools, and their history | Scans their own area: tools, facilities and maintenance stock, paint |
-| **Maintenance manager** | Maintenance stock, paint, tools, Who Has What, and their history | Scans their own area: checks tools out and in, takes and puts back maintenance stock and paint |
+| **Maintenance manager** | Maintenance stock, paint, tools, Who Has What, and their history | Scans their own area: checks tools out and in, takes and puts back maintenance stock and paint. Can also add and edit paint colors (details, photo, cans) |
 | **Custodian manager** | Facilities stock and its history | Scans their own area: takes and puts back facilities stock |
 | **Oversight** | Everything we have, where it is, all check-ins/outs | View only |
 

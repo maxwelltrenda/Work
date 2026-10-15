@@ -46,6 +46,8 @@ const state = {
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isAdmin = () => state.me?.role === 'admin';
+// Admins edit everything; the Maintenance manager can also add and edit paint colors.
+const canEditItem = (category) => isAdmin() || (category === 'paint' && state.me?.role === 'maintenance');
 const LOADER = '<div class="loader" role="status" aria-label="Loading"><span></span><span></span><span></span></div>';
 const pageHead = (eyebrow, title, sub = '') =>
   `<header class="page-head"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${sub ? `<p class="lede">${sub}</p>` : ''}</header>`;
@@ -1511,10 +1513,10 @@ function itemForm(it = {}, locations = []) {
       <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(it.name)}"></label>
       ${locationSelect(locations, it.location)}
       <label style="width:150px">Stock type <select name="category">
-        <option value="facilities" ${cat === 'facilities' ? 'selected' : ''}>Facilities</option>
-        <option value="maintenance" ${cat === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+        ${isAdmin() ? `<option value="facilities" ${cat === 'facilities' ? 'selected' : ''}>Facilities</option>
+        <option value="maintenance" ${cat === 'maintenance' ? 'selected' : ''}>Maintenance</option>` : ''}
         <option value="paint" ${cat === 'paint' ? 'selected' : ''}>Paint</option>
-        <option value="events" ${cat === 'events' ? 'selected' : ''}>Event</option></select></label>
+        ${isAdmin() ? `<option value="events" ${cat === 'events' ? 'selected' : ''}>Event</option>` : ''}</select></label>
       <label style="width:130px" data-for="facilities maintenance events" title="How many pieces one box/pack holds, e.g. 6 rolls in a box of paper towels. Leave 1 for single items.">Per box/pack <input name="pack_size" type="number" min="1" value="${it.pack_size ?? 1}"></label>
       <label style="width:120px" title="Counted in single pieces (e.g. 6 = two boxes of 3); for paint, in gallons">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
       ${it.id ? '' : '<label style="width:150px" data-for="facilities maintenance events" title="How many boxes/packs you have now; singles can be counted later">Starting boxes <input name="start" type="number" min="0" value="0"></label>'}
@@ -1649,7 +1651,7 @@ async function renderPaint() {
       <div class="stat"><b>${show.reduce((t, i) => t + sum[i.id].cans, 0)}</b><span>cans</span></div>
       <div class="stat"><b style="color:${low.length ? 'var(--warn)' : 'inherit'}">${low.length}</b><span>at or below reorder level</span></div>
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>Add a paint color</b></summary><form id="add" style="margin-top:14px">${itemForm({ category: 'paint' }, locations)}
+    ${canEditItem('paint') ? `<details class="card"><summary><b>Add a paint color</b></summary><form id="add" style="margin-top:14px">${itemForm({ category: 'paint' }, locations)}
       <label style="margin-top:12px">Photo (optional) <input name="photo" type="file" accept="image/*"></label>
       <p class="muted" style="font-size:13px;margin:10px 0 0">Name it by color, brand and sheen (e.g. "Agreeable Gray SW 7029 · Eggshell"). After adding, enter the cans you have on its page.</p>
       <div style="margin-top:14px"><button class="btn primary">Add color</button></div></form></details>` : ''}
@@ -1729,7 +1731,7 @@ async function renderItem(id) {
   app.innerHTML = `
     <p><a href="${meta.hash}">← ${meta.plain}</a></p>
     <h1>${esc(it.name)} <span class="code muted">${esc(it.code)}</span></h1>
-    ${photoBlock(it, photo)}
+    ${photoBlock(it, photo, canEditItem(it.category))}
     ${isPaint ? `<div class="stats">
       <div class="stat"><b>${gal(paint.gallons)}</b><span>on hand</span></div>
       <div class="stat"><b>${paint.cans}</b><span>can${paint.cans === 1 ? '' : 's'}</span></div>
@@ -1741,7 +1743,7 @@ async function renderItem(id) {
     <div class="table-wrap" style="margin-bottom:16px"><table><tr><th>Can</th><th class="num">How many</th><th class="num">Gallons</th></tr>
       ${paint.list.map((g) => `<tr><td>${canLabel(g.size, g.fill)}</td><td class="num"><b>${g.n}</b></td><td class="num">${gal(g.n * g.size * g.fill)}</td></tr>`).join('')
         || '<tr><td colspan="3" class="muted">No cans on hand.</td></tr>'}</table></div>
-    ${isAdmin() ? `<form class="card row" id="paint-adjust" style="align-items:flex-end">
+    ${canEditItem('paint') ? `<form class="card row" id="paint-adjust" style="align-items:flex-end">
       <label>Can <select name="size">${PAINT_SIZES.map((z) => `<option value="${z}">${z} gal</option>`).join('')}</select></label>
       <label>How full <select name="fill">${PAINT_FILLS.map(([f, l]) => `<option value="${f}">${l}</option>`).join('')}</select></label>
       <label style="width:90px">How many <input name="n" type="number" min="1" value="1"></label>
@@ -1758,7 +1760,7 @@ async function renderItem(id) {
     </div>`}
     <div class="row" style="margin-bottom:16px">${canAct() ? `<a class="btn" href="#/labels/${stockKind(it.category)}/${it.id}">Print label</a>` : ''}
       <span class="muted" style="align-self:center;font-size:14px">${it.label_printed_at ? `Label printed ${fmtDate(it.label_printed_at)}` : 'Label not printed yet'}</span></div>
-    ${isAdmin() ? `<details class="card"><summary><b>Edit item</b></summary><form id="edit" style="margin-top:14px">${itemForm(it, locations)}
+    ${canEditItem(it.category) ? `<details class="card"><summary><b>Edit item</b></summary><form id="edit" style="margin-top:14px">${itemForm(it, locations)}
       <div class="row" style="margin-top:14px"><button class="btn primary">Save</button>
       <button type="button" class="btn ${it.active ? 'bad' : ''}" id="archive">${it.active ? 'Archive item' : 'Restore item'}</button></div></form></details>` : ''}
     <h2>History</h2>
@@ -1858,11 +1860,11 @@ async function clearPhoto(kind, rec) {
 }
 
 // The photo area on a tool or item page, with admin buttons to change it.
-const photoBlock = (rec, url) => `
+const photoBlock = (rec, url, editable = isAdmin()) => `
     <div class="tool-photo-block">
       ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener"><img class="tool-photo" src="${esc(url)}" alt="Photo of ${esc(rec.name)}"></a>`
         : `<div class="tool-photo empty">${PHOTO_ICON}<span>No photo yet</span></div>`}
-      ${isAdmin() ? `<div class="row">
+      ${editable ? `<div class="row">
         <label class="btn small file-btn">${PHOTO_ICON}<span>${url ? 'Change photo' : 'Add photo'}</span><input type="file" id="photo" accept="image/*" hidden></label>
         ${rec.photo_path ? '<button class="btn small" id="photo-remove">Remove photo</button>' : ''}</div>` : ''}
     </div>`;
