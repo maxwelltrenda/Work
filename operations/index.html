@@ -43,7 +43,10 @@
     .ops-team h3 { margin: 0; font: 700 26px/1 var(--serif); text-transform: uppercase; letter-spacing: .02em; color: var(--c); }
     .ops-team ul { list-style: none; margin: 0; padding: 0; font-size: 15px; color: var(--body); display: flex; flex-direction: column; gap: 3px; }
     .ops-team ul b { color: var(--ink); } .ops-team .late, .ops-team .late b { color: var(--bad); }
-    .ops-team .go { margin-top: auto; font-weight: 600; font-size: 15px; }
+    .ops-team-go { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; padding-top: 6px; }
+    .live-bar { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--c); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 26px; font-size: 15px; color: var(--body); }
+    .live-bar span { flex: 1 1 260px; }
+    .live-bar b { color: var(--ink); }
     .ops-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
     .ops-head h2 { margin: 36px 0 12px; }
     .ops-head span { color: var(--muted); font-size: 14px; margin-bottom: 14px; }
@@ -197,11 +200,12 @@ function setTop(site, navHtml){
   document.title = site ? TEAMS[site].name+" · Operations" : "Operations";
 }
 function opsNav(cur){
-  return [["ops","Overview"],["people","People"],["requests","All requests"],["form","Request form"]].map(function(x){ return '<a href="#'+x[0]+'" class="'+(cur===x[0]?'active':'')+'">'+x[1]+'</a>'; }).join("");
+  return [["ops","Overview"],["people","People"],["requests","All requests"],["form","Request form"]].map(function(x){ return '<a href="#'+x[0]+'" class="'+(cur===x[0]?'active':'')+'">'+x[1]+'</a>'; }).join("")
+    +'<details class="more"><summary>Live sites</summary><div class="more-menu">'+["facilities","events","media"].map(function(k){ return '<a href="'+REAL[k]+'" target="_blank" rel="noopener">'+TEAMS[k].name+' ↗</a>'; }).join("")+'</div></details>';
 }
 function teamNav(t, tab){
   var tabs={facilities:[["requests","Requests"],["checklist","Checklist"],["stock","Stock"],["tools","Tools"]], events:[["requests","Requests"],["events","Events"],["decor","Decor"]], media:[["requests","Requests"],["gear","Gear"],["reservations","Reservations"]]}[t];
-  return '<a href="#ops">← Operations</a>'+tabs.map(function(x,i){ return '<a href="#'+t+(i?'-'+x[0]:'')+'" class="'+(tab===x[0]?'active':'')+'">'+x[1]+'</a>'; }).join("");
+  return '<a href="#ops">← Operations</a>'+tabs.map(function(x,i){ return '<a href="#'+t+(i?'-'+x[0]:'')+'" class="'+(tab===x[0]?'active':'')+'">'+x[1]+'</a>'; }).join("")+'<a href="'+REAL[t]+'" target="_blank" rel="noopener">Live site ↗</a>';
 }
 
 /* ---------- Operations screens ---------- */
@@ -213,11 +217,11 @@ function renderOps(){
   var busy=Object.keys(PEOPLE).filter(function(id){return nowFor(id).tag!=="Free";}).length;
   var done=S.check.filter(function(c){return c.status==="Done";}).length;
   var h='';
-  if(!S.tipOff) h+='<div class="ops-tip"><span><b>Preview with example data.</b> Tap a person to ask them for something, tap a team to go into its site, or open the request form. Facilities requests and today\'s checklist are real items from Monday.</span><button data-act="tip" aria-label="Hide tip">×</button></div>';
+  if(!S.tipOff) h+='<div class="ops-tip"><span><b>Preview with example data.</b> Tap a person to ask them for something, open a team\'s live site, or preview it here. The request form is in the menu. Facilities requests and today\'s checklist are real items from Monday.</span><button data-act="tip" aria-label="Hide tip">×</button></div>';
   h+='<header class="page-head"><div class="eyebrow">Operations</div><h1>'+greet()+', <span class="accent">'+BOSS+'</span>.</h1><p class="lede">Every operations team and where everyone is, in one place.</p></header>';
   h+='<div class="stats"><div class="stat"><b>'+busy+'</b><span>People on something now</span></div><div class="stat"><b>'+open.length+'</b><span>Open requests</span></div><div class="stat"><b style="color:var(--bad)">'+late+'</b><span>Past due</span></div><div class="stat"><b>'+done+'/'+S.check.length+'</b><span>Today\'s checklist</span></div></div>';
   h+='<div class="ops-head"><h2>Where people are</h2><span>Tap someone to ask them for something</span></div>'+peopleList();
-  h+='<div class="ops-head"><h2>Teams</h2><span>Tap to go into a team\'s site</span></div><div class="ops-teams">'+["facilities","events","media"].map(teamCard).join("")+'</div>';
+  h+='<div class="ops-head"><h2>Teams</h2><span>Open a team\'s live site, or preview it here</span></div><div class="ops-teams">'+["facilities","events","media"].map(teamCard).join("")+'</div>';
   h+=foot();
   app.innerHTML=h;
 }
@@ -227,7 +231,7 @@ function teamCard(t){
   if(t==="facilities"){ var d=S.check.filter(function(c){return c.status==="Done";}).length; lines.push('<li>Today\'s checklist <b>'+d+'/'+S.check.length+'</b></li>','<li><b>4</b> low on stock</li>'); }
   if(t==="events") lines.push('<li>Next: <b>Winter Conference</b></li>','<li><b>11</b> decor items out</li>');
   if(t==="media") lines.push('<li><b>'+S.tools.filter(function(x){return x.team==="media";}).length+'</b> gear out</li>','<li><b>2</b> reservations this week</li>');
-  return '<a class="ops-team" href="#'+t+'" style="--c:'+TEAMS[t].c+'"><h3>'+TEAMS[t].name+'</h3><ul>'+lines.join("")+'</ul><span class="go">Go in →</span></a>';
+  return '<div class="ops-team" style="--c:'+TEAMS[t].c+'"><h3>'+TEAMS[t].name+'</h3><ul>'+lines.join("")+'</ul><div class="ops-team-go"><a class="btn primary small" href="'+REAL[t]+'" target="_blank" rel="noopener">Open live site ↗</a><a class="btn small" href="#'+t+'">Preview here</a></div></div>';
 }
 function renderPeople(){
   setTop(null, opsNav("people"));
@@ -265,6 +269,7 @@ function reqRow(r){
 function renderTeam(t, tab){
   setTop(t, teamNav(t, tab));
   var T=TEAMS[t], h='';
+  h+='<div class="live-bar" style="--c:'+T.c+'"><span>This is a preview of <b>'+T.name+'</b> inside Operations. The live '+T.name+' site is where the team works today.</span><a class="btn primary" href="'+REAL[t]+'" target="_blank" rel="noopener">Open the live '+T.name+' site ↗</a></div>';
   if(tab==="requests"){
     var rs=teamReqs(t), open=rs.filter(isOpen).sort(function(a,b){ return (b.from?1:0)-(a.from?1:0) || (b.status==="In Progress")-(a.status==="In Progress"); }), done=rs.filter(function(r){return !isOpen(r);});
     h+='<header class="page-head"><div class="eyebrow">'+T.name+'</div><h1>Requests</h1><p class="lede">Tap a request to assign it or change it. Start it when you begin, Done when it\'s finished.</p></header>';
