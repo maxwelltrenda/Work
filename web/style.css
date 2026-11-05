@@ -600,3 +600,4 @@ h2 { font-size: 24px; }
 .card .notif { padding-left: 0; padding-right: 0; }
 .card .notif.unread { padding-left: 10px; padding-right: 10px; border-radius: 8px; }
 @media (max-width: 420px) { .who:has(.bell) .who-name { display: none; } }
+.notif.low .notif-dot { background: #fde2df; color: #b3261e; font-weight: 800; }

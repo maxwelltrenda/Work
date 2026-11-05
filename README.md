@@ -41,6 +41,8 @@ Admins can use everything on all three sites. A **Media admin** or **Events admi
 
 **Notifications.** Admins get a bell in the top corner listing every sign-out and return, with a count of new ones and a full list at *See all*. Full admins see all three sites; a Media admin sees Media gear; an Events admin sees Events decor. Each device can turn on **push notifications** from the bell. On iPhone/iPad, push only works once the app is added to the Home Screen and opened from there (iOS 16.4 or later). Pushes are sent by the `send-push` Supabase Edge Function (`supabase/functions/send-push`). The signing keys live in the `push_config` table, which only that function can read, and the public half is `VAPID_PUBLIC_KEY` in `web/config.js`.
 
+**Restock alerts.** When an item drops to its reorder level (once per drop; it resets after a restock), a *Low stock* alert goes under the admins' bell and an email goes out: admins get everything, Custodian managers get Facilities stock, Maintenance managers get Maintenance & Paint, and Events admins get Event stock. Paint is measured in gallons. Emails are sent by the `send-restock` Edge Function through Resend, using the key and sender in the `email_config` table (only that function can read it). Until that row exists, alerts wait and nothing is emailed.
+
 Printed labels come out in alphabetical order.
 
 ## How it's built
