@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#f5f4f0">
   <title>Facilities</title>
-  <link rel="icon" href="/brand/mc-mark.png">
-  <link rel="apple-touch-icon" href="/icons/facilities-apple-touch.png">
-  <link rel="manifest" href="/manifest-facilities.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="/app-icon-192.png">
+  <link rel="apple-touch-icon" href="/app-icon.png">
+  <link rel="manifest" href="/app.webmanifest">
   <script>
     // One app, three web addresses: pick this site's name, icons and colours before anything draws.
     (function () {
@@ -22,8 +22,12 @@
       var colors = { facilities: '#ffffff', events: '#11404b', media: '#0f0f0f' };
       document.documentElement.setAttribute('data-site', site);
       document.title = names[site];
-      document.querySelector('link[rel="apple-touch-icon"]').href = '/icons/' + site + '-apple-touch.png';
-      document.querySelector('link[rel="manifest"]').href = '/manifest-' + site + '.webmanifest';
+      if (forced) {
+        // ?site= previews: the address alone would give the wrong icons, so point at this site's files.
+        document.querySelector('link[rel="apple-touch-icon"]').href = '/icons/' + site + '-apple-touch.png';
+        document.querySelector('link[rel="manifest"]').href = '/manifest-' + site + '.webmanifest';
+        document.querySelector('link[rel="icon"]').href = '/icons/' + site + '-192.png';
+      }
       document.querySelector('meta[name="apple-mobile-web-app-title"]').content = names[site];
       document.querySelector('meta[name="theme-color"]').content = colors[site];
       window.__SITE = site;

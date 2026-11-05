@@ -1,10 +1,120 @@
 {
   "cleanUrls": true,
   "headers": [
-    { "source": "/(.*)", "headers": [
-      { "key": "Cache-Control", "value": "no-cache" },
-      { "key": "X-Frame-Options", "value": "DENY" },
-      { "key": "Referrer-Policy", "value": "same-origin" }
-    ] }
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "same-origin"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/app.webmanifest",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*media.*"
+        }
+      ],
+      "destination": "/manifest-media.webmanifest"
+    },
+    {
+      "source": "/app.webmanifest",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*event.*"
+        }
+      ],
+      "destination": "/manifest-events.webmanifest"
+    },
+    {
+      "source": "/app.webmanifest",
+      "destination": "/manifest-facilities.webmanifest"
+    },
+    {
+      "source": "/app-icon.png",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*media.*"
+        }
+      ],
+      "destination": "/icons/media-apple-touch.png"
+    },
+    {
+      "source": "/app-icon.png",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*event.*"
+        }
+      ],
+      "destination": "/icons/events-apple-touch.png"
+    },
+    {
+      "source": "/app-icon.png",
+      "destination": "/icons/facilities-apple-touch.png"
+    },
+    {
+      "source": "/app-icon-192.png",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*media.*"
+        }
+      ],
+      "destination": "/icons/media-192.png"
+    },
+    {
+      "source": "/app-icon-192.png",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*event.*"
+        }
+      ],
+      "destination": "/icons/events-192.png"
+    },
+    {
+      "source": "/app-icon-192.png",
+      "destination": "/icons/facilities-192.png"
+    },
+    {
+      "source": "/app-icon-512.png",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*media.*"
+        }
+      ],
+      "destination": "/icons/media-512.png"
+    },
+    {
+      "source": "/app-icon-512.png",
+      "has": [
+        {
+          "type": "host",
+          "value": ".*event.*"
+        }
+      ],
+      "destination": "/icons/events-512.png"
+    },
+    {
+      "source": "/app-icon-512.png",
+      "destination": "/icons/facilities-512.png"
+    }
   ]
 }
