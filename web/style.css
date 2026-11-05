@@ -492,7 +492,7 @@ h2 { font-size: 24px; }
 .auth-mark .mc-mark { height: 64px; }
 
 /* Mercy Culture Media lockup */
-.mcm-lockup { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1; }
+.mcm-lockup { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1; white-space: nowrap; }
 .mcm-lockup small { font: 700 8px/1 var(--serif); letter-spacing: .42em; margin: 0 0 2px 1px; }
 .mcm-lockup b { font: 900 26px/.86 'Montserrat', var(--sans); letter-spacing: -.035em; }
 .auth-mark .mcm-lockup small { font-size: 12px; }
@@ -508,7 +508,7 @@ h2 { font-size: 24px; }
 
 /* Splash: MC mark (or the Media lockup) with a gentle pulse */
 #splash .splash-mark img { height: 72px; display: block; animation: pulse 1.6s ease-in-out infinite; }
-#splash .splash-lockup { display: none; flex-direction: column; align-items: center; color: #fff; animation: pulse 1.6s ease-in-out infinite; }
+#splash .splash-lockup { display: none; flex-direction: column; align-items: center; color: #fff; white-space: nowrap; animation: pulse 1.6s ease-in-out infinite; }
 #splash .splash-lockup small { font: 700 12px/1 var(--serif); letter-spacing: .42em; margin-left: .42em; }
 #splash .splash-lockup b { font: 900 64px/.9 'Montserrat', var(--sans); letter-spacing: -.035em; }
 #splash .splash-name { font: 700 30px/1 var(--serif); font-style: normal; text-transform: uppercase; letter-spacing: .06em; }
