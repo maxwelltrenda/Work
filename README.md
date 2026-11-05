@@ -1,6 +1,6 @@
 # Mercy Culture Facilities, Events & Media Gear
 
-**Live app:** https://shop-inventory-one-omega.vercel.app
+**Live sites:** Facilities https://shop-inventory-one-omega.vercel.app · Events https://mercy-culture-events.vercel.app · Media Gear https://mercy-culture-media-gear.vercel.app
 
 A private web app for your team that tracks five things:
 

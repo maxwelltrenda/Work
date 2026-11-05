@@ -10,6 +10,6 @@ export const APP_NAME = 'Shop Inventory';
 // link between the sites.
 export const SITE_URLS = {
   facilities: 'https://shop-inventory-one-omega.vercel.app',
-  events: '',
-  media: '',
+  events: 'https://mercy-culture-events.vercel.app',
+  media: 'https://mercy-culture-media-gear.vercel.app',
 };
