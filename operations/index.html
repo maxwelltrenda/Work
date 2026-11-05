@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Operations">
+  <meta name="theme-color" content="#ffffff">
+  <title>Operations</title>
+  <link rel="icon" type="image/png" href="https://shop-inventory-one-omega.vercel.app/icons/facilities-192.png">
+  <link rel="apple-touch-icon" href="https://shop-inventory-one-omega.vercel.app/icons/facilities-apple-touch.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@900&display=swap">
+  <!-- Same stylesheet as the Facilities, Events and Media sites, so this looks exactly like them. -->
+  <link rel="stylesheet" href="https://shop-inventory-one-omega.vercel.app/style.css">
+  <style>
+    /* Operations-only pieces, built on the shared site tokens. */
+    .ops-list { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .ops-row { display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; background: none; border-left: 0; border-right: 0; border-top: 0; font: inherit; color: inherit; }
+    .ops-row:last-child { border-bottom: 0; }
+    button.ops-row, .ops-row.tap { cursor: pointer; }
+    button.ops-row:hover, .ops-row.tap:hover { background: var(--paper); }
+    .ops-grow { flex: 1; min-width: 0; }
+    .ops-row b { display: block; font-weight: 600; line-height: 1.3; color: var(--ink); }
+    .ops-row small { display: block; color: var(--body); font-size: 14px; line-height: 1.4; }
+    .ops-row small b { display: inline; }
+    .ops-row .team-name { font-size: 12px; color: var(--muted); font-weight: 500; }
+    .av { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 13px; font-weight: 700; flex: none; }
+    .av.sm { width: 28px; height: 28px; font-size: 11px; }
+    .avs { display: inline-flex; } .avs .av + .av { margin-left: -8px; box-shadow: 0 0 0 2px var(--card); }
+    .pill.req { background: var(--out-soft); color: var(--out); }
+    .pill.chk { background: var(--warn-soft); color: var(--warn); }
+    .pill.tool { background: var(--accent-soft); color: #11404b; }
+    .pill.evt { background: #dcece8; color: #2d6a62; }
+    .pill.med { background: #ebe6fd; color: #5536cf; }
+    .pill.new { background: var(--bad-soft); color: var(--bad); }
+    .pill.free { background: var(--paper-2); color: var(--muted); }
+    .ops-teams { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .ops-team { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; text-decoration: none !important; color: var(--ink); border-top: 5px solid var(--c); }
+    .ops-team:hover { border-color: var(--line-strong); border-top-color: var(--c); }
+    .ops-team h3 { margin: 0; font: 700 26px/1 var(--serif); text-transform: uppercase; letter-spacing: .02em; color: var(--c); }
+    .ops-team ul { list-style: none; margin: 0; padding: 0; font-size: 15px; color: var(--body); display: flex; flex-direction: column; gap: 3px; }
+    .ops-team ul b { color: var(--ink); } .ops-team .late, .ops-team .late b { color: var(--bad); }
+    .ops-team .go { margin-top: auto; font-weight: 600; font-size: 15px; }
+    .ops-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+    .ops-head h2 { margin: 36px 0 12px; }
+    .ops-head span { color: var(--muted); font-size: 14px; margin-bottom: 14px; }
+    .ops-tip { display: flex; gap: 12px; align-items: flex-start; background: var(--accent-soft); border-radius: var(--radius); padding: 14px 16px; font-size: 15px; margin-bottom: 8px; }
+    .ops-tip button { margin-left: auto; border: 0; background: none; font-size: 20px; line-height: 1; color: var(--muted); cursor: pointer; }
+    .ops-note { font-size: 14px; color: var(--muted); margin: 10px 2px 0; }
+    .ops-foot { margin-top: 40px; font-size: 13px; color: var(--muted); text-align: center; }
+    .ops-foot button { border: 0; background: none; color: var(--body); text-decoration: underline; cursor: pointer; font-size: 13px; }
+    .late-txt { color: var(--bad); font-weight: 600; }
+    .tick { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--card); color: transparent; font-size: 19px; font-weight: 900; flex: none; display: grid; place-items: center; cursor: pointer; }
+    .tick:hover { border-color: var(--in); color: var(--in-soft); }
+    .tick.on { background: var(--in); border-color: var(--in); color: #fff; }
+    .ops-row.done b { color: var(--muted); text-decoration: line-through; }
+    .prog { display: flex; align-items: center; gap: 14px; margin: 0 0 18px; }
+    .prog .line { flex: 1; max-width: 380px; height: 10px; border-radius: 9px; background: var(--paper-2); overflow: hidden; }
+    .prog .line i { display: block; height: 100%; background: var(--in); border-radius: 9px; }
+    .addrow { display: flex; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--line); flex-wrap: wrap; align-items: center; }
+    .addrow input { flex: 1 1 220px; min-width: 0; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .chip .av { width: 24px; height: 24px; font-size: 10px; }
+    .chip.big { width: 100%; justify-content: flex-start; padding: 13px 16px; font-size: 16px; font-weight: 600; border-radius: 14px; }
+    .chip.big i { width: 12px; height: 12px; border-radius: 4px; background: var(--c); flex: none; }
+    .seg button { padding: 10px 18px; border-radius: 9px; font-weight: 600; font-size: 15px; color: var(--body); border: 0; background: none; cursor: pointer; }
+    .seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+    .ops-sheet { width: 100%; max-width: 560px; max-height: calc(100vh - 32px); overflow-y: auto; background: var(--card); border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, .25); animation: fade-up .2s ease both; }
+    .ops-sheet .sh { display: flex; align-items: flex-start; gap: 10px; }
+    .ops-sheet h3 { margin: 0; flex: 1; font: 700 26px/1.05 var(--serif); text-transform: uppercase; }
+    .ops-sheet .x { border: 0; background: var(--paper-2); width: 36px; height: 36px; border-radius: 10px; font-size: 19px; cursor: pointer; flex: none; }
+    .ops-sheet .q { font-weight: 600; font-size: 15px; margin: 0 0 8px; color: var(--ink); }
+    .ops-sheet label { font-size: 15px; font-weight: 600; color: var(--ink); }
+    .ops-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .ops-actions .push { margin-left: auto; }
+    .steps label { flex-direction: row; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-weight: 500; }
+    .steps label:last-child { border-bottom: 0; }
+    .steps input { width: 20px; height: 20px; min-height: 0; flex: none; }
+    .steps .rm { margin-left: auto; border: 0; background: none; color: var(--muted); font-size: 19px; cursor: pointer; }
+    .notif-row { display: flex; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+    .notif-row:last-child { border-bottom: 0; }
+    .ops-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 300; background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 15px; box-shadow: var(--shadow); max-width: calc(100% - 32px); animation: fade-up .2s ease both; }
+    .ops-ticket { text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+    .ops-ticket .no { font: 800 52px/1 var(--serif); }
+    .who .alerts { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); border-radius: 999px; padding: 5px 12px; font-weight: 600; color: var(--ink); }
+    .who .alerts .n { min-width: 18px; height: 18px; border-radius: 9px; background: var(--accent); color: #fff; font-size: 11px; display: inline-grid; place-items: center; padding: 0 5px; }
+    :root[data-site="media"] .who .alerts { color: #fff; border-color: rgba(255,255,255,.4); }
+    .real-link { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px dashed var(--line-strong); border-radius: var(--radius); padding: 14px 16px; margin-top: 18px; font-size: 15px; color: var(--body); }
+    .real-link span { flex: 1; }
+    @media (max-width: 760px) {
+      .ops-teams { grid-template-columns: minmax(0, 1fr); }
+      .ops-row { gap: 10px; padding: 12px 14px; }
+      .ops-row .avs { display: none; }
+      .ops-row .pill { font-size: 11px; }
+      .who .who-name { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" id="brand"></div>
+    <nav id="nav"></nav>
+    <div class="who" id="who"></div>
+  </header>
+  <main id="app"></main>
+  <div id="layer"></div>
+<script>
+(function(){
+"use strict";
+var DATA = {"reqs": [{"id": 1, "team": "facilities", "subject": "Signs for parking lot", "location": "At entry points", "status": "In Progress", "who": ["rick"], "due": null, "from": null}, {"id": 2, "team": "facilities", "subject": "Leaking gutters", "location": "South parking lot", "status": "Needs Scheduled", "who": ["kenny"], "due": null, "from": null}, {"id": 3, "team": "facilities", "subject": "Paint touch up", "location": "Upstairs south conference room", "status": "Project", "who": ["max"], "due": null, "from": null}, {"id": 4, "team": "facilities", "subject": "Parking lot lights not all working at East Fort Worth campus", "location": "Multiple", "status": "Project", "who": ["max", "rick"], "due": null, "from": null}, {"id": 5, "team": "facilities", "subject": "Kitchen sink leak repair", "location": "Kitchen", "status": "New", "who": [], "due": null, "from": null}, {"id": 6, "team": "facilities", "subject": "Repair stove top burners that are not working", "location": "Kitchen", "status": "New", "who": [], "due": null, "from": null}, {"id": 7, "team": "facilities", "subject": "Lights replaced", "location": "Upstairs office hallway", "status": "Ordered", "who": ["rick", "judah"], "due": null, "from": null}, {"id": 8, "team": "facilities", "subject": "South men\u2019s restroom urinal repair", "location": "South Bathrooms", "status": "Needs Ordered", "who": ["kenny"], "due": null, "from": null}, {"id": 9, "team": "facilities", "subject": "Tear in wall", "location": "Family Center", "status": "New", "who": [], "due": "2026-12-21", "from": null}, {"id": 10, "team": "facilities", "subject": "Exchange white outlets for black", "location": "South upstairs offices.", "status": "Needs Ordered", "who": ["rick", "judah"], "due": null, "from": null}, {"id": 11, "team": "facilities", "subject": "Ventilation", "location": "Grand Lobby", "status": "Waiting for Approval", "who": ["kenny"], "due": null, "from": null}, {"id": 12, "team": "facilities", "subject": "Clean out and organize playground", "location": "Playground", "status": "Project", "who": ["rick"], "due": "2026-04-30", "from": null}, {"id": 13, "team": "facilities", "subject": "Flooring in MC Media offices are tearing up", "location": "MC Media Offices", "status": "Paused", "who": ["kenny"], "due": null, "from": null}], "check": [{"id": 1, "name": "Clean South after MC Students", "area": "Building", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Bathrooms: sweep + mop, toilets, mirrors, sinks, stock", "d": false}, {"t": "Family Center: trash, chairs, vacuum", "d": false}, {"t": "Chapel: trash, chairs, vacuum", "d": false}, {"t": "Entryways: glass, rugs, mop", "d": false}, {"t": "Sweep + mop hallway", "d": false}]}, {"id": 2, "name": "Serve Team Lounge", "area": "Building", "status": "Done", "who": "lexi", "includes": "", "steps": [{"t": "Vacuum (move chairs for crumbs)", "d": false}, {"t": "Wipe down white chairs if needed", "d": false}]}, {"id": 3, "name": "Nursing Mothers Room", "area": "Building", "status": "Done", "who": "marah", "includes": "", "steps": [{"t": "Bathroom: sweep + mop, toilet, mirror, sink, stock", "d": false}, {"t": "Wipe down surfaces", "d": false}, {"t": "Vacuum", "d": false}, {"t": "Mop floor", "d": false}]}, {"id": 4, "name": "Ready Room", "area": "Building", "status": "Done", "who": "lexi", "includes": "", "steps": [{"t": "Wipe surfaces / dust", "d": false}, {"t": "Adjust chairs + pillows", "d": false}, {"t": "Vacuum", "d": false}, {"t": "Mop", "d": false}, {"t": "Bathroom: mirrors, sink, toilet, sweep/mop", "d": false}, {"t": "Trash", "d": false}]}, {"id": 5, "name": "Executive Host Room", "area": "Building", "status": "Done", "who": "lexi", "includes": "", "steps": [{"t": "Wipe surfaces / dust", "d": false}, {"t": "Adjust pillows", "d": false}, {"t": "Vacuum", "d": false}, {"t": "Trash", "d": false}]}, {"id": 6, "name": "Sanctuary reset", "area": "Building", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Straighten all chairs", "d": false}, {"t": "Spot vacuum if needed", "d": false}, {"t": "Chair stain treatment", "d": false}, {"t": "Lost + found to the cabinet", "d": false}]}, {"id": 7, "name": "Detail work", "area": "Building", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Pick from the Detail Work list as time allows", "d": false}]}, {"id": 8, "name": "Office: Quick exec check", "area": "Offices", "status": "Done", "who": "lexi", "includes": "", "steps": [{"t": "PL + PH offices", "d": false}, {"t": "Board room", "d": false}, {"t": "Bathroom", "d": false}, {"t": "Kitchenette", "d": false}, {"t": "Trash", "d": false}]}, {"id": 9, "name": "Office: South Upstairs check", "area": "Offices", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Office trashes + major needs", "d": false}, {"t": "Hall vacuum (stairs if needed)", "d": false}, {"t": "Bathroom check, stock + trash", "d": false}, {"t": "Kitchenette trash + surfaces", "d": false}, {"t": "Copy room trash", "d": false}]}, {"id": 10, "name": "Office: North Offices", "area": "Offices", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Trash", "d": false}, {"t": "Dust", "d": false}, {"t": "Vacuum", "d": false}]}, {"id": 11, "name": "Office: Conference Room F", "area": "Offices", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Vacuum", "d": false}, {"t": "Dust", "d": false}, {"t": "Wipe table", "d": false}, {"t": "Fix chairs", "d": false}]}, {"id": 12, "name": "Office: Check Family Center office trash", "area": "Offices", "status": "Not started", "who": null, "includes": "", "steps": []}, {"id": 13, "name": "Sign off: Thursday cleaning complete", "area": "Sign-off", "status": "Not started", "who": null, "includes": "Mark Done when all of today's cleaning is finished. This notifies Max and Kenny.", "steps": []}]};
+var BOSS = "Skyler";
+var LOGO = "https://shop-inventory-one-omega.vercel.app/brand/mc-mark.png";
+var REAL = { facilities:"https://shop-inventory-one-omega.vercel.app", events:"https://mercy-culture-events.vercel.app", media:"https://mercy-culture-media-gear.vercel.app" };
+var TEAMS = { facilities:{name:"Facilities", c:"#11404b", pill:"tool"}, events:{name:"Events", c:"#2d6a62", pill:"evt"}, media:{name:"Media Gear", short:"Media", c:"#6a4cf0", pill:"med"} };
+var PEOPLE = {
+  max:{name:"Max", team:"facilities", c:"#11404b"}, rick:{name:"Rick", team:"facilities", c:"#2f5d8a"},
+  kenny:{name:"Kenny", team:"facilities", c:"#6b6b6b"}, judah:{name:"Judah", team:"facilities", c:"#8a6630"},
+  aaron:{name:"Aaron", team:"facilities", c:"#3c418f"}, marah:{name:"Marah", team:"facilities", c:"#9b2763"},
+  lexi:{name:"Lexi", team:"facilities", c:"#a3470f"}, sarina:{name:"Sarina", team:"events", c:"#2d6a62"},
+  cora:{name:"Cora", team:"events", c:"#22693f"}, joey:{name:"Joey", team:"media", c:"#6a4cf0"}
+};
+var CLOSED=["Complete","Declined"], MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+var BELL='<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm-2.2 15.5a2.3 2.3 0 0 0 4.4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+
+function ago(min){ return new Date(Date.now()-min*60000).toISOString(); }
+function today(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function addDays(s,n){ var d=new Date(s+"T12:00:00"); d.setDate(d.getDate()+n); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function dshort(s){ if(!s) return ""; var p=s.split("-"); return MON[+p[1]-1]+" "+(+p[2]); }
+function since(iso){ var m=Math.max(0,Math.round((Date.now()-new Date(iso))/60000)); if(m<60) return m+"m"; var h=Math.floor(m/60); return h+"h "+String(m%60).padStart(2,"0")+"m"; }
+function clock(iso){ return new Date(iso).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function av(id,sm){ var p=PEOPLE[id]; if(!p) return ""; return '<span class="av'+(sm?' sm':'')+'" style="background:'+p.c+'" title="'+esc(p.name)+'">'+esc(p.name.slice(0,2).toUpperCase())+'</span>'; }
+function avs(ids){ return ids&&ids.length ? '<span class="avs">'+ids.map(function(i){return av(i,true);}).join("")+'</span>' : '<span class="muted" style="font-size:13px;white-space:nowrap">Nobody yet</span>'; }
+
+function seed(){
+  var reqs=DATA.reqs.map(function(r){ var x=JSON.parse(JSON.stringify(r)); if(x.status==="In Progress") x.startedAt=ago(40); return x; });
+  var n=100;
+  reqs.push({id:++n,team:"events",subject:"Stage set for Night of Worship",location:"Sanctuary",status:"New",who:["sarina"],due:addDays(today(),2),from:null});
+  reqs.push({id:++n,team:"events",subject:"Pipe and drape for the Winter Conference lobby",location:"Offsite venue",status:"Scheduled",who:["cora"],due:addDays(today(),9),from:null});
+  reqs.push({id:++n,team:"media",subject:"Film the baptism recap",location:"Sanctuary",status:"In Progress",who:["joey"],due:addDays(today(),4),from:null,startedAt:ago(15)});
+  reqs.push({id:++n,team:"media",subject:"Headshots for new staff",location:"Studio",status:"New",who:[],due:addDays(today(),12),from:null});
+  reqs.push({id:++n,team:"media",subject:"Livestream camera won't focus",location:"Balcony",status:"New",who:[],due:addDays(today(),-1),from:null});
+  var check=DATA.check.map(function(c){ var x=JSON.parse(JSON.stringify(c)); if(x.name==="Sanctuary reset"){ x.who="lexi"; x.timerSince=ago(25);} return x; });
+  return { reqs:reqs, check:check, seq:1043, tipOff:false,
+    tools:[{who:"judah", item:"scissor lift", where:"Gym", since:ago(95), team:"facilities"},{who:"joey", item:"Camera B kit", where:"Studio", since:ago(130), team:"media"}],
+    crew:[{who:"cora", event:"Winter Conference walk-through", team:"events"}],
+    notifs:[{text:"<b>New request from the form:</b> Kitchen sink leak repair · Facilities", at:ago(80), read:false}] };
+}
+var KEY="mc-operations-demo-v1", S;
+try{ var raw=localStorage.getItem(KEY); S=raw?JSON.parse(raw):seed(); }catch(e){ S=seed(); }
+if(!S||!S.reqs) S=seed();
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+var $=function(id){return document.getElementById(id);};
+var app=$("app");
+function toast(msg){ var t=document.createElement("div"); t.className="ops-toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(function(){t.remove();},3200); }
+function notify(html){ S.notifs.unshift({text:html, at:new Date().toISOString(), read:false}); }
+function isOpen(r){ return CLOSED.indexOf(r.status)<0; }
+function teamReqs(t){ return S.reqs.filter(function(r){return r.team===t;}); }
+function teamShort(t){ return TEAMS[t].short||TEAMS[t].name; }
+
+/* ---------- where people are ---------- */
+function nowFor(id){
+  var r=S.reqs.find(function(r){ return r.status==="In Progress" && r.startedAt && r.who.indexOf(id)>=0; });
+  if(r) return {pill:"req", tag:"Request", text:"<b>"+esc(r.subject)+"</b>"+(r.location?" · "+esc(r.location):"")+" · "+since(r.startedAt)};
+  var c=S.check.find(function(c){ return c.timerSince && c.who===id; });
+  if(c) return {pill:"chk", tag:"Checklist", text:"<b>"+esc(c.name)+"</b> · "+since(c.timerSince)};
+  var f=S.reqs.find(function(r){ return r.from===BOSS && r.status==="New" && r.who.indexOf(id)>=0; });
+  if(f) return {pill:"new", tag:"From you", text:"Hasn't started <b>"+esc(f.subject)+"</b> yet"};
+  var t=S.tools.find(function(t){ return t.who===id; });
+  if(t) return {pill:TEAMS[t.team].pill, tag:t.team==="media"?"Gear":"Tool", text:"Has the <b>"+esc(t.item)+"</b> · "+esc(t.where)+" · since "+clock(t.since)};
+  var e=S.crew.find(function(e){ return e.who===id; });
+  if(e) return {pill:"evt", tag:"Event", text:"Crew on <b>"+esc(e.event)+"</b>"};
+  return {pill:"free", tag:"Free", text:"Not on anything right now"};
+}
+function peopleList(team, withAsk){
+  var ids=Object.keys(PEOPLE).filter(function(id){ return !team || PEOPLE[id].team===team; });
+  ids.sort(function(a,b){ return (nowFor(a).tag==="Free")-(nowFor(b).tag==="Free"); });
+  return '<div class="ops-list">'+ids.map(function(id){ var n=nowFor(id), p=PEOPLE[id];
+    return '<button class="ops-row" data-person="'+id+'">'+av(id)+'<span class="ops-grow"><b>'+esc(p.name)+' <span class="team-name">· '+teamShort(p.team)+'</span></b><small>'+n.text+'</small></span><span class="pill '+n.pill+'">'+n.tag+'</span>'+(withAsk?'<span class="btn small">Ask</span>':'')+'</button>'; }).join("")+'</div>';
+}
+
+/* ---------- top bar ---------- */
+function setTop(site, navHtml){
+  if(site) document.documentElement.setAttribute("data-site", site); else document.documentElement.removeAttribute("data-site");
+  var name = site ? TEAMS[site].name : "Operations";
+  var mark = site==="media"
+    ? '<span class="mcm-lockup" aria-label="Mercy Culture Media"><small>MERCY CULTURE</small><b aria-hidden="true">Med<span class="mcm-i"></span>a</b></span>'
+    : '<img class="mc-mark" src="'+LOGO+'" alt="Mercy Culture">';
+  $("brand").innerHTML='<a href="#ops" class="brand-link"><span class="brand-mark">'+mark+'</span><span class="brand-name">'+(site==="media"?'':'<small>MERCY CULTURE</small>')+esc(site==="media"?"Gear":name)+'</span></a>';
+  $("nav").innerHTML=navHtml;
+  var unread=S.notifs.filter(function(n){return !n.read;}).length;
+  $("who").innerHTML='<button class="alerts" data-act="notifs" aria-label="Alerts">'+BELL+(unread?'<span class="n">'+unread+'</span>':'')+'</button><span class="who-name">'+BOSS+' · Operations</span>';
+  document.title = site ? TEAMS[site].name+" · Operations" : "Operations";
+}
+function opsNav(cur){
+  return [["ops","Overview"],["people","People"],["requests","All requests"],["form","Request form"]].map(function(x){ return '<a href="#'+x[0]+'" class="'+(cur===x[0]?'active':'')+'">'+x[1]+'</a>'; }).join("");
+}
+function teamNav(t, tab){
+  var tabs={facilities:[["requests","Requests"],["checklist","Checklist"],["stock","Stock"],["tools","Tools"]], events:[["requests","Requests"],["events","Events"],["decor","Decor"]], media:[["requests","Requests"],["gear","Gear"],["reservations","Reservations"]]}[t];
+  return '<a href="#ops">← Operations</a>'+tabs.map(function(x,i){ return '<a href="#'+t+(i?'-'+x[0]:'')+'" class="'+(tab===x[0]?'active':'')+'">'+x[1]+'</a>'; }).join("");
+}
+
+/* ---------- Operations screens ---------- */
+function greet(){ var h=new Date().getHours(); return h<12?"Good morning":h<17?"Good afternoon":"Good evening"; }
+function renderOps(){
+  setTop(null, opsNav("ops"));
+  var open=S.reqs.filter(isOpen), td=today();
+  var late=open.filter(function(r){return r.due && r.due<td;}).length;
+  var busy=Object.keys(PEOPLE).filter(function(id){return nowFor(id).tag!=="Free";}).length;
+  var done=S.check.filter(function(c){return c.status==="Done";}).length;
+  var h='';
+  if(!S.tipOff) h+='<div class="ops-tip"><span><b>Preview with example data.</b> Tap a person to ask them for something, tap a team to go into its site, or open the request form. Facilities requests and today\'s checklist are real items from Monday.</span><button data-act="tip" aria-label="Hide tip">×</button></div>';
+  h+='<header class="page-head"><div class="eyebrow">Operations</div><h1>'+greet()+', <span class="accent">'+BOSS+'</span>.</h1><p class="lede">Every operations team and where everyone is, in one place.</p></header>';
+  h+='<div class="stats"><div class="stat"><b>'+busy+'</b><span>People on something now</span></div><div class="stat"><b>'+open.length+'</b><span>Open requests</span></div><div class="stat"><b style="color:var(--bad)">'+late+'</b><span>Past due</span></div><div class="stat"><b>'+done+'/'+S.check.length+'</b><span>Today\'s checklist</span></div></div>';
+  h+='<div class="ops-head"><h2>Where people are</h2><span>Tap someone to ask them for something</span></div>'+peopleList();
+  h+='<div class="ops-head"><h2>Teams</h2><span>Tap to go into a team\'s site</span></div><div class="ops-teams">'+["facilities","events","media"].map(teamCard).join("")+'</div>';
+  h+=foot();
+  app.innerHTML=h;
+}
+function teamCard(t){
+  var rs=teamReqs(t).filter(isOpen), td=today(), late=rs.filter(function(r){return r.due && r.due<td;}).length;
+  var lines=['<li><b>'+rs.length+'</b> open requests</li>', late?'<li class="late"><b>'+late+'</b> past due</li>':'<li>Nothing past due</li>'];
+  if(t==="facilities"){ var d=S.check.filter(function(c){return c.status==="Done";}).length; lines.push('<li>Today\'s checklist <b>'+d+'/'+S.check.length+'</b></li>','<li><b>4</b> low on stock</li>'); }
+  if(t==="events") lines.push('<li>Next: <b>Winter Conference</b></li>','<li><b>11</b> decor items out</li>');
+  if(t==="media") lines.push('<li><b>'+S.tools.filter(function(x){return x.team==="media";}).length+'</b> gear out</li>','<li><b>2</b> reservations this week</li>');
+  return '<a class="ops-team" href="#'+t+'" style="--c:'+TEAMS[t].c+'"><h3>'+TEAMS[t].name+'</h3><ul>'+lines.join("")+'</ul><span class="go">Go in →</span></a>';
+}
+function renderPeople(){
+  setTop(null, opsNav("people"));
+  var h='<header class="page-head"><div class="eyebrow">Operations</div><h1>People</h1><p class="lede">Everyone on the teams you\'re over, and what they\'re on right now.</p></header>';
+  ["facilities","events","media"].forEach(function(t){ h+='<h2>'+TEAMS[t].name+'</h2>'+peopleList(t, true); });
+  app.innerHTML=h+foot();
+}
+var reqFilter="all";
+function renderAllRequests(){
+  setTop(null, opsNav("requests"));
+  var rows=S.reqs.filter(function(r){ return isOpen(r) && (reqFilter==="all" || r.team===reqFilter); });
+  rows.sort(function(a,b){ return (a.due||"9999").localeCompare(b.due||"9999"); });
+  var td=today();
+  var h='<header class="page-head"><div class="eyebrow">Operations</div><h1>All requests</h1><p class="lede">Open requests across every team, soonest due first.</p></header>';
+  h+='<div class="seg">'+[["all","All"],["facilities","Facilities"],["events","Events"],["media","Media"]].map(function(x){return '<button data-filter="'+x[0]+'" class="'+(reqFilter===x[0]?'on':'')+'">'+x[1]+'</button>';}).join("")+'</div>';
+  h+='<div class="table-wrap"><table><tr><th>Request</th><th>Team</th><th>Who</th><th>Status</th><th>Due</th></tr>'+rows.map(function(r){
+    var late=r.due && r.due<td;
+    return '<tr class="ops-tr" data-req="'+r.id+'" style="cursor:pointer"><td><b>'+esc(r.subject)+'</b>'+(r.from?' <span class="pill new">From '+esc(r.from)+'</span>':'')+(r.location?'<br><span class="muted" style="font-size:13px">'+esc(r.location)+'</span>':'')+'</td><td>'+teamShort(r.team)+'</td><td>'+avs(r.who)+'</td><td>'+esc(r.status)+'</td><td class="'+(late?'late-txt':'')+'" style="white-space:nowrap">'+(r.due?dshort(r.due):'')+'</td></tr>';
+  }).join("")+'</table></div>';
+  app.innerHTML=h+foot();
+}
+function foot(){ return '<p class="ops-foot">Preview · changes stay on this device · <button data-act="reset">Start over</button></p>'; }
+
+/* ---------- team sites ---------- */
+function reqRow(r){
+  var td=today(), late=r.due && isOpen(r) && r.due<td;
+  var btn=!isOpen(r)?'<span class="pill good">Done</span>':r.status==="In Progress"?'<button class="btn small in" data-done="'+r.id+'">✓ Done</button>':'<button class="btn small" data-start="'+r.id+'">Start</button>';
+  var bits=[];
+  if(r.location) bits.push(esc(r.location));
+  bits.push(esc(r.status));
+  if(late) bits.push('<span class="late-txt">Due '+dshort(r.due)+'</span>'); else if(r.due && isOpen(r)) bits.push('Due '+dshort(r.due));
+  if(r.status==="In Progress" && r.startedAt) bits.push(since(r.startedAt));
+  return '<div class="ops-row tap" data-req="'+r.id+'"><span class="ops-grow"><b>'+esc(r.subject)+(r.from?' <span class="pill new">From '+esc(r.from)+'</span>':'')+'</b><small>'+bits.join(" · ")+'</small></span>'+avs(r.who)+btn+'</div>';
+}
+function renderTeam(t, tab){
+  setTop(t, teamNav(t, tab));
+  var T=TEAMS[t], h='';
+  if(tab==="requests"){
+    var rs=teamReqs(t), open=rs.filter(isOpen).sort(function(a,b){ return (b.from?1:0)-(a.from?1:0) || (b.status==="In Progress")-(a.status==="In Progress"); }), done=rs.filter(function(r){return !isOpen(r);});
+    h+='<header class="page-head"><div class="eyebrow">'+T.name+'</div><h1>Requests</h1><p class="lede">Tap a request to assign it or change it. Start it when you begin, Done when it\'s finished.</p></header>';
+    h+='<div class="ops-list">'+(open.map(reqRow).join("")||'<div class="ops-row"><span class="ops-grow muted">Nothing open.</span></div>')+'</div>';
+    h+='<p class="ops-note">'+(t==="facilities"?'Real open requests from Monday (13 of 62).':'Example requests.')+'</p>';
+    if(done.length) h+='<h2>Done today</h2><div class="ops-list">'+done.map(reqRow).join("")+'</div>';
+    h+='<h2>Who\'s on '+T.name+'</h2>'+peopleList(t);
+  } else if(tab==="checklist"){
+    var d=S.check.filter(function(c){return c.status==="Done";}).length, pct=Math.round(d/Math.max(1,S.check.length)*100);
+    h+='<header class="page-head"><div class="eyebrow">Custodial</div><h1>Checklist</h1><p class="lede">Today\'s tasks. Tap the circle when it\'s done; tap a name to change it or its steps.</p></header>';
+    h+='<div class="prog"><span class="line"><i style="width:'+pct+'%"></i></span><span><b>'+d+' of '+S.check.length+'</b> done today</span></div>';
+    h+='<div class="ops-list">'+S.check.map(function(c){
+      var on=c.status==="Done", sd=c.steps.filter(function(s){return s.d;}).length;
+      var sub=[on&&c.who&&PEOPLE[c.who]?PEOPLE[c.who].name+' did it':'', c.timerSince?(PEOPLE[c.who]?PEOPLE[c.who].name+' · ':'')+since(c.timerSince):'', c.steps.length?sd+'/'+c.steps.length+' steps':'', c.oneOff?'this week only':''].filter(Boolean).join(' · ');
+      return '<div class="ops-row'+(on?' done':'')+'"><button class="tick'+(on?' on':'')+'" data-tick="'+c.id+'" aria-label="'+(on?'Mark not done':'Mark done')+'">✓</button><span class="ops-grow" data-chk="'+c.id+'" style="cursor:pointer"><b>'+esc(c.name)+'</b>'+(sub?'<small>'+sub+'</small>':'')+'</span>'+(!on?'<button class="btn small" data-timer="'+c.id+'">'+(c.timerSince?'■ Stop':'▶ Start')+'</button>':'')+'</div>';
+    }).join("")+'<form class="addrow" id="addtask"><input type="text" id="newtask" placeholder="Add a task for today" aria-label="New task"><button class="btn primary small">Add</button></form></div>';
+    h+='<p class="ops-note">Real tasks from Monday\'s Custodial Weekly Checklist.</p>';
+  } else {
+    var ex={
+      stock:["Stock",[["Trash liners, 55 gal","2 boxes left · reorder at 5","low","Low"],["HVAC filters 20x25","3 left · reorder at 4","low","Low"],["Paper towels","14 cases","good","OK"],["Lobby Gray paint, eggshell","1.5 gal","low","Low"]]],
+      tools:["Tools",[["Scissor lift","Judah · Gym · since "+clock(S.tools[0].since),"out","Out"],["12 ft ladder","Warehouse","available","In"],["Pressure washer","Warehouse","available","In"]]],
+      events:["Events",[["Winter Conference","Dec 4 to 6 · offsite · crew of 8","planned","Planned"],["Night of Worship","Friday · Sanctuary","planned","Planned"]]],
+      decor:["Decor",[["Charger plates (40)","Out to the Winter Conference walk-through","out","Out"],["Pipe and drape","Warehouse","available","In"]]],
+      gear:["Gear",[["Camera B kit","Joey · Studio · since "+clock(S.tools[1].since),"out","Out"],["Camera A","Media closet","available","In"],["Wireless mics (4)","Media closet","available","In"]]],
+      reservations:["Reservations",[["Camera A + gimbal","Saturday · Joey · baptism recap","planned","Booked"],["Softbox kit","Next Thursday · staff headshots","planned","Booked"]]]
+    }[tab];
+    h+='<header class="page-head"><div class="eyebrow">'+T.name+'</div><h1>'+ex[0]+'</h1></header>';
+    h+='<div class="ops-list">'+ex[1].map(function(x){return '<div class="ops-row"><span class="ops-grow"><b>'+esc(x[0])+'</b><small>'+esc(x[1])+'</small></span><span class="pill '+x[2]+'">'+x[3]+'</span></div>';}).join("")+'</div>';
+    h+='<div class="real-link"><span>This part of the '+T.name+' site already works today. Example items are shown here; open the real site to see your own.</span><a class="btn small" href="'+REAL[t]+'" target="_blank" rel="noopener">Open the real site ↗</a></div>';
+  }
+  app.innerHTML=h+foot();
+}
+
+/* ---------- request form (what anyone at church sees) ---------- */
+var formState={team:null, sent:null};
+function renderForm(){
+  setTop(null, opsNav("form"));
+  var h='<header class="page-head"><div class="eyebrow">One link for the whole church</div><h1>How can we <span class="accent">help</span>?</h1><p class="lede">No login. Pick what you need, and it goes straight to the right team.</p></header>';
+  if(formState.sent){
+    var s=formState.sent;
+    h+='<div class="card ops-ticket"><span class="muted">Request sent</span><span class="no">#'+s.no+'</span><p>Thanks'+(s.name?', '+esc(s.name):'')+'. It went to the <b>'+TEAMS[s.team].name+'</b> team, and they\'ve been notified.</p><div class="ops-actions" style="justify-content:center"><a class="btn primary" href="#'+s.team+'">See it on the '+TEAMS[s.team].name+' site</a><button class="btn" data-act="again">Send another</button></div></div>';
+  } else {
+    var opts=[["maint","Maintenance or repair","#11404b"],["clean","Cleaning","#11404b"],["event","Help with an event","#2d6a62"],["media","Photo, video or gear","#6a4cf0"]];
+    h+='<form class="card" id="reqform" style="max-width:620px;display:flex;flex-direction:column;gap:16px">'+
+      '<div><p style="margin:0 0 8px;font-weight:600">What do you need help with?</p><div class="chips" style="flex-direction:column">'+opts.map(function(o){return '<button type="button" class="chip big'+(formState.team===o[0]?' on':'')+'" data-pick="'+o[0]+'" style="--c:'+o[2]+'"><i></i>'+o[1]+'</button>';}).join("")+'</div></div>'+
+      '<label>What needs doing?<input type="text" id="f-what" placeholder="e.g. Door to the kids wing won\'t latch"></label>'+
+      '<label>Where?<input type="text" id="f-where" placeholder="e.g. Kids wing, room 104"></label>'+
+      '<div><p style="margin:0 0 8px;font-weight:600">How soon?</p><div class="chips"><button type="button" class="chip on" data-when="later">When you can</button><button type="button" class="chip" data-when="week">This week</button><button type="button" class="chip" data-when="now">Emergency</button></div></div>'+
+      '<label>Your name<input type="text" id="f-name" placeholder="First and last name"></label>'+
+      '<label>Your email<input type="email" id="f-email" placeholder="So we can tell you when it\'s done"></label>'+
+      '<button class="btn primary block">Send request</button></form>';
+  }
+  app.innerHTML=h+foot();
+}
+
+/* ---------- sheets ---------- */
+function sheet(title, body){
+  $("layer").innerHTML='<div class="modal-back" data-close="1"><div class="ops-sheet" role="dialog" aria-modal="true" aria-label="'+esc(title)+'"><div class="sh"><h3>'+esc(title)+'</h3><button class="x" data-close="1" aria-label="Close">×</button></div>'+body+'</div></div>';
+  var f=$("layer").querySelector("input[type=text]"); if(f) f.focus();
+}
+function closeSheet(){ $("layer").innerHTML=""; $("layer").onclick=null; }
+function closeHit(e,b){ if(b.dataset.close){ if(e.target===b) closeSheet(); return true; } return false; }
+function personChips(sel, team){
+  return '<div class="chips">'+Object.keys(PEOPLE).filter(function(id){return !team||PEOPLE[id].team===team;}).map(function(id){ return '<button type="button" class="chip'+(sel.indexOf(id)>=0?' on':'')+'" data-pp="'+id+'">'+av(id)+esc(PEOPLE[id].name)+'</button>'; }).join("")+'</div>';
+}
+function openAsk(pid){
+  var sel=pid?[pid]:[], due="week";
+  function draw(){
+    var v=$("ask-what")?$("ask-what").value:"";
+    sheet(pid?"Ask "+PEOPLE[pid].name:"Ask someone",
+      (pid?'<div style="display:flex;gap:12px;align-items:center">'+av(pid)+'<div><b>'+esc(PEOPLE[pid].name)+'</b> <span class="muted">· '+teamShort(PEOPLE[pid].team)+'</span><div class="muted" style="font-size:14px">'+nowFor(pid).text.replace(/<[^>]+>/g,"")+'</div></div></div>'
+        :'<div><p class="q">Who?</p>'+["facilities","events","media"].map(function(t){return '<p class="muted" style="margin:10px 0 6px;font-size:13px">'+TEAMS[t].name+'</p>'+personChips(sel,t);}).join("")+'</div>')+
+      '<label>What do you need?<input type="text" id="ask-what" placeholder="e.g. Fix the lobby door that sticks"></label>'+
+      '<div><p class="q">By when?</p><div class="chips">'+[["today","Today"],["week","This week"],["none","No rush"]].map(function(x){return '<button type="button" class="chip'+(due===x[0]?' on':'')+'" data-due="'+x[0]+'">'+x[1]+'</button>';}).join("")+'</div></div>'+
+      '<button class="btn primary block" data-act="sendask">Send'+(pid?' to '+esc(PEOPLE[pid].name):'')+'</button>');
+    $("ask-what").value=v;
+    $("layer").onclick=click;
+  }
+  function click(e){
+    var b=e.target.closest("[data-pp],[data-due],[data-act],[data-close]"); if(!b||closeHit(e,b)) return;
+    if(b.dataset.pp){ sel=sel[0]===b.dataset.pp?[]:[b.dataset.pp]; draw(); return; }
+    if(b.dataset.due){ due=b.dataset.due; draw(); return; }
+    if(b.dataset.act==="sendask"){
+      var what=$("ask-what").value.trim(), who=pid||sel[0];
+      if(!who){ toast("Pick who it's for"); return; }
+      if(!what){ $("ask-what").focus(); toast("Say what you need"); return; }
+      var p=PEOPLE[who];
+      S.reqs.push({id:++S.seq, team:p.team, subject:what, location:"", status:"New", who:[who], due:due==="today"?today():due==="week"?addDays(today(),5):null, from:BOSS});
+      save(); closeSheet(); toast("Sent to "+p.name+". Their phone just buzzed."); render();
+    }
+  }
+  draw();
+}
+function openReq(id){
+  var r=S.reqs.find(function(x){return x.id===id;}); if(!r) return;
+  var sel=r.who.slice();
+  function draw(keep){
+    sheet(r.subject,
+      '<span class="muted" style="margin-top:-8px">'+TEAMS[r.team].name+' · '+esc(r.status)+(r.from?' · from '+esc(r.from):'')+'</span>'+
+      '<label>What<input type="text" id="e-what" value="'+esc(keep?keep.what:r.subject)+'"></label>'+
+      '<label>Where<input type="text" id="e-where" value="'+esc(keep?keep.where:r.location)+'"></label>'+
+      '<label>Due<input type="date" id="e-due" value="'+(keep?keep.due:(r.due||""))+'"></label>'+
+      '<div><p class="q">Who\'s on it?</p>'+personChips(sel, r.team)+'</div>'+
+      '<div class="ops-actions">'+(isOpen(r)?(r.status!=="In Progress"?'<button class="btn" data-act="rstart">▶ Start</button>':'')+'<button class="btn in" data-act="rdone">✓ Done</button>':'<button class="btn" data-act="rreopen">Reopen</button>')+'<button class="btn primary push" data-act="rsave">Save</button></div>');
+    $("layer").onclick=click;
+  }
+  function click(e){
+    var b=e.target.closest("[data-pp],[data-act],[data-close]"); if(!b||closeHit(e,b)) return;
+    if(b.dataset.pp){ var keep={what:$("e-what").value,where:$("e-where").value,due:$("e-due").value}; var i=sel.indexOf(b.dataset.pp); if(i>=0) sel.splice(i,1); else sel.push(b.dataset.pp); draw(keep); return; }
+    r.subject=$("e-what").value.trim()||r.subject; r.location=$("e-where").value.trim(); r.due=$("e-due").value||null;
+    var added=sel.filter(function(x){return r.who.indexOf(x)<0;}); r.who=sel.slice();
+    if(added.length) toast("Assigned "+added.map(function(x){return PEOPLE[x].name;}).join(" and ")+". They've been notified.");
+    var a=b.dataset.act;
+    if(a==="rstart"){ if(!r.who.length){ toast("Pick who's on it first"); return; } startReq(r); }
+    if(a==="rdone") doneReq(r);
+    if(a==="rreopen"){ r.status="New"; r.startedAt=null; }
+    if(a==="rsave" && !added.length) toast("Saved");
+    save(); closeSheet(); render();
+  }
+  draw();
+}
+function startReq(r){ r.status="In Progress"; r.startedAt=new Date().toISOString(); }
+function doneReq(r){
+  r.status="Complete";
+  var names=r.who.map(function(x){return PEOPLE[x]?PEOPLE[x].name:x;}).join(" and ")||"Someone";
+  notify("<b>"+esc(names)+" finished:</b> "+esc(r.subject)+(r.from===BOSS?" (you asked for this)":""));
+  toast(r.from===BOSS?"Done. "+BOSS+" gets an alert.":"Done.");
+}
+function openChk(id){
+  var c=S.check.find(function(x){return x.id===id;}); if(!c) return;
+  var steps=JSON.parse(JSON.stringify(c.steps)), every=!c.oneOff;
+  function draw(){
+    var nm=$("c-name")?$("c-name").value:c.name;
+    sheet("Edit task",
+      '<label>Task<input type="text" id="c-name" value="'+esc(nm)+'"></label>'+
+      '<div><p class="q">Steps</p><div class="steps">'+(steps.map(function(s,i){return '<label><input type="checkbox" data-st="'+i+'"'+(s.d?' checked':'')+'><span>'+esc(s.t)+'</span><button type="button" class="rm" data-rm="'+i+'" aria-label="Remove step">×</button></label>';}).join("")||'<p class="muted">No steps yet.</p>')+'</div>'+
+      '<div style="display:flex;gap:10px;margin-top:10px"><input type="text" id="c-step" placeholder="Add a step" style="flex:1;min-width:0"><button type="button" class="btn" data-act="addstep">Add</button></div></div>'+
+      '<div><p class="q">Change it for</p><div class="chips"><button type="button" class="chip'+(!every?' on':'')+'" data-every="0">This week only</button><button type="button" class="chip'+(every?' on':'')+'" data-every="1">Every week</button></div></div>'+
+      '<div class="ops-actions"><button class="btn bad" data-act="cdel">Remove task</button><button class="btn primary push" data-act="csave">Save</button></div>');
+    $("layer").onclick=click;
+  }
+  function click(e){
+    var b=e.target.closest("[data-rm],[data-act],[data-every],[data-close],[data-st]"); if(!b||closeHit(e,b)) return;
+    if(b.dataset.st!=null){ steps[+b.dataset.st].d=b.checked; return; }
+    if(b.dataset.rm!=null){ e.preventDefault(); steps.splice(+b.dataset.rm,1); draw(); return; }
+    if(b.dataset.every!=null){ every=b.dataset.every==="1"; draw(); return; }
+    if(b.dataset.act==="addstep"){ var v=$("c-step").value.trim(); if(v){ steps.push({t:v,d:false}); draw(); } return; }
+    if(b.dataset.act==="cdel"){ S.check=S.check.filter(function(x){return x.id!==id;}); toast(every?"Removed from every week":"Removed for this week"); }
+    if(b.dataset.act==="csave"){ c.name=$("c-name").value.trim()||c.name; c.steps=steps; toast(every?"Saved. It changes every week from now on.":"Saved for this week only."); }
+    save(); closeSheet(); render();
+  }
+  draw();
+}
+function openNotifs(){
+  sheet("Alerts", '<div>'+(S.notifs.map(function(n){return '<div class="notif-row"><span class="ops-grow">'+n.text+'</span><span class="muted" style="font-size:13px;white-space:nowrap">'+clock(n.at)+'</span></div>';}).join("")||'<p class="muted">Nothing yet.</p>')+'</div>');
+  S.notifs.forEach(function(n){n.read=true;}); save();
+  $("layer").onclick=function(e){ var b=e.target.closest("[data-close]"); if(b && e.target===b){ closeSheet(); render(); } };
+}
+
+/* ---------- routing + events ---------- */
+var route="ops";
+function render(){
+  var h=(location.hash||"#ops").slice(1); route=h;
+  var m=h.match(/^(facilities|events|media)(?:-(\w+))?$/);
+  if(m) return renderTeam(m[1], m[2]||"requests");
+  if(h==="people") return renderPeople();
+  if(h==="requests") return renderAllRequests();
+  if(h==="form") return renderForm();
+  renderOps();
+}
+window.addEventListener("hashchange", function(){ closeSheet(); render(); window.scrollTo(0,0); });
+document.addEventListener("click", function(e){
+  if(e.target.closest("#layer")) return;
+  var b=e.target.closest("[data-person],[data-act],[data-start],[data-done],[data-req],[data-tick],[data-timer],[data-chk],[data-pick],[data-when],[data-filter]"); if(!b) return;
+  if(b.dataset.person){ openAsk(b.dataset.person); return; }
+  if(b.dataset.start){ var r=S.reqs.find(function(x){return x.id===+b.dataset.start;}); if(!r.who.length){ openReq(r.id); toast("Pick who's on it, then Start"); return; } startReq(r); save(); toast("Started. The timer is running."); render(); return; }
+  if(b.dataset.done){ doneReq(S.reqs.find(function(x){return x.id===+b.dataset.done;})); save(); render(); return; }
+  if(b.dataset.tick){ var c=S.check.find(function(x){return x.id===+b.dataset.tick;}); if(c.status==="Done") c.status="Not started"; else { c.status="Done"; c.timerSince=null; c.who=c.who||"lexi"; } save(); render(); return; }
+  if(b.dataset.timer){ var c2=S.check.find(function(x){return x.id===+b.dataset.timer;}); if(c2.timerSince) c2.timerSince=null; else { c2.timerSince=new Date().toISOString(); c2.who=c2.who||"marah"; } save(); render(); return; }
+  if(b.dataset.chk){ openChk(+b.dataset.chk); return; }
+  if(b.dataset.req && !e.target.closest("button")){ openReq(+b.dataset.req); return; }
+  if(b.dataset.filter){ reqFilter=b.dataset.filter; render(); return; }
+  if(b.dataset.pick){ formState.team=b.dataset.pick; document.querySelectorAll("[data-pick]").forEach(function(x){x.classList.toggle("on", x===b);}); return; }
+  if(b.dataset.when){ document.querySelectorAll("[data-when]").forEach(function(x){x.classList.toggle("on", x===b);}); return; }
+  var a=b.dataset.act;
+  if(a==="notifs") openNotifs();
+  else if(a==="tip"){ S.tipOff=true; save(); render(); }
+  else if(a==="again"){ formState={team:null,sent:null}; render(); }
+  else if(a==="reset"){ if(b.dataset.arm){ S=seed(); formState={team:null,sent:null}; save(); toast("Back to the start"); location.hash="#ops"; render(); } else { b.dataset.arm="1"; b.textContent="Tap again to start over"; } }
+});
+document.addEventListener("submit", function(e){
+  e.preventDefault();
+  if(e.target.id==="addtask"){ var v=$("newtask").value.trim(); if(!v) return; S.check.push({id:Date.now(), name:v, area:"Building", status:"Not started", who:null, steps:[], oneOff:true}); save(); toast("Added for today. Tap it to make it every week."); render(); return; }
+  if(e.target.id==="reqform"){
+    var map={maint:"facilities",clean:"facilities",event:"events",media:"media"};
+    if(!formState.team){ toast("Pick what you need help with"); return; }
+    var what=$("f-what").value.trim(), where=$("f-where").value.trim();
+    if(!what){ $("f-what").focus(); toast("Say what needs doing"); return; } if(!where){ $("f-where").focus(); toast("Say where"); return; }
+    var w=(document.querySelector("[data-when].on")||{dataset:{}}).dataset.when, t=map[formState.team], no=++S.seq, name=$("f-name").value.trim();
+    S.reqs.push({id:no, team:t, subject:what, location:where, status:"New", who:[], due:w==="now"?today():w==="week"?addDays(today(),5):null, from:name?name.split(" ")[0]+" (form)":"Request form"});
+    notify("<b>New request from the form:</b> "+esc(what)+" · "+TEAMS[t].name+(w==="now"?' · <span class="late-txt">Emergency</span>':''));
+    formState.sent={no:no, team:t, name:name.split(" ")[0]}; save(); render(); window.scrollTo(0,0);
+  }
+});
+setInterval(function(){ if(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; if(!$("layer").innerHTML && route!=="form") render(); }, 60000);
+render();
+})();
+</script>
+</body>
+</html>
