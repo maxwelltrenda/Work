@@ -49,7 +49,8 @@ const state = {
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isAdmin = () => state.me?.role === 'admin';
 // Admins edit everything; the Maintenance manager can also add and edit paint colors.
-const canEditItem = (category) => isAdmin() || (category === 'paint' && state.me?.role === 'maintenance');
+const canEditItem = (category) => isAdmin() || (category === 'paint' && state.me?.role === 'maintenance')
+  || (category === 'events' && SITE === 'events' && canEditTool('events'));
 const LOADER = '<div class="loader" role="status" aria-label="Loading"><span></span><span></span><span></span></div>';
 const pageHead = (eyebrow, title, sub = '') =>
   `<header class="page-head"><div class="eyebrow">${eyebrow}</div><h1>${title}</h1>${sub ? `<p class="lede">${sub}</p>` : ''}</header>`;
@@ -101,20 +102,36 @@ const SITE = (() => {
   const host = location.hostname;
   return /media/i.test(host) ? 'media' : /event/i.test(host) ? 'events' : 'facilities';
 })();
-// Media gear lives with the tools, marked site = 'media'.
-const TOOL_SITE = SITE === 'media' ? 'media' : 'facilities';
+// Media gear and Events decor live with the tools, marked site = 'media' / 'events'.
+const TOOL_SITE = SITE === 'media' || SITE === 'events' ? SITE : 'facilities';
 const toolSiteOf = (t) => t.site || 'facilities';
-const TW = SITE === 'media'
-  ? { list: 'Gear', eyebrow: 'Media', one: 'gear', add: 'Add gear', edit: 'Edit gear', history: 'Gear sign-outs', cat: 'media' }
-  : { list: 'Tools', eyebrow: 'Equipment', one: 'tool', add: 'Add a tool', edit: 'Edit tool', history: 'Tool sign-outs', cat: 'tool' };
+const TW = {
+  media: { list: 'Gear', eyebrow: 'Media', one: 'gear', many: 'pieces of gear', add: 'Add gear', edit: 'Edit gear', history: 'Gear sign-outs', cat: 'media' },
+  events: { list: 'Decor', eyebrow: 'Events', one: 'decor', many: 'decor items', add: 'Add decor', edit: 'Edit decor', history: 'Decor sign-outs', cat: 'decor' },
+  facilities: { list: 'Tools', eyebrow: 'Equipment', one: 'tool', many: 'tools', add: 'Add a tool', edit: 'Edit tool', history: 'Tool sign-outs', cat: 'tool' },
+}[TOOL_SITE];
+const TW_HEAD = TW.list === 'Tools' ? 'Tool' : TW.list;
 const mediaRole = () => (isAdmin() ? 'lead' : state.me?.media_role || null);
 const MEDIA_ROLES = { member: 'Media team', lead: 'Media admin' };
 const EVENTS_ROLES = { member: 'Events team', admin: 'Events admin' };
+const eventsRole = () => (isAdmin() ? 'admin' : state.me?.events_role || null);
 // Full access on this site: org admins, plus each team's own admins (Media admin / Events admin).
 const isSiteAdmin = () => isAdmin() || (SITE === 'media' && mediaRole() === 'lead') || (SITE === 'events' && state.me?.events_role === 'admin');
 const canManageEvents = () => isAdmin() || isKiosk() || !!state.me?.events_role;
-const canEditTool = (site = TOOL_SITE) => isAdmin() || (site === 'media' && mediaRole() === 'lead');
-const canScanTools = () => (SITE === 'media' ? !!mediaRole() : myRole().scanTools);
+const canEditTool = (site = TOOL_SITE) => isAdmin() || (site === 'media' && mediaRole() === 'lead') || (site === 'events' && eventsRole() === 'admin');
+const canScanTools = () => siteRole().scanTools;
+// What this person can do on this site, in the same shape as a Facilities role.
+function siteRole() {
+  if (SITE === 'media') return { act: mediaRole() === 'lead', stock: [], scanStock: [], tools: true, scanTools: !!mediaRole() };
+  if (SITE === 'events') {
+    const er = eventsRole();
+    const scan = !!er || isKiosk();
+    return { act: er === 'admin' || isKiosk(), stock: ['events'], scanStock: scan ? ['events'] : [], tools: true, scanTools: scan };
+  }
+  // Event stock is run from the Events site now.
+  const r = myRole();
+  return { ...r, stock: r.stock.filter((k) => k !== 'events'), scanStock: r.scanStock.filter((k) => k !== 'events') };
+}
 const canUseSite = (site) => ({
   facilities: () => state.me?.role !== 'none',
   events: () => canManageEvents() || state.me?.role === 'oversight',
@@ -124,15 +141,19 @@ const canUseSite = (site) => ({
 // The pages each site offers this person. Facilities keeps the role-based list.
 function sitePages() {
   if (!canUseSite(SITE)) return [];
-  if (SITE === 'events') return ['events', 'event', ...(isSiteAdmin() ? ['people'] : [])];
+  if (SITE === 'events') {
+    const scan = siteRole().scanTools;
+    return [...(scan ? ['kiosk'] : []), 'events', 'event', 'toollist', 'tool', 'items/events', 'item', 'out', 'history',
+      ...(isSiteAdmin() ? ['labels', 'categories', 'people', 'notifications'] : [])];
+  }
   if (SITE === 'media') {
     const mr = mediaRole();
     return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history',
       ...(mr === 'lead' ? ['labels', 'categories', 'people', 'notifications'] : [])];
   }
-  return [...myRole().pages.filter((p) => p !== 'events'), ...(canSeeNotifs() ? ['notifications'] : [])];
+  return [...myRole().pages.filter((p) => p !== 'events' && p !== 'items/events'), ...(canSeeNotifs() ? ['notifications'] : [])];
 }
-const siteHome = () => (SITE === 'events' ? 'events' : SITE === 'media' ? (mediaRole() ? 'kiosk' : 'toollist') : myRole().home);
+const siteHome = () => (SITE === 'events' ? (siteRole().scanTools ? 'kiosk' : 'events') : SITE === 'media' ? (mediaRole() ? 'kiosk' : 'toollist') : myRole().home);
 
 // A few big tabs; everything else lives under one "Admin" / "More" menu.
 const NAV = {
@@ -141,14 +162,17 @@ const NAV = {
     more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
       ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories']],
   },
-  events: { main: [['events', 'Events']], more: [['people', 'People']] },
+  events: {
+    main: [['kiosk', 'Check In / Out'], ['events', 'Events'], ['toollist', 'Decor'], ['items', 'Stock']],
+    more: [['out', 'Who Has What'], ['history', 'History'], ['labels', 'Labels'], ['categories', 'Categories'], ['people', 'People']],
+  },
   media: {
     main: [['kiosk', 'Check In / Out'], ['toollist', 'Gear'], ['reservations', 'Reservations']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['labels', 'Labels'], ['categories', 'Categories'], ['people', 'People']],
   },
 };
 const myRole = () => ROLES[state.me?.role] || ROLES.member;
-const canAct = () => myRole().act;
+const canAct = () => siteRole().act;
 const pageKey = (name, arg) => (name === 'items' ? `items/${stockKind(arg)}` : name);
 
 function fmtDate(ts) {
@@ -518,7 +542,7 @@ function renderNotOnList() {
 // Notifications: sign-outs and returns, for admins (bell in the top bar)
 // ---------------------------------------------------------------------------
 
-const canSeeNotifs = () => isAdmin() || state.me?.media_role === 'lead';
+const canSeeNotifs = () => isAdmin() || state.me?.media_role === 'lead' || state.me?.events_role === 'admin';
 const BELL = `<button id="bell" class="bell" aria-label="Notifications" aria-haspopup="true"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm-2.2 15.5a2.3 2.3 0 0 0 4.4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="bell-count" hidden></span></button>`;
 let notifTimer = null;
 
@@ -605,7 +629,7 @@ async function renderNotifications() {
   const seenAt = state.me.notif_seen_at;
   const list = state.notifs.list;
   app.innerHTML = `
-    ${pageHead('Admin', 'Sign-outs &amp; <span class="accent">returns</span>', `Every sign-out and return${isAdmin() ? ' on every site' : ' of Media gear'}, newest first.`)}
+    ${pageHead('Admin', 'Sign-outs &amp; <span class="accent">returns</span>', `Every sign-out and return${isAdmin() ? ' on every site' : ''}, newest first.`)}
     <div class="card" id="push-box"></div>
     <div class="card" style="margin-top:16px">${list.length ? `<ul class="notif-list">${list.map((n) => notifRow(n, seenAt)).join('')}</ul>`
       : '<p class="muted">Nothing yet. Sign-outs and returns show up here.</p>'}</div>`;
@@ -846,7 +870,7 @@ async function renderKiosk() {
     <div class="kiosk">
       <div id="k-who"></div>
       <div class="scanrow">
-        <input id="scan" class="scanbox" placeholder="${SITE === 'media' ? 'Scan gear…' : isKiosk() ? 'Scan a tool, item or name label…' : `Scan ${[myRole().scanTools && 'a tool', myRole().scanStock.length && 'stock'].filter(Boolean).join(' or ')}…`}" autocomplete="off" autocapitalize="characters">
+        <input id="scan" class="scanbox" placeholder="${SITE === 'media' ? 'Scan gear…' : SITE === 'events' ? 'Scan decor or stock…' : isKiosk() ? 'Scan a tool, item or name label…' : `Scan ${[myRole().scanTools && 'a tool', siteRole().scanStock.length && 'stock'].filter(Boolean).join(' or ')}…`}" autocomplete="off" autocapitalize="characters">
         ${isKiosk() ? '' : `<button class="btn primary cam-btn" id="cam" type="button" title="Use this device's camera as the scanner">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
           <span>Scan with camera</span></button>`}
@@ -925,7 +949,7 @@ async function renderKiosk() {
           <div><div class="eyebrow">${isKiosk() ? 'Signed in at the kiosk' : 'Checking in / out as'}</div><h1 class="kiosk-title" style="margin:0">Hi, <span class="accent">${esc(k.person.name)}</span></h1></div>
           <button class="btn bad" id="k-done" style="font-size:18px;padding:10px 22px">Done</button>
         </div>
-        <p class="scan-hint">${SITE === 'media' ? 'Gear: scan to sign out, scan again later to return.' : [myRole().scanTools && 'Tools: scan to sign out, scan again later to return.', myRole().scanStock.length && 'Stock: scan it, then choose how many and Take or Put back.'].filter(Boolean).join(' ')}</p>
+        <p class="scan-hint">${SITE === 'media' ? 'Gear: scan to sign out, scan again later to return.' : [siteRole().scanTools && `${TW.list}: scan to sign out, scan again later to return.`, siteRole().scanStock.length && 'Stock: scan it, then choose how many and Take or Put back.'].filter(Boolean).join(' ')}</p>
       </div>`;
     el.querySelector('#k-done').addEventListener('click', () => { endSession(); show('ok', 'All set — thanks!'); });
     el.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
@@ -1148,7 +1172,7 @@ async function renderKiosk() {
     sheet.innerHTML = `
       <div class="sheet-head">
         <div class="sheet-photo" id="pk-photo"></div>
-        <div><div class="eyebrow">Tool · ${esc(tool.code)}</div>
+        <div><div class="eyebrow">${TW_HEAD} · ${esc(tool.code)}</div>
           <h3>${esc(tool.name)}</h3>
           <div class="muted" style="font-size:15px"><b>${avail}</b> of ${tool.quantity} in${out ? ` · ${out} signed out` : ''}${tool.repair_qty ? ` · ${tool.repair_qty} in repair` : ''}</div></div>
         <button type="button" class="btn small" data-cancel>Close</button>
@@ -1457,12 +1481,16 @@ async function renderKiosk() {
     // Each site handles its own things only.
     if (hit.kind === 'tool' && toolSiteOf(hit.record) !== TOOL_SITE) {
       beep(false);
-      const media = toolSiteOf(hit.record) === 'media';
-      return show('err', `<b>${esc(hit.record.name)}</b> is ${media ? 'media gear' : 'a Facilities tool'} — sign it out on the ${media ? 'Media Gear' : 'Facilities'} site.`);
+      const where = { media: ['media gear', 'Media Gear'], events: ['Events decor', 'Events'], facilities: ['a Facilities tool', 'Facilities'] }[toolSiteOf(hit.record)];
+      return show('err', `<b>${esc(hit.record.name)}</b> is ${where[0]} — sign it out on the ${where[1]} site.`);
     }
-    if (hit.kind === 'item' && SITE !== 'facilities') {
+    if (hit.kind === 'item' && SITE === 'media') {
       beep(false);
       return show('err', `<b>${esc(hit.record.name)}</b> is stock — use the Facilities site.`);
+    }
+    if (hit.kind === 'item' && (SITE === 'events') !== (hit.record.category === 'events')) {
+      beep(false);
+      return show('err', `<b>${esc(hit.record.name)}</b> is ${SITE === 'events' ? 'Facilities stock — use the Facilities site' : 'event stock — use the Events site'}.`);
     }
 
     if (hit.kind === 'tool' && k.pendingItem) {
@@ -1494,7 +1522,7 @@ async function renderKiosk() {
     if (hit.kind === 'item') {
       if (!k.person) { beep(false); return show('err', 'Tap your name first.'); }
       const it = hit.record;
-      if (!myRole().scanStock.includes(it.category)) { beep(false); return show('err', "That isn't in your area — you can only scan your own things."); }
+      if (!siteRole().scanStock.includes(it.category)) { beep(false); return show('err', "That isn't in your area — you can only scan your own things."); }
       if (it.category === 'paint' && !k.pendingItem) { beep(true); status.innerHTML = ''; return openPaintSheet(it); }
       if (k.pendingItem) {
         // Same item again = one more; a different item has to wait.
@@ -1637,7 +1665,7 @@ async function renderEvent(id) {
     </div></div>
 
     <h2>Tools</h2>
-    <div class="table-wrap"><table><tr><th>Tool</th><th>Signed out by</th><th>Out</th><th>Back</th><th></th></tr>
+    <div class="table-wrap"><table><tr><th>${TW_HEAD}</th><th>Signed out by</th><th>Out</th><th>Back</th><th></th></tr>
       ${checkouts.map((c) => { const t = toolBy[c.tool_id]; return `<tr class="${c.returned_at ? '' : 'overdue'}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a>${xQty(c.qty)} <span class="code muted">${esc(t?.code)}</span></td><td>${esc(who[c.borrower_id])}</td><td>${fmtDate(c.checked_out_at)}</td>
         <td>${c.returned_at ? `${fmtDate(c.returned_at)}${c.return_condition && c.return_condition !== 'good' ? ` <span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}` : '<span class="pill out">NOT BACK</span>'}</td>
         <td>${c.returned_at || !canManageEvents() ? '' : `<button class="btn small bad" data-lost="${c.id}">Mark lost</button>`}</td></tr>`; }).join('')
@@ -1713,21 +1741,21 @@ async function renderOut() {
   app.innerHTML = `
     ${pageHead('Right now', 'Who has <span class="accent">what</span>')}
     <div class="stats">
-      <div class="stat"><b>${counts.reduce((n, c) => n + c.qty, 0)}</b><span>tools total</span></div>
-      <div class="stat"><b>${counts.reduce((n, c) => n + c.inQty, 0)}</b><span>in the crib</span></div>
+      <div class="stat"><b>${counts.reduce((n, c) => n + c.qty, 0)}</b><span>${TW.many} total</span></div>
+      <div class="stat"><b>${counts.reduce((n, c) => n + c.inQty, 0)}</b><span>${SITE === 'facilities' ? 'in the crib' : 'checked in'}</span></div>
       <div class="stat"><b>${open.reduce((n, c) => n + (c.qty || 1), 0)}</b><span>signed out</span></div>
       <div class="stat"><b style="color:${overdue.length ? 'var(--bad)' : 'inherit'}">${overdue.length}</b><span>overdue</span></div>
       <div class="stat"><b>${flagged.length}</b><span>repair / lost</span></div>
     </div>
     ${Object.keys(groups).sort().map((name) => `
       <h2>${esc(name)} <span class="muted">(${groups[name].reduce((n, c) => n + (c.qty || 1), 0)})</span></h2>
-      <div class="table-wrap"><table><tr><th>Tool</th><th>Code</th><th>For</th><th>Out since</th><th>Due</th><th>Note</th></tr>
+      <div class="table-wrap"><table><tr><th>${TW_HEAD}</th><th>Code</th><th>For</th><th>Out since</th><th>Due</th><th>Note</th></tr>
       ${groups[name].map((c) => {
         const t = byId[c.tool_id];
         const late = c.due_at && new Date(c.due_at) < new Date();
         return `<tr class="${late ? 'overdue' : ''}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a>${xQty(c.qty)}</td><td class="code">${esc(t?.code)}</td><td>${c.event_id ? `<a href="#/event/${c.event_id}">${esc(evName[c.event_id])}</a>` : c.destination ? esc(c.destination) : '<span class="muted">shop</span>'}</td><td>${fmtDate(c.checked_out_at)} <span class="muted">(${since(c.checked_out_at)})</span></td><td>${c.due_at ? new Date(c.due_at).toLocaleDateString() : ''}${late ? ' <span class="pill overdue">OVERDUE</span>' : ''}</td><td>${esc(c.out_note)}</td></tr>`;
       }).join('')}</table></div>`).join('') || '<div class="card muted">Every tool is in.</div>'}
-    ${flagged.length ? `<h2>Needs attention</h2><div class="table-wrap"><table><tr><th>Tool</th><th>Code</th><th>Status</th></tr>
+    ${flagged.length ? `<h2>Needs attention</h2><div class="table-wrap"><table><tr><th>${TW_HEAD}</th><th>Code</th><th>Status</th></tr>
       ${flagged.map((t) => `<tr><td><a href="#/tool/${t.id}">${esc(t.name)}</a></td><td class="code">${esc(t.code)}</td><td><span class="pill ${t.status}">${t.status}</span></td></tr>`).join('')}</table></div>` : ''}`;
 }
 
@@ -1770,20 +1798,24 @@ function paintSummary(cans) {
 const HAS_COST = ['facilities', 'maintenance'];
 const HAS_SUBCAT = ['maintenance'];
 // Categories (tools, maintenance stock) are an editable list on the Categories page.
-const catList = { tool: [], maintenance: [], media: [] };
+const catList = { tool: [], maintenance: [], media: [], decor: [] };
 async function refreshCategories() {
   const rows = await q(sb.from('categories').select('kind, name').eq('active', true).order('name'));
   catList.tool = rows.filter((r) => r.kind === 'tool').map((r) => r.name);
   catList.maintenance = rows.filter((r) => r.kind === 'maintenance').map((r) => r.name);
   catList.media = rows.filter((r) => r.kind === 'media').map((r) => r.name);
+  catList.decor = rows.filter((r) => r.kind === 'decor').map((r) => r.name);
 }
+const CAT_SITE = { media: 'media', decor: 'events' };
+const canEditCategory = (kind) => isAdmin() || (CAT_SITE[kind] && canEditTool(CAT_SITE[kind]));
+const CAT_EXAMPLE = { tool: 'e.g. Power Tools', media: 'e.g. Cameras', maintenance: 'e.g. Plumbing', decor: 'e.g. Centerpieces' };
 function categorySelect(kind, current, field) {
   const names = [...catList[kind]];
   if (current && !names.includes(current)) names.push(current);
   return `<select name="${field}" data-category="${kind}">
       <option value="">— None —</option>
       ${names.map((n) => `<option ${n === current ? 'selected' : ''}>${esc(n)}</option>`).join('')}
-      ${isAdmin() || (kind === 'media' && canEditTool('media')) ? '<option value="__new">+ Add new category…</option><option value="__manage">Manage categories…</option>' : ''}
+      ${canEditCategory(kind) ? '<option value="__new">+ Add new category…</option><option value="__manage">Manage categories…</option>' : ''}
     </select>`;
 }
 function bindCategorySelects(root) {
@@ -1792,7 +1824,7 @@ function bindCategorySelects(root) {
     sel.addEventListener('change', async () => {
       if (sel.value === '__manage') { sel.value = last; location.hash = '#/categories'; return; }
       if (sel.value !== '__new') { last = sel.value; return; }
-      const name = await askText('New category', { placeholder: { tool: 'e.g. Power Tools', media: 'e.g. Cameras', maintenance: 'e.g. Plumbing' }[sel.dataset.category], ok: 'Add' });
+      const name = await askText('New category', { placeholder: CAT_EXAMPLE[sel.dataset.category], ok: 'Add' });
       if (!name) { sel.value = last; return; }
       try { await rpc('add_category', { p_kind: sel.dataset.category, p_name: name }); } catch (err) { toast(errMsg(err), true); sel.value = last; return; }
       if (!catList[sel.dataset.category].includes(name)) catList[sel.dataset.category].push(name);
@@ -1859,11 +1891,11 @@ function itemForm(it = {}, locations = []) {
     <div class="row">
       <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(it.name)}"></label>
       ${locationSelect(locations, it.location)}
-      <label style="width:150px">Stock type <select name="category">
+      ${SITE === 'events' ? '<input type="hidden" name="category" value="events">' : `<label style="width:150px">Stock type <select name="category">
         ${isAdmin() ? `<option value="facilities" ${cat === 'facilities' ? 'selected' : ''}>Facilities</option>
         <option value="maintenance" ${cat === 'maintenance' ? 'selected' : ''}>Maintenance</option>` : ''}
         <option value="paint" ${cat === 'paint' ? 'selected' : ''}>Paint</option>
-        ${isAdmin() ? `<option value="events" ${cat === 'events' ? 'selected' : ''}>Event</option>` : ''}</select></label>
+        ${isAdmin() && cat === 'events' ? '<option value="events" selected>Event</option>' : ''}</select></label>`}
       <label style="width:130px" data-for="facilities maintenance events" title="How many pieces one box/pack holds, e.g. 6 rolls in a box of paper towels. Leave 1 for single items.">Per box/pack <input name="pack_size" type="number" min="1" value="${it.pack_size ?? 1}"></label>
       <label style="width:120px" title="Counted in single pieces (e.g. 6 = two boxes of 3); for paint, in gallons">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
       ${it.id ? '' : '<label style="width:150px" data-for="facilities maintenance events" title="How many boxes/packs you have now; singles can be counted later">Starting boxes <input name="start" type="number" min="0" value="0"></label>'}
@@ -1877,7 +1909,7 @@ function itemForm(it = {}, locations = []) {
 
 // Show the cost / category fields only for stock types that use them.
 function bindItemForm(form) {
-  const type = form.querySelector('select[name="category"]');
+  const type = form.querySelector('[name="category"]');
   const sync = () => form.querySelectorAll('[data-for]').forEach((el) => { el.hidden = !el.dataset.for.split(' ').includes(type.value); });
   type.addEventListener('change', sync);
   sync();
@@ -1918,7 +1950,7 @@ async function renderItems(category) {
       <div class="stat"><b style="color:${low.length ? 'var(--warn)' : 'inherit'}">${low.length}</b><span>at or below reorder level</span></div>
       ${hasCost ? `<div class="stat"><b>${value ? money(value) : '—'}</b><span>value on hand</span></div>` : ''}
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>Add ${meta.plain.toLowerCase()}</b></summary><form id="add" style="margin-top:14px">${itemForm({ category: kind }, locations)}
+    ${canEditItem(kind) ? `<details class="card"><summary><b>Add ${meta.plain.toLowerCase()}</b></summary><form id="add" style="margin-top:14px">${itemForm({ category: kind }, locations)}
       <label style="margin-top:12px">Photo (optional) <input name="photo" type="file" accept="image/*"></label>
       <div style="margin-top:14px"><button class="btn primary">Add item</button></div></form></details>` : ''}
     <div class="row" style="margin-bottom:12px">
@@ -2247,9 +2279,9 @@ const xQty = (n) => (n > 1 ? ` <span class="muted">×${n}</span>` : '');
 function toolForm(t = {}, locations = []) {
   return `
     <div class="row">
-      <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(t.name)}" placeholder="Hilti TE 30 hammer drill"></label>
+      <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(t.name)}" placeholder="${{ media: 'Sony FX3', events: 'Gold charger plates' }[TOOL_SITE] || 'Hilti TE 30 hammer drill'}"></label>
       <label style="flex:1;min-width:180px">Category ${categorySelect(TW.cat, t.category, 'category')}</label>
-      <label style="width:110px" title="How many of this tool you have under this one barcode (e.g. 6 hammers)">Quantity <input name="quantity" type="number" min="1" value="${t.quantity ?? 1}"></label>
+      <label style="width:110px" title="How many you have under this one barcode (e.g. 6 hammers, 40 charger plates)">Quantity <input name="quantity" type="number" min="1" value="${t.quantity ?? 1}"></label>
       ${locationSelect(locations, t.location, 'Home location')}
       <label style="width:120px">Value ($) <input name="value" type="number" min="0" step="0.01" value="${t.value ?? ''}"></label>
     </div>
@@ -2291,7 +2323,7 @@ async function renderToolList() {
   app.innerHTML = `
     ${pageHead(TW.eyebrow, TW.list)}
     <div class="stats">
-      <div class="stat"><b>${show.length}</b><span>${TW.one === 'gear' ? 'pieces of gear' : 'tools'}</span></div>
+      <div class="stat"><b>${show.length}</b><span>${TW.many}</span></div>
       <div class="stat"><b>${total ? `$${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}</b><span>total value</span></div>
     </div>
     ${canEditTool() ? `<details class="card"><summary><b>${TW.add}</b></summary><form id="add" style="margin-top:14px">${toolForm({}, locations)}
@@ -2308,7 +2340,7 @@ async function renderToolList() {
     const cat = app.querySelector('#catfilter').value;
     const rows = show.filter((t) => (!f || `${t.name} ${t.code} ${t.location} ${t.category || ''}`.toLowerCase().includes(f))
       && (!cat || (cat === '__none' ? !t.category : t.category === cat)));
-    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>${SITE === 'media' ? 'Gear' : 'Tool'}</th><th>Category</th><th>Status</th><th>With</th></tr>
+    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>${TW_HEAD}</th><th>Category</th><th>Status</th><th>With</th></tr>
       ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${thumb(photos[t.photo_path])}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}${checkPills(t)}</td><td>${esc(t.category || '')}</td><td>${statusCell(t)}</td><td>${withCell(t)}</td></tr>`).join('')
       || '<tr><td colspan="5" class="muted">No tools yet.</td></tr>'}`;
   };
@@ -2479,7 +2511,7 @@ async function renderHistory() {
     <div class="row" style="margin-bottom:12px">
       <label>From <input type="date" id="from" value="${from}"></label>
       <label>To <input type="date" id="to" value="${new Date().toISOString().slice(0, 10)}"></label>
-      <label>Show <select id="kind">${SITE === 'facilities' && myRole().stock.length ? '<option value="stock">Stock scans</option>' : ''}${SITE === 'media' || myRole().tools ? `<option value="tools">${TW.history}</option>` : ''}</select></label>
+      <label>Show <select id="kind">${siteRole().stock.length ? '<option value="stock">Stock scans</option>' : ''}${siteRole().tools ? `<option value="tools">${TW.history}</option>` : ''}</select></label>
       <button class="btn" id="csv">Export CSV</button>
     </div>
     <div id="out">${LOADER}</div>`;
@@ -2497,7 +2529,7 @@ async function renderHistory() {
     const out = app.querySelector('#out');
     if (app.querySelector('#kind').value === 'stock') {
       const tx = await q(sb.from('item_transactions').select('*').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false }).limit(2000));
-      rows = tx.map((t) => ({ when: fmtDate(t.created_at), type: t.type, code: itemBy[t.item_id]?.code, item: itemBy[t.item_id]?.name, change: t.qty, after: t.qty_after, stock: STOCK[itemBy[t.item_id]?.category]?.plain || '', who: who[t.member_id], event: evName[t.event_id] || t.destination || '', recorded_by: t.recorded_by && t.recorded_by !== t.member_id ? who[t.recorded_by] : '', note: t.note }));
+      rows = tx.filter((t) => siteRole().stock.includes(itemBy[t.item_id]?.category)).map((t) => ({ when: fmtDate(t.created_at), type: t.type, code: itemBy[t.item_id]?.code, item: itemBy[t.item_id]?.name, change: t.qty, after: t.qty_after, stock: STOCK[itemBy[t.item_id]?.category]?.plain || '', who: who[t.member_id], event: evName[t.event_id] || t.destination || '', recorded_by: t.recorded_by && t.recorded_by !== t.member_id ? who[t.recorded_by] : '', note: t.note }));
       out.innerHTML = `<div class="table-wrap"><table><tr><th>When</th><th>Type</th><th>Item</th><th class="num">Change</th><th class="num">After</th><th>Who</th><th>Where</th><th>Note</th></tr>
         ${rows.map((r) => `<tr><td>${r.when}</td><td><span class="pill ${r.type}">${r.type}</span></td><td>${esc(r.item)} <span class="code muted">${esc(r.code)}</span><div class="muted" style="font-size:13px">${esc(r.stock)}</div></td><td class="num">${r.change > 0 ? '+' : ''}${r.change}</td><td class="num">${r.after}</td><td>${esc(r.who)}${r.recorded_by ? ` <span class="muted">(at ${esc(r.recorded_by)})</span>` : ''}</td><td>${esc(r.event)}</td><td>${esc(r.note)}</td></tr>`).join('')
         || '<tr><td colspan="8" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
@@ -2505,7 +2537,7 @@ async function renderHistory() {
       const co = (await q(sb.from('tool_checkouts').select('*').gte('checked_out_at', start).lte('checked_out_at', end).order('checked_out_at', { ascending: false }).limit(2000)))
         .filter((c) => toolBy[c.tool_id] && toolSiteOf(toolBy[c.tool_id]) === TOOL_SITE);
       rows = co.map((c) => ({ out: fmtDate(c.checked_out_at), code: toolBy[c.tool_id]?.code, tool: toolBy[c.tool_id]?.name, qty: c.qty || 1, who: who[c.borrower_id], event: evName[c.event_id] || c.destination || '', returned: c.returned_at ? fmtDate(c.returned_at) : 'still out', condition: c.return_condition, notes: [c.out_note, c.return_note].filter(Boolean).join(' / ') }));
-      out.innerHTML = `<div class="table-wrap"><table><tr><th>Out</th><th>${SITE === 'media' ? 'Gear' : 'Tool'}</th><th>Who</th><th>Where</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
+      out.innerHTML = `<div class="table-wrap"><table><tr><th>Out</th><th>${TW_HEAD}</th><th>Who</th><th>Where</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
         ${rows.map((r) => `<tr><td>${r.out}</td><td>${esc(r.tool)}${xQty(r.qty)} <span class="code muted">${esc(r.code)}</span></td><td>${esc(r.who)}</td><td>${esc(r.event)}</td><td>${r.returned}</td><td>${r.condition ? `<span class="pill ${r.condition}">${r.condition.replace('_', ' ')}</span>` : ''}</td><td>${esc(r.notes)}</td></tr>`).join('')
         || '<tr><td colspan="7" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
     }
@@ -2826,12 +2858,13 @@ async function renderCategories() {
   ]);
   await refreshCategories();
   const used = { tool: tools.filter((t) => toolSiteOf(t) === 'facilities').map((t) => t.category),
-    media: tools.filter((t) => toolSiteOf(t) === 'media').map((t) => t.category), maintenance: items.map((i) => i.subcategory) };
+    media: tools.filter((t) => toolSiteOf(t) === 'media').map((t) => t.category),
+    decor: tools.filter((t) => toolSiteOf(t) === 'events').map((t) => t.category), maintenance: items.map((i) => i.subcategory) };
   const count = (kind, name) => used[kind].filter((c) => c === name).length;
   const section = (kind, title, what) => `
     <h2>${title}</h2>
     <form class="card row" data-add="${kind}" style="margin-bottom:12px">
-      <label style="flex:1;min-width:220px">New ${title.toLowerCase().replace(/ies$/, 'y')} <input name="name" required placeholder="${{ tool: 'e.g. Power Tools', media: 'e.g. Cameras', maintenance: 'e.g. Plumbing' }[kind]}"></label>
+      <label style="flex:1;min-width:220px">New ${title.toLowerCase().replace(/ies$/, 'y')} <input name="name" required placeholder="${CAT_EXAMPLE[kind]}"></label>
       <button class="btn primary">Add</button></form>
     <div class="table-wrap"><table><tr><th>Category</th><th class="num">${what}</th><th></th></tr>
       ${catList[kind].map((n) => `<tr><td><b>${esc(n)}</b></td><td class="num">${count(kind, n) || ''}</td>
@@ -2840,8 +2873,8 @@ async function renderCategories() {
       || '<tr><td colspan="3" class="muted">No categories yet.</td></tr>'}</table></div>`;
 
   app.innerHTML = `
-    ${pageHead('Settings', 'Categories', 'The category lists for tools and maintenance stock.')}
-    ${SITE === 'media' ? section('media', 'Gear categories', 'Gear') : `${section('tool', 'Tool categories', 'Tools')}
+    ${pageHead('Settings', 'Categories', SITE === 'facilities' ? 'The category lists for tools and maintenance stock.' : `The category list for ${TW.list.toLowerCase()}.`)}
+    ${SITE === 'media' ? section('media', 'Gear categories', 'Gear') : SITE === 'events' ? section('decor', 'Decor categories', 'Decor') : `${section('tool', 'Tool categories', 'Tools')}
     ${section('maintenance', 'Maintenance categories', 'Items')}`}
     <p class="muted" style="font-size:14px;margin-top:12px">Renaming updates every tool or item in that category (renaming to an existing name merges them). Deleting takes it off the list and leaves those tools or items with no category.</p>`;
 
@@ -3075,10 +3108,10 @@ async function renderLabels(kind, id) {
       { id: 'done', code: CMD.DONE, name: 'DONE / CLEAR', sub: 'Finish or reset' },
     ],
   };
-  // The Media site only prints gear and name labels.
-  const tabs = SITE === 'media'
-    ? [['tool', 'Gear'], ['people', 'People (name labels)']]
-    : [['facilities', 'Facilities stock'], ['maintenance', 'Maintenance stock'], ['paint', 'Paint'], ['events', 'Event stock'],
+  // The Media and Events sites print only their own labels.
+  const tabs = SITE === 'media' ? [['tool', 'Gear'], ['people', 'People (name labels)']]
+    : SITE === 'events' ? [['tool', 'Decor'], ['events', 'Event stock'], ['people', 'People (name labels)']]
+    : [['facilities', 'Facilities stock'], ['maintenance', 'Maintenance stock'], ['paint', 'Paint'],
       ['tool', 'Tools'], ['people', 'People (name labels)'], ['commands', 'Command barcodes']];
   const tab = sources[kind] && tabs.some(([k]) => k === kind) ? kind : tabs[0][0];
   // Which table remembers when these labels were printed (commands aren't tracked).

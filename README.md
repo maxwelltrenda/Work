@@ -22,8 +22,8 @@ The same app is served at three web addresses, each showing only its own things 
 
 | Site | What it's for | Who uses it |
 |---|---|---|
-| **Facilities** | Check In / Out, Stock (Facilities, Maintenance, Paint, Event), Tools. Everything else is under one **Admin** / **More** menu. | Facilities roles below |
-| **Events** | Planning offsite events: crew, what went out, what came back. | People with **Events** access |
+| **Facilities** | Check In / Out, Stock (Facilities, Maintenance, Paint), Tools. Everything else is under one **Admin** / **More** menu. | Facilities roles below |
+| **Events** | Check In / Out, Events (offsite events: crew, what went out, what came back), Decor, Event stock. | People with **Events** access |
 | **Media Gear** (Mercy Culture Media) | Signing camera gear out and back in, reservations, and battery / card checks on return. | People with **Media** access |
 
 The site is picked from the address (a host name containing "events" or "media"), or forced with `?site=facilities|events|media`. Fill in `SITE_URLS` in `web/config.js` so the menus link between them.
@@ -36,6 +36,10 @@ One **People** list covers all three. Each person has:
 Admins can use everything on all three sites. A **Media admin** or **Events admin** has full access on their own site only, and their People page shows only their own team: they can add people (an email already on the list just joins the team), change their team access, and remove them from the team. They can't change Facilities access, other teams, or the name and email of someone who also uses other sites. The People page shows each person's access as colored tags, with filters (Everyone, Facilities, Media, Events, Admins, Can't sign in, Deactivated).
 
 **Media gear** works like tools, with `MED-` labels and photos. Returning gear asks: *Batteries charged? Cards offloaded? Anything wrong?* Gear that came back flat or with footage on the card is flagged on the Gear list. **Reservations** book gear for dates. Double-booking is refused, and anyone signing out gear someone else reserved today sees a warning.
+
+**Events decor** works like tools too, with `EVD-` labels, quantities (one barcode for 40 charger plates), photos and its own categories. **Event stock** (`EVS-` labels) is counted and taken like Facilities stock, on the Events site. Events team members sign decor out/in and take stock; Events admins also add and edit decor, stock and decor categories.
+
+**Notifications.** Admins get a bell in the top corner listing every sign-out and return, with a count of new ones and a full list at *See all*. Full admins see all three sites; a Media admin sees Media gear; an Events admin sees Events decor. Each device can turn on **push notifications** from the bell. On iPhone/iPad, push only works once the app is added to the Home Screen and opened from there (iOS 16.4 or later). Pushes are sent by the `send-push` Supabase Edge Function (`supabase/functions/send-push`). The signing keys live in the `push_config` table, which only that function can read, and the public half is `VAPID_PUBLIC_KEY` in `web/config.js`.
 
 Printed labels come out in alphabetical order.
 
