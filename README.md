@@ -45,6 +45,16 @@ Admins can use everything on all three sites. A **Media admin** or **Events admi
 
 Printed labels come out in alphabetical order.
 
+## Requests and Checklist (replacing the Monday boards)
+
+Two pages on the Facilities site rebuild the Monday boards *Maintenance Tasks* and *Custodial Weekly Checklist*, with their history imported (286 requests, 414 updates, the checklist template and past weeks).
+
+- **Requests**: a list of open requests in Monday's groups (New ticket, In Progress, Pending Reply, Executive Requests). Each has one button: **Start** or **Done**. Done moves it to *Ticket solved*, stops its timer and sets the completion date. The 13 Monday status labels are still there under "Other status", and every Monday column is under "More details". Monday's other views (status board, dashboard, Gantt) are under "More views". **New request** asks three things: what, where, how soon.
+- **Checklist**: this week's tasks, today first. Tap the circle when a task is done. **Start** times a task. Every Sunday the template is copied into a fresh week and anything left undone becomes *Missed* (the first person to open the checklist that week triggers it). Past weeks and the time log are one tap away.
+- Status changes write an "email to requester" note on the request. **No email is sent yet**; switching that on uses the same Resend setup as restock alerts.
+- Who can use them: Admin, Facilities & Maintenance, Maintenance manager and Custodian manager can edit; Oversight can view. Only admins delete requests or change the checklist template.
+- Database: `supabase/migrations/0027_facility_boards.sql` (tables `maint_*` and `checklist_*`; the Monday automations are database triggers).
+
 ## How it's built
 
 - `web/`: the whole front end (plain HTML/JS, no build step). Hosted on Vercel.
