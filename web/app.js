@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
-import { SUPABASE_URL, SUPABASE_KEY, SITE_URLS } from './config.js';
+import { SUPABASE_URL, SUPABASE_KEY, SITE_URLS, VAPID_PUBLIC_KEY } from './config.js';
 import './select.js';
 import { openCamera } from './camera.js';
 
@@ -39,6 +39,7 @@ const state = {
   stockMode: 'out',
   stockLog: [],
   kiosk: { person: null, event: null, dest: null, mode: 'out', qty: 1, log: [], idle: null, pendingTool: null },
+  notifs: { list: [], loaded: false },
 };
 
 // ---------------------------------------------------------------------------
@@ -127,9 +128,9 @@ function sitePages() {
   if (SITE === 'media') {
     const mr = mediaRole();
     return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history',
-      ...(mr === 'lead' ? ['labels', 'categories', 'people'] : [])];
+      ...(mr === 'lead' ? ['labels', 'categories', 'people', 'notifications'] : [])];
   }
-  return myRole().pages.filter((p) => p !== 'events');
+  return [...myRole().pages.filter((p) => p !== 'events'), ...(canSeeNotifs() ? ['notifications'] : [])];
 }
 const siteHome = () => (SITE === 'events' ? 'events' : SITE === 'media' ? (mediaRole() ? 'kiosk' : 'toollist') : myRole().home);
 
@@ -338,6 +339,7 @@ async function signOut(expired = false) {
   state.stockLog = [];
   state.session = null;
   state.me = null;
+  stopNotifs();
   history.replaceState(null, '', location.pathname);
   renderTopbar();
   renderLogin('signin', expired === true ? 'Your session ended. Please sign in again.' : '');
@@ -381,6 +383,7 @@ async function bootInner() {
     return;
   }
   renderTopbar();
+  startNotifs();
   await route();
 }
 
@@ -408,7 +411,8 @@ function renderTopbar() {
           <div class="more-menu">${more.join('')}${others.length ? `<div class="more-sub">Other sites</div>${others.join('')}` : ''}</div></details>` : '');
     nav.querySelectorAll('.more-menu a').forEach((a) => a.addEventListener('click', () => a.closest('details').removeAttribute('open')));
     const roleLabel = isAdmin() ? 'Admin' : SITE === 'media' ? (MEDIA_ROLES[mediaRole()] || myRole().label) : SITE === 'events' ? (EVENTS_ROLES[state.me.events_role] || 'Events team') : myRole().label;
-    who.innerHTML = `<span>${esc(state.me.name)} · ${esc(roleLabel)}</span><button id="signout">Sign out</button>`;
+    who.innerHTML = `${canSeeNotifs() ? BELL : ''}<span class="who-name">${esc(state.me.name)} · ${esc(roleLabel)}</span><button id="signout">Sign out</button>`;
+    bindBell();
   }
   document.getElementById('signout')?.addEventListener('click', signOut);
 }
@@ -510,11 +514,178 @@ function renderNotOnList() {
 // Router
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Notifications: sign-outs and returns, for admins (bell in the top bar)
+// ---------------------------------------------------------------------------
+
+const canSeeNotifs = () => isAdmin() || state.me?.media_role === 'lead';
+const BELL = `<button id="bell" class="bell" aria-label="Notifications" aria-haspopup="true"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm-2.2 15.5a2.3 2.3 0 0 0 4.4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="bell-count" hidden></span></button>`;
+let notifTimer = null;
+
+const isUnread = (n, seenAt = state.me?.notif_seen_at) => !seenAt || Date.parse(n.created_at) > Date.parse(seenAt);
+const unreadCount = () => state.notifs.list.filter((n) => isUnread(n)).length;
+
+async function loadNotifs() {
+  if (!state.me || !canSeeNotifs()) return;
+  try {
+    state.notifs.list = await q(sb.from('notifications').select('id, created_at, site, kind, title, body, tool_id')
+      .order('created_at', { ascending: false }).limit(80));
+    state.notifs.loaded = true;
+    updateBell();
+  } catch { /* try again next time */ }
+}
+
+function startNotifs() {
+  stopNotifs();
+  if (!canSeeNotifs()) return;
+  loadNotifs();
+  notifTimer = setInterval(() => { if (document.visibilityState === 'visible') loadNotifs(); }, 30000);
+  registerSw();
+}
+function stopNotifs() { clearInterval(notifTimer); notifTimer = null; state.notifs = { list: [], loaded: false }; }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && notifTimer) loadNotifs(); });
+
+function updateBell() {
+  const el = document.querySelector('#bell .bell-count');
+  if (!el) return;
+  const n = unreadCount();
+  el.hidden = !n;
+  el.textContent = n > 99 ? '99+' : n;
+  document.getElementById('bell').setAttribute('aria-label', n ? `Notifications, ${n} new` : 'Notifications');
+}
+
+const SITE_TAG = { facilities: 'Facilities', media: 'Media', events: 'Events' };
+function notifRow(n, seenAt) {
+  const showSite = isAdmin() && SITE_TAG[n.site] && n.site !== SITE;
+  return `<li class="notif ${n.kind} ${isUnread(n, seenAt) ? 'unread' : ''}">
+    <span class="notif-dot" aria-hidden="true">${n.kind === 'out' ? '↗' : '↙'}</span>
+    <div class="notif-text"><b>${esc(n.title)}</b>${n.body ? `<span>${esc(n.body)}</span>` : ''}</div>
+    <div class="notif-meta">${showSite ? `<span class="notif-site">${SITE_TAG[n.site]}</span>` : ''}<time title="${esc(fmtDate(n.created_at))}">${since(n.created_at)}</time></div>
+  </li>`;
+}
+
+async function markSeen() {
+  if (!unreadCount()) return;
+  try { state.me.notif_seen_at = await rpc('mark_notifications_seen'); } catch { /* not critical */ }
+  updateBell();
+}
+
+function bindBell() {
+  const bell = document.getElementById('bell');
+  if (!bell) return;
+  updateBell();
+  bell.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = document.getElementById('notif-panel');
+    if (open) return closeBell();
+    const seenAt = state.me.notif_seen_at;
+    const panel = document.createElement('div');
+    panel.id = 'notif-panel';
+    panel.className = 'notif-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Notifications');
+    const list = state.notifs.list.slice(0, 12);
+    panel.innerHTML = `<div class="notif-head"><b>Notifications</b><a href="#/notifications">See all</a></div>
+      ${!state.notifs.loaded ? LOADER : list.length ? `<ul class="notif-list">${list.map((n) => notifRow(n, seenAt)).join('')}</ul>`
+        : '<p class="muted notif-empty">Nothing yet. Sign-outs and returns show up here.</p>'}
+      <div class="notif-foot" id="push-box"></div>`;
+    document.body.appendChild(panel);
+    panel.addEventListener('click', (ev) => { ev.stopPropagation(); if (ev.target.closest('a')) closeBell(); });
+    renderPushBox(panel.querySelector('#push-box'), true);
+    markSeen();
+  });
+}
+function closeBell() { document.getElementById('notif-panel')?.remove(); }
+document.addEventListener('click', closeBell);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeBell(); });
+window.addEventListener('hashchange', closeBell);
+
+async function renderNotifications() {
+  await loadNotifs();
+  const seenAt = state.me.notif_seen_at;
+  const list = state.notifs.list;
+  app.innerHTML = `
+    ${pageHead('Admin', 'Sign-outs &amp; <span class="accent">returns</span>', `Every sign-out and return${isAdmin() ? ' on every site' : ' of Media gear'}, newest first.`)}
+    <div class="card" id="push-box"></div>
+    <div class="card" style="margin-top:16px">${list.length ? `<ul class="notif-list">${list.map((n) => notifRow(n, seenAt)).join('')}</ul>`
+      : '<p class="muted">Nothing yet. Sign-outs and returns show up here.</p>'}</div>`;
+  renderPushBox(app.querySelector('#push-box'));
+  markSeen();
+}
+
+// ---- Push notifications on this device ----
+
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+function registerSw() {
+  if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+  return navigator.serviceWorker.register('/sw.js').catch(() => null);
+}
+
+async function pushState() {
+  if (!VAPID_PUBLIC_KEY) return 'unsupported';
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    return isIOS && !isStandalone() ? 'install' : 'unsupported';
+  }
+  if (Notification.permission === 'denied') return 'denied';
+  const reg = await navigator.serviceWorker.getRegistration('/');
+  const sub = await reg?.pushManager.getSubscription();
+  return sub ? 'on' : 'off';
+}
+
+function urlB64ToBytes(b64) {
+  const s = atob((b64 + '='.repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(s, (c) => c.charCodeAt(0));
+}
+
+async function enablePush() {
+  // Ask first, straight from the tap (iPhone requires that).
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') throw new Error(perm === 'denied' ? 'Notifications are blocked for this app in your settings' : 'Notifications weren’t allowed');
+  await registerSw();
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription()
+    || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToBytes(VAPID_PUBLIC_KEY) });
+  const j = sub.toJSON();
+  await rpc('save_push_subscription', { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_site: SITE });
+}
+
+async function disablePush() {
+  const reg = await navigator.serviceWorker.getRegistration('/');
+  const sub = await reg?.pushManager.getSubscription();
+  if (!sub) return;
+  await rpc('delete_push_subscription', { p_endpoint: sub.endpoint }).catch(() => {});
+  await sub.unsubscribe();
+}
+
+async function renderPushBox(box, compact = false) {
+  if (!box) return;
+  const st = await pushState().catch(() => 'unsupported');
+  const msg = {
+    on: 'Push notifications are <b>on</b> for this device.',
+    off: 'Get a push notification on this device when something is signed out or returned.',
+    install: 'To get push notifications on iPhone or iPad, add this app to your Home Screen first (Share → Add to Home Screen), then open it from there and turn them on.',
+    denied: 'Notifications are blocked for this app. Turn them on in your device settings, then come back here.',
+    unsupported: 'This browser can’t do push notifications. You’ll still see everything here.',
+  }[st];
+  const btn = st === 'on' ? '<button class="btn" id="push-off">Turn off</button>' : st === 'off' ? '<button class="btn primary" id="push-on">Turn on push</button>' : '';
+  box.innerHTML = `<div class="push-box ${compact ? 'compact' : ''}"><span>${msg}</span>${btn}</div>`;
+  const go = async (b, fn, done) => {
+    b.disabled = true; b.textContent = 'Working…';
+    try { await fn(); toast(done); } catch (err) { toast(errMsg(err), true); }
+    renderPushBox(box, compact);
+  };
+  box.querySelector('#push-on')?.addEventListener('click', (e) => go(e.currentTarget, enablePush, 'Push notifications on'));
+  box.querySelector('#push-off')?.addEventListener('click', (e) => go(e.currentTarget, disablePush, 'Push notifications off'));
+}
+
 const routes = {
   kiosk: renderKiosk, events: renderEvents, event: renderEvent,
   stock: renderStock, out: renderOut, items: renderItems, item: renderItem,
   toollist: renderToolList, tool: renderTool, history: renderHistory, labels: renderLabels, people: renderPeople,
   locations: renderLocations, categories: renderCategories, reservations: renderReservations,
+  notifications: renderNotifications,
 };
 
 window.addEventListener('hashchange', () => state.me && route());

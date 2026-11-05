@@ -13,3 +13,7 @@ export const SITE_URLS = {
   events: 'https://mercy-culture-events.vercel.app',
   media: 'https://mercy-culture-media-gear.vercel.app',
 };
+
+// Public key for push notifications (the private half is an Edge Function
+// secret in Supabase). Leave empty to turn push off.
+export const VAPID_PUBLIC_KEY = 'BC1hRdlo-g4__w7RzHCtePOCJ2Rj6kWguOjf2jPRP2PrCaeNv73WKggmKlQi-GPGOsAC5U1rCn0ihVf9cmZXxME';
