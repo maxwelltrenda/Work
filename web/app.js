@@ -107,8 +107,10 @@ const TW = SITE === 'media'
   ? { list: 'Gear', eyebrow: 'Media', one: 'gear', add: 'Add gear', edit: 'Edit gear', history: 'Gear sign-outs', cat: 'media' }
   : { list: 'Tools', eyebrow: 'Equipment', one: 'tool', add: 'Add a tool', edit: 'Edit tool', history: 'Tool sign-outs', cat: 'tool' };
 const mediaRole = () => (isAdmin() ? 'lead' : state.me?.media_role || null);
-const MEDIA_ROLES = { member: 'Media team', lead: 'Media lead (adds gear)' };
-const EVENTS_ROLES = { member: 'Events team' };
+const MEDIA_ROLES = { member: 'Media team', lead: 'Media admin' };
+const EVENTS_ROLES = { member: 'Events team', admin: 'Events admin' };
+// Full access on this site: org admins, plus each team's own admins (Media admin / Events admin).
+const isSiteAdmin = () => isAdmin() || (SITE === 'media' && mediaRole() === 'lead') || (SITE === 'events' && state.me?.events_role === 'admin');
 const canManageEvents = () => isAdmin() || isKiosk() || !!state.me?.events_role;
 const canEditTool = (site = TOOL_SITE) => isAdmin() || (site === 'media' && mediaRole() === 'lead');
 const canScanTools = () => (SITE === 'media' ? !!mediaRole() : myRole().scanTools);
@@ -121,11 +123,11 @@ const canUseSite = (site) => ({
 // The pages each site offers this person. Facilities keeps the role-based list.
 function sitePages() {
   if (!canUseSite(SITE)) return [];
-  if (SITE === 'events') return ['events', 'event'];
+  if (SITE === 'events') return ['events', 'event', ...(isSiteAdmin() ? ['people'] : [])];
   if (SITE === 'media') {
     const mr = mediaRole();
     return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history',
-      ...(mr === 'lead' ? ['labels', 'categories'] : []), ...(isAdmin() ? ['people'] : [])];
+      ...(mr === 'lead' ? ['labels', 'categories', 'people'] : [])];
   }
   return myRole().pages.filter((p) => p !== 'events');
 }
@@ -138,7 +140,7 @@ const NAV = {
     more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
       ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories']],
   },
-  events: { main: [['events', 'Events']], more: [] },
+  events: { main: [['events', 'Events']], more: [['people', 'People']] },
   media: {
     main: [['kiosk', 'Check In / Out'], ['toollist', 'Gear'], ['reservations', 'Reservations']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['labels', 'Labels'], ['categories', 'Categories'], ['people', 'People']],
@@ -402,10 +404,10 @@ function renderTopbar() {
       .map((k) => `<a href="${esc(SITE_URLS[k])}">${esc(SITES[k].name)} ↗</a>`);
     const moreActive = NAV[SITE].more.some(([k]) => k === cur);
     nav.innerHTML = NAV[SITE].main.map(link).join('')
-      + (more.length || others.length ? `<details class="more ${moreActive ? 'active' : ''}"><summary>${isAdmin() ? 'Admin' : 'More'}</summary>
+      + (more.length || others.length ? `<details class="more ${moreActive ? 'active' : ''}"><summary>${isSiteAdmin() ? 'Admin' : 'More'}</summary>
           <div class="more-menu">${more.join('')}${others.length ? `<div class="more-sub">Other sites</div>${others.join('')}` : ''}</div></details>` : '');
     nav.querySelectorAll('.more-menu a').forEach((a) => a.addEventListener('click', () => a.closest('details').removeAttribute('open')));
-    const roleLabel = SITE === 'media' ? (MEDIA_ROLES[mediaRole()] || myRole().label) : SITE === 'events' ? (isAdmin() ? 'Admin' : 'Events team') : myRole().label;
+    const roleLabel = isAdmin() ? 'Admin' : SITE === 'media' ? (MEDIA_ROLES[mediaRole()] || myRole().label) : SITE === 'events' ? (EVENTS_ROLES[state.me.events_role] || 'Events team') : myRole().label;
     who.innerHTML = `<span>${esc(state.me.name)} · ${esc(roleLabel)}</span><button id="signout">Sign out</button>`;
   }
   document.getElementById('signout')?.addEventListener('click', signOut);
@@ -2190,7 +2192,7 @@ async function renderTool(id) {
     ${toolSiteOf(t) === 'media' ? await gearExtras(t, hist, members) : ''}
     <div class="row" style="margin-bottom:16px">${canAct() || canEditTool(toolSiteOf(t)) ? `<a class="btn" href="#/labels/tool/${t.id}">Print label</a>` : ''}
       <span class="muted" style="align-self:center;font-size:14px">${t.label_printed_at ? `Label printed ${fmtDate(t.label_printed_at)}` : 'Label not printed yet'}</span>
-      ${isAdmin() && (t.status !== 'out' || (t.quantity || 1) > 1) ? `<select id="status">${['available', 'repair', 'lost', 'retired'].map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" id="set-status">Set status</button>` : ''}
+      ${canEditTool(toolSiteOf(t)) && (t.status !== 'out' || (t.quantity || 1) > 1) ? `<select id="status">${['available', 'repair', 'lost', 'retired'].map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" id="set-status">Set status</button>` : ''}
     </div>
     ${canEditTool(toolSiteOf(t)) ? `<details class="card"><summary><b>${TW.edit}</b></summary><form id="edit" style="margin-top:14px">${toolForm(t, locations)}
       <div class="row" style="margin-top:12px"><button class="btn primary">Save</button>
@@ -2364,8 +2366,8 @@ const accessTags = (m) => {
   if (m.role === 'admin') return `<span class="acc acc-admin"><b>Admin</b>All three sites</span>`;
   const tags = [
     m.role !== 'none' && tag('facilities', facLabel(m.role)),
-    m.media_role && tag('media', m.media_role === 'lead' ? 'Lead' : 'Team'),
-    m.events_role && tag('events', 'Team'),
+    m.media_role && tag('media', m.media_role === 'lead' ? 'Admin' : 'Team'),
+    m.events_role && tag('events', m.events_role === 'admin' ? 'Admin' : 'Team'),
   ].filter(Boolean);
   return tags.join('') || '<span class="acc acc-none">No access yet</span>';
 };
@@ -2389,9 +2391,9 @@ function personForm(m = null) {
         ${pickRow('role', facOpts, defFac, self)}
         <div class="muted access-hint" data-hint>${esc(FAC_HINT[defFac] || '')}</div></div>
       <div class="access-site acc-media"><div class="access-head">Media Gear</div>
-        ${isAdminRow ? '<div class="muted access-hint">Admins have full access.</div>' : pickRow('media_role', [['', 'No access'], ['member', 'Team — sign out & reserve'], ['lead', 'Lead — also adds gear']], m ? m.media_role : (SITE === 'media' ? 'member' : ''))}</div>
+        ${isAdminRow ? '<div class="muted access-hint">Admins have full access.</div>' : pickRow('media_role', [['', 'No access'], ['member', 'Team — sign out & reserve'], ['lead', 'Admin — full Media access']], m ? m.media_role : (SITE === 'media' ? 'member' : ''))}</div>
       <div class="access-site acc-events"><div class="access-head">Events</div>
-        ${isAdminRow ? '<div class="muted access-hint">Admins have full access.</div>' : pickRow('events_role', [['', 'No access'], ['member', 'Team — plan & run events']], m ? m.events_role : (SITE === 'events' ? 'member' : ''))}</div>
+        ${isAdminRow ? '<div class="muted access-hint">Admins have full access.</div>' : pickRow('events_role', [['', 'No access'], ['member', 'Team — plan & run events'], ['admin', 'Admin — full Events access']], m ? m.events_role : (SITE === 'events' ? 'member' : ''))}</div>
     </div>
     ${self ? '<p class="muted" style="margin:10px 0 0">This is you, so your own Facilities access and status are locked. Ask another admin to change them.</p>' : ''}
     <div class="row" style="margin-top:14px;align-items:center">
@@ -2401,7 +2403,96 @@ function personForm(m = null) {
   </form>`;
 }
 
+// Team admins (Media admin / Events admin) manage only their own team.
+async function renderTeamPeople() {
+  const key = SITE === 'media' ? 'media_role' : 'events_role';
+  const roles = SITE === 'media' ? [['member', 'Team'], ['lead', 'Admin']] : [['member', 'Team'], ['admin', 'Admin']];
+  const roleHint = SITE === 'media'
+    ? { member: 'Signs gear out and in, makes reservations.', lead: 'Full Media access, including gear and this team list.' }
+    : { member: 'Plans and runs events.', admin: 'Full Events access, including this team list.' };
+  const teamName = SITE === 'media' ? 'Media team' : 'Events team';
+  const members = await loadMembers();
+  const team = members.filter((m) => m[key] && m.role !== 'admin');
+  // Only someone who has access here and nowhere else can be renamed by a team admin.
+  const onlyHere = (m) => m.role === 'none' && !(SITE === 'media' ? m.events_role : m.media_role);
+  const roleTag = (m) => `<span class="acc acc-${SITE}"><b>${SITE === 'media' ? 'Media' : 'Events'}</b>${roles.find(([k]) => k === m[key])?.[1] || ''}</span>`;
+  const form = (m = null) => `<form class="person-form" ${m ? `data-team-form="${m.id}"` : 'id="add"'}>
+    <div class="row">
+      <label style="flex:1;min-width:180px">Name <input name="name" required value="${esc(m?.name)}" ${m && !onlyHere(m) ? 'disabled' : ''}></label>
+      <label style="flex:1;min-width:220px">Email to sign in <input name="email" type="email" value="${esc(m?.email)}" placeholder="Leave blank if they don't sign in" ${m && !onlyHere(m) ? 'disabled' : ''}></label>
+    </div>
+    ${m && !onlyHere(m) ? '<p class="muted" style="margin:8px 0 0;font-size:13px">They also use other sites, so only an admin can change their name or email.</p>' : ''}
+    <div class="access-site acc-${SITE}" style="margin-top:12px"><div class="access-head">${teamName}</div>
+      ${pickRow('team_role', roles, m ? m[key] : 'member', m?.id === state.me.id)}
+      <div class="muted access-hint" data-hint>${esc(roleHint[m ? m[key] : 'member'])}</div></div>
+    <div class="row" style="margin-top:14px;align-items:center">
+      <button class="btn primary">${m ? 'Save' : `Add to ${teamName}`}</button><button type="button" class="btn" data-cancel>Cancel</button>
+      ${m && m.id !== state.me.id ? `<button type="button" class="btn bad" data-remove style="margin-left:auto">Remove from team</button>` : ''}
+    </div></form>`;
+
+  app.innerHTML = `
+    ${pageHead(SITES[SITE].name, `${teamName.split(' ')[0]} <span class="accent">team</span>`, `Everyone on the ${teamName} and what they can do here. You only see your team.`)}
+    <div class="row" style="margin-bottom:14px;align-items:center">
+      <button class="btn primary" id="add-open">+ Add someone</button>
+      <input id="psearch" placeholder="Search your team…" style="flex:1;min-width:200px">
+    </div>
+    <div class="card" id="add-card" hidden>${form()}<p class="muted" style="font-size:13px;margin:10px 0 0">If their email is already on the list (for example someone from Facilities), they're simply added to your team.</p></div>
+    <p class="muted" id="pcount"></p>
+    <div class="people-list" id="plist"></div>`;
+
+  const bindHint = (f) => f.querySelectorAll('input[name="team_role"]').forEach((r) => r.addEventListener('change', () => { f.querySelector('[data-hint]').textContent = roleHint[r.value]; }));
+  const paint = () => {
+    const term = app.querySelector('#psearch').value.toLowerCase();
+    const rows = team.filter((m) => !term || `${m.name} ${m.email || ''}`.toLowerCase().includes(term));
+    app.querySelector('#pcount').textContent = `${team.length} ${team.length === 1 ? 'person' : 'people'} on the ${teamName}.`;
+    app.querySelector('#plist').innerHTML = rows.map((m) => `
+      <div class="person ${m.active ? '' : 'off'}">
+        <div class="person-main"><div class="person-name">${esc(m.name)}${m.id === state.me.id ? ' <span class="muted">(you)</span>' : ''}</div>
+          <div class="muted person-sub">${m.email ? esc(m.email) : 'No email — can\'t sign in'}</div></div>
+        <div class="person-access">${roleTag(m)}</div>
+        <button class="btn small" data-edit="${m.id}">Edit</button>
+      </div>
+      <div class="person-edit" id="edit-${m.id}" hidden>${form(m)}</div>`).join('') || '<div class="card muted">Nobody on the team yet. Tap “Add someone”.</div>';
+    app.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => { const box = app.querySelector(`#edit-${b.dataset.edit}`); box.hidden = !box.hidden; }));
+    app.querySelectorAll('form[data-team-form]').forEach((f) => {
+      const m = team.find((x) => x.id === f.dataset.teamForm);
+      bindHint(f);
+      f.querySelector('[data-cancel]').addEventListener('click', () => { f.reset(); f.closest('.person-edit').hidden = true; });
+      f.querySelector('[data-remove]')?.addEventListener('click', async () => {
+        if (!(await askConfirm(`Remove ${m.name} from the ${teamName}?`, { message: 'They lose access to this site. Their history stays.', ok: 'Remove', danger: true }))) return;
+        try { await rpc('team_update_person', { p_site: SITE, p_id: m.id, p_role: null }); toast('Removed from the team'); route(); } catch (err) { toast(errMsg(err), true); }
+      });
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const d = new FormData(f);
+        try {
+          await rpc('team_update_person', { p_site: SITE, p_id: m.id, p_role: d.get('team_role') || m[key],
+            p_name: onlyHere(m) ? d.get('name') : null, p_email: onlyHere(m) ? d.get('email') : null });
+          toast('Saved');
+          route();
+        } catch (err) { toast(/unique|duplicate/i.test(errMsg(err)) ? 'Someone else already uses that email.' : errMsg(err), true); }
+      });
+    });
+  };
+  const add = app.querySelector('#add');
+  bindHint(add);
+  app.querySelector('#add-open').addEventListener('click', () => { const c = app.querySelector('#add-card'); c.hidden = !c.hidden; if (!c.hidden) add.querySelector('[name=name]').focus(); });
+  add.querySelector('[data-cancel]').addEventListener('click', () => { add.reset(); app.querySelector('#add-card').hidden = true; });
+  add.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const d = new FormData(add);
+    try {
+      await rpc('team_add_person', { p_site: SITE, p_name: d.get('name'), p_email: d.get('email'), p_role: d.get('team_role') });
+      toast(`Added to the ${teamName}${d.get('email') ? ' — they can create their account with that email' : ''}`);
+      route();
+    } catch (err) { toast(errMsg(err), true); }
+  });
+  app.querySelector('#psearch').addEventListener('input', paint);
+  paint();
+}
+
 async function renderPeople() {
+  if (!isAdmin()) return renderTeamPeople();
   const members = await loadMembers();
   const filters = [
     ['all', 'Everyone', (m) => m.active],

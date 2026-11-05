@@ -30,10 +30,10 @@ The site is picked from the address (a host name containing "events" or "media")
 
 One **People** list covers all three. Each person has:
 - **Facilities** access: No access, Facilities & Maintenance, Maintenance manager, Custodian, View only, Admin (or Shared iPad for the iPad login).
-- **Media Gear** access: No access, Team (sign out & reserve) or Lead (also adds and edits gear).
-- **Events** access: No access or Team (plan & run events).
+- **Media Gear** access: No access, Team (sign out & reserve) or Admin (full Media access).
+- **Events** access: No access, Team (plan & run events) or Admin (full Events access).
 
-Admins can use everything on all three sites. The People page shows each person's access as colored tags, with filters (Everyone, Facilities, Media, Events, Admins, Can't sign in, Deactivated).
+Admins can use everything on all three sites. A **Media admin** or **Events admin** has full access on their own site only, and their People page shows only their own team: they can add people (an email already on the list just joins the team), change their team access, and remove them from the team. They can't change Facilities access, other teams, or the name and email of someone who also uses other sites. The People page shows each person's access as colored tags, with filters (Everyone, Facilities, Media, Events, Admins, Can't sign in, Deactivated).
 
 **Media gear** works like tools, with `MED-` labels and photos. Returning gear asks: *Batteries charged? Cards offloaded? Anything wrong?* Gear that came back flat or with footage on the card is flagged on the Gear list. **Reservations** book gear for dates. Double-booking is refused, and anyone signing out gear someone else reserved today sees a warning.
 
