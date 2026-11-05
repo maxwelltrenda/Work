@@ -1,5 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
-import { SUPABASE_URL, SUPABASE_KEY, APP_NAME } from './config.js';
+import { SUPABASE_URL, SUPABASE_KEY, SITE_URLS } from './config.js';
 import './select.js';
 import { openCamera } from './camera.js';
 
@@ -27,10 +27,11 @@ const LABEL_SIZES = {
 };
 
 // Logo mark: three stacked crates.
-const MARK = `<svg viewBox="0 0 40 40" width="26" height="26" fill="none" aria-hidden="true">
-  <rect x="6" y="22" width="12" height="11" rx="1.5" fill="currentColor" opacity=".45"/>
-  <rect x="21" y="22" width="12" height="11" rx="1.5" fill="currentColor" opacity=".7"/>
-  <rect x="13.5" y="9" width="12" height="11" rx="1.5" fill="#ad4e12"/></svg>`;
+// Mercy Culture branding: the cross-over-MC mark for Facilities and Events,
+// the Mercy Culture Media lockup for the Media site.
+const MARK = (window.__SITE || 'facilities') === 'media'
+  ? '<span class="mcm-lockup" aria-label="Mercy Culture Media"><small>MERCY CULTURE</small><b aria-hidden="true">Med<span class="mcm-i"></span>a</b></span>'
+  : '<img class="mc-mark" src="/brand/mc-mark.png" alt="Mercy Culture">';
 
 const state = {
   session: null,
@@ -81,7 +82,68 @@ const ROLES = {
     scanStock: [], scanTools: false,
     pages: ['out', 'events', 'items/facilities', 'items/maintenance', 'items/paint', 'items/events', 'toollist', 'history', 'locations', 'item', 'tool', 'event'] },
 };
-const ROLE_ORDER = ['member', 'maintenance', 'custodian', 'oversight', 'admin', 'kiosk'];
+ROLES.none = { label: 'No Facilities access', act: false, home: 'kiosk', stock: [], tools: false, scanStock: [], scanTools: false, pages: [] };
+const ROLE_ORDER = ['member', 'maintenance', 'custodian', 'oversight', 'admin', 'kiosk', 'none'];
+
+// ---------------------------------------------------------------------------
+// Sites: one app served at three web addresses (Facilities, Events, Media).
+// ---------------------------------------------------------------------------
+
+const SITES = {
+  facilities: { name: 'Facilities' },
+  events: { name: 'Events' },
+  media: { name: 'Media Gear' },
+};
+const SITE = (() => {
+  const forced = new URLSearchParams(location.search).get('site');
+  if (SITES[forced]) return forced;
+  const host = location.hostname;
+  return /media/i.test(host) ? 'media' : /event/i.test(host) ? 'events' : 'facilities';
+})();
+// Media gear lives with the tools, marked site = 'media'.
+const TOOL_SITE = SITE === 'media' ? 'media' : 'facilities';
+const toolSiteOf = (t) => t.site || 'facilities';
+const TW = SITE === 'media'
+  ? { list: 'Gear', eyebrow: 'Media', one: 'gear', add: 'Add gear', edit: 'Edit gear', history: 'Gear sign-outs', cat: 'media' }
+  : { list: 'Tools', eyebrow: 'Equipment', one: 'tool', add: 'Add a tool', edit: 'Edit tool', history: 'Tool sign-outs', cat: 'tool' };
+const mediaRole = () => (isAdmin() ? 'lead' : state.me?.media_role || null);
+const MEDIA_ROLES = { member: 'Media team', lead: 'Media lead (adds gear)' };
+const EVENTS_ROLES = { member: 'Events team' };
+const canManageEvents = () => isAdmin() || isKiosk() || !!state.me?.events_role;
+const canEditTool = (site = TOOL_SITE) => isAdmin() || (site === 'media' && mediaRole() === 'lead');
+const canScanTools = () => (SITE === 'media' ? !!mediaRole() : myRole().scanTools);
+const canUseSite = (site) => ({
+  facilities: () => state.me?.role !== 'none',
+  events: () => canManageEvents() || state.me?.role === 'oversight',
+  media: () => !!mediaRole() || state.me?.role === 'oversight',
+}[site]());
+
+// The pages each site offers this person. Facilities keeps the role-based list.
+function sitePages() {
+  if (!canUseSite(SITE)) return [];
+  if (SITE === 'events') return ['events', 'event'];
+  if (SITE === 'media') {
+    const mr = mediaRole();
+    return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history',
+      ...(mr === 'lead' ? ['labels', 'categories'] : []), ...(isAdmin() ? ['people'] : [])];
+  }
+  return myRole().pages.filter((p) => p !== 'events');
+}
+const siteHome = () => (SITE === 'events' ? 'events' : SITE === 'media' ? (mediaRole() ? 'kiosk' : 'toollist') : myRole().home);
+
+// A few big tabs; everything else lives under one "Admin" / "More" menu.
+const NAV = {
+  facilities: {
+    main: [['kiosk', 'Check In / Out'], ['items', 'Stock'], ['toollist', 'Tools']],
+    more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
+      ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories']],
+  },
+  events: { main: [['events', 'Events']], more: [] },
+  media: {
+    main: [['kiosk', 'Check In / Out'], ['toollist', 'Gear'], ['reservations', 'Reservations']],
+    more: [['out', 'Who Has What'], ['history', 'History'], ['labels', 'Labels'], ['categories', 'Categories'], ['people', 'People']],
+  },
+};
 const myRole = () => ROLES[state.me?.role] || ROLES.member;
 const canAct = () => myRole().act;
 const pageKey = (name, arg) => (name === 'items' ? `items/${stockKind(arg)}` : name);
@@ -231,13 +293,17 @@ function bindScanner(input, onScan) {
 const loadMembers = () => q(sb.from('team_members').select('*').order('name'));
 const loadItems = () => q(sb.from('items').select('*').order('name'));
 const loadTools = () => q(sb.from('tools').select('*').order('name'));
+// Only this site's tools (Facilities tools or Media gear).
+const loadSiteTools = async () => (await loadTools()).filter((t) => toolSiteOf(t) === TOOL_SITE);
 
 // ---------------------------------------------------------------------------
 // Auth & boot
 // ---------------------------------------------------------------------------
 
-document.getElementById('brand').innerHTML = `<a href="#/kiosk" class="brand-link"><span class="brand-mark">${MARK}</span><span class="brand-name">${esc(APP_NAME)}</span></a>`;
-document.title = APP_NAME;
+document.getElementById('brand').innerHTML = `<a href="#/" class="brand-link"><span class="brand-mark">${MARK}</span>
+  <span class="brand-name">${SITE === 'media' ? '' : '<small>MERCY CULTURE</small>'}${esc(SITE === 'media' ? 'Gear' : SITES[SITE].name)}</span></a>`;
+document.title = SITES[SITE].name;
+document.documentElement.dataset.site = SITE;
 
 sb.auth.onAuthStateChange((event, session) => {
   // Supabase runs this callback while holding its auth lock, so calling back
@@ -323,13 +389,36 @@ function renderTopbar() {
     nav.innerHTML = '';
     who.innerHTML = state.session ? `<button id="signout">Sign out</button>` : '';
   } else {
-    const links = ALL_PAGES.filter(([k]) => myRole().pages.includes(k));
+    const pages = sitePages();
+    const firstStock = pages.find((p) => p.startsWith('items/'));
     const [h0, h1] = location.hash.slice(2).split('/');
-    const cur = h0 ? pageKey(h0, h1) : myRole().home;
-    nav.innerHTML = links.map(([k, t]) => `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${t}</a>`).join('');
-    who.innerHTML = `<span>${esc(state.me.name)} · ${esc(myRole().label)}</span><button id="signout">Sign out</button>`;
+    const cur = h0 ? pageKey(h0, h1) : siteHome();
+    const link = ([k, t]) => {
+      if (k === 'items') return firstStock ? `<a href="#/${firstStock}" class="${cur.startsWith('items/') ? 'active' : ''}">${t}</a>` : '';
+      return pages.includes(k) ? `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${t}</a>` : '';
+    };
+    const more = NAV[SITE].more.map(link).filter(Boolean);
+    const others = Object.keys(SITES).filter((k) => k !== SITE && SITE_URLS?.[k] && canUseSite(k))
+      .map((k) => `<a href="${esc(SITE_URLS[k])}">${esc(SITES[k].name)} ↗</a>`);
+    const moreActive = NAV[SITE].more.some(([k]) => k === cur);
+    nav.innerHTML = NAV[SITE].main.map(link).join('')
+      + (more.length || others.length ? `<details class="more ${moreActive ? 'active' : ''}"><summary>${isAdmin() ? 'Admin' : 'More'}</summary>
+          <div class="more-menu">${more.join('')}${others.length ? `<div class="more-sub">Other sites</div>${others.join('')}` : ''}</div></details>` : '');
+    nav.querySelectorAll('.more-menu a').forEach((a) => a.addEventListener('click', () => a.closest('details').removeAttribute('open')));
+    const roleLabel = SITE === 'media' ? (MEDIA_ROLES[mediaRole()] || myRole().label) : SITE === 'events' ? (isAdmin() ? 'Admin' : 'Events team') : myRole().label;
+    who.innerHTML = `<span>${esc(state.me.name)} · ${esc(roleLabel)}</span><button id="signout">Sign out</button>`;
   }
   document.getElementById('signout')?.addEventListener('click', signOut);
+}
+
+function renderNoAccess() {
+  const others = Object.keys(SITES).filter((k) => k !== SITE && canUseSite(k));
+  app.innerHTML = `
+    <div class="auth"><div class="auth-mark">${MARK}</div><div class="eyebrow">${esc(SITES[SITE].name)}</div>
+      <h1>No access <span class="accent">here</span>.</h1>
+      <p>You're signed in as <b>${esc(state.me.name)}</b>, but you don't have access to ${esc(SITES[SITE].name)}. Ask an admin to give you access on the People page.</p>
+      ${others.length ? `<p>You can use: ${others.map((k) => SITE_URLS?.[k] ? `<a href="${esc(SITE_URLS[k])}">${esc(SITES[k].name)}</a>` : esc(SITES[k].name)).join(' · ')}</p>` : ''}
+    </div>`;
 }
 
 function renderLogin(mode = 'signin', note = '') {
@@ -337,7 +426,7 @@ function renderLogin(mode = 'signin', note = '') {
   app.innerHTML = `
     <div class="auth">
       <div class="auth-mark">${MARK}</div>
-      <div class="eyebrow">${esc(APP_NAME)}</div>
+      <div class="eyebrow">${esc(SITES[SITE].name)}</div>
       <h1>${{ signin: 'Welcome <span class="accent">back</span>.', signup: 'Create your <span class="accent">account</span>.', forgot: 'Reset your <span class="accent">password</span>.' }[mode]}</h1>
       ${note ? `<p class="big-status info" style="font-size:15px">${esc(note)}</p>` : ''}
       <form id="auth-form">
@@ -423,16 +512,18 @@ const routes = {
   kiosk: renderKiosk, events: renderEvents, event: renderEvent,
   stock: renderStock, out: renderOut, items: renderItems, item: renderItem,
   toollist: renderToolList, tool: renderTool, history: renderHistory, labels: renderLabels, people: renderPeople,
-  locations: renderLocations, categories: renderCategories,
+  locations: renderLocations, categories: renderCategories, reservations: renderReservations,
 };
 
 window.addEventListener('hashchange', () => state.me && route());
 
 async function route() {
   const [name, ...args] = location.hash.slice(2).split('/');
-  // Anything a role can't open goes to that role's home page.
-  if (!name || !routes[name] || !myRole().pages.includes(pageKey(name, args[0]))) {
-    const home = `#/${myRole().home}`;
+  const pages = sitePages();
+  if (!pages.length) { renderTopbar(); return renderNoAccess(); }
+  // Anything this person can't open on this site goes to the site's home page.
+  if (!name || !routes[name] || !pages.includes(pageKey(name, args[0]))) {
+    const home = `#/${siteHome()}`;
     if (location.hash !== home) { location.hash = home; return; }
   }
   const fn = routes[name] || renderKiosk;
@@ -582,7 +673,7 @@ async function renderKiosk() {
     <div class="kiosk">
       <div id="k-who"></div>
       <div class="scanrow">
-        <input id="scan" class="scanbox" placeholder="${isKiosk() ? 'Scan a tool, item or name label…' : `Scan ${[myRole().scanTools && 'a tool', myRole().scanStock.length && 'stock'].filter(Boolean).join(' or ')}…`}" autocomplete="off" autocapitalize="characters">
+        <input id="scan" class="scanbox" placeholder="${SITE === 'media' ? 'Scan gear…' : isKiosk() ? 'Scan a tool, item or name label…' : `Scan ${[myRole().scanTools && 'a tool', myRole().scanStock.length && 'stock'].filter(Boolean).join(' or ')}…`}" autocomplete="off" autocapitalize="characters">
         ${isKiosk() ? '' : `<button class="btn primary cam-btn" id="cam" type="button" title="Use this device's camera as the scanner">
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
           <span>Scan with camera</span></button>`}
@@ -661,7 +752,7 @@ async function renderKiosk() {
           <div><div class="eyebrow">${isKiosk() ? 'Signed in at the kiosk' : 'Checking in / out as'}</div><h1 class="kiosk-title" style="margin:0">Hi, <span class="accent">${esc(k.person.name)}</span></h1></div>
           <button class="btn bad" id="k-done" style="font-size:18px;padding:10px 22px">Done</button>
         </div>
-        <p class="scan-hint">${[myRole().scanTools && 'Tools: scan to sign out, scan again later to return.', myRole().scanStock.length && 'Stock: scan it, then choose how many and Take or Put back.'].filter(Boolean).join(' ')}</p>
+        <p class="scan-hint">${SITE === 'media' ? 'Gear: scan to sign out, scan again later to return.' : [myRole().scanTools && 'Tools: scan to sign out, scan again later to return.', myRole().scanStock.length && 'Stock: scan it, then choose how many and Take or Put back.'].filter(Boolean).join(' ')}</p>
       </div>`;
     el.querySelector('#k-done').addEventListener('click', () => { endSession(); show('ok', 'All set — thanks!'); });
     el.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
@@ -735,6 +826,7 @@ async function renderKiosk() {
         <div><div class="eyebrow">Signing out to ${esc(k.person.name)}</div>
           <h3>Where is <span class="accent">${esc(tool.name)}</span> going?</h3></div>
       </div>
+      <div id="res-note"></div>
       ${placeChips(sel)}
       <p class="scan-hint">${sel ? `Press Enter or scan it again for <b>${esc(placeName(sel))}</b>.` : 'Tap where it\'s going.'}</p>
       <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button></div>`;
@@ -745,7 +837,19 @@ async function renderKiosk() {
     sheet.querySelector('[data-cancel]').addEventListener('click', cancel);
     (sheet.querySelector('.place.on') || sheet.querySelector('.place'))?.focus();
     photoUrl(tool.photo_path).then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
+    showReservedNote(tool, sheet);
     resetIdle();
+  }
+
+  // Media gear: warn when someone else has it reserved today.
+  async function showReservedNote(tool, sheet) {
+    if (toolSiteOf(tool) !== 'media') return;
+    const today = localDay();
+    const res = (await loadReservations(tool.id).catch(() => [])).filter((r) => r.starts_on <= today && r.member_id !== k.person?.id);
+    const el = sheet.querySelector('#res-note');
+    if (!res.length || !el) return;
+    const names = Object.fromEntries(crew.map((m) => [m.id, m.name]));
+    el.innerHTML = `<div class="sheet-msg">Reserved today by ${res.map((r) => `<b>${esc(names[r.member_id] || 'someone')}</b>${r.qty > 1 ? ` (${r.qty})` : ''}`).join(', ')}${res[0].note ? ` — ${esc(res[0].note)}` : ''}. Check with them before taking it.</div>`;
   }
 
   async function checkoutNow(tool) {
@@ -771,6 +875,7 @@ async function renderKiosk() {
 
   // After a return: anything wrong? "No" is the default (Enter or scan it again).
   function askCondition(tool, n, borrower) {
+    if (toolSiteOf(tool) === 'media') return askGearChecks(tool, n, borrower);
     const many = n > 1;
     const sheet = openSheet();
     sheet.innerHTML = `
@@ -805,6 +910,54 @@ async function renderKiosk() {
     photoUrl(tool.photo_path).then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
   }
 
+  // Media gear coming back: batteries charged? cards offloaded? anything wrong?
+  function askGearChecks(tool, n, borrower) {
+    const ans = { batteries: undefined, cards: undefined, cond: 'good' };
+    const sheet = openSheet();
+    const choice = (key, opts) => `<div class="cond-grid">${opts.map(([v, l, cls]) => `<button type="button" class="btn big ${cls} ${ans[key] === v ? 'on' : ''}" data-q="${key}" data-v="${v}">${l}</button>`).join('')}</div>`;
+    const paint = () => {
+      const ready = ans.batteries !== undefined && ans.cards !== undefined;
+      sheet.innerHTML = `
+        <div class="sheet-head">
+          <div class="sheet-photo" id="pk-photo"></div>
+          <div><div class="eyebrow">Returned${n > 1 ? ` ${n}` : ''} · was out to ${esc(borrower)}</div>
+            <h3>Checking in <span class="accent">${esc(tool.name)}</span></h3></div>
+        </div>
+        <div class="qty-label">Batteries charged?</div>
+        ${choice('batteries', [['yes', 'Yes', 'in'], ['no', 'No — needs charging', 'out'], ['na', 'No battery', '']])}
+        <div class="qty-label" style="margin-top:14px">Cards offloaded?</div>
+        ${choice('cards', [['yes', 'Yes', 'in'], ['no', 'No — still has footage', 'out'], ['na', 'No card', '']])}
+        <div class="qty-label" style="margin-top:14px">Anything wrong with it?</div>
+        ${choice('cond', [['good', 'No, it\'s fine', 'in'], ['damaged', 'Damaged', 'out'], ['needs_repair', 'Needs repair', 'bad']])}
+        <div class="row item-actions"><button type="button" class="btn primary big" id="g-done" ${ready ? '' : 'disabled'}>${ready ? 'Done' : 'Answer the battery and card questions'}</button></div>`;
+      sheet.querySelectorAll('[data-q]').forEach((b) => b.addEventListener('click', () => { ans[b.dataset.q] = b.dataset.v; paint(); }));
+      sheet.querySelector('#g-done').addEventListener('click', finish);
+      photoUrl(tool.photo_path).then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
+      sheet.querySelector('#g-done:not([disabled])')?.focus();
+    };
+    const toBool = (v) => (v === 'yes' ? true : v === 'no' ? false : null);
+    const finish = async () => {
+      closeSheet();
+      const notes = [];
+      try {
+        await rpc('record_gear_checks', { p_tool: tool.id, p_batteries: toBool(ans.batteries), p_cards: toBool(ans.cards) });
+        if (ans.batteries === 'no') notes.push('needs charging');
+        if (ans.cards === 'no') notes.push('card not offloaded');
+        if (ans.cond !== 'good') {
+          const note = (await askText("What's wrong with it?", { placeholder: 'Optional', required: false, ok: 'Save' })) || '';
+          await rpc('report_tool_problem', { p_tool: tool.id, p_condition: ans.cond, p_note: note, p_qty: 1 });
+          notes.push(`flagged ${ans.cond.replace('_', ' ')}`);
+        }
+      } catch (e) { return show('err', esc(errMsg(e))); }
+      show(notes.length ? 'info' : 'ok', `<b>${esc(tool.name)}</b> checked in${notes.length ? ` — ${esc(notes.join(', '))}` : '. All good.'}`);
+      if (notes.length) log('repair', `${tool.name}: ${notes.join(', ')}`);
+      showToolPhoto(tool);
+      scan.focus();
+    };
+    k.picker = { code: tool.code.toUpperCase(), onSame: () => {}, cancel: () => closeSheet() };
+    paint();
+  }
+
   // Tools with a quantity (e.g. Hammer x6): one pop-up shows who has some
   // (with Return buttons) and lets the person here take some.
   function openToolSheet(tool, checkouts, msg = '') {
@@ -827,6 +980,7 @@ async function renderKiosk() {
           <div class="muted" style="font-size:15px"><b>${avail}</b> of ${tool.quantity} in${out ? ` · ${out} signed out` : ''}${tool.repair_qty ? ` · ${tool.repair_qty} in repair` : ''}</div></div>
         <button type="button" class="btn small" data-cancel>Close</button>
       </div>
+      <div id="res-note"></div>
       ${rows.length ? `<div class="qty-label">Signed out</div><div class="co-list">${rows.map((c) => `
         <div class="co-row"><div><b>${esc(c.borrower_name)}</b> has <b>${c.qty}</b>
           <span class="muted">· ${since(c.checked_out_at)}${c.destination ? ` · ${esc(c.destination)}` : ''}</span></div>
@@ -890,6 +1044,7 @@ async function renderKiosk() {
       askCondition(tool, n, c.borrower_name);
     }));
     sheet.querySelector('#t-take, .place.on, [data-ret], [data-sheet-person]')?.focus();
+    showReservedNote(tool, sheet);
     photoUrl(tool.photo_path).then((url) => { const ph = sheet.querySelector('#pk-photo'); if (url && ph) ph.innerHTML = `<img src="${esc(url)}" alt="">`; });
     resetIdle();
   }
@@ -1126,6 +1281,17 @@ async function renderKiosk() {
       return show('info', `Hi ${esc(m.name)} — scan what you're taking or returning.`);
     }
 
+    // Each site handles its own things only.
+    if (hit.kind === 'tool' && toolSiteOf(hit.record) !== TOOL_SITE) {
+      beep(false);
+      const media = toolSiteOf(hit.record) === 'media';
+      return show('err', `<b>${esc(hit.record.name)}</b> is ${media ? 'media gear' : 'a Facilities tool'} — sign it out on the ${media ? 'Media Gear' : 'Facilities'} site.`);
+    }
+    if (hit.kind === 'item' && SITE !== 'facilities') {
+      beep(false);
+      return show('err', `<b>${esc(hit.record.name)}</b> is stock — use the Facilities site.`);
+    }
+
     if (hit.kind === 'tool' && k.pendingItem) {
       beep(false);
       return paintItem(`Finish <b>${esc(k.pendingItem.item.name)}</b> first: tap Take or Put back, or Cancel.`);
@@ -1231,7 +1397,7 @@ async function renderEvents() {
 
   app.innerHTML = `
     ${pageHead('Offsite', 'Events', 'Plan an offsite job, then pick it on the Check In / Out screen when loading the truck. Everything scanned goes on the event’s list.')}
-    <details class="card" ${live.length ? '' : 'open'} ${canAct() ? '' : 'hidden'}><summary><b>New event</b></summary>
+    <details class="card" ${live.length ? '' : 'open'} ${canManageEvents() ? '' : 'hidden'}><summary><b>New event</b></summary>
       <form id="add" style="margin-top:12px">${eventForm()}
         <h2>Crew</h2><div class="people-pick">${crew.map((m) => `<label class="chip"><input type="checkbox" name="crew" value="${m.id}"> ${esc(m.name)}</label>`).join('')}</div>
         <div style="margin-top:12px"><button class="btn primary">Create event</button></div></form></details>
@@ -1293,15 +1459,15 @@ async function renderEvent(id) {
 
     <h2>Crew</h2>
     <div class="card"><div class="people-pick">
-      ${[...crewIds].map((mid) => `<span class="chip">${esc(who[mid])} ${ev.status !== 'closed' && canAct() ? `<button class="x" data-remove="${mid}" title="Remove">×</button>` : ''}</span>`).join('') || '<span class="muted">No crew yet.</span>'}
-      ${ev.status !== 'closed' && notCrew.length && canAct() ? `<select id="add-crew"><option value="">+ Add person…</option>${notCrew.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>` : ''}
+      ${[...crewIds].map((mid) => `<span class="chip">${esc(who[mid])} ${ev.status !== 'closed' && canManageEvents() ? `<button class="x" data-remove="${mid}" title="Remove">×</button>` : ''}</span>`).join('') || '<span class="muted">No crew yet.</span>'}
+      ${ev.status !== 'closed' && notCrew.length && canManageEvents() ? `<select id="add-crew"><option value="">+ Add person…</option>${notCrew.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>` : ''}
     </div></div>
 
     <h2>Tools</h2>
     <div class="table-wrap"><table><tr><th>Tool</th><th>Signed out by</th><th>Out</th><th>Back</th><th></th></tr>
       ${checkouts.map((c) => { const t = toolBy[c.tool_id]; return `<tr class="${c.returned_at ? '' : 'overdue'}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a>${xQty(c.qty)} <span class="code muted">${esc(t?.code)}</span></td><td>${esc(who[c.borrower_id])}</td><td>${fmtDate(c.checked_out_at)}</td>
         <td>${c.returned_at ? `${fmtDate(c.returned_at)}${c.return_condition && c.return_condition !== 'good' ? ` <span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}` : '<span class="pill out">NOT BACK</span>'}</td>
-        <td>${c.returned_at || !canAct() ? '' : `<button class="btn small bad" data-lost="${c.id}">Mark lost</button>`}</td></tr>`; }).join('')
+        <td>${c.returned_at || !canManageEvents() ? '' : `<button class="btn small bad" data-lost="${c.id}">Mark lost</button>`}</td></tr>`; }).join('')
       || '<tr><td colspan="5" class="muted">No tools signed out to this event yet. Pick this event on the Check In/Out screen and scan.</td></tr>'}</table></div>
 
     <h2>Stock</h2>
@@ -1310,10 +1476,10 @@ async function renderEvent(id) {
       || '<tr><td colspan="4" class="muted">No stock scanned for this event.</td></tr>'}</table></div>
 
     <div class="row" style="margin-top:18px">
-      ${!canAct() ? '' : ev.status !== 'closed' ? '<button class="btn primary" id="close">Close event</button>' : '<button class="btn" id="reopen">Reopen event</button>'}
+      ${!canManageEvents() ? '' : ev.status !== 'closed' ? '<button class="btn primary" id="close">Close event</button>' : '<button class="btn" id="reopen">Reopen event</button>'}
       <button class="btn" id="csv">Export CSV</button>
     </div>
-    ${ev.status !== 'closed' && canAct() ? `<details class="card" style="margin-top:16px"><summary><b>Edit event details</b></summary><form id="edit" style="margin-top:12px">${eventForm(ev)}<div style="margin-top:12px"><button class="btn primary">Save</button></div></form></details>` : ''}`;
+    ${ev.status !== 'closed' && canManageEvents() ? `<details class="card" style="margin-top:16px"><summary><b>Edit event details</b></summary><form id="edit" style="margin-top:12px">${eventForm(ev)}<div style="margin-top:12px"><button class="btn primary">Save</button></div></form></details>` : ''}`;
 
   const reload = () => route();
   app.querySelectorAll('[data-remove]').forEach((b) => b.addEventListener('click', async () => {
@@ -1354,10 +1520,12 @@ async function renderEvent(id) {
 // ---------------------------------------------------------------------------
 
 async function renderOut() {
-  const [tools, members, open, events] = await Promise.all([
-    loadTools(), loadMembers(), q(sb.from('tool_checkouts').select('*').is('returned_at', null).order('checked_out_at')),
+  const [tools, members, allOpen, events] = await Promise.all([
+    loadSiteTools(), loadMembers(), q(sb.from('tool_checkouts').select('*').is('returned_at', null).order('checked_out_at')),
     q(sb.from('events').select('id, name')),
   ]);
+  const siteIds = new Set(tools.map((t) => t.id));
+  const open = allOpen.filter((c) => siteIds.has(c.tool_id));
   const evName = Object.fromEntries(events.map((e) => [e.id, e.name]));
   const byId = Object.fromEntries(tools.map((t) => [t.id, t]));
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
@@ -1401,6 +1569,11 @@ const STOCK = {
   events: { title: 'Event <span class="accent">stock</span>', plain: 'Event stock', eyebrow: 'Stock room', hash: '#/items/events' },
 };
 const stockKind = (c) => (STOCK[c] ? c : 'facilities');
+// Switch between the stock areas this person can see, at the top of each stock page.
+const stockTabs = (kind) => {
+  const kinds = Object.keys(STOCK).filter((k) => sitePages().includes(`items/${k}`));
+  return kinds.length > 1 ? `<div class="seg">${kinds.map((k) => `<a href="${STOCK[k].hash}" class="${k === kind ? 'on' : ''}">${STOCK[k].plain.replace(/ stock$/, '')}</a>`).join('')}</div>` : '';
+};
 
 // Paint: one item per color; every can (1 or 5 gallons, full or partly used)
 // counts toward that color's total gallons.
@@ -1424,11 +1597,12 @@ function paintSummary(cans) {
 const HAS_COST = ['facilities', 'maintenance'];
 const HAS_SUBCAT = ['maintenance'];
 // Categories (tools, maintenance stock) are an editable list on the Categories page.
-const catList = { tool: [], maintenance: [] };
+const catList = { tool: [], maintenance: [], media: [] };
 async function refreshCategories() {
   const rows = await q(sb.from('categories').select('kind, name').eq('active', true).order('name'));
   catList.tool = rows.filter((r) => r.kind === 'tool').map((r) => r.name);
   catList.maintenance = rows.filter((r) => r.kind === 'maintenance').map((r) => r.name);
+  catList.media = rows.filter((r) => r.kind === 'media').map((r) => r.name);
 }
 function categorySelect(kind, current, field) {
   const names = [...catList[kind]];
@@ -1436,7 +1610,7 @@ function categorySelect(kind, current, field) {
   return `<select name="${field}" data-category="${kind}">
       <option value="">— None —</option>
       ${names.map((n) => `<option ${n === current ? 'selected' : ''}>${esc(n)}</option>`).join('')}
-      ${isAdmin() ? '<option value="__new">+ Add new category…</option><option value="__manage">Manage categories…</option>' : ''}
+      ${isAdmin() || (kind === 'media' && canEditTool('media')) ? '<option value="__new">+ Add new category…</option><option value="__manage">Manage categories…</option>' : ''}
     </select>`;
 }
 function bindCategorySelects(root) {
@@ -1445,7 +1619,7 @@ function bindCategorySelects(root) {
     sel.addEventListener('change', async () => {
       if (sel.value === '__manage') { sel.value = last; location.hash = '#/categories'; return; }
       if (sel.value !== '__new') { last = sel.value; return; }
-      const name = await askText('New category', { placeholder: sel.dataset.category === 'tool' ? 'e.g. Power Tools' : 'e.g. Plumbing', ok: 'Add' });
+      const name = await askText('New category', { placeholder: { tool: 'e.g. Power Tools', media: 'e.g. Cameras', maintenance: 'e.g. Plumbing' }[sel.dataset.category], ok: 'Add' });
       if (!name) { sel.value = last; return; }
       try { await rpc('add_category', { p_kind: sel.dataset.category, p_name: name }); } catch (err) { toast(errMsg(err), true); sel.value = last; return; }
       if (!catList[sel.dataset.category].includes(name)) catList[sel.dataset.category].push(name);
@@ -1563,6 +1737,7 @@ async function renderItems(category) {
   const subcats = [...new Set(show.map((i) => i.subcategory).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   app.innerHTML = `
+    ${stockTabs(kind)}
     ${pageHead(meta.eyebrow, meta.title)}
     <div class="stats">
       <div class="stat"><b>${show.length}</b><span>items</span></div>
@@ -1579,7 +1754,7 @@ async function renderItems(category) {
       <select id="locfilter"><option value="">All locations</option>${locations.map((l) => `<option>${esc(l.name)}</option>`).join('')}</select>
       <label class="row" style="flex-direction:row;align-items:center"><input type="checkbox" id="lowonly"> Low only</label>
       <button class="btn" id="csv">Export CSV</button>
-      <button class="btn" id="sheet" title="Every ${meta.plain.toLowerCase()} label on letter paper, sorted by location">Print sheet</button>
+      <button class="btn" id="sheet" title="Every ${meta.plain.toLowerCase()} label on letter paper, in alphabetical order">Print sheet</button>
     </div>
     <div class="table-wrap"><table id="tbl"></table></div>
     ${items.length > show.length ? `<p class="muted">${items.length - show.length} archived item(s) hidden.</p>` : ''}`;
@@ -1644,6 +1819,7 @@ async function renderPaint() {
   const totalGal = show.reduce((t, i) => t + sum[i.id].gallons, 0);
 
   app.innerHTML = `
+    ${stockTabs('paint')}
     ${pageHead(meta.eyebrow, meta.title, 'One entry per color. Full and used cans all count toward the color\'s gallons.')}
     <div class="stats">
       <div class="stat"><b>${show.length}</b><span>colors</span></div>
@@ -1661,7 +1837,7 @@ async function renderPaint() {
       <select id="sheenfilter"><option value="">All sheens</option>${SHEENS.map((x) => `<option>${x}</option>`).join('')}</select>
       <label class="row" style="flex-direction:row;align-items:center"><input type="checkbox" id="lowonly"> Low only</label>
       <button class="btn" id="csv">Export CSV</button>
-      <button class="btn" id="sheet" title="Every paint label on letter paper, sorted by location">Print sheet</button>
+      <button class="btn" id="sheet" title="Every paint label on letter paper, in alphabetical order">Print sheet</button>
     </div>
     <div class="table-wrap"><table id="tbl"></table></div>`;
 
@@ -1899,7 +2075,7 @@ function toolForm(t = {}, locations = []) {
   return `
     <div class="row">
       <label style="flex:2;min-width:200px">Name <input name="name" required value="${esc(t.name)}" placeholder="Hilti TE 30 hammer drill"></label>
-      <label style="flex:1;min-width:180px">Category ${categorySelect('tool', t.category, 'category')}</label>
+      <label style="flex:1;min-width:180px">Category ${categorySelect(TW.cat, t.category, 'category')}</label>
       <label style="width:110px" title="How many of this tool you have under this one barcode (e.g. 6 hammers)">Quantity <input name="quantity" type="number" min="1" value="${t.quantity ?? 1}"></label>
       ${locationSelect(locations, t.location, 'Home location')}
       <label style="width:120px">Value ($) <input name="value" type="number" min="0" step="0.01" value="${t.value ?? ''}"></label>
@@ -1913,7 +2089,7 @@ const toolFields = (f) => ({
 });
 
 async function renderToolList() {
-  const [tools, members, open, locations] = await Promise.all([loadTools(), loadMembers(), q(sb.from('tool_checkouts').select('tool_id, borrower_id, checked_out_at, qty, returned_at').is('returned_at', null)), loadLocations()]);
+  const [tools, members, open, locations] = await Promise.all([loadSiteTools(), loadMembers(), q(sb.from('tool_checkouts').select('tool_id, borrower_id, checked_out_at, qty, returned_at').is('returned_at', null)), loadLocations()]);
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
   const openBy = {};
   open.forEach((c) => (openBy[c.tool_id] ||= []).push(c));
@@ -1923,20 +2099,31 @@ async function renderToolList() {
     return `<span class="pill ${n.inQty ? 'available' : t.status}">${n.inQty} of ${n.qty} in</span>`;
   };
   const withCell = (t) => (openBy[t.id] || []).map((c) => `${esc(who[c.borrower_id])}${xQty(c.qty)}${(t.quantity || 1) > 1 ? '' : ` <span class="muted">(${since(c.checked_out_at)})</span>`}`).join(', ');
+  // Media gear: flag what came back with flat batteries or footage still on the card.
+  const lastChecks = {};
+  if (SITE === 'media') {
+    const recent = await q(sb.from('tool_checkouts').select('tool_id, returned_at, batteries_ok, cards_offloaded').order('returned_at', { ascending: false }).limit(2000));
+    recent.forEach((c) => { if (c.returned_at && !lastChecks[c.tool_id]) lastChecks[c.tool_id] = c; });
+  }
+  const checkPills = (t) => {
+    const c = lastChecks[t.id];
+    if (!c || openBy[t.id]?.length) return '';
+    return `${c.batteries_ok === false ? ' <span class="pill low">Needs charging</span>' : ''}${c.cards_offloaded === false ? ' <span class="pill low">Card not offloaded</span>' : ''}`;
+  };
   const show = tools.filter((t) => t.active);
   const total = show.reduce((s, t) => s + Number(t.value || 0), 0);
   await refreshCategories();
   const cats = [...new Set(show.map((t) => t.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   app.innerHTML = `
-    ${pageHead('Equipment', 'Tools')}
+    ${pageHead(TW.eyebrow, TW.list)}
     <div class="stats">
-      <div class="stat"><b>${show.length}</b><span>tools</span></div>
+      <div class="stat"><b>${show.length}</b><span>${TW.one === 'gear' ? 'pieces of gear' : 'tools'}</span></div>
       <div class="stat"><b>${total ? `$${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}</b><span>total value</span></div>
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>Add a tool</b></summary><form id="add" style="margin-top:14px">${toolForm({}, locations)}
+    ${canEditTool() ? `<details class="card"><summary><b>${TW.add}</b></summary><form id="add" style="margin-top:14px">${toolForm({}, locations)}
       <label style="margin-top:12px">Photo (optional) <input name="photo" type="file" accept="image/*"></label>
-      <div style="margin-top:12px"><button class="btn primary">Add tool</button></div></form></details>` : ''}
+      <div style="margin-top:12px"><button class="btn primary">${TW.add}</button></div></form></details>` : ''}
     <div class="row" style="margin-bottom:10px"><input id="filter" placeholder="Search…" style="flex:1;min-width:200px">
       <select id="catfilter"><option value="">All categories</option>${cats.map((c) => `<option>${esc(c)}</option>`).join('')}${show.some((t) => !t.category) ? '<option value="__none">No category</option>' : ''}</select>
       <button class="btn" id="csv">Export CSV</button></div>
@@ -1948,8 +2135,8 @@ async function renderToolList() {
     const cat = app.querySelector('#catfilter').value;
     const rows = show.filter((t) => (!f || `${t.name} ${t.code} ${t.location} ${t.category || ''}`.toLowerCase().includes(f))
       && (!cat || (cat === '__none' ? !t.category : t.category === cat)));
-    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>Tool</th><th>Category</th><th>Status</th><th>With</th></tr>
-      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${thumb(photos[t.photo_path])}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}</td><td>${esc(t.category || '')}</td><td>${statusCell(t)}</td><td>${withCell(t)}</td></tr>`).join('')
+    app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>${SITE === 'media' ? 'Gear' : 'Tool'}</th><th>Category</th><th>Status</th><th>With</th></tr>
+      ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${thumb(photos[t.photo_path])}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}${checkPills(t)}</td><td>${esc(t.category || '')}</td><td>${statusCell(t)}</td><td>${withCell(t)}</td></tr>`).join('')
       || '<tr><td colspan="5" class="muted">No tools yet.</td></tr>'}`;
   };
   app.querySelector('#catfilter').addEventListener('change', paint);
@@ -1964,7 +2151,7 @@ async function renderToolList() {
     e.preventDefault();
     try {
       const f = new FormData(e.target);
-      const [row] = await q(sb.from('tools').insert(toolFields(f)).select());
+      const [row] = await q(sb.from('tools').insert({ ...toolFields(f), site: TOOL_SITE }).select());
       const photo = f.get('photo');
       if (photo?.size) {
         try { await setPhoto('tool', row, photo); } catch (err) { toast(`Added ${row.name}, but the photo didn't upload: ${errMsg(err)}`, true); return route(); }
@@ -1990,9 +2177,9 @@ async function renderTool(id) {
   const photo = await photoUrl(t.photo_path);
 
   app.innerHTML = `
-    <p><a href="#/toollist">← Tools</a></p>
+    <p><a href="#/toollist">← ${TW.list}</a></p>
     <h1>${esc(t.name)} <span class="code muted">${esc(t.code)}</span></h1>
-    ${photoBlock(t, photo)}
+    ${photoBlock(t, photo, canEditTool(toolSiteOf(t)))}
     <div class="stats">
       <div class="stat"><b><span class="pill ${t.status}">${t.status}</span></b><span>status</span></div>
       <div class="stat"><b>${esc(t.category || '—')}</b><span>category</span></div>
@@ -2000,19 +2187,21 @@ async function renderTool(id) {
       ${(t.quantity || 1) > 1 ? (() => { const n = toolCounts(t, hist); return `<div class="stat"><b>${n.inQty} of ${n.qty}</b><span>in right now${n.outQty ? ` · ${n.outQty} out` : ''}${t.repair_qty ? ` · ${t.repair_qty} in repair` : ''}</span></div>`; })() : ''}
       <div class="stat"><b>${hist.length}</b><span>times signed out</span></div>
     </div>
-    <div class="row" style="margin-bottom:16px">${canAct() ? `<a class="btn" href="#/labels/tool/${t.id}">Print label</a>` : ''}
+    ${toolSiteOf(t) === 'media' ? await gearExtras(t, hist, members) : ''}
+    <div class="row" style="margin-bottom:16px">${canAct() || canEditTool(toolSiteOf(t)) ? `<a class="btn" href="#/labels/tool/${t.id}">Print label</a>` : ''}
       <span class="muted" style="align-self:center;font-size:14px">${t.label_printed_at ? `Label printed ${fmtDate(t.label_printed_at)}` : 'Label not printed yet'}</span>
       ${isAdmin() && (t.status !== 'out' || (t.quantity || 1) > 1) ? `<select id="status">${['available', 'repair', 'lost', 'retired'].map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" id="set-status">Set status</button>` : ''}
     </div>
-    ${isAdmin() ? `<details class="card"><summary><b>Edit tool</b></summary><form id="edit" style="margin-top:14px">${toolForm(t, locations)}
+    ${canEditTool(toolSiteOf(t)) ? `<details class="card"><summary><b>${TW.edit}</b></summary><form id="edit" style="margin-top:14px">${toolForm(t, locations)}
       <div class="row" style="margin-top:12px"><button class="btn primary">Save</button>
-      <button type="button" class="btn ${t.active ? 'bad' : ''}" id="archive">${t.active ? 'Archive tool' : 'Restore tool'}</button></div></form></details>` : ''}
+      <button type="button" class="btn ${t.active ? 'bad' : ''}" id="archive">${t.active ? 'Archive' : 'Restore'}</button></div></form></details>` : ''}
     <h2>Sign-out history</h2>
     <div class="table-wrap"><table><tr><th>Who</th><th>Out</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
       ${hist.map((c) => `<tr><td>${esc(who[c.borrower_id])}${xQty(c.qty)}</td><td>${fmtDate(c.checked_out_at)}</td><td>${c.returned_at ? fmtDate(c.returned_at) : '<span class="pill out">still out</span>'}</td><td>${c.return_condition ? `<span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}</td><td>${esc([c.out_note, c.return_note].filter(Boolean).join(' / '))}</td></tr>`).join('')
       || '<tr><td colspan="5" class="muted">Never signed out.</td></tr>'}</table></div>`;
 
   bindPhotoBlock('tool', t);
+  bindGearExtras(t);
   app.querySelector('#set-status')?.addEventListener('click', async () => {
     try { await rpc('set_tool_status', { p_tool: t.id, p_status: app.querySelector('#status').value }); toast('Status updated'); route(); } catch (err) { toast(errMsg(err), true); }
   });
@@ -2028,6 +2217,85 @@ async function renderTool(id) {
 }
 
 // ---------------------------------------------------------------------------
+// Media gear: reservations and return checks
+// ---------------------------------------------------------------------------
+
+const localDay = (d = new Date()) => new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const dayLabel = (iso) => new Date(`${iso}T12:00`).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+const dateRange = (r) => (r.starts_on === r.ends_on ? dayLabel(r.starts_on) : `${dayLabel(r.starts_on)} – ${dayLabel(r.ends_on)}`);
+const canCancelRes = (r) => r.member_id === state.me?.id || r.created_by === state.me?.id || canEditTool('media');
+const loadReservations = (toolId) => {
+  let query = sb.from('gear_reservations').select('*').is('cancelled_at', null).gte('ends_on', localDay()).order('starts_on');
+  if (toolId) query = query.eq('tool_id', toolId);
+  return q(query);
+};
+
+// A form to reserve gear; pass `tool` to fix the gear, or a list to pick from.
+function reserveForm(gear, members, tool = null) {
+  const lead = canEditTool('media');
+  return `<form class="card" id="reserve">
+    <div class="row" style="align-items:flex-end">
+      ${tool ? '' : `<label style="flex:2;min-width:200px">Gear <select name="tool" required><option value="">Choose…</option>${gear.map((t) => `<option value="${t.id}">${esc(t.name)}${(t.quantity || 1) > 1 ? ` (×${t.quantity})` : ''}</option>`).join('')}</select></label>`}
+      <label>From <input type="date" name="start" required value="${localDay()}"></label>
+      <label>To <input type="date" name="end" required value="${localDay()}"></label>
+      <label style="width:90px">How many <input type="number" name="qty" min="1" value="1"></label>
+      ${lead ? `<label>For <select name="member">${people(members).map((m) => `<option value="${m.id}" ${m.id === state.me.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select></label>` : ''}
+      <label style="flex:1;min-width:160px">Note <input name="note" placeholder="Shoot, event…"></label>
+      <button class="btn primary">Reserve</button>
+    </div></form>`;
+}
+function bindReserveForm(tool = null) {
+  app.querySelector('#reserve')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    try {
+      await rpc('reserve_gear', { p_tool: tool?.id || f.get('tool'), p_member: f.get('member') || state.me.id,
+        p_start: f.get('start'), p_end: f.get('end'), p_qty: Math.max(1, parseInt(f.get('qty'), 10) || 1), p_note: f.get('note') });
+      toast('Reserved');
+      route();
+    } catch (err) { toast(errMsg(err), true); }
+  });
+  app.querySelectorAll('[data-cancel-res]').forEach((b) => b.addEventListener('click', async () => {
+    if (!(await askConfirm('Cancel this reservation?', { ok: 'Cancel reservation', danger: true }))) return;
+    try { await rpc('cancel_reservation', { p_id: Number(b.dataset.cancelRes) }); toast('Reservation cancelled'); route(); } catch (err) { toast(errMsg(err), true); }
+  }));
+}
+const resRows = (list, who, toolBy = null) => list.map((r) => `<tr><td>${dateRange(r)}</td>${toolBy ? `<td><a href="#/tool/${r.tool_id}">${esc(toolBy[r.tool_id]?.name)}</a></td>` : ''}
+  <td>${esc(who[r.member_id])}</td><td class="num">${r.qty}</td><td>${esc(r.note)}</td>
+  <td style="text-align:right">${canCancelRes(r) ? `<button class="btn small" data-cancel-res="${r.id}">Cancel</button>` : ''}</td></tr>`).join('');
+
+// On a piece of gear's page: last return's checks, then its reservations.
+async function gearExtras(t, hist, members) {
+  const res = await loadReservations(t.id);
+  const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
+  const last = hist.find((c) => c.returned_at);
+  const warns = [last?.batteries_ok === false && 'Batteries need charging', last?.cards_offloaded === false && 'Card still has footage'].filter(Boolean);
+  return `${warns.length && !hist.some((c) => !c.returned_at) ? `<div class="big-status info">${warns.join(' · ')} <span class="muted" style="font-size:14px">(from the last return${last ? `, ${fmtDate(last.returned_at)}` : ''})</span></div>` : ''}
+    <h2>Reservations</h2>
+    <div class="table-wrap"><table><tr><th>When</th><th>For</th><th class="num">How many</th><th>Note</th><th></th></tr>
+      ${resRows(res, who) || '<tr><td colspan="5" class="muted">No upcoming reservations.</td></tr>'}</table></div>
+    ${mediaRole() ? reserveForm([], members, t) : ''}`;
+}
+function bindGearExtras(t) {
+  if (toolSiteOf(t) === 'media') bindReserveForm(t);
+}
+
+async function renderReservations() {
+  const [gear, members, res] = await Promise.all([loadSiteTools(), loadMembers(), loadReservations()]);
+  const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
+  const toolBy = Object.fromEntries(gear.map((t) => [t.id, t]));
+  const mine = res.filter((r) => r.member_id === state.me.id);
+  app.innerHTML = `
+    ${pageHead('Media', 'Reservations', 'Book gear ahead so two shoots don\'t plan on the same camera.')}
+    ${mediaRole() ? reserveForm(gear.filter((t) => t.active), members) : ''}
+    ${mine.length ? `<h2>Yours</h2><div class="table-wrap"><table><tr><th>When</th><th>Gear</th><th>For</th><th class="num">How many</th><th>Note</th><th></th></tr>${resRows(mine, who, toolBy)}</table></div>` : ''}
+    <h2>Everything coming up</h2>
+    <div class="table-wrap"><table><tr><th>When</th><th>Gear</th><th>For</th><th class="num">How many</th><th>Note</th><th></th></tr>
+      ${resRows(res, who, toolBy) || '<tr><td colspan="6" class="muted">Nothing reserved.</td></tr>'}</table></div>`;
+  bindReserveForm();
+}
+
+// ---------------------------------------------------------------------------
 // History
 // ---------------------------------------------------------------------------
 
@@ -2038,7 +2306,7 @@ async function renderHistory() {
     <div class="row" style="margin-bottom:12px">
       <label>From <input type="date" id="from" value="${from}"></label>
       <label>To <input type="date" id="to" value="${new Date().toISOString().slice(0, 10)}"></label>
-      <label>Show <select id="kind">${myRole().stock.length ? '<option value="stock">Stock scans</option>' : ''}${myRole().tools ? '<option value="tools">Tool sign-outs</option>' : ''}</select></label>
+      <label>Show <select id="kind">${SITE === 'facilities' && myRole().stock.length ? '<option value="stock">Stock scans</option>' : ''}${SITE === 'media' || myRole().tools ? `<option value="tools">${TW.history}</option>` : ''}</select></label>
       <button class="btn" id="csv">Export CSV</button>
     </div>
     <div id="out">${LOADER}</div>`;
@@ -2061,9 +2329,10 @@ async function renderHistory() {
         ${rows.map((r) => `<tr><td>${r.when}</td><td><span class="pill ${r.type}">${r.type}</span></td><td>${esc(r.item)} <span class="code muted">${esc(r.code)}</span><div class="muted" style="font-size:13px">${esc(r.stock)}</div></td><td class="num">${r.change > 0 ? '+' : ''}${r.change}</td><td class="num">${r.after}</td><td>${esc(r.who)}${r.recorded_by ? ` <span class="muted">(at ${esc(r.recorded_by)})</span>` : ''}</td><td>${esc(r.event)}</td><td>${esc(r.note)}</td></tr>`).join('')
         || '<tr><td colspan="8" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
     } else {
-      const co = await q(sb.from('tool_checkouts').select('*').gte('checked_out_at', start).lte('checked_out_at', end).order('checked_out_at', { ascending: false }).limit(2000));
+      const co = (await q(sb.from('tool_checkouts').select('*').gte('checked_out_at', start).lte('checked_out_at', end).order('checked_out_at', { ascending: false }).limit(2000)))
+        .filter((c) => toolBy[c.tool_id] && toolSiteOf(toolBy[c.tool_id]) === TOOL_SITE);
       rows = co.map((c) => ({ out: fmtDate(c.checked_out_at), code: toolBy[c.tool_id]?.code, tool: toolBy[c.tool_id]?.name, qty: c.qty || 1, who: who[c.borrower_id], event: evName[c.event_id] || c.destination || '', returned: c.returned_at ? fmtDate(c.returned_at) : 'still out', condition: c.return_condition, notes: [c.out_note, c.return_note].filter(Boolean).join(' / ') }));
-      out.innerHTML = `<div class="table-wrap"><table><tr><th>Out</th><th>Tool</th><th>Who</th><th>Where</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
+      out.innerHTML = `<div class="table-wrap"><table><tr><th>Out</th><th>${SITE === 'media' ? 'Gear' : 'Tool'}</th><th>Who</th><th>Where</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
         ${rows.map((r) => `<tr><td>${r.out}</td><td>${esc(r.tool)}${xQty(r.qty)} <span class="code muted">${esc(r.code)}</span></td><td>${esc(r.who)}</td><td>${esc(r.event)}</td><td>${r.returned}</td><td>${r.condition ? `<span class="pill ${r.condition}">${r.condition.replace('_', ' ')}</span>` : ''}</td><td>${esc(r.notes)}</td></tr>`).join('')
         || '<tr><td colspan="7" class="muted">Nothing in this range.</td></tr>'}</table></div>`;
     }
@@ -2077,70 +2346,133 @@ async function renderHistory() {
 // People
 // ---------------------------------------------------------------------------
 
-function personForm(m) {
-  const self = m.id === state.me.id;
-  return `<form class="person-form" data-person-form="${m.id}">
+// ---- People: one list for all three sites, with access shown at a glance ----
+
+// Facilities access, in plain words (the Kiosk choice is only for the shared iPad's own login).
+const FAC_ACCESS = [
+  ['none', 'No access'], ['member', 'Facilities & Maintenance'], ['maintenance', 'Maintenance manager'],
+  ['custodian', 'Custodian'], ['oversight', 'View only'], ['admin', 'Admin'], ['kiosk', 'Shared iPad'],
+];
+const FAC_HINT = {
+  none: 'Can\'t use the Facilities site.', member: 'Scans tools, facilities & maintenance stock and paint.',
+  maintenance: 'Scans tools, maintenance stock and paint; adds paint colors.', custodian: 'Scans facilities stock.',
+  oversight: 'Sees everything, changes nothing.', admin: 'Everything, on all three sites.', kiosk: 'The shared warehouse iPad login.',
+};
+const facLabel = (r) => (FAC_ACCESS.find(([k]) => k === r) || [r, r])[1];
+const accessTags = (m) => {
+  const tag = (site, text) => `<span class="acc acc-${site}"><b>${site === 'facilities' ? 'Facilities' : site === 'media' ? 'Media' : 'Events'}</b>${esc(text)}</span>`;
+  if (m.role === 'admin') return `<span class="acc acc-admin"><b>Admin</b>All three sites</span>`;
+  const tags = [
+    m.role !== 'none' && tag('facilities', facLabel(m.role)),
+    m.media_role && tag('media', m.media_role === 'lead' ? 'Lead' : 'Team'),
+    m.events_role && tag('events', 'Team'),
+  ].filter(Boolean);
+  return tags.join('') || '<span class="acc acc-none">No access yet</span>';
+};
+// A row of tap-to-pick buttons (radio buttons underneath).
+const pickRow = (name, options, cur, disabled = false) => `<div class="pick-row ${disabled ? 'disabled' : ''}">${options.map(([v, l]) =>
+  `<label><input type="radio" name="${name}" value="${v}" ${v === (cur ?? '') ? 'checked' : ''} ${disabled ? 'disabled' : ''}><span>${esc(l)}</span></label>`).join('')}</div>`;
+
+function personForm(m = null) {
+  const self = m && m.id === state.me.id;
+  const isAdminRow = m?.role === 'admin';
+  const facOpts = FAC_ACCESS.filter(([k]) => k !== 'kiosk' || m?.role === 'kiosk');
+  const defFac = m ? m.role : (SITE === 'facilities' ? 'member' : 'none');
+  return `<form class="person-form" ${m ? `data-person-form="${m.id}"` : 'id="add"'}>
     <div class="row">
-      <label style="flex:1;min-width:160px">Name <input name="name" required value="${esc(m.name)}"></label>
-      <label style="flex:1;min-width:200px">Email (for sign-in) <input name="email" type="email" value="${esc(m.email)}"></label>
-      <label style="width:130px" title="The code on their printed name label">Label code <input name="code" required value="${esc(m.code)}" autocapitalize="characters"></label>
-      <label>Role <select name="role" ${self ? 'disabled' : ''}>${ROLE_ORDER.map((r) => `<option value="${r}" ${r === m.role ? 'selected' : ''}>${ROLES[r].label}</option>`).join('')}</select></label>
-      <label>Status <select name="active" ${self ? 'disabled' : ''}>
-        <option value="true" ${m.active ? 'selected' : ''}>Active</option>
-        <option value="false" ${m.active ? '' : 'selected'}>Deactivated</option></select></label>
+      <label style="flex:1;min-width:180px">Name <input name="name" required value="${esc(m?.name)}" placeholder="First and last name"></label>
+      <label style="flex:1;min-width:220px">Email to sign in <input name="email" type="email" value="${esc(m?.email)}" placeholder="Leave blank if they only use the iPad"></label>
+      ${m ? `<label style="width:120px" title="The code on their printed name label">Label code <input name="code" required value="${esc(m.code)}" autocapitalize="characters"></label>` : ''}
     </div>
-    <p class="muted" style="margin:10px 0 0">${self
-      ? "This is you. You can't change your own role or deactivate yourself; ask another admin."
-      : 'Changing the email means they sign in with the new address (they create a password for it the first time). Changing the label code means their name label needs reprinting.'}</p>
-    <div class="row" style="margin-top:12px"><button class="btn primary">Save</button><button type="button" class="btn" data-cancel>Cancel</button></div>
+    <div class="access-grid">
+      <div class="access-site acc-facilities"><div class="access-head">Facilities</div>
+        ${pickRow('role', facOpts, defFac, self)}
+        <div class="muted access-hint" data-hint>${esc(FAC_HINT[defFac] || '')}</div></div>
+      <div class="access-site acc-media"><div class="access-head">Media Gear</div>
+        ${isAdminRow ? '<div class="muted access-hint">Admins have full access.</div>' : pickRow('media_role', [['', 'No access'], ['member', 'Team — sign out & reserve'], ['lead', 'Lead — also adds gear']], m ? m.media_role : (SITE === 'media' ? 'member' : ''))}</div>
+      <div class="access-site acc-events"><div class="access-head">Events</div>
+        ${isAdminRow ? '<div class="muted access-hint">Admins have full access.</div>' : pickRow('events_role', [['', 'No access'], ['member', 'Team — plan & run events']], m ? m.events_role : (SITE === 'events' ? 'member' : ''))}</div>
+    </div>
+    ${self ? '<p class="muted" style="margin:10px 0 0">This is you, so your own Facilities access and status are locked. Ask another admin to change them.</p>' : ''}
+    <div class="row" style="margin-top:14px;align-items:center">
+      <button class="btn primary">${m ? 'Save' : 'Add person'}</button><button type="button" class="btn" data-cancel>Cancel</button>
+      ${m && !self ? `<button type="button" class="btn ${m.active ? 'bad' : ''}" data-toggle-active style="margin-left:auto">${m.active ? 'Deactivate' : 'Reactivate'}</button>` : ''}
+    </div>
   </form>`;
 }
 
 async function renderPeople() {
   const members = await loadMembers();
+  const filters = [
+    ['all', 'Everyone', (m) => m.active],
+    ['facilities', 'Facilities', (m) => m.active && m.role !== 'none'],
+    ['media', 'Media', (m) => m.active && (m.role === 'admin' || !!m.media_role)],
+    ['events', 'Events', (m) => m.active && (m.role === 'admin' || !!m.events_role)],
+    ['admin', 'Admins', (m) => m.active && m.role === 'admin'],
+    ['nologin', 'Can\'t sign in', (m) => m.active && !m.email],
+    ['off', 'Deactivated', (m) => !m.active],
+  ];
+  let filter = 'all';
   app.innerHTML = `
-    ${pageHead('Team', 'People')}
-    <p class="muted">Anyone with an email here can sign in (they create their own password with that email). People without an email can still use the warehouse iPad by tapping their name.
-      <b>Admins</b> can edit everything. The <b>Kiosk</b> (the shared iPad) checks anything in and out. <b>Facilities &amp; Maintenance</b> scans tools, facilities and maintenance stock;
-      <b>Maintenance manager</b> scans tools and maintenance stock; <b>Custodian manager</b> scans facilities stock; <b>Oversight</b> sees everything but changes nothing. Anyone can still check things out at the iPad by tapping their name.</p>
-    ${isAdmin() ? `<div class="card"><form id="add" class="row">
-      <label style="flex:1;min-width:160px">Name <input name="name" required></label>
-      <label style="flex:1;min-width:200px">Email (for sign-in) <input name="email" type="email"></label>
-      <label>Role <select name="role">${ROLE_ORDER.map((r) => `<option value="${r}">${ROLES[r].label}</option>`).join('')}</select></label>
-      <button class="btn primary">Add person</button></form></div>` : ''}
-    <div class="table-wrap"><table><tr><th>Name</th><th>Label code</th><th>Email</th><th>Role</th><th></th></tr>
-      ${members.map((m) => `<tr style="${m.active ? '' : 'opacity:.5'}"><td>${esc(m.name)}${m.active ? '' : ' <span class="muted">(deactivated)</span>'}</td><td class="code">${esc(m.code)}</td><td>${esc(m.email)}</td><td>${esc(ROLES[m.role]?.label || m.role)}</td>
-        <td>${isAdmin() ? `<button class="btn small" data-edit="${m.id}">Edit</button>` : ''}</td></tr>
-        ${isAdmin() ? `<tr class="edit-row" id="edit-${m.id}" hidden><td colspan="5">${personForm(m)}</td></tr>` : ''}`).join('')}</table></div>
-    <p><a class="btn" href="#/labels/people">Print name labels</a></p>`;
+    ${pageHead('Team', 'People', 'One list for Facilities, Media Gear and Events. Each person\'s tags show where they have access.')}
+    <div class="row" style="margin-bottom:14px;align-items:center">
+      <button class="btn primary big-add" id="add-open">+ Add person</button>
+      <input id="psearch" placeholder="Search names or emails…" style="flex:1;min-width:200px">
+      <a class="btn" href="#/labels/people">Print name labels</a>
+    </div>
+    <div class="card" id="add-card" hidden>${personForm()}</div>
+    <div class="seg" id="pfilters"></div>
+    <div class="people-list" id="plist"></div>`;
 
-  app.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
-    const row = app.querySelector(`#edit-${b.dataset.edit}`);
-    row.hidden = !row.hidden;
-    if (!row.hidden) row.querySelector('input[name="name"]').focus();
+  const paint = () => {
+    const f = filters.find(([k]) => k === filter);
+    const term = app.querySelector('#psearch').value.toLowerCase();
+    app.querySelector('#pfilters').innerHTML = filters.map(([k, l, fn]) => `<a href="#" data-f="${k}" class="${k === filter ? 'on' : ''}">${l} <span class="muted">${members.filter(fn).length}</span></a>`).join('');
+    const rows = members.filter(f[2]).filter((m) => !term || `${m.name} ${m.email || ''}`.toLowerCase().includes(term));
+    app.querySelector('#plist').innerHTML = rows.map((m) => `
+      <div class="person ${m.active ? '' : 'off'}" id="p-${m.id}">
+        <div class="person-main">
+          <div class="person-name">${esc(m.name)}${m.id === state.me.id ? ' <span class="muted">(you)</span>' : ''}${m.active ? '' : ' <span class="pill closed">Deactivated</span>'}</div>
+          <div class="muted person-sub">${m.email ? esc(m.email) : 'No email — uses the iPad by tapping their name'} · <span class="code">${esc(m.code)}</span></div>
+        </div>
+        <div class="person-access">${accessTags(m)}</div>
+        <button class="btn small" data-edit="${m.id}">Edit</button>
+      </div>
+      <div class="person-edit" id="edit-${m.id}" hidden>${personForm(m)}</div>`).join('') || '<div class="card muted">Nobody here.</div>';
+    app.querySelectorAll('[data-f]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); filter = a.dataset.f; paint(); }));
+    app.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
+      const box = app.querySelector(`#edit-${b.dataset.edit}`);
+      box.hidden = !box.hidden;
+      if (!box.hidden) box.querySelector('input[name="name"]').focus();
+    }));
+    app.querySelectorAll('form[data-person-form]').forEach(bindEdit);
+  };
+
+  // Show what the chosen Facilities access means.
+  const bindHints = (form) => form.querySelectorAll('input[name="role"]').forEach((r) => r.addEventListener('change', () => {
+    const h = form.querySelector('[data-hint]');
+    if (h) h.textContent = FAC_HINT[r.value] || '';
   }));
-  app.querySelectorAll('form[data-person-form]').forEach((form) => {
+  const accessOf = (f) => ({ media_role: f.get('media_role') || null, events_role: f.get('events_role') || null });
+
+  function bindEdit(form) {
     const m = members.find((x) => x.id === form.dataset.personForm);
-    form.querySelector('[data-cancel]').addEventListener('click', () => {
-      form.reset();
-      form.querySelectorAll('select').forEach((sel) => sel.dispatchEvent(new Event('change')));
-      form.closest('tr').hidden = true;
+    bindHints(form);
+    form.querySelector('[data-cancel]').addEventListener('click', () => { form.reset(); form.closest('.person-edit').hidden = true; });
+    form.querySelector('[data-toggle-active]')?.addEventListener('click', async () => {
+      if (m.active && !(await askConfirm(`Deactivate ${m.name}?`, { message: 'They won\'t be able to sign in or be picked at the iPad. Their history stays.', ok: 'Deactivate', danger: true }))) return;
+      try { await q(sb.from('team_members').update({ active: !m.active }).eq('id', m.id).select()); toast(m.active ? 'Deactivated' : 'Reactivated'); route(); } catch (err) { toast(errMsg(err), true); }
     });
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const f = new FormData(form);
-      const patch = {
-        name: f.get('name').trim(),
-        email: f.get('email').trim().toLowerCase() || null,
-        code: f.get('code').trim().toUpperCase(),
-      };
+      const patch = { name: f.get('name').trim(), email: f.get('email').trim().toLowerCase() || null, code: f.get('code').trim().toUpperCase() };
       if (!patch.name) return toast('Name is required', true);
       if (!patch.code) return toast('Label code is required', true);
-      if (/^(FAC|MNT|PNT|EVS|TL|CMD)-/.test(patch.code)) return toast('That label code looks like an item, tool or command code. Use something like P-012.', true);
-      if (m.id !== state.me.id) {
-        patch.role = f.get('role');
-        patch.active = f.get('active') === 'true';
-      } else if (patch.email !== m.email && !(await askConfirm('Change your sign-in email?', { message: `You sign in with ${m.email}. After this you'll need to sign in with ${patch.email || 'no email (you would be locked out)'}.`, ok: 'Change it' }))) return;
+      if (/^(FAC|MNT|PNT|EVS|TL|MED|CMD)-/.test(patch.code)) return toast('That label code looks like an item, tool or command code. Use something like P-012.', true);
+      if (m.role !== 'admin') Object.assign(patch, accessOf(f));
+      if (m.id !== state.me.id) patch.role = f.get('role');
+      else if (patch.email !== m.email && !(await askConfirm('Change your sign-in email?', { message: `You sign in with ${m.email}. After this you'll need to sign in with ${patch.email || 'no email (you would be locked out)'}.`, ok: 'Change it' }))) return;
       // A new code means the old printed label no longer scans.
       if (patch.code !== m.code) patch.label_printed_at = null;
       try {
@@ -2152,16 +2484,34 @@ async function renderPeople() {
         toast(/duplicate|unique/i.test(msg) ? (/email/i.test(msg) ? 'Someone else already uses that email.' : 'Someone else already has that label code.') : msg, true);
       }
     });
+  }
+
+  const add = app.querySelector('#add');
+  bindHints(add);
+  app.querySelector('#add-open').addEventListener('click', () => {
+    const card = app.querySelector('#add-card');
+    card.hidden = !card.hidden;
+    if (!card.hidden) add.querySelector('input[name="name"]').focus();
   });
-  app.querySelector('#add')?.addEventListener('submit', async (e) => {
+  add.querySelector('[data-cancel]').addEventListener('click', () => { add.reset(); app.querySelector('#add-card').hidden = true; });
+  add.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const f = new FormData(e.target);
+    const f = new FormData(add);
+    const row = { name: f.get('name').trim(), email: f.get('email').trim().toLowerCase() || null, role: f.get('role'), ...accessOf(f) };
+    if (row.role === 'admin') { row.media_role = null; row.events_role = null; }
+    if (row.role === 'none' && !row.media_role && !row.events_role
+      && !(await askConfirm(`Add ${row.name} with no access?`, { message: 'They\'ll be on the list (and can be picked at the iPad) but can\'t use any site yet.', ok: 'Add anyway' }))) return;
     try {
-      await q(sb.from('team_members').insert({ name: f.get('name').trim(), email: f.get('email').trim().toLowerCase() || null, role: f.get('role') }).select());
-      toast('Added');
+      await q(sb.from('team_members').insert(row).select());
+      toast(`Added ${row.name}${row.email ? ' — they can now create their account with that email' : ''}`);
       route();
-    } catch (err) { toast(errMsg(err), true); }
+    } catch (err) {
+      const msg = errMsg(err);
+      toast(/duplicate|unique/i.test(msg) ? 'Someone else already uses that email.' : msg, true);
+    }
   });
+  app.querySelector('#psearch').addEventListener('input', paint);
+  paint();
 }
 
 // ---------------------------------------------------------------------------
@@ -2209,16 +2559,17 @@ async function renderLocations() {
 
 async function renderCategories() {
   const [tools, items] = await Promise.all([
-    q(sb.from('tools').select('category').eq('active', true)),
+    q(sb.from('tools').select('category, site').eq('active', true)),
     q(sb.from('items').select('subcategory').eq('active', true).eq('category', 'maintenance')),
   ]);
   await refreshCategories();
-  const used = { tool: tools.map((t) => t.category), maintenance: items.map((i) => i.subcategory) };
+  const used = { tool: tools.filter((t) => toolSiteOf(t) === 'facilities').map((t) => t.category),
+    media: tools.filter((t) => toolSiteOf(t) === 'media').map((t) => t.category), maintenance: items.map((i) => i.subcategory) };
   const count = (kind, name) => used[kind].filter((c) => c === name).length;
   const section = (kind, title, what) => `
     <h2>${title}</h2>
     <form class="card row" data-add="${kind}" style="margin-bottom:12px">
-      <label style="flex:1;min-width:220px">New ${title.toLowerCase().replace(/ies$/, 'y')} <input name="name" required placeholder="${kind === 'tool' ? 'e.g. Power Tools' : 'e.g. Plumbing'}"></label>
+      <label style="flex:1;min-width:220px">New ${title.toLowerCase().replace(/ies$/, 'y')} <input name="name" required placeholder="${{ tool: 'e.g. Power Tools', media: 'e.g. Cameras', maintenance: 'e.g. Plumbing' }[kind]}"></label>
       <button class="btn primary">Add</button></form>
     <div class="table-wrap"><table><tr><th>Category</th><th class="num">${what}</th><th></th></tr>
       ${catList[kind].map((n) => `<tr><td><b>${esc(n)}</b></td><td class="num">${count(kind, n) || ''}</td>
@@ -2228,8 +2579,8 @@ async function renderCategories() {
 
   app.innerHTML = `
     ${pageHead('Settings', 'Categories', 'The category lists for tools and maintenance stock.')}
-    ${section('tool', 'Tool categories', 'Tools')}
-    ${section('maintenance', 'Maintenance categories', 'Items')}
+    ${SITE === 'media' ? section('media', 'Gear categories', 'Gear') : `${section('tool', 'Tool categories', 'Tools')}
+    ${section('maintenance', 'Maintenance categories', 'Items')}`}
     <p class="muted" style="font-size:14px;margin-top:12px">Renaming updates every tool or item in that category (renaming to an existing name merges them). Deleting takes it off the list and leaves those tools or items with no category.</p>`;
 
   app.querySelectorAll('[data-add]').forEach((f) => f.addEventListener('submit', async (e) => {
@@ -2249,7 +2600,7 @@ async function renderCategories() {
     const kind = b.dataset.remove;
     const name = b.dataset.name;
     const n = count(kind, name);
-    const thing = kind === 'tool' ? 'tool' : 'item';
+    const thing = { tool: 'tool', media: 'piece of gear', maintenance: 'item' }[kind];
     if (!(await askConfirm(`Delete "${name}"?`, { message: n ? `${n} ${thing}${n === 1 ? '' : 's'} in it will be left with no category.` : '', ok: 'Delete', danger: true }))) return;
     try { await rpc('remove_category', { p_kind: kind, p_name: name }); toast(`Deleted ${name}`); route(); } catch (err) { toast(errMsg(err), true); }
   }));
@@ -2406,7 +2757,7 @@ function openPdf(pdf) {
   if (!win) location.href = url;
 }
 
-// Rows for a stock sheet: sorted by location, then name.
+// Rows for a stock sheet: alphabetical by name.
 // Items sold in packs get two labels: the item code for a single, and
 // "<code>-BOX" for a whole box (scanning it picks Box in the pop-up).
 const BOX_SUFFIX = '-BOX';
@@ -2415,10 +2766,14 @@ const itemLabelRows = (i) => (packOf(i) > 1 && i.category !== 'paint'
      { id: `${i.id}:box`, item: i.id, code: `${i.code}${BOX_SUFFIX}`, name: i.name, sub: [`BOX OF ${packOf(i)}`, i.location].filter(Boolean).join(' · '), printed: i.label_printed_at, box: true }]
   : [{ id: i.id, item: i.id, code: i.code, name: i.name, sub: i.location || '', printed: i.label_printed_at }]);
 
+// Labels print in alphabetical order by name; an item's box label follows its single label.
+const byLabelName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true })
+  || (a.box ? 1 : 0) - (b.box ? 1 : 0) || a.code.localeCompare(b.code);
+
 function stockSheetRows(items, category) {
   return items
     .filter((i) => i.active && i.category === category)
-    .sort((a, b) => (a.location || '\uffff').localeCompare(b.location || '\uffff') || a.name.localeCompare(b.name))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }))
     .flatMap(itemLabelRows);
 }
 
@@ -2450,7 +2805,7 @@ async function renderLabels(kind, id) {
     paint: items.filter((i) => i.active && i.category === 'paint').flatMap(itemLabelRows),
     events: items.filter((i) => i.active && i.category === 'events').flatMap(itemLabelRows),
     people: people(members).map((m) => ({ id: m.id, code: m.code, name: m.name, sub: '', printed: m.label_printed_at })),
-    tool: tools.filter((t) => t.active).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.location || '', printed: t.label_printed_at })),
+    tool: tools.filter((t) => t.active && toolSiteOf(t) === TOOL_SITE).map((t) => ({ id: t.id, code: t.code, name: t.name, sub: t.location || '', printed: t.label_printed_at })),
     commands: [
       { id: 'in', code: CMD.IN, name: 'SCAN IN mode', sub: 'Scan Stock page' },
       { id: 'out', code: CMD.OUT, name: 'SCAN OUT mode', sub: 'Scan Stock page' },
@@ -2458,7 +2813,12 @@ async function renderLabels(kind, id) {
       { id: 'done', code: CMD.DONE, name: 'DONE / CLEAR', sub: 'Finish or reset' },
     ],
   };
-  const tab = sources[kind] ? kind : 'facilities';
+  // The Media site only prints gear and name labels.
+  const tabs = SITE === 'media'
+    ? [['tool', 'Gear'], ['people', 'People (name labels)']]
+    : [['facilities', 'Facilities stock'], ['maintenance', 'Maintenance stock'], ['paint', 'Paint'], ['events', 'Event stock'],
+      ['tool', 'Tools'], ['people', 'People (name labels)'], ['commands', 'Command barcodes']];
+  const tab = sources[kind] && tabs.some(([k]) => k === kind) ? kind : tabs[0][0];
   // Which table remembers when these labels were printed (commands aren't tracked).
   const trackKind = { facilities: 'item', maintenance: 'item', paint: 'item', events: 'item', tool: 'tool', people: 'person' }[tab];
   const unprinted = trackKind ? sources[tab].filter((r) => !r.printed).length : 0;
@@ -2469,14 +2829,7 @@ async function renderLabels(kind, id) {
     ${pageHead('Print', 'Labels', 'Barcode labels for your Brother label printer.')}
     <div class="card">
       <div class="row">
-        <label>What <select id="kind">
-          <option value="facilities" ${tab === 'facilities' ? 'selected' : ''}>Facilities stock</option>
-          <option value="maintenance" ${tab === 'maintenance' ? 'selected' : ''}>Maintenance stock</option>
-          <option value="paint" ${tab === 'paint' ? 'selected' : ''}>Paint</option>
-          <option value="events" ${tab === 'events' ? 'selected' : ''}>Event stock</option>
-          <option value="tool" ${tab === 'tool' ? 'selected' : ''}>Tools</option>
-          <option value="people" ${tab === 'people' ? 'selected' : ''}>People (name labels)</option>
-          <option value="commands" ${tab === 'commands' ? 'selected' : ''}>Command barcodes</option></select></label>
+        <label>What <select id="kind">${tabs.map(([k, l]) => `<option value="${k}" ${tab === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
         <label>Label size <select id="size">${Object.entries(LABEL_SIZES).map(([k, s]) => `<option value="${k}" ${k === sizeKey ? 'selected' : ''}>${s.name}</option>`).join('')}</select></label>
         <label>Copies each <input id="copies" type="number" min="1" max="20" value="1" style="width:80px"></label>
         <button class="btn primary" id="print">Print labels</button>
@@ -2514,7 +2867,7 @@ async function renderLabels(kind, id) {
   const size = () => LABEL_SIZES[app.querySelector('#size').value];
   const picked = () => {
     const ids = new Set([...app.querySelectorAll('.pick:checked')].map((c) => c.value));
-    return sources[tab].filter((r) => ids.has(r.id));
+    return sources[tab].filter((r) => ids.has(r.id)).sort(byLabelName);
   };
   const applySize = (el) => {
     const s = size();

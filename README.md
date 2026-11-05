@@ -1,4 +1,4 @@
-# Shop Inventory & Tool Sign-Out
+# Mercy Culture Facilities, Events & Media Gear
 
 **Live app:** https://shop-inventory-one-omega.vercel.app
 
@@ -15,6 +15,29 @@ Facilities and maintenance stock can have a **cost** (per box/pack, or per item 
 Stock is counted in single pieces. An item can have a **per box/pack** number (e.g. lights that come 3 to a pack), and lists show the count both ways: "7 (2 boxes + 1 single)". Items sold in packs get two labels: the item code (e.g. `FAC-0001`) for a **single** and `FAC-0001-BOX` for a **whole box**. Scanning the box label opens the pop-up set to **Box**, and the single label sets it to **Single**. Put single labels on closet bins and box labels on warehouse shelves. The Labels page lists both, and an item's **Print label** picks both. The pop-up also has **Box of 3** / **Single** buttons, so the same barcode works for pulling a whole box in the warehouse or one at a time from a closet. The Scan Stock page has the same **Singles / Boxes** choice. Reorder levels are in pieces, and cost is per box/pack.
 
 It works with any USB or Bluetooth barcode scanner (they act like a keyboard) and prints its own Code 128 barcode labels on a label printer.
+
+## Three sites, one app
+
+The same app is served at three web addresses, each showing only its own things and branded for Mercy Culture:
+
+| Site | What it's for | Who uses it |
+|---|---|---|
+| **Facilities** | Check In / Out, Stock (Facilities, Maintenance, Paint, Event), Tools. Everything else is under one **Admin** / **More** menu. | Facilities roles below |
+| **Events** | Planning offsite events: crew, what went out, what came back. | People with **Events** access |
+| **Media Gear** (Mercy Culture Media) | Signing camera gear out and back in, reservations, and battery / card checks on return. | People with **Media** access |
+
+The site is picked from the address (a host name containing "events" or "media"), or forced with `?site=facilities|events|media`. Fill in `SITE_URLS` in `web/config.js` so the menus link between them.
+
+One **People** list covers all three. Each person has:
+- **Facilities** access: No access, Facilities & Maintenance, Maintenance manager, Custodian, View only, Admin (or Shared iPad for the iPad login).
+- **Media Gear** access: No access, Team (sign out & reserve) or Lead (also adds and edits gear).
+- **Events** access: No access or Team (plan & run events).
+
+Admins can use everything on all three sites. The People page shows each person's access as colored tags, with filters (Everyone, Facilities, Media, Events, Admins, Can't sign in, Deactivated).
+
+**Media gear** works like tools, with `MED-` labels and photos. Returning gear asks: *Batteries charged? Cards offloaded? Anything wrong?* Gear that came back flat or with footage on the card is flagged on the Gear list. **Reservations** book gear for dates. Double-booking is refused, and anyone signing out gear someone else reserved today sees a warning.
+
+Printed labels come out in alphabetical order.
 
 ## How it's built
 

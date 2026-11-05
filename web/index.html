@@ -5,32 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Inventory">
+  <meta name="apple-mobile-web-app-title" content="Facilities">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#f5f4f0">
-  <title>Shop Inventory</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='9' fill='%23f5f4f0'/%3E%3Crect x='6' y='22' width='12' height='11' rx='1.5' fill='%231e2a32' opacity='.45'/%3E%3Crect x='21' y='22' width='12' height='11' rx='1.5' fill='%231e2a32' opacity='.7'/%3E%3Crect x='13.5' y='9' width='12' height='11' rx='1.5' fill='%23ad4e12'/%3E%3C/svg%3E">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-  <link rel="manifest" href="/manifest.webmanifest">
+  <title>Facilities</title>
+  <link rel="icon" href="/brand/mc-mark.png">
+  <link rel="apple-touch-icon" href="/icons/facilities-apple-touch.png">
+  <link rel="manifest" href="/manifest-facilities.webmanifest">
+  <script>
+    // One app, three web addresses: pick this site's name, icons and colours before anything draws.
+    (function () {
+      var forced = new URLSearchParams(location.search).get('site');
+      var site = /^(facilities|events|media)$/.test(forced) ? forced
+        : /media/i.test(location.hostname) ? 'media' : /event/i.test(location.hostname) ? 'events' : 'facilities';
+      var names = { facilities: 'Facilities', events: 'Events', media: 'Media Gear' };
+      var colors = { facilities: '#ffffff', events: '#11404b', media: '#0f0f0f' };
+      document.documentElement.setAttribute('data-site', site);
+      document.title = names[site];
+      document.querySelector('link[rel="apple-touch-icon"]').href = '/icons/' + site + '-apple-touch.png';
+      document.querySelector('link[rel="manifest"]').href = '/manifest-' + site + '.webmanifest';
+      document.querySelector('meta[name="apple-mobile-web-app-title"]').content = names[site];
+      document.querySelector('meta[name="theme-color"]').content = colors[site];
+      window.__SITE = site;
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@900&display=swap">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
 </head>
 <body>
   <div id="splash" aria-live="polite">
-    <div class="splash-mark">
-      <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
-        <rect x="6" y="22" width="12" height="11" rx="1.5" fill="#1e2a32" opacity=".45"/>
-        <rect x="21" y="22" width="12" height="11" rx="1.5" fill="#1e2a32" opacity=".7"/>
-        <rect x="13.5" y="9" width="12" height="11" rx="1.5" fill="#ad4e12"/>
-      </svg>
-    </div>
-    <div class="splash-name">Shop Inventory</div>
-    <div class="splash-sub">Getting the shop ready…</div>
+    <div class="splash-mark"><img src="/brand/mc-mark.png" alt=""></div>
+    <div class="splash-lockup" aria-label="Mercy Culture Media"><small>MERCY CULTURE</small><b aria-hidden="true">Med<span class="mcm-i"></span>a</b></div>
+    <div class="splash-name"></div>
+    <div class="splash-sub">Getting things ready…</div>
   </div>
+  <script>document.querySelector('#splash .splash-name').textContent = { facilities: 'Facilities', events: 'Events', media: 'Gear' }[window.__SITE];</script>
   <header class="topbar no-print">
     <div class="brand" id="brand"></div>
     <nav id="nav"></nav>
