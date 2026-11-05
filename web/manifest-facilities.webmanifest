@@ -3,7 +3,7 @@
   "short_name": "Facilities",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#11404b",
   "theme_color": "#ffffff",
   "icons": [
     {

@@ -3,7 +3,7 @@
   "short_name": "Events",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#11404b",
+  "background_color": "#2d6a62",
   "theme_color": "#11404b",
   "icons": [
     {
