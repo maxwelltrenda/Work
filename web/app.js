@@ -112,6 +112,8 @@ const TW = {
   events: { list: 'Decor', eyebrow: 'Events', one: 'decor', many: 'decor items', add: 'Add decor', edit: 'Edit decor', history: 'Decor sign-outs', cat: 'decor' },
   facilities: { list: 'Tools', eyebrow: 'Equipment', one: 'tool', many: 'tools', add: 'Add a tool', edit: 'Edit tool', history: 'Tool sign-outs', cat: 'tool' },
 }[TOOL_SITE];
+// Events doesn't track what decor is worth.
+const SHOW_VALUE = TOOL_SITE !== 'events';
 const TW_HEAD = TW.list === 'Tools' ? 'Tool' : TW.list;
 const mediaRole = () => (isAdmin() ? 'lead' : state.me?.media_role || null);
 const MEDIA_ROLES = { member: 'Media team', lead: 'Media admin' };
@@ -2340,14 +2342,14 @@ function toolForm(t = {}, locations = []) {
       <label style="flex:1;min-width:180px">Category ${categorySelect(TW.cat, t.category, 'category')}</label>
       <label style="width:110px" title="How many you have under this one barcode (e.g. 6 hammers, 40 charger plates)">Quantity <input name="quantity" type="number" min="1" value="${t.quantity ?? 1}"></label>
       ${locationSelect(locations, t.location, 'Home location')}
-      <label style="width:120px">Value ($) <input name="value" type="number" min="0" step="0.01" value="${t.value ?? ''}"></label>
+      ${SHOW_VALUE ? `<label style="width:120px">Value ($) <input name="value" type="number" min="0" step="0.01" value="${t.value ?? ''}"></label>` : ''}
     </div>
     <label style="margin-top:12px">Description <input name="description" value="${esc(t.description)}"></label>`;
 }
 
 const toolFields = (f) => ({
   name: f.get('name').trim(), category: f.get('category') || null, quantity: Math.max(1, parseInt(f.get('quantity'), 10) || 1), location: f.get('location') || null,
-  value: f.get('value') ? Number(f.get('value')) : null, description: f.get('description').trim() || null,
+  ...(SHOW_VALUE ? { value: f.get('value') ? Number(f.get('value')) : null } : {}), description: f.get('description').trim() || null,
 });
 
 async function renderToolList() {
@@ -2381,7 +2383,7 @@ async function renderToolList() {
     ${pageHead(TW.eyebrow, TW.list)}
     <div class="stats">
       <div class="stat"><b>${show.length}</b><span>${TW.many}</span></div>
-      <div class="stat"><b>${total ? `$${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}</b><span>total value</span></div>
+      ${SHOW_VALUE ? `<div class="stat"><b>${total ? `$${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}</b><span>total value</span></div>` : ''}
     </div>
     ${canEditTool() ? `<details class="card"><summary><b>${TW.add}</b></summary><form id="add" style="margin-top:14px">${toolForm({}, locations)}
       <label style="margin-top:12px">Photo (optional) <input name="photo" type="file" accept="image/*"></label>
@@ -2406,7 +2408,7 @@ async function renderToolList() {
   app.querySelector('#filter').addEventListener('input', paint);
   app.querySelector('#csv').addEventListener('click', () => downloadCsv('tools.csv', show.map((t) => ({
     code: t.code, name: t.name, category: t.category || '', quantity: t.quantity || 1, in: toolCounts(t, open).inQty, status: t.status,
-    with: (openBy[t.id] || []).map((c) => `${who[c.borrower_id]}${c.qty > 1 ? ` x${c.qty}` : ''}`).join('; '), location: t.location, value: t.value,
+    with: (openBy[t.id] || []).map((c) => `${who[c.borrower_id]}${c.qty > 1 ? ` x${c.qty}` : ''}`).join('; '), location: t.location, ...(SHOW_VALUE ? { value: t.value } : {}),
   }))));
   if (app.querySelector('#add')) { bindLocationSelects(app.querySelector('#add')); bindCategorySelects(app.querySelector('#add')); }
   app.querySelector('#add')?.addEventListener('submit', async (e) => {
@@ -2445,7 +2447,7 @@ async function renderTool(id) {
     <div class="stats">
       <div class="stat"><b><span class="pill ${t.status}">${t.status}</span></b><span>status</span></div>
       <div class="stat"><b>${esc(t.category || '—')}</b><span>category</span></div>
-      <div class="stat"><b>${t.value ? `$${Number(t.value).toLocaleString()}` : '—'}</b><span>value</span></div>
+      ${SHOW_VALUE ? `<div class="stat"><b>${t.value ? `$${Number(t.value).toLocaleString()}` : '—'}</b><span>value</span></div>` : ''}
       ${(t.quantity || 1) > 1 ? (() => { const n = toolCounts(t, hist); return `<div class="stat"><b>${n.inQty} of ${n.qty}</b><span>in right now${n.outQty ? ` · ${n.outQty} out` : ''}${t.repair_qty ? ` · ${t.repair_qty} in repair` : ''}</span></div>`; })() : ''}
       <div class="stat"><b>${hist.length}</b><span>times signed out</span></div>
     </div>
