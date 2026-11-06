@@ -5,6 +5,7 @@ import { openCamera } from './camera.js?v=__V__';
 import { boardPages } from './boards.js?v=__V__';
 import { schedulePages } from './pm.js?v=__V__';
 import { pulledKit } from './pulled.js?v=__V__';
+import { teamPages } from './team.js?v=__V__';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app');
@@ -158,31 +159,31 @@ function sitePages() {
   if (!canUseSite(SITE)) return [];
   if (SITE === 'events') {
     const scan = siteRole().scanTools;
-    return [...(scan ? ['kiosk'] : []), 'events', 'event', 'toollist', 'tool', 'items/events', 'item', 'out', 'history',
+    return [...(scan ? ['kiosk'] : []), 'events', 'event', 'toollist', 'tool', 'items/events', 'item', 'out', 'history', 'team',
       ...(isSiteAdmin() ? ['labels', 'categories', 'people', 'notifications'] : [])];
   }
   if (SITE === 'media') {
     const mr = mediaRole();
-    return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history',
+    return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history', 'team',
       ...(mr === 'lead' ? ['labels', 'categories', 'people', 'notifications'] : [])];
   }
-  return [...myRole().pages.filter((p) => p !== 'events' && p !== 'items/events'), ...(canSeeNotifs() ? ['notifications'] : [])];
+  return [...myRole().pages.filter((p) => p !== 'events' && p !== 'items/events'), ...(canSeeNotifs() ? ['notifications'] : []), ...(isKiosk() ? [] : ['team'])];
 }
 const siteHome = () => (SITE === 'events' ? (siteRole().scanTools ? 'kiosk' : 'events') : SITE === 'media' ? (mediaRole() ? 'kiosk' : 'toollist') : myRole().home);
 
 // A few big tabs; everything else lives under one "Admin" / "More" menu.
 const NAV = {
   facilities: {
-    main: [['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools']],
+    main: [['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools'], ['team', 'Team']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
       ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories']],
   },
   events: {
-    main: [['kiosk', 'Check In / Out'], ['events', 'Events'], ['toollist', 'Decor'], ['items', 'Stock']],
+    main: [['kiosk', 'Check In / Out'], ['events', 'Events'], ['toollist', 'Decor'], ['items', 'Stock'], ['team', 'Team']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['labels', 'Labels'], ['categories', 'Categories'], ['people', 'People']],
   },
   media: {
-    main: [['kiosk', 'Check In / Out'], ['toollist', 'Gear'], ['reservations', 'Reservations']],
+    main: [['kiosk', 'Check In / Out'], ['toollist', 'Gear'], ['reservations', 'Reservations'], ['team', 'Team']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['labels', 'Labels'], ['categories', 'Categories'], ['people', 'People']],
   },
 };
@@ -729,6 +730,7 @@ const routes = {
   requests: (...a) => BOARDS.renderRequests(...a), request: (...a) => BOARDS.renderRequest(...a),
   checklist: (...a) => BOARDS.renderChecklist(...a),
   schedule: (...a) => SCHEDULE.renderSchedule(...a),
+  team: (...a) => TEAM.renderTeam(...a),
 };
 
 // Maintenance Requests and the Weekly Checklist (boards.js). Editing: admin and
@@ -743,6 +745,9 @@ const BOARDS = boardPages({
 
 // Recurring maintenance schedule (pm.js): Maintenance managers and admins.
 const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, loadLocations: () => loadLocations(), pulled: PULLED });
+
+// Team schedule: days off and vacation, on every site (team.js).
+const TEAM = teamPages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, me: () => state.me, canManage: () => isAdmin() || isSiteAdmin() });
 
 window.addEventListener('hashchange', () => state.me && route());
 
@@ -3359,7 +3364,7 @@ boot();
 // if they changed, offer a one-tap update. The shared kiosk updates itself
 // when nobody is mid-scan.
 // ---------------------------------------------------------------------------
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/team.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {
