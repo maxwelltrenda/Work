@@ -23,16 +23,17 @@ function periodLabel(freq, start) {
 const windowText = (t) => (t.due_days ? `First ${t.due_days} day${t.due_days === 1 ? '' : 's'} of each ${FREQ_NOUN[t.frequency]}` : `Any time in the ${FREQ_NOUN[t.frequency]}`);
 
 export function schedulePages(ctx) {
-  const { sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, loadLocations } = ctx;
+  const { sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, loadLocations, pulled } = ctx;
   const app = document.getElementById('app');
 
   async function renderSchedule(view = 'now') {
     const today = await rpc('pm_refresh');
-    const [tasks, runs, members, locations] = await Promise.all([
+    const [tasks, runs, members, locations, pw] = await Promise.all([
       q(sb.from('pm_tasks').select('*').order('sort').order('id')),
       q(sb.from('pm_runs').select('*').order('period_start', { ascending: false }).limit(1000)),
       q(sb.from('team_members').select('id, name')),
       loadLocations(),
+      view === 'now' ? pulled.load('maintenance').catch(() => null) : null,
     ]);
     const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
     const taskBy = Object.fromEntries(tasks.map((t) => [t.id, t]));
@@ -44,12 +45,13 @@ export function schedulePages(ctx) {
     const tabs = [['now', 'This period'], ['tasks', `All tasks <b>${active.length}</b>`], ['history', 'History']];
 
     app.innerHTML = `
-      ${pageHead('Maintenance', 'Maintenance <span class="accent">schedule</span>', 'Weekly, monthly, quarterly and yearly upkeep. Each list starts over on its own when the next week, month, quarter or year begins.')}
+      <div class="dept-maint">${pageHead('<span class="dept-tag">Maintenance</span>', 'Maintenance <span class="accent">checklist</span>', 'Weekly, monthly, quarterly and yearly upkeep. Each list starts over on its own when the next week, month, quarter or year begins.')}</div>
       <div class="stats">
         <div class="stat"><b style="color:${overdue.length ? 'var(--bad)' : 'inherit'}">${overdue.length}</b><span>overdue</span></div>
         <div class="stat"><b>${dueSoon.length}</b><span>due in the next 7 days</span></div>
         <div class="stat"><b>${done.length} of ${current.length}</b><span>done this period</span></div>
       </div>
+      ${pw ? pulled.block('maintenance', pw) : ''}
       <div class="seg">${tabs.map(([k, t]) => `<a href="#/schedule${k === 'now' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
       <div id="pm-view">${view === 'tasks' ? taskList(tasks, locations) : view === 'history' ? history(runs, taskBy, who, today) : nowView(current, taskBy, who, today)}</div>`;
 
@@ -148,6 +150,7 @@ export function schedulePages(ctx) {
 
   function bind(view, tasks, current) {
     const reload = () => renderSchedule(view);
+    pulled.bind(app, reload);
     app.querySelectorAll('[data-mark]').forEach((b) => b.addEventListener('click', async () => {
       const to = b.dataset.to;
       if (to === 'skipped' && !(await askConfirm('Skip it this time?', { message: 'It comes back next period. It shows as Skipped in History.', ok: 'Skip' }))) return;

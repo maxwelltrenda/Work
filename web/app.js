@@ -4,6 +4,7 @@ import './select.js?v=__V__';
 import { openCamera } from './camera.js?v=__V__';
 import { boardPages } from './boards.js?v=__V__';
 import { schedulePages } from './pm.js?v=__V__';
+import { pulledKit } from './pulled.js?v=__V__';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app');
@@ -61,7 +62,7 @@ const isKiosk = () => state.me?.role === 'kiosk';
 // What each role can open. Only admin and the kiosk can change anything; the
 // database enforces the same rules (see 0008_view_roles.sql).
 const ALL_PAGES = [
-  ['requests', 'Maintenance Requests'], ['checklist', 'Weekly Checklist'], ['schedule', 'Maintenance Schedule'],
+  ['requests', 'Maintenance Requests'], ['checklist', 'Custodial Checklist'], ['schedule', 'Maintenance Checklist'],
   ['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
   ['items/facilities', 'Facilities Stock'], ['items/maintenance', 'Maintenance Stock'], ['items/paint', 'Paint'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
   ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories'],
@@ -165,7 +166,7 @@ const siteHome = () => (SITE === 'events' ? (siteRole().scanTools ? 'kiosk' : 'e
 // A few big tabs; everything else lives under one "Admin" / "More" menu.
 const NAV = {
   facilities: {
-    main: [['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Checklist'], ['schedule', 'Schedule'], ['items', 'Stock'], ['toollist', 'Tools']],
+    main: [['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
       ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories']],
   },
@@ -725,14 +726,16 @@ const routes = {
 
 // Maintenance Requests and the Weekly Checklist (boards.js). Editing: admin and
 // the Facilities team roles; Oversight can look.
+// "I got pulled to something" on the Checklist and the Schedule (pulled.js).
+const PULLED = pulledKit({ sb, q, rpc, esc, toast, errMsg, me: () => state.me, isAdmin, loadLocations: () => loadLocations() });
 const BOARDS = boardPages({
-  sb, q, rpc, esc, toast, askText, askConfirm, errMsg, pageHead, route,
+  sb, q, rpc, esc, toast, askText, askConfirm, errMsg, pageHead, route, pulled: PULLED,
   canEdit: () => ['admin', 'member', 'maintenance', 'custodian'].includes(state.me?.role),
   isAdmin, me: () => state.me,
 });
 
 // Recurring maintenance schedule (pm.js): Maintenance managers and admins.
-const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, loadLocations: () => loadLocations() });
+const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, loadLocations: () => loadLocations(), pulled: PULLED });
 
 window.addEventListener('hashchange', () => state.me && route());
 
@@ -3343,7 +3346,7 @@ boot();
 // if they changed, offer a one-tap update. The shared kiosk updates itself
 // when nobody is mid-scan.
 // ---------------------------------------------------------------------------
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {

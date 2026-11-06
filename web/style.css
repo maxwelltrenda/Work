@@ -896,3 +896,38 @@ h2 { font-size: 24px; }
 .pm-hint { font-size: 13px; margin: 10px 0; }
 .pm-unit { font-size: 13px; }
 .pm-empty p { margin: 6px 0 0; }
+
+/* ---------- "I got pulled to something" ---------- */
+.pw-box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin: 0 0 18px; }
+.pw-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pw-head > div { display: flex; flex-direction: column; gap: 2px; }
+.pw-head b { font: 800 16px/1.1 var(--serif); text-transform: uppercase; letter-spacing: .04em; color: var(--ink); }
+.pw-head .muted { font-size: 13px; }
+.pw-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.pw-item { display: grid; grid-template-columns: 12px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--paper); }
+.pw-item.live { background: #fff4e5; }
+.pw-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); }
+.pw-item.live .pw-dot { background: #e08a1e; box-shadow: 0 0 0 4px rgba(224, 138, 30, .2); }
+.pw-text { display: block; font-size: 15px; color: var(--body); min-width: 0; overflow-wrap: anywhere; }
+.pw-text b { color: var(--ink); }
+.pw-time { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.pw-empty { margin: 8px 0 0; font-size: 14px; }
+.pw-modal label { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 14px; }
+.pw-modal select, .pw-modal input { width: 100%; }
+
+/* ---------- Department colors: Custodial (blue) and Maintenance (orange) ---------- */
+:root { --dept-custodial: #2f5d8a; --dept-custodial-soft: #e3ecf6; --dept-maint: #b8611a; --dept-maint-soft: #fbeadb; }
+nav a[href="#/checklist"]::before, nav a[href="#/schedule"]::before {
+  content: ''; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; vertical-align: 1px; }
+nav a[href="#/checklist"]::before { background: var(--dept-custodial); }
+nav a[href="#/schedule"]::before { background: var(--dept-maint); }
+nav a[href="#/checklist"].active { border-bottom-color: var(--dept-custodial); }
+nav a[href="#/schedule"].active { border-bottom-color: var(--dept-maint); }
+.dept-custodial .accent, .dept-custodial .dept-tag { color: var(--dept-custodial); }
+.dept-maint .accent, .dept-maint .dept-tag { color: var(--dept-maint); }
+.dept-custodial .eyebrow, .dept-maint .eyebrow { border-bottom-color: currentColor; }
+.dept-maint .eyebrow { color: var(--dept-maint); }
+.pw-box.dept-custodial { border-left: 5px solid var(--dept-custodial); }
+.pw-box.dept-maint { border-left: 5px solid var(--dept-maint); }
+.pw-box.dept-custodial .btn.primary { background: var(--dept-custodial); border-color: var(--dept-custodial); }
+.pw-box.dept-maint .btn.primary { background: var(--dept-maint); border-color: var(--dept-maint); }

@@ -44,7 +44,7 @@ const initials = (n) => String(n).replace(/@.*/, '').split(/[\s.]+/).filter(Bool
 const shortName = (n) => String(n || '').replace(/@.*/, '').replace(/\./g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 export function boardPages(ctx) {
-  const { sb, q, rpc, esc, toast, askText, askConfirm, errMsg, pageHead, route, canEdit, isAdmin, me } = ctx;
+  const { sb, q, rpc, esc, toast, askText, askConfirm, errMsg, pageHead, route, canEdit, isAdmin, me, pulled } = ctx;
   const app = document.getElementById('app');
   let tick = null;
   const startTick = () => {
@@ -443,9 +443,10 @@ export function boardPages(ctx) {
     const week = await rpc('start_checklist_week', {});
     if (view === 'log') return renderTimeLog(week);
     if (view === 'template') return renderTemplate();
-    const [tasks, subs] = await Promise.all([
+    const [tasks, subs, pw] = await Promise.all([
       q(sb.from('checklist_tasks').select('*').eq('week_of', week).order('sort').order('id')),
       q(sb.from('checklist_subtasks').select('*, checklist_tasks!inner(week_of)').eq('checklist_tasks.week_of', week).order('sort').order('id')),
+      pulled.load('custodial').catch(() => null),
     ]);
     const byTask = {};
     subs.forEach((s) => { (byTask[s.task_id] = byTask[s.task_id] || []).push(s); });
@@ -455,8 +456,9 @@ export function boardPages(ctx) {
     const order = [todayName, ...DAYS.filter((d) => d !== todayName)];
 
     app.innerHTML = `
-      <header class="page-head b-simplehead"><h1>Checklist</h1></header>
+      <header class="page-head b-simplehead dept-custodial"><div><div class="eyebrow dept-tag">Custodial</div><h1>Custodial <span class="accent">checklist</span></h1></div></header>
       <div class="b-progress"><div class="b-progbar"><i style="width:${pct}%"></i></div><span><b>${done} of ${tasks.length}</b> done this week</span></div>
+      ${pw && canEdit() ? pulled.block('custodial', pw) : ''}
       ${order.map((d) => {
         const items = tasks.filter((t) => (t.day || 'Detail Work') === d);
         if (!items.length) return '';
@@ -468,6 +470,7 @@ export function boardPages(ctx) {
       <div class="b-more">More: <a href="#/checklist/log">Past weeks and time log</a> · <a href="#/checklist/template">Weekly template</a></div>`;
 
     const rerender = () => renderChecklist('week');
+    pulled.bind(app, rerender);
     app.querySelectorAll('[data-tick]').forEach((b) => b.addEventListener('click', async () => {
       const next = b.dataset.done === '1' ? 'Not started' : 'Done';
       b.closest('.b-task').classList.toggle('st-done', next === 'Done');
