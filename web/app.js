@@ -888,6 +888,9 @@ async function renderKiosk() {
           <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
           <span>Scan with camera</span></button>`}
       </div>
+      ${SITE === 'events' ? `<div class="k-find">
+        <input id="find" type="search" placeholder="No barcode handy? Search decor or stock by name…" autocomplete="off" aria-label="Search decor or stock">
+        <div id="find-results" class="find-results" role="listbox"></div></div>` : ''}
       <div id="status"></div>
       <h2>This session</h2>
       <div class="card"><ul class="log" id="log"></ul></div>
@@ -962,7 +965,7 @@ async function renderKiosk() {
           <div><div class="eyebrow">${isKiosk() ? 'Signed in at the kiosk' : 'Checking in / out as'}</div><h1 class="kiosk-title" style="margin:0">Hi, <span class="accent">${esc(k.person.name)}</span></h1></div>
           <button class="btn bad" id="k-done" style="font-size:18px;padding:10px 22px">Done</button>
         </div>
-        <p class="scan-hint">${SITE === 'media' ? 'Gear: scan to sign out, scan again later to return.' : [siteRole().scanTools && `${TW.list}: scan to sign out, scan again later to return.`, siteRole().scanStock.length && 'Stock: scan it, then choose how many and Take or Put back.'].filter(Boolean).join(' ')}</p>
+        <p class="scan-hint">${SITE === 'media' ? 'Gear: scan to sign out, scan again later to return.' : [siteRole().scanTools && `${TW.list}: scan to sign out, scan again later to return.`, siteRole().scanStock.length && 'Stock: scan it, then choose how many and Take or Put back.', SITE === 'events' && 'No barcode? Search by name below the scan box.'].filter(Boolean).join(' ')}</p>
       </div>`;
     el.querySelector('#k-done').addEventListener('click', () => { endSession(); show('ok', 'All set — thanks!'); });
     el.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
@@ -1567,9 +1570,46 @@ async function renderKiosk() {
     const box = status.querySelector('.big-status');
     return { ok: !box?.classList.contains('err'), text: box?.textContent.replace(/\s+/g, ' ').trim() };
   }));
+  if (SITE === 'events') bindFind();
   paintWho();
   paintLog();
   resetIdle();
+
+  // Events: pick decor or stock by name instead of scanning; picking it works
+  // exactly like scanning its barcode.
+  async function bindFind() {
+    const input = app.querySelector('#find');
+    const out = app.querySelector('#find-results');
+    let list = [];
+    try {
+      const [tools, items] = await Promise.all([loadSiteTools(), loadItems()]);
+      list = [
+        ...tools.filter((t) => t.active && !['lost', 'retired'].includes(t.status))
+          .map((t) => ({ code: t.code, name: t.name, kind: 'Decor', sub: [t.category, t.location].filter(Boolean).join(' · ') })),
+        ...items.filter((i) => i.active && i.category === 'events')
+          .map((i) => ({ code: i.code, name: i.name, kind: 'Stock', sub: [`${i.quantity} on hand`, i.location].filter(Boolean).join(' · ') })),
+      ].sort((a, b) => a.name.localeCompare(b.name));
+    } catch { /* search just stays empty */ }
+    const paint = () => {
+      const words = input.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      if (!words.length) { out.innerHTML = ''; return; }
+      const hits = list.filter((r) => words.every((w) => `${r.name} ${r.code} ${r.sub} ${r.kind}`.toLowerCase().includes(w))).slice(0, 8);
+      out.innerHTML = hits.length
+        ? hits.map((r) => `<button type="button" class="find-hit" data-code="${esc(r.code)}"><b>${esc(r.name)}</b><span>${r.kind} · ${esc(r.code)}${r.sub ? ` · ${esc(r.sub)}` : ''}</span></button>`).join('')
+        : '<div class="muted find-none">Nothing matches.</div>';
+    };
+    input.addEventListener('input', () => { paint(); resetIdle(); });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); out.querySelector('.find-hit')?.click(); }
+      if (e.key === 'Escape') { input.value = ''; paint(); scan.focus(); }
+    });
+    out.addEventListener('click', async (e) => {
+      const b = e.target.closest('.find-hit');
+      if (!b) return;
+      input.value = ''; paint();
+      await onScan(b.dataset.code);
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
