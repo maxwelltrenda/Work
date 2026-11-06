@@ -10,17 +10,6 @@ const FREQS = [['weekly', 'Weekly', 'week'], ['biweekly', 'Every 2 weeks', '2 we
 const FREQ_LABEL = Object.fromEntries(FREQS.map(([k, l]) => [k, l]));
 const FREQ_NOUN = Object.fromEntries(FREQS.map(([k, , n]) => [k, n]));
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-// One-tap starters for the add-task pop-up.
-const COMMON = [
-  { name: 'Change AC filters', frequency: 'quarterly', start_month: 12, due_days: 14, preps: [{ name: 'Order filters', lead: 7 }] },
-  { name: 'Test emergency and exit lights', frequency: 'monthly', due_days: 7 },
-  { name: 'Inspect fire extinguishers', frequency: 'monthly', due_days: 7 },
-  { name: 'Clean gutters', frequency: 'yearly', start_month: 11, due_days: 30 },
-  { name: 'Check roof and drains', frequency: 'quarterly', start_month: 1, due_days: 14 },
-  { name: 'Flush water heaters', frequency: 'yearly', start_month: 3, due_days: 30 },
-  { name: 'Walk the parking lot lights', frequency: 'monthly', due_days: 7 },
-  { name: 'Clean ice machine', frequency: 'quarterly', start_month: 2, due_days: 14 },
-];
 const MONTH = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const parts = (d) => String(d).slice(0, 10).split('-').map(Number);
 const dshort = (d) => { const [, m, dd] = parts(d); return `${MON[m - 1]} ${dd}`; };
@@ -169,9 +158,7 @@ export function schedulePages(ctx) {
     if (current.length && current.length === preps.length) return prepHtml + comingUp(waiting, today);
     if (!current.length) {
       return `<div class="card pm-empty"><b>Nothing on the schedule yet.</b><p class="muted">Add each recurring job once: what it is, how often, and how long the team has to get it done. It then comes up on its own every week, month, quarter or year.</p>
-        <div class="row" style="margin-top:14px"><button class="btn primary" data-pm-new>+ Add your first task</button></div>
-        <div class="wk-sect">Or start from a common one</div>
-        <div class="wk-chips">${COMMON.map((c, i) => `<button type="button" class="chip-btn" data-pm-new data-common="${i}">${esc(c.name)}</button>`).join('')}</div></div>`;
+        <div class="row" style="margin-top:14px"><button class="btn primary" data-pm-new>+ Add your first task</button></div></div>`;
     }
     return prepHtml + FREQS.map(([f, label]) => {
       const rs = current.filter((r) => taskBy[r.task_id].frequency === f && !taskBy[r.task_id].parent_id)
@@ -281,7 +268,6 @@ export function schedulePages(ctx) {
       back.innerHTML = `<form class="modal sheet pm-new" role="dialog" aria-modal="true" aria-labelledby="pm-new-title" novalidate>
         <h3 id="pm-new-title">${editing ? 'Edit task' : 'New maintenance task'}</h3>
         <label><span>What needs doing?</span><input name="name" required autocomplete="off" placeholder="e.g. Pressure wash entrances" class="modal-input" value="${esc(t.name || '')}"></label>
-        ${editing ? '' : `<div class="wk-chips pm-common">${COMMON.map((c, i) => `<button type="button" class="chip-btn" data-common="${i}">${esc(c.name)}</button>`).join('')}</div>`}
         <div class="wk-sect">How often</div>
         <div class="wk-chips">${FREQS.map(([k, l]) => `<button type="button" class="chip-btn big" data-freq="${k}">${l}</button>`).join('')}</div>
         ${anchorsReady ? `<div data-for="quarterly"><div class="wk-sect">Which months</div>
@@ -371,10 +357,8 @@ export function schedulePages(ctx) {
         });
         drawWins(); preview();
       };
-      const fill = (c) => { $('[name=name]').value = c.name; load({ frequency: c.frequency, start_month: c.start_month, start_day: 1, due_days: c.due_days ?? null }); if (c.notes) $('[name=notes]').value = c.notes; if (c.preps) prepList = c.preps.map((x) => ({ ...x })); sync(); };
       form.querySelectorAll('[data-parity]').forEach((b) => b.addEventListener('click', () => { parity = Number(b.dataset.parity); sync(); }));
       $('[data-prep-add]').addEventListener('click', () => { prepList.push({ name: '', lead: 7 }); drawPreps(); $(`[data-pn="${prepList.length - 1}"]`).focus(); });
-      form.querySelectorAll('[data-common]').forEach((b) => b.addEventListener('click', () => fill(COMMON[b.dataset.common])));
       form.querySelectorAll('[data-freq]').forEach((b) => b.addEventListener('click', () => {
         if (freq === b.dataset.freq) return;
         freq = b.dataset.freq;
@@ -441,8 +425,7 @@ export function schedulePages(ctx) {
   function bind(view, tasks, current) {
     const reload = () => renderSchedule(view);
     app.querySelectorAll('[data-pm-new]').forEach((b) => b.addEventListener('click', async () => {
-      const c = b.dataset.common ? COMMON[b.dataset.common] : null;
-      const added = await taskModal(await loadPlaces(sb), c ? { ...c, start_day: 1 } : {});
+      const added = await taskModal(await loadPlaces(sb), {});
       if (added) reload();
     }));
     app.querySelectorAll('[data-pm-edit]').forEach((b) => b.addEventListener('click', async () => {
