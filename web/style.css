@@ -1042,3 +1042,8 @@ button.to-pill:hover, button.to-chip:hover { filter: brightness(.95); box-shadow
 .wk-dayrow { grid-template-columns: 44px 1fr auto 1fr !important; }
 .wk-toggle { margin-top: 10px; padding-left: 0; }
 .wk-summary { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; background: #eef6f0; color: #1f6a3a; font-weight: 600; font-size: 14px; }
+.wk-mode { margin: 0 0 10px; width: 100%; }
+.wk-mode button { flex: 1; border: 0; background: none; padding: 9px 12px; border-radius: 9px; font: 600 14px var(--sans); color: var(--body); cursor: pointer; }
+.wk-mode button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+.wk-hours.k-work { white-space: normal; line-height: 1.3; }
+.wk-table td { min-width: 96px; }

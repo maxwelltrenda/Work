@@ -14,8 +14,9 @@ const short = (s) => { const d = fromIso(s); return `${DOW[d.getDay()]} ${MON[d.
 const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const DEFAULT_TEAMS = ['Maintenance', 'Custodial'];
 // "08:00" -> "8a", "16:30" -> "4:30p"
-const hm = (t) => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}${m ? `:${pad(m)}` : ''}${h < 12 ? 'a' : 'p'}`; };
-const hours = (h) => (h ? `${hm(h.start)}–${hm(h.end)}` : '');
+// "08:00" -> "8 AM", "16:30" -> "4:30 PM"
+const hm = (t) => { const [h, m] = t.split(':').map(Number); return `${h % 12 || 12}${m ? `:${pad(m)}` : ''} ${h < 12 ? 'AM' : 'PM'}`; };
+const hours = (h) => (h ? `${hm(h.start)} – ${hm(h.end)}` : '');
 let weekOffset = 0;   // the "This week" view: 0 = this week, -1 = last week, ...
 let teamFilter = '';
 const span = (r) => (r.starts_on === r.ends_on ? `${short(r.starts_on)}${r.part ? ` (${r.part.toLowerCase()})` : ''}` : `${short(r.starts_on)} – ${short(r.ends_on)}`);
@@ -206,15 +207,17 @@ export function teamPages(ctx) {
           <input name="team" value="${esc(m.team || '')}" placeholder="Other team…" autocomplete="off" class="wk-teamtext"></div>
         <div class="wk-sect">Works on <button type="button" class="dp-link" data-days="mon tue wed thu fri">Mon–Fri</button><button type="button" class="dp-link" data-days="">None</button></div>
         <div class="wk-chips" data-daychips>${DAY_KEYS.map((k, i) => `<button type="button" class="chip-btn day" data-day="${k}">${DOW[i]}</button>`).join('')}</div>
+        <div class="wk-sect">Hours</div>
+        <div class="seg wk-mode" role="radiogroup" aria-label="Hours">
+          <button type="button" role="radio" data-mode="same">Same hours every day</button>
+          <button type="button" role="radio" data-mode="diff">Different hours each day</button></div>
         <div data-same>
-          <div class="wk-sect">Hours</div>
-          <div class="wk-chips">${SHIFTS.map(([a, b]) => `<button type="button" class="chip-btn" data-shift="${a}-${b}">${hm(a)}–${hm(b)}</button>`).join('')}</div>
+          <div class="wk-chips">${SHIFTS.map(([a, b]) => `<button type="button" class="chip-btn" data-shift="${a}-${b}">${hm(a)} – ${hm(b)}</button>`).join('')}</div>
           <div class="wk-custom"><span class="muted">or</span><select name="s_start" aria-label="Start">${timeOpts(shift[0])}</select><span class="muted">to</span><select name="s_end" aria-label="End">${timeOpts(shift[1])}</select></div>
         </div>
         <div data-perday hidden><div class="wk-days">${DAY_KEYS.map((k, i) => `<div class="wk-dayrow" data-row="${k}"><b>${DOW[i]}</b>
             <select name="start_${k}" aria-label="${DOW[i]} start">${timeOpts(cur[k]?.start || shift[0])}</select><span class="muted">to</span>
             <select name="end_${k}" aria-label="${DOW[i]} end">${timeOpts(cur[k]?.end || shift[1])}</select></div>`).join('')}</div></div>
-        <button type="button" class="dp-link wk-toggle" data-toggle></button>
         <p class="wk-summary" data-summary></p>
         <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">Save</button></div>
       </form>`;
@@ -227,11 +230,11 @@ export function teamPages(ctx) {
         $('[data-same]').hidden = !same;
         $('[data-perday]').hidden = same;
         form.querySelectorAll('[data-row]').forEach((r) => { r.hidden = !days.has(r.dataset.row); });
-        $('[data-toggle]').textContent = same ? 'Different hours on different days?' : 'Same hours every day';
+        form.querySelectorAll('[data-mode]').forEach((b) => { const on = (b.dataset.mode === 'same') === same; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
         const list = DAY_KEYS.filter((k) => days.has(k));
         $('[data-summary]').textContent = !list.length ? 'Not on the schedule (no regular hours).'
-          : same ? `${list.map((k) => DOW[DAY_KEYS.indexOf(k)]).join(', ')} · ${hm(shift[0])}–${hm(shift[1])}`
-            : list.map((k) => `${DOW[DAY_KEYS.indexOf(k)]} ${hm($(`[name=start_${k}]`).value)}–${hm($(`[name=end_${k}]`).value)}`).join(' · ');
+          : same ? `${list.map((k) => DOW[DAY_KEYS.indexOf(k)]).join(', ')} · ${hm(shift[0])} – ${hm(shift[1])}`
+            : list.map((k) => `${DOW[DAY_KEYS.indexOf(k)]} ${hm($(`[name=start_${k}]`).value)} – ${hm($(`[name=end_${k}]`).value)}`).join(' · ');
       };
       form.querySelectorAll('[data-day]').forEach((b) => b.addEventListener('click', () => { days.has(b.dataset.day) ? days.delete(b.dataset.day) : days.add(b.dataset.day); sync(); }));
       form.querySelectorAll('[data-days]').forEach((b) => b.addEventListener('click', () => { days = new Set(b.dataset.days.split(' ').filter(Boolean)); sync(); }));
@@ -246,12 +249,14 @@ export function teamPages(ctx) {
       $('[name=s_start]').addEventListener('change', (e) => { shift = [e.target.value, shift[1]]; sync(); });
       $('[name=s_end]').addEventListener('change', (e) => { shift = [shift[0], e.target.value]; sync(); });
       form.querySelectorAll('[data-row] select').forEach((x) => x.addEventListener('change', sync));
-      $('[data-toggle]').addEventListener('click', () => {
+      form.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+        const wantSame = b.dataset.mode === 'same';
+        if (wantSame === same) return;
         // Going to per-day starts every day from the shift picked so far.
         if (same) DAY_KEYS.forEach((k) => { if (!cur[k] || kinds.size <= 1) { $(`[name=start_${k}]`).value = shift[0]; $(`[name=end_${k}]`).value = shift[1]; } });
-        same = !same;
+        same = wantSame;
         sync();
-      });
+      }));
       sync();
       const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
       const onKey = (e) => { if (e.key === 'Escape' && !document.querySelector('.dd-menu')) { e.preventDefault(); done(false); } };
