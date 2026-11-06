@@ -1837,6 +1837,15 @@ const stockTabs = (kind) => {
   return kinds.length > 1 ? `<div class="seg">${kinds.map((k) => `<a href="${STOCK[k].hash}" class="${k === kind ? 'on' : ''}">${STOCK[k].plain.replace(/ stock$/, '')}</a>`).join('')}</div>` : '';
 };
 
+// Archived stock at the bottom of a stock list: closed until opened.
+function archivedStock(list, noun = 'items') {
+  if (!list.length) return '';
+  const rows = [...list].sort((a, b) => a.name.localeCompare(b.name));
+  return `<details class="card archived-list"><summary><b>Archived (${rows.length})</b> <span class="muted">${noun} taken off this list; open one to restore it</span></summary>
+    <div class="table-wrap" style="margin-top:12px"><table><tr><th>Code</th><th>Item</th><th>Location</th><th class="num">On hand</th></tr>
+      ${rows.map((i) => `<tr><td class="code">${esc(i.code)}</td><td><a href="#/item/${i.id}">${esc(i.name)}</a></td><td>${esc(i.location || '')}</td><td class="num">${i.quantity}</td></tr>`).join('')}</table></div></details>`;
+}
+
 // Paint: one item per color; every can (1 or 5 gallons, full or partly used)
 // counts toward that color's total gallons.
 const PAINT_SIZES = [5, 1];
@@ -2023,7 +2032,7 @@ async function renderItems(category) {
       <button class="btn" id="sheet" title="Every ${meta.plain.toLowerCase()} label on letter paper, in alphabetical order">Print sheet</button>
     </div>
     <div class="table-wrap"><table id="tbl"></table></div>
-    ${items.length > show.length ? `<p class="muted">${items.length - show.length} archived item(s) hidden.</p>` : ''}`;
+    ${archivedStock(items.filter((i) => !i.active))}`;
 
   let photos = {};
   const paint = () => {
@@ -2105,7 +2114,8 @@ async function renderPaint() {
       <button class="btn" id="csv">Export CSV</button>
       <button class="btn" id="sheet" title="Every paint label on letter paper, in alphabetical order">Print sheet</button>
     </div>
-    <div class="table-wrap"><table id="tbl"></table></div>`;
+    <div class="table-wrap"><table id="tbl"></table></div>
+    ${archivedStock(all.filter((i) => i.category === 'paint' && !i.active), 'colors')}`;
 
   let photos = {};
   const paint = () => {
@@ -2173,6 +2183,8 @@ async function renderItem(id) {
   app.innerHTML = `
     <p><a href="${meta.hash}">← ${meta.plain}</a></p>
     <h1>${esc(it.name)} <span class="code muted">${esc(it.code)}</span></h1>
+    ${!it.active ? `<div class="archived-banner"><span><b>Archived.</b> This item doesn't show on the ${esc(meta.plain)} list or scan. Its count and history are kept.</span>
+      ${canEditItem(it.category) ? '<button class="btn primary" id="restore" type="button">Restore</button>' : ''}</div>` : ''}
     ${photoBlock(it, photo, canEditItem(it.category))}
     ${isPaint ? `<div class="stats">
       <div class="stat"><b>${gal(paint.gallons)}</b><span>on hand</span></div>
@@ -2201,10 +2213,10 @@ async function renderItem(id) {
       <div class="stat"><b>${it.unit_cost != null ? money(stockValue(it)) : '—'}</b><span>value on hand</span></div>` : ''}
     </div>`}
     <div class="row" style="margin-bottom:16px">${canAct() ? `<a class="btn" href="#/labels/${stockKind(it.category)}/${it.id}">Print label</a>` : ''}
-      <span class="muted" style="align-self:center;font-size:14px">${it.label_printed_at ? `Label printed ${fmtDate(it.label_printed_at)}` : 'Label not printed yet'}</span></div>
+      <span class="muted" style="align-self:center;font-size:14px">${it.label_printed_at ? `Label printed ${fmtDate(it.label_printed_at)}` : 'Label not printed yet'}</span>
+      ${canEditItem(it.category) && it.active ? '<button class="btn bad" id="archive" type="button">Archive</button>' : ''}</div>
     ${canEditItem(it.category) ? `<details class="card"><summary><b>Edit item</b></summary><form id="edit" style="margin-top:14px">${itemForm(it, locations)}
-      <div class="row" style="margin-top:14px"><button class="btn primary">Save</button>
-      <button type="button" class="btn ${it.active ? 'bad' : ''}" id="archive">${it.active ? 'Archive item' : 'Restore item'}</button></div></form></details>` : ''}
+      <div class="row" style="margin-top:14px"><button class="btn primary">Save</button></div></form></details>` : ''}
     <h2>History</h2>
     <div class="table-wrap"><table><tr><th>When</th><th>Type</th><th class="num">${isPaint ? 'Cans' : 'Change'}</th><th class="num">${isPaint ? 'Cans after' : 'After'}</th><th>Who</th><th>Note</th></tr>
       ${tx.map((t) => `<tr><td>${fmtDate(t.created_at)}</td><td><span class="pill ${t.type}">${t.type}</span></td><td class="num">${t.qty > 0 ? '+' : ''}${t.qty}</td><td class="num">${t.qty_after}</td><td>${esc(who[t.member_id])}</td><td>${esc(t.note)}</td></tr>`).join('')
@@ -2236,8 +2248,11 @@ async function renderItem(id) {
     });
   }
   app.querySelector('#archive')?.addEventListener('click', async () => {
-    if (it.active && !(await askConfirm(`Archive ${it.name}?`, { message: 'It will stop scanning but keep its history.', ok: 'Archive', danger: true }))) return;
-    try { await q(sb.from('items').update({ active: !it.active }).eq('id', it.id).select()); route(); } catch (err) { toast(errMsg(err), true); }
+    if (!(await askConfirm(`Archive ${it.name}?`, { message: `It moves to the Archived list at the bottom of ${meta.plain}, stops scanning, and keeps its count and history. You can restore it any time.`, ok: 'Archive', danger: true }))) return;
+    try { await q(sb.from('items').update({ active: false }).eq('id', it.id).select()); toast(`Archived ${it.name}`); location.hash = meta.hash; } catch (err) { toast(errMsg(err), true); }
+  });
+  app.querySelector('#restore')?.addEventListener('click', async () => {
+    try { await q(sb.from('items').update({ active: true }).eq('id', it.id).select()); toast(`Restored ${it.name}`); route(); } catch (err) { toast(errMsg(err), true); }
   });
 }
 
