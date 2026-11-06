@@ -159,12 +159,12 @@ function sitePages() {
   if (!canUseSite(SITE)) return [];
   if (SITE === 'events') {
     const scan = siteRole().scanTools;
-    return [...(scan ? ['kiosk'] : []), 'events', 'event', 'toollist', 'tool', 'items/events', 'item', 'out', 'history', 'team',
+    return [...(scan ? ['kiosk'] : []), 'events', 'event', 'toollist', 'tool', 'items/events', 'item', 'out', 'history',
       ...(isSiteAdmin() ? ['labels', 'categories', 'people', 'notifications'] : [])];
   }
   if (SITE === 'media') {
     const mr = mediaRole();
-    return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history', 'team',
+    return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history',
       ...(mr === 'lead' ? ['labels', 'categories', 'people', 'notifications'] : [])];
   }
   return [...myRole().pages.filter((p) => p !== 'events' && p !== 'items/events'), ...(canSeeNotifs() ? ['notifications'] : []), ...(isKiosk() ? [] : ['team'])];
@@ -179,11 +179,11 @@ const NAV = {
       ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories']],
   },
   events: {
-    main: [['kiosk', 'Check In / Out'], ['events', 'Events'], ['toollist', 'Decor'], ['items', 'Stock'], ['team', 'Team']],
+    main: [['kiosk', 'Check In / Out'], ['events', 'Events'], ['toollist', 'Decor'], ['items', 'Stock']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['labels', 'Labels'], ['categories', 'Categories'], ['people', 'People']],
   },
   media: {
-    main: [['kiosk', 'Check In / Out'], ['toollist', 'Gear'], ['reservations', 'Reservations'], ['team', 'Team']],
+    main: [['kiosk', 'Check In / Out'], ['toollist', 'Gear'], ['reservations', 'Reservations']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['labels', 'Labels'], ['categories', 'Categories'], ['people', 'People']],
   },
 };
@@ -747,7 +747,8 @@ const BOARDS = boardPages({
 const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, loadLocations: () => loadLocations(), pulled: PULLED });
 
 // Team schedule: days off and vacation, on every site (team.js).
-const TEAM = teamPages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, me: () => state.me, canManage: () => isAdmin() || isSiteAdmin() });
+// Facilities only: admins (full and Facilities admins) set people's team, hours and anyone's time off.
+const TEAM = teamPages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, me: () => state.me, canManage: () => isAdmin(), canEditPerson: () => isAdmin() });
 
 window.addEventListener('hashchange', () => state.me && route());
 

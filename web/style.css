@@ -966,3 +966,29 @@ nav a[href="#/schedule"].active { border-bottom-color: var(--dept-maint); }
   .to-grid { display: none; }
   .to-legend { margin-left: 0; }
 }
+
+/* Team schedule: who works when */
+.wk-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 22px 0 10px; }
+.wk-bar h2 { margin: 0; }
+.wk-bar h2 .muted { font: 400 15px var(--sans); text-transform: none; letter-spacing: 0; margin-left: 6px; }
+.wk-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.chip-btn { border: 1px solid var(--line-strong); background: var(--card); border-radius: 999px; padding: 6px 12px; font: 600 13px var(--sans); color: var(--body); cursor: pointer; }
+.chip-btn.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.wk-table { font-size: 14px; }
+.wk-table th.today, .wk-table td.today { background: var(--accent-soft); }
+.wk-table td { vertical-align: top; min-width: 84px; }
+.wk-team td { background: var(--paper-2); font: 800 13px var(--serif); text-transform: uppercase; letter-spacing: .08em; color: var(--ink); padding: 6px 10px; }
+.wk-name { white-space: nowrap; font-weight: 600; color: var(--ink); }
+.wk-edit { background: none; border: 0; padding: 0; font: 600 14px var(--sans); color: var(--ink); cursor: pointer; }
+.wk-edit span { color: var(--muted); font-size: 12px; margin-left: 2px; }
+.wk-edit:hover { color: var(--accent); }
+.wk-hours { display: block; white-space: nowrap; color: var(--ink); }
+.wk-off { color: var(--muted); }
+.wk-table .to-pill { margin-top: 2px; }
+.wk-hint { font-size: 13px; margin: 6px 0 0; }
+.wk-in { background: #e3efe8; color: #22613b; }
+.wk-modal label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.wk-days { display: grid; gap: 6px; margin: 12px 0 10px; }
+.wk-dayrow { display: grid; grid-template-columns: 80px 1fr auto 1fr; gap: 8px; align-items: center; }
+.wk-dayrow.off input[type=time] { opacity: .35; }
+.wk-check { flex-direction: row !important; align-items: center; gap: 6px !important; font-weight: 600; }
