@@ -72,16 +72,11 @@ export function teamPages(ctx) {
       if (off) return `${h ? `<span class="wk-hours k-work">${hours(h)}</span>` : ''}<button type="button" data-to-info="${off.id}" class="to-pill ${KIND_CLASS[off.kind]}">${esc(off.kind)} ${off.part === 'Morning' ? 'AM' : 'PM'}</button>`;
       return h ? `<span class="wk-hours k-work">${hours(h)}</span>` : '<span class="wk-off">Off</span>';
     };
-    // Month calendar: time off first, then who's working that day (green).
-    const dayEntries = (d) => {
-      const offs = on(d).filter((r) => !teamFilter || (members.find((m) => m.id === r.member_id)?.team || '') === teamFilter);
-      const offWhole = new Set(offs.filter((r) => !r.part).map((r) => r.member_id));
-      const working = !hoursReady ? [] : people.filter((m) => (!teamFilter || (m.team || '') === teamFilter) && shift(m, d) && !offWhole.has(m.id));
-      return [...offs.map(pill), ...working.map((m) => `<span class="to-pill k-work" title="${esc(`${m.name} · ${hours(shift(m, d))}`)}">${esc(m.name.split(' ')[0])}</span>`)];
-    };
-    const monthCal = `<div class="to-monthbar"><a class="btn small" href="#/team/${prev}" aria-label="Previous month">‹</a><h2>${MONTH[firstD.getMonth()]} ${firstD.getFullYear()}</h2><a class="btn small" href="#/team/${next}" aria-label="Next month">›</a>
+    // Month calendar: time off only (who's working is in the week view above it).
+    const dayEntries = (d) => on(d).filter((r) => !teamFilter || (members.find((m) => m.id === r.member_id)?.team || '') === teamFilter).map(pill);
+    const monthCal = `<div class="to-monthbar"><a class="btn small" href="#/team/${prev}" aria-label="Previous month">‹</a><h2>Time off · ${MONTH[firstD.getMonth()]} ${firstD.getFullYear()}</h2><a class="btn small" href="#/team/${next}" aria-label="Next month">›</a>
         ${ym !== today.slice(0, 7) ? '<a class="btn small" href="#/team">This month</a>' : ''}
-        <span class="to-legend">${hoursReady ? '<span class="to-pill k-work">Working</span>' : ''}${KINDS.map((k) => `<span class="to-pill ${KIND_CLASS[k]}">${k}</span>`).join('')}</span></div>
+        <span class="to-legend">${KINDS.map((k) => `<span class="to-pill ${KIND_CLASS[k]}">${k}</span>`).join('')}</span></div>
       <div class="to-grid">${DOW.map((d) => `<div class="to-dow">${d}</div>`).join('')}
         ${days.map((d) => { const dd = fromIso(d); const list = dayEntries(d); return `<div class="to-day${d.slice(0, 7) !== ym ? ' other' : ''}${d === today ? ' today' : ''}${dd.getDay() % 6 === 0 ? ' weekend' : ''}">
           <span class="to-num">${dd.getDate()}</span>${list.slice(0, 5).join('')}${list.length > 5 ? `<span class="muted to-more">+${list.length - 5} more</span>` : ''}</div>`; }).join('')}
@@ -99,10 +94,10 @@ export function teamPages(ctx) {
 
     app.innerHTML = `
       ${pageHead('Facilities team', 'Team <span class="accent">schedule</span>', 'Who works when, and who\'s out. Add your days off so the team can plan around it.')}
-      ${monthCal}
       ${!hoursReady ? '' : `<div class="to-today card"><b>Working today</b>${workingToday.length ? workingToday.map((m) => `<span class="to-chip wk-in">${esc(m.name)} · ${hours(shift(m, today))}</span>`).join('') : '<span class="muted">No hours set for today yet.</span>'}</div>`}
       <div class="to-today card"><b>Out today</b>${outToday.length ? outToday.map((r) => `<button type="button" data-to-info="${r.id}" class="to-chip ${KIND_CLASS[r.kind]}">${esc(who[r.member_id] || '?')} · ${esc(r.kind)}${r.part ? ` (${r.part.toLowerCase()})` : ''}</button>`).join('') : '<span class="muted">Everyone is in.</span>'}</div>
       ${weekTable}
+      ${monthCal}
       <details class="card" id="to-add-card"><summary><b>+ Add time off</b></summary>
         <form id="to-add" style="margin-top:12px">
           <div class="row">
