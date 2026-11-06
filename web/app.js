@@ -1,8 +1,8 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
-import { SUPABASE_URL, SUPABASE_KEY, SITE_URLS, VAPID_PUBLIC_KEY } from './config.js';
-import './select.js';
-import { openCamera } from './camera.js';
-import { boardPages } from './boards.js';
+import { SUPABASE_URL, SUPABASE_KEY, SITE_URLS, VAPID_PUBLIC_KEY } from './config.js?v=__V__';
+import './select.js?v=__V__';
+import { openCamera } from './camera.js?v=__V__';
+import { boardPages } from './boards.js?v=__V__';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app');

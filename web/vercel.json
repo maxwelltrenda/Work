@@ -1,4 +1,6 @@
 {
+  "buildCommand": "sh build.sh",
+  "outputDirectory": "dist",
   "cleanUrls": true,
   "headers": [
     {
