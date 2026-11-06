@@ -1064,3 +1064,11 @@ button.to-pill:hover, button.to-chip:hover { filter: brightness(.95); box-shadow
 .pm-more summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--ink); }
 .pm-new .modal-actions { flex-wrap: wrap; }
 @media (max-width: 560px) { .pm-bar .btn { width: 100%; } .pm-new .modal-actions .btn { flex: 1 1 auto; } }
+
+/* Team: collapsible "This week" and time off calendar. */
+.tm-tog { width: 34px; height: 34px; flex: none; display: inline-grid; place-items: center; border: 1px solid var(--line-strong); background: var(--card); border-radius: 10px; color: var(--ink); cursor: pointer; }
+.tm-tog svg { transition: transform .15s; }
+.tm-sect.shut .tm-tog svg { transform: rotate(-90deg); }
+.tm-sect [data-tog-h] { cursor: pointer; user-select: none; }
+.tm-sect.shut .tm-body { display: none; }
+.tm-sect.shut .wk-bar > :not(.tm-tog):not(h2), .tm-sect.shut .to-monthbar > :not(.tm-tog):not(h2) { display: none; }

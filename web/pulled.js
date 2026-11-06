@@ -1,3 +1,4 @@
+import { loadPlaces as placesFrom, attachPlaces } from './places.js?v=__V__';
 // "I got pulled to something": shared by the custodial Checklist and the
 // Maintenance schedule. Shows today's unplanned work for that department (who,
 // what, where, how long) and the button to log it. See 0030_pulled_work.sql.
@@ -10,7 +11,8 @@ function dur(ms) {
   return m >= 60 ? `${Math.floor(m / 60)}h ${pad(m % 60)}m` : `${m}m`;
 }
 
-export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin, loadLocations }) {
+export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
+  const loadPlaces = () => placesFrom(sb);
   let tick = null;
 
   async function load(dept) {
@@ -46,7 +48,7 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin, loadLoc
   // The pop-up: what, where, and (optionally) which open request it's for.
   async function ask(dept) {
     const [locations, reqs] = await Promise.all([
-      loadLocations().catch(() => []),
+      loadPlaces().catch(() => []),
       q(sb.from('maint_requests').select('id, subject, location, board_group').neq('board_group', 'solved').order('created_at', { ascending: false }).limit(200)).catch(() => []),
     ]);
     return new Promise((resolve) => {
@@ -57,19 +59,18 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin, loadLoc
         <p class="muted">It goes on today's list under your name with a running clock, so the team can see where you are.</p>
         ${reqs.length ? `<label>Is it a request? <span class="muted">(optional)</span><select name="request"><option value="">No, something else</option>${reqs.map((r) => `<option value="${r.id}" data-subject="${esc(r.subject)}" data-loc="${esc(r.location || '')}">${esc(r.subject)}${r.location ? ` · ${esc(r.location)}` : ''}</option>`).join('')}</select></label>` : ''}
         <label>What <input name="what" required autocomplete="off" placeholder="${dept === 'custodial' ? 'Cleaning up a spill in the lobby' : 'Helping set up chairs for a funeral'}"></label>
-        <label>Where <span class="muted">(optional)</span><select name="location"><option value="">— Pick a place —</option>${locations.map((l) => `<option>${esc(l.name)}</option>`).join('')}</select></label>
+        <label><span>Where <span class="muted">(optional)</span></span><input name="location" placeholder="Type a place, e.g. Sanctuary, Kids wing"></label>
         <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">Start</button></div>
       </form>`;
       const form = back.querySelector('form');
       const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
-      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(null); } };
+      const onKey = (e) => { if (e.key === 'Escape' && !document.querySelector('.place-menu, .dd-menu')) { e.preventDefault(); done(null); } };
       document.addEventListener('keydown', onKey, true);
       form.querySelector('[name=request]')?.addEventListener('change', (e) => {
         const o = e.target.selectedOptions[0];
         if (!o?.value) return;
         form.querySelector('[name=what]').value = o.dataset.subject;
-        const loc = form.querySelector('[name=location]');
-        if (o.dataset.loc && [...loc.options].some((x) => x.value === o.dataset.loc)) loc.value = o.dataset.loc;
+        if (o.dataset.loc) form.querySelector('[name=location]').value = o.dataset.loc;
       });
       form.querySelector('[data-cancel]').addEventListener('click', () => done(null));
       form.addEventListener('submit', (e) => {
@@ -77,9 +78,10 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin, loadLoc
         const f = new FormData(form);
         const what = String(f.get('what') || '').trim();
         if (!what) return form.querySelector('[name=what]').focus();
-        done({ what, location: f.get('location') || null, request: f.get('request') ? Number(f.get('request')) : null });
+        done({ what, location: String(f.get('location') || '').trim() || null, request: f.get('request') ? Number(f.get('request')) : null });
       });
       document.body.appendChild(back);
+      attachPlaces(form.querySelector('[name=location]'), locations);
       form.querySelector('[name=what]').focus();
     });
   }

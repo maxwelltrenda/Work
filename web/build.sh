@@ -7,5 +7,5 @@ V=$(printf '%s' "${VERCEL_GIT_COMMIT_SHA:-$(date +%s)}" | cut -c1-8)
 rm -rf dist
 mkdir dist
 for f in *; do [ "$f" = dist ] || cp -R "$f" dist/; done
-sed -i "s/__V__/$V/g" dist/index.html dist/app.js
+sed -i "s/__V__/$V/g" dist/index.html dist/*.js
 echo "Built version $V"

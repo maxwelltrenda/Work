@@ -737,7 +737,7 @@ const routes = {
 // Maintenance Requests and the Weekly Checklist (boards.js). Editing: admin and
 // the Facilities team roles; Oversight can look.
 // "I got pulled to something" on the Checklist and the Schedule (pulled.js).
-const PULLED = pulledKit({ sb, q, rpc, esc, toast, errMsg, me: () => state.me, isAdmin, loadLocations: () => loadLocations() });
+const PULLED = pulledKit({ sb, q, rpc, esc, toast, errMsg, me: () => state.me, isAdmin });
 const BOARDS = boardPages({
   sb, q, rpc, esc, toast, askText, askConfirm, errMsg, pageHead, route, pulled: PULLED,
   canEdit: () => ['admin', 'member', 'maintenance', 'custodian'].includes(state.me?.role),
@@ -745,7 +745,7 @@ const BOARDS = boardPages({
 });
 
 // Recurring maintenance schedule (pm.js): Maintenance managers and admins.
-const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, loadLocations: () => loadLocations(), pulled: PULLED });
+const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled: PULLED });
 
 // Team schedule: days off and vacation, on every site (team.js).
 // Facilities only: admins (full and Facilities admins) set people's team, hours and anyone's time off.
@@ -3366,7 +3366,7 @@ boot();
 // if they changed, offer a one-tap update. The shared kiosk updates itself
 // when nobody is mid-scan.
 // ---------------------------------------------------------------------------
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {

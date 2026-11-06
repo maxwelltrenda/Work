@@ -19,6 +19,9 @@ const hm = (t) => { const [h, m] = t.split(':').map(Number); return `${h % 12 ||
 const hours = (h) => (h ? `${hm(h.start)} – ${hm(h.end)}` : '');
 let weekOffset = 0;   // the "This week" view: 0 = this week, -1 = last week, ...
 let teamFilter = '';
+// Collapsed sections (week view, time off calendar), remembered on this device.
+const shut = {};
+['week', 'cal'].forEach((k) => { try { shut[k] = localStorage.getItem(`team-shut-${k}`) === '1'; } catch { shut[k] = false; } });
 const span = (r) => (r.starts_on === r.ends_on ? `${short(r.starts_on)}${r.part ? ` (${r.part.toLowerCase()})` : ''}` : `${short(r.starts_on)} – ${short(r.ends_on)}`);
 
 export function teamPages(ctx) {
@@ -74,23 +77,24 @@ export function teamPages(ctx) {
     };
     // Month calendar: time off only (who's working is in the week view above it).
     const dayEntries = (d) => on(d).filter((r) => !teamFilter || (members.find((m) => m.id === r.member_id)?.team || '') === teamFilter).map(pill);
-    const monthCal = `<div class="to-monthbar"><a class="btn small" href="#/team/${prev}" aria-label="Previous month">‹</a><h2>Time off · ${MONTH[firstD.getMonth()]} ${firstD.getFullYear()}</h2><a class="btn small" href="#/team/${next}" aria-label="Next month">›</a>
+    const tog = (k, label) => `<button type="button" class="tm-tog" data-tog="${k}" aria-expanded="${!shut[k]}" aria-label="${shut[k] ? 'Show' : 'Hide'} ${label}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="m6 9 6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    const monthCal = `<section class="tm-sect${shut.cal ? ' shut' : ''}"><div class="to-monthbar">${tog('cal', 'the time off calendar')}<a class="btn small" href="#/team/${prev}" aria-label="Previous month">‹</a><h2 data-tog-h="cal">Time off · ${MONTH[firstD.getMonth()]} ${firstD.getFullYear()}</h2><a class="btn small" href="#/team/${next}" aria-label="Next month">›</a>
         ${ym !== today.slice(0, 7) ? '<a class="btn small" href="#/team">This month</a>' : ''}
         <span class="to-legend">${KINDS.map((k) => `<span class="to-pill ${KIND_CLASS[k]}">${k}</span>`).join('')}</span></div>
-      <div class="to-grid">${DOW.map((d) => `<div class="to-dow">${d}</div>`).join('')}
+      <div class="to-grid tm-body">${DOW.map((d) => `<div class="to-dow">${d}</div>`).join('')}
         ${days.map((d) => { const dd = fromIso(d); const list = dayEntries(d); return `<div class="to-day${d.slice(0, 7) !== ym ? ' other' : ''}${d === today ? ' today' : ''}${dd.getDay() % 6 === 0 ? ' weekend' : ''}">
           <span class="to-num">${dd.getDate()}</span>${list.slice(0, 5).join('')}${list.length > 5 ? `<span class="muted to-more">+${list.length - 5} more</span>` : ''}</div>`; }).join('')}
-      </div>`;
+      </div></section>`;
     const weekLabel = `${MON[fromIso(weekStart).getMonth()]} ${fromIso(weekStart).getDate()} – ${MON[fromIso(weekDays[6]).getMonth()]} ${fromIso(weekDays[6]).getDate()}`;
-    const weekTable = !hoursReady ? '' : `<div class="wk-bar"><button class="btn small" data-wk="-1" aria-label="Previous week">‹</button><h2>${weekOffset === 0 ? 'This week' : weekOffset === 1 ? 'Next week' : weekOffset === -1 ? 'Last week' : 'Week'} <span class="muted">${weekLabel}</span></h2><button class="btn small" data-wk="1" aria-label="Next week">›</button>
+    const weekTable = !hoursReady ? '' : `<section class="tm-sect${shut.week ? ' shut' : ''}"><div class="wk-bar">${tog('week', 'this week')}<button class="btn small" data-wk="-1" aria-label="Previous week">‹</button><h2 data-tog-h="week">${weekOffset === 0 ? 'This week' : weekOffset === 1 ? 'Next week' : weekOffset === -1 ? 'Last week' : 'Week'} <span class="muted">${weekLabel}</span></h2><button class="btn small" data-wk="1" aria-label="Next week">›</button>
         ${weekOffset ? '<button class="btn small" data-wk="0">This week</button>' : ''}
         <span class="wk-filter">${['', ...shownTeams.filter(Boolean)].map((t) => `<button class="chip-btn${teamFilter === t ? ' on' : ''}" data-team="${esc(t)}">${t ? esc(t) : 'Everyone'}</button>`).join('')}</span></div>
-      <div class="table-wrap wk-wrap"><table class="wk-table"><tr><th>Person</th>${weekDays.map((d) => `<th class="${d === today ? 'today' : ''}">${DOW[fromIso(d).getDay()]} ${fromIso(d).getDate()}</th>`).join('')}</tr>
+      <div class="tm-body"><div class="table-wrap wk-wrap"><table class="wk-table"><tr><th>Person</th>${weekDays.map((d) => `<th class="${d === today ? 'today' : ''}">${DOW[fromIso(d).getDay()]} ${fromIso(d).getDate()}</th>`).join('')}</tr>
         ${shownTeams.filter((t) => !teamFilter || t === teamFilter).map((t) => `<tr class="wk-team"><td colspan="8">${t ? esc(t) : 'No team yet'}</td></tr>
           ${people.filter((m) => (m.team || '') === t).map((m) => `<tr><td class="wk-name">${canEditPerson(m) ? `<button class="wk-edit" data-person="${m.id}" title="Set ${esc(m.name)}'s team and hours">${esc(m.name)} <span aria-hidden="true">✎</span></button>` : esc(m.name)}</td>
             ${weekDays.map((d) => `<td class="${d === today ? 'today' : ''}">${cell(m, d)}</td>`).join('')}</tr>`).join('')}`).join('')}
       </table></div>
-      ${people.some((m) => canEditPerson(m)) ? '<p class="muted wk-hint">Tap a name to set their team and regular hours. Time off on the schedule covers their hours automatically.</p>' : ''}`;
+      ${people.some((m) => canEditPerson(m)) ? '<p class="muted wk-hint">Tap a name to set their team and regular hours. Time off on the schedule covers their hours automatically.</p>' : ''}</div></section>`;
 
     app.innerHTML = `
       ${pageHead('Facilities team', 'Team <span class="accent">schedule</span>', 'Who works when, and who\'s out. Add your days off so the team can plan around it.')}
@@ -131,6 +135,15 @@ export function teamPages(ctx) {
         renderTeam(ym);
       } catch (err) { toast(errMsg(err), true); }
     });
+    const flip = (k) => {
+      shut[k] = !shut[k];
+      try { localStorage.setItem(`team-shut-${k}`, shut[k] ? '1' : ''); } catch { /* private mode */ }
+      const b = app.querySelector(`[data-tog="${k}"]`);
+      b.closest('.tm-sect').classList.toggle('shut', shut[k]);
+      b.setAttribute('aria-expanded', String(!shut[k]));
+    };
+    app.querySelectorAll('[data-tog]').forEach((b) => b.addEventListener('click', () => flip(b.dataset.tog)));
+    app.querySelectorAll('[data-tog-h]').forEach((h) => h.addEventListener('click', () => flip(h.dataset.togH)));
     app.querySelectorAll('[data-wk]').forEach((b) => b.addEventListener('click', () => {
       weekOffset = b.dataset.wk === '0' ? 0 : weekOffset + Number(b.dataset.wk);
       renderTeam(ym);
