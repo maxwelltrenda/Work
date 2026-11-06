@@ -76,6 +76,7 @@ export function boardPages(ctx) {
   // Kept simple on purpose: one list of what's open, one tap to start or finish.
   // Monday's other views (status board, dashboard, Gantt) sit under "More views".
   let search = '';
+  let statusPick = '';
   const MORE_VIEWS = [['board', 'Status board'], ['dashboard', 'Dashboard'], ['timeline', 'Gantt']];
 
   async function renderRequests(view = 'open') {
@@ -85,7 +86,7 @@ export function boardPages(ctx) {
     ]);
     const nUp = {};
     ups.forEach((u) => { nUp[u.request_id] = (nUp[u.request_id] || 0) + 1; });
-    const match = (r) => !search || [r.subject, r.requester_name, r.location, r.campus, r.request_category, ...(r.experts || [])].join(' ').toLowerCase().includes(search.toLowerCase());
+    const match = (r) => (!statusPick || r.status === statusPick) && (!search || [r.subject, r.requester_name, r.location, r.campus, r.request_category, ...(r.experts || [])].join(' ').toLowerCase().includes(search.toLowerCase()));
     const list = rows.filter(match);
     const open = rows.filter((r) => r.board_group !== 'solved');
     const tabs = [['open', `Open <b>${open.length}</b>`], ['solved', `Done <b>${rows.length - open.length}</b>`]];
@@ -96,8 +97,13 @@ export function boardPages(ctx) {
         ${canEdit() ? '<a class="btn primary b-big" href="#/request/new">+ New request</a>' : ''}</header>
       <div class="b-bar">
         <div class="seg b-seg">${tabs.map(([k, t]) => `<a href="#/requests${k === 'open' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
+        <select id="b-status" aria-label="Filter by status"><option value="">All statuses</option>${REQ_STATUSES.map((st) => {
+          const n = rows.filter((r) => r.status === st).length;
+          return n || st === statusPick ? `<option value="${esc(st)}" ${st === statusPick ? 'selected' : ''}>${esc(st)} (${n})</option>` : '';
+        }).join('')}</select>
         <input id="b-q" type="search" placeholder="Search" value="${esc(search)}" aria-label="Search requests">
       </div>
+      ${statusPick ? `<p class="b-filtered">Showing only <b>${esc(statusPick)}</b>. <a href="#" id="b-clear">Show all</a></p>` : ''}
       <div class="b-more">More views: ${MORE_VIEWS.map(([k, t]) => `<a href="#/requests/${k}" class="${view === k ? 'on' : ''}">${t}</a>`).join(' · ')}${isMore ? ' · <a href="#/requests">Back to the list</a>' : ''}</div>
       <div id="b-view">${view === 'board' ? reqBoard(list) : view === 'dashboard' ? reqDashboard(list) : view === 'timeline' ? reqTimeline(list)
         : view === 'solved' ? reqList(list.filter((r) => r.board_group === 'solved').sort((a, b) => String(b.completion_date || b.created_at).localeCompare(String(a.completion_date || a.created_at))), nUp, true)
@@ -106,6 +112,8 @@ export function boardPages(ctx) {
     const rerender = () => renderRequests(view);
     let typing;
     app.querySelector('#b-q').addEventListener('input', (e) => { clearTimeout(typing); typing = setTimeout(() => { search = e.target.value; rerender().then(() => { const i = app.querySelector('#b-q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }); }, 250); });
+    app.querySelector('#b-status').addEventListener('change', (e) => { statusPick = e.target.value; rerender(); });
+    app.querySelector('#b-clear')?.addEventListener('click', (e) => { e.preventDefault(); statusPick = ''; rerender(); });
     bindReqStatus(rerender);
     app.querySelectorAll('[data-go]').forEach((el) => el.addEventListener('click', (e) => {
       if (e.target.closest('select, a, button, input')) return;
@@ -152,7 +160,7 @@ export function boardPages(ctx) {
     </div>`;
   }
   function reqList(rows, nUp, solved = false) {
-    if (!rows.length) return `<p class="muted b-emptybig">${search ? 'Nothing matches that search.' : solved ? 'Nothing finished yet.' : 'Nothing open. Nice.'}</p>`;
+    if (!rows.length) return `<p class="muted b-emptybig">${search || statusPick ? 'Nothing matches that filter.' : solved ? 'Nothing finished yet.' : 'Nothing open. Nice.'}</p>`;
     return `<div class="b-items">${rows.map((r) => reqItem(r, nUp, solved)).join('')}</div>`;
   }
   // Open tickets in Monday's groups (New ticket, In Progress, Pending Reply, Executive).

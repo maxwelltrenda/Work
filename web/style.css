@@ -861,3 +861,5 @@ h2 { font-size: 24px; }
 .archived-banner { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
   background: var(--paper-2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 12px 16px; margin: 0 0 16px; color: var(--body); }
 .archived-list { margin-top: 16px; }
+.b-bar select#b-status { min-width: 170px; }
+.b-filtered { margin: 10px 0 0; font-size: 14px; color: var(--body); }
