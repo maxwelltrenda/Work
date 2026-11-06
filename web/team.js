@@ -1,8 +1,8 @@
 // Team schedule: days off, vacation, sick days and so on, for everyone on all
 // three sites. Anyone adds their own; admins add anyone's. See 0032_time_off.sql.
 
-const KINDS = ['Day off', 'Vacation', 'Sick', 'Out of office', 'Other'];
-const KIND_CLASS = { 'Day off': 'k-off', Vacation: 'k-vac', Sick: 'k-sick', 'Out of office': 'k-ooo', Other: 'k-other' };
+const KINDS = ['PTO', 'Vacation', 'Sick', 'Other'];
+const KIND_CLASS = { PTO: 'k-off', Vacation: 'k-vac', Sick: 'k-sick', Other: 'k-other' };
 const MONTH = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MON = MONTH.map((m) => m.slice(0, 3));
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
