@@ -7,6 +7,7 @@ import { boardPages } from './boards.js?v=__V__';
 import { schedulePages } from './pm.js?v=__V__';
 import { pulledKit } from './pulled.js?v=__V__';
 import { teamPages } from './team.js?v=__V__';
+import { contractorPages } from './contractors.js?v=__V__';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app');
@@ -70,7 +71,7 @@ const ALL_PAGES = [
   ['requests', 'Maintenance Requests'], ['checklist', 'Custodial Checklist'], ['schedule', 'Maintenance Checklist'],
   ['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
   ['items/facilities', 'Facilities Stock'], ['items/maintenance', 'Maintenance Stock'], ['items/paint', 'Paint'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
-  ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories'],
+  ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories'], ['contractors', 'Contractors'],
 ];
 const ROLES = {
   admin: { label: 'Admin', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'paint', 'events'], tools: true,
@@ -85,7 +86,7 @@ const ROLES = {
     pages: ['kiosk', 'requests', 'request', 'checklist', 'items/facilities', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
   maintenance: { label: 'Maintenance manager', act: false, home: 'kiosk', stock: ['maintenance', 'paint'], tools: true,
     scanStock: ['maintenance', 'paint'], scanTools: true,
-    pages: ['kiosk', 'requests', 'request', 'checklist', 'schedule', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
+    pages: ['kiosk', 'requests', 'request', 'checklist', 'schedule', 'contractors', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
   custodian: { label: 'Custodian manager', act: false, home: 'kiosk', stock: ['facilities'], tools: false,
     scanStock: ['facilities'], scanTools: false,
     pages: ['kiosk', 'checklist', 'requests', 'request', 'items/facilities', 'history', 'item'] },
@@ -177,7 +178,7 @@ const NAV = {
   facilities: {
     main: [['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools'], ['team', 'Team']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
-      ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories']],
+      ['people', 'People'], ['locations', 'Locations'], ['contractors', 'Contractors'], ['categories', 'Categories']],
   },
   events: {
     main: [['kiosk', 'Check In / Out'], ['events', 'Events'], ['toollist', 'Decor'], ['items', 'Stock']],
@@ -732,6 +733,7 @@ const routes = {
   checklist: (...a) => BOARDS.renderChecklist(...a),
   schedule: (...a) => SCHEDULE.renderSchedule(...a),
   team: (...a) => TEAM.renderTeam(...a),
+  contractors: () => CONTRACTORS.renderContractors(),
 };
 
 // Maintenance Requests and the Weekly Checklist (boards.js). Editing: admin and
@@ -745,7 +747,8 @@ const BOARDS = boardPages({
 });
 
 // Recurring maintenance schedule (pm.js): Maintenance managers and admins.
-const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled: PULLED });
+const CONTRACTORS = contractorPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, canEdit: () => isAdmin() });
+const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled: PULLED, contractors: CONTRACTORS, isAdmin });
 
 // Team schedule: days off and vacation, on every site (team.js).
 // Facilities only: admins (full and Facilities admins) set people's team, hours and anyone's time off.
@@ -3366,7 +3369,7 @@ boot();
 // if they changed, offer a one-tap update. The shared kiosk updates itself
 // when nobody is mid-scan.
 // ---------------------------------------------------------------------------
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {
