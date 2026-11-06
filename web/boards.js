@@ -77,9 +77,9 @@ export function boardPages(ctx) {
   // Monday's other views (status board, dashboard, Gantt) sit under "More views".
   let search = '';
   let statusPick = '';
-  const MORE_VIEWS = [['board', 'Status board'], ['dashboard', 'Dashboard'], ['timeline', 'Gantt']];
+  const MORE_VIEWS = [['dashboard', 'Dashboard'], ['timeline', 'Gantt']];
 
-  async function renderRequests(view = 'open') {
+  async function renderRequests(view = 'board') {
     const [rows, ups] = await Promise.all([
       q(sb.from('maint_requests').select('id, subject, status, board_group, requester_name, campus, support_team, priority, experts, location, due_date, completion_date, created_at, request_category, worked_seconds, timer_started_at, department').order('created_at', { ascending: false })),
       q(sb.from('maint_updates').select('request_id').eq('kind', 'update')),
@@ -89,14 +89,14 @@ export function boardPages(ctx) {
     const match = (r) => (!statusPick || r.status === statusPick) && (!search || [r.subject, r.requester_name, r.location, r.campus, r.request_category, ...(r.experts || [])].join(' ').toLowerCase().includes(search.toLowerCase()));
     const list = rows.filter(match);
     const open = rows.filter((r) => r.board_group !== 'solved');
-    const tabs = [['open', `Open <b>${open.length}</b>`], ['solved', `Done <b>${rows.length - open.length}</b>`]];
+    const tabs = [['board', `Status board <b>${open.length}</b>`], ['open', 'List'], ['solved', `Done <b>${rows.length - open.length}</b>`]];
     const isMore = MORE_VIEWS.some(([k]) => k === view);
 
     app.innerHTML = `
       <header class="page-head b-simplehead"><h1>Requests</h1>
         ${canEdit() ? '<a class="btn primary b-big" href="#/request/new">+ New request</a>' : ''}</header>
       <div class="b-bar">
-        <div class="seg b-seg">${tabs.map(([k, t]) => `<a href="#/requests${k === 'open' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
+        <div class="seg b-seg">${tabs.map(([k, t]) => `<a href="#/requests${k === 'board' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
         <select id="b-status" aria-label="Filter by status"><option value="">All statuses</option>${REQ_STATUSES.map((st) => {
           const n = rows.filter((r) => r.status === st).length;
           return n || st === statusPick ? `<option value="${esc(st)}" ${st === statusPick ? 'selected' : ''}>${esc(st)} (${n})</option>` : '';
@@ -104,7 +104,7 @@ export function boardPages(ctx) {
         <input id="b-q" type="search" placeholder="Search" value="${esc(search)}" aria-label="Search requests">
       </div>
       ${statusPick ? `<p class="b-filtered">Showing only <b>${esc(statusPick)}</b>. <a href="#" id="b-clear">Show all</a></p>` : ''}
-      <div class="b-more">More views: ${MORE_VIEWS.map(([k, t]) => `<a href="#/requests/${k}" class="${view === k ? 'on' : ''}">${t}</a>`).join(' · ')}${isMore ? ' · <a href="#/requests">Back to the list</a>' : ''}</div>
+      <div class="b-more">More views: ${MORE_VIEWS.map(([k, t]) => `<a href="#/requests/${k}" class="${view === k ? 'on' : ''}">${t}</a>`).join(' · ')}${isMore ? ' · <a href="#/requests">Back to the status board</a>' : ''}</div>
       <div id="b-view">${view === 'board' ? reqBoard(list) : view === 'dashboard' ? reqDashboard(list) : view === 'timeline' ? reqTimeline(list)
         : view === 'solved' ? reqList(list.filter((r) => r.board_group === 'solved').sort((a, b) => String(b.completion_date || b.created_at).localeCompare(String(a.completion_date || a.created_at))), nUp, true)
         : reqGroups(list, nUp)}</div>`;
