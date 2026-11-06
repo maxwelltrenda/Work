@@ -3330,3 +3330,40 @@ async function renderLabels(kind, id) {
 }
 
 boot();
+
+// ---------------------------------------------------------------------------
+// New version check: this is one page that never reloads itself, so after an
+// update people would keep running the old copy. Every few minutes (and when
+// the app comes back to the screen) compare the app's files with what's live;
+// if they changed, offer a one-tap update. The shared kiosk updates itself
+// when nobody is mid-scan.
+// ---------------------------------------------------------------------------
+const UPDATE_FILES = ['/app.js', '/boards.js', '/style.css'];
+let loadedVersion = null;
+let lastUpdateCheck = 0;
+async function liveVersion() {
+  const texts = await Promise.all(UPDATE_FILES.map((f) => fetch(f, { cache: 'no-store' }).then((r) => (r.ok ? r.text() : ''))));
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texts.join('\n')));
+  return [...new Uint8Array(buf)].slice(0, 8).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+async function checkForUpdate() {
+  if (Date.now() - lastUpdateCheck < 60000 || document.getElementById('update-bar')) return;
+  lastUpdateCheck = Date.now();
+  try {
+    const v = await liveVersion();
+    if (!loadedVersion) { loadedVersion = v; return; }
+    if (v === loadedVersion) return;
+    const k = state.kiosk;
+    if (isKiosk() && !k.person && !k.pendingItem && !k.picker && !document.querySelector('.modal-back')) return location.reload();
+    const bar = document.createElement('button');
+    bar.id = 'update-bar';
+    bar.className = 'update-bar no-print';
+    bar.type = 'button';
+    bar.innerHTML = '<b>A new version is ready.</b> Tap to update';
+    bar.addEventListener('click', () => location.reload());
+    document.body.appendChild(bar);
+  } catch { /* offline: try again later */ }
+}
+setTimeout(checkForUpdate, 4000);
+setInterval(() => { if (document.visibilityState === 'visible') checkForUpdate(); }, 5 * 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkForUpdate(); });
