@@ -50,9 +50,12 @@ const state = {
 // ---------------------------------------------------------------------------
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const isAdmin = () => state.me?.role === 'admin';
+// Admin powers on the Facilities site: full admins and Facilities admins.
+const isAdmin = () => ['admin', 'fac_admin'].includes(state.me?.role);
+// Full admin: all three sites.
+const isOrgAdmin = () => state.me?.role === 'admin';
 // Admins edit everything; the Maintenance manager can also add and edit paint colors.
-const canEditItem = (category) => isAdmin() || (category === 'paint' && state.me?.role === 'maintenance')
+const canEditItem = (category) => isOrgAdmin() || (category !== 'events' && isAdmin()) || (category === 'paint' && state.me?.role === 'maintenance')
   || (category === 'events' && SITE === 'events' && canEditTool('events'));
 const LOADER = '<div class="loader" role="status" aria-label="Loading"><span></span><span></span><span></span></div>';
 const pageHead = (eyebrow, title, sub = '') =>
@@ -88,8 +91,12 @@ const ROLES = {
     scanStock: [], scanTools: false,
     pages: ['out', 'requests', 'request', 'checklist', 'events', 'items/facilities', 'items/maintenance', 'items/paint', 'items/events', 'toollist', 'history', 'locations', 'item', 'tool', 'event'] },
 };
+// Facilities admin: everything on the Facilities site, nothing on Events or Media.
+ROLES.fac_admin = { ...ROLES.admin, label: 'Facilities admin', stock: ['facilities', 'maintenance', 'paint'],
+  scanStock: ['facilities', 'maintenance', 'paint'],
+  pages: ROLES.admin.pages.filter((p) => !['events', 'event', 'items/events'].includes(p)) };
 ROLES.none = { label: 'No Facilities access', act: false, home: 'kiosk', stock: [], tools: false, scanStock: [], scanTools: false, pages: [] };
-const ROLE_ORDER = ['member', 'maintenance', 'custodian', 'oversight', 'admin', 'kiosk', 'none'];
+const ROLE_ORDER = ['member', 'maintenance', 'custodian', 'oversight', 'fac_admin', 'admin', 'kiosk', 'none'];
 
 // ---------------------------------------------------------------------------
 // Sites: one app served at three web addresses (Facilities, Events, Media).
@@ -119,14 +126,14 @@ const isArchived = (t) => !t.active || t.status === 'retired';
 // Events doesn't track what decor is worth.
 const SHOW_VALUE = TOOL_SITE !== 'events';
 const TW_HEAD = TW.list === 'Tools' ? 'Tool' : TW.list;
-const mediaRole = () => (isAdmin() ? 'lead' : state.me?.media_role || null);
+const mediaRole = () => (isOrgAdmin() ? 'lead' : state.me?.media_role || null);
 const MEDIA_ROLES = { member: 'Media team', lead: 'Media admin' };
 const EVENTS_ROLES = { member: 'Events team', admin: 'Events admin' };
-const eventsRole = () => (isAdmin() ? 'admin' : state.me?.events_role || null);
+const eventsRole = () => (isOrgAdmin() ? 'admin' : state.me?.events_role || null);
 // Full access on this site: org admins, plus each team's own admins (Media admin / Events admin).
-const isSiteAdmin = () => isAdmin() || (SITE === 'media' && mediaRole() === 'lead') || (SITE === 'events' && state.me?.events_role === 'admin');
-const canManageEvents = () => isAdmin() || isKiosk() || !!state.me?.events_role;
-const canEditTool = (site = TOOL_SITE) => isAdmin() || (site === 'media' && mediaRole() === 'lead') || (site === 'events' && eventsRole() === 'admin');
+const isSiteAdmin = () => isOrgAdmin() || (SITE === 'facilities' && isAdmin()) || (SITE === 'media' && mediaRole() === 'lead') || (SITE === 'events' && state.me?.events_role === 'admin');
+const canManageEvents = () => isOrgAdmin() || isKiosk() || !!state.me?.events_role;
+const canEditTool = (site = TOOL_SITE) => isOrgAdmin() || (site === 'facilities' && isAdmin()) || (site === 'media' && mediaRole() === 'lead') || (site === 'events' && eventsRole() === 'admin');
 const canScanTools = () => siteRole().scanTools;
 // What this person can do on this site, in the same shape as a Facilities role.
 function siteRole() {
@@ -442,7 +449,7 @@ function renderTopbar() {
       + (more.length || others.length ? `<details class="more ${moreActive ? 'active' : ''}"><summary>${isSiteAdmin() ? 'Admin' : 'More'}</summary>
           <div class="more-menu">${more.join('')}${others.length ? `<div class="more-sub">Other sites</div>${others.join('')}` : ''}</div></details>` : '');
     nav.querySelectorAll('.more-menu a').forEach((a) => a.addEventListener('click', () => a.closest('details').removeAttribute('open')));
-    const roleLabel = isAdmin() ? 'Admin' : SITE === 'media' ? (MEDIA_ROLES[mediaRole()] || myRole().label) : SITE === 'events' ? (EVENTS_ROLES[state.me.events_role] || 'Events team') : myRole().label;
+    const roleLabel = isOrgAdmin() ? 'Admin' : SITE === 'media' ? (MEDIA_ROLES[mediaRole()] || myRole().label) : SITE === 'events' ? (EVENTS_ROLES[state.me.events_role] || 'Events team') : myRole().label;
     who.innerHTML = `${canSeeNotifs() ? BELL : ''}<span class="who-name">${esc(state.me.name)} · ${esc(roleLabel)}</span><button id="signout">Sign out</button>`;
     bindBell();
   }
@@ -589,7 +596,7 @@ function updateBell() {
 
 const SITE_TAG = { facilities: 'Facilities', media: 'Media', events: 'Events' };
 function notifRow(n, seenAt) {
-  const showSite = isAdmin() && SITE_TAG[n.site] && n.site !== SITE;
+  const showSite = isOrgAdmin() && SITE_TAG[n.site] && n.site !== SITE;
   return `<li class="notif ${n.kind} ${isUnread(n, seenAt) ? 'unread' : ''}">
     <span class="notif-dot" aria-hidden="true">${{ out: '↗', in: '↙', low: '!' }[n.kind]}</span>
     <div class="notif-text">${NOTIF_LINK(n) && n.site === (SITE === 'media' ? 'media' : SITE) ? `<a href="${NOTIF_LINK(n)}"><b>${esc(n.title)}</b></a>` : `<b>${esc(n.title)}</b>`}${n.body ? `<span>${esc(n.body)}</span>` : ''}</div>
@@ -638,7 +645,7 @@ async function renderNotifications() {
   const seenAt = state.me.notif_seen_at;
   const list = state.notifs.list;
   app.innerHTML = `
-    ${pageHead('Admin', 'Sign-outs &amp; <span class="accent">returns</span>', `Every sign-out, return and low-stock alert${isAdmin() ? ' on every site' : ''}, newest first.`)}
+    ${pageHead('Admin', 'Sign-outs &amp; <span class="accent">returns</span>', `Every sign-out, return and low-stock alert${isOrgAdmin() ? ' on every site' : ''}, newest first.`)}
     <div class="card" id="push-box"></div>
     <div class="card" style="margin-top:16px">${list.length ? `<ul class="notif-list">${list.map((n) => notifRow(n, seenAt)).join('')}</ul>`
       : '<p class="muted">Nothing yet. Sign-outs, returns and low stock show up here.</p>'}</div>`;
@@ -1885,7 +1892,7 @@ async function refreshCategories() {
   catList.decor = rows.filter((r) => r.kind === 'decor').map((r) => r.name);
 }
 const CAT_SITE = { media: 'media', decor: 'events' };
-const canEditCategory = (kind) => isAdmin() || (CAT_SITE[kind] && canEditTool(CAT_SITE[kind]));
+const canEditCategory = (kind) => isOrgAdmin() || (CAT_SITE[kind] ? canEditTool(CAT_SITE[kind]) : isAdmin());
 const CAT_EXAMPLE = { tool: 'e.g. Power Tools', media: 'e.g. Cameras', maintenance: 'e.g. Plumbing', decor: 'e.g. Centerpieces' };
 function categorySelect(kind, current, field) {
   const names = [...catList[kind]];
@@ -1973,7 +1980,7 @@ function itemForm(it = {}, locations = []) {
         ${isAdmin() ? `<option value="facilities" ${cat === 'facilities' ? 'selected' : ''}>Facilities</option>
         <option value="maintenance" ${cat === 'maintenance' ? 'selected' : ''}>Maintenance</option>` : ''}
         <option value="paint" ${cat === 'paint' ? 'selected' : ''}>Paint</option>
-        ${isAdmin() && cat === 'events' ? '<option value="events" selected>Event</option>' : ''}</select></label>`}
+        ${isOrgAdmin() && cat === 'events' ? '<option value="events" selected>Event</option>' : ''}</select></label>`}
       <label style="width:130px" data-for="facilities maintenance events" title="How many pieces one box/pack holds, e.g. 6 rolls in a box of paper towels. Leave 1 for single items.">Per box/pack <input name="pack_size" type="number" min="1" value="${it.pack_size ?? 1}"></label>
       <label style="width:120px" title="Counted in single pieces (e.g. 6 = two boxes of 3); for paint, in gallons">Reorder at <input name="reorder_level" type="number" min="0" value="${it.reorder_level ?? 0}"></label>
       ${it.id ? '' : '<label style="width:150px" data-for="facilities maintenance events" title="How many boxes/packs you have now; singles can be counted later">Starting boxes <input name="start" type="number" min="0" value="0"></label>'}
@@ -2665,12 +2672,13 @@ async function renderHistory() {
 // Facilities access, in plain words (the Kiosk choice is only for the shared iPad's own login).
 const FAC_ACCESS = [
   ['none', 'No access'], ['member', 'Facilities & Maintenance'], ['maintenance', 'Maintenance manager'],
-  ['custodian', 'Custodian'], ['oversight', 'View only'], ['admin', 'Admin'], ['kiosk', 'Shared iPad'],
+  ['custodian', 'Custodian'], ['oversight', 'View only'], ['fac_admin', 'Facilities admin'], ['admin', 'Admin (all sites)'], ['kiosk', 'Shared iPad'],
 ];
 const FAC_HINT = {
   none: 'Can\'t use the Facilities site.', member: 'Scans tools, facilities & maintenance stock and paint.',
   maintenance: 'Scans tools, maintenance stock and paint; adds paint colors.', custodian: 'Scans facilities stock.',
-  oversight: 'Sees everything, changes nothing.', admin: 'Everything, on all three sites.', kiosk: 'The shared warehouse iPad login.',
+  oversight: 'Sees everything, changes nothing.', fac_admin: 'Everything on the Facilities site; no Events or Media.',
+  admin: 'Everything, on all three sites.', kiosk: 'The shared warehouse iPad login.',
 };
 const facLabel = (r) => (FAC_ACCESS.find(([k]) => k === r) || [r, r])[1];
 const accessTags = (m) => {
@@ -2690,7 +2698,11 @@ const pickRow = (name, options, cur, disabled = false) => `<div class="pick-row 
 function personForm(m = null) {
   const self = m && m.id === state.me.id;
   const isAdminRow = m?.role === 'admin';
-  const facOpts = FAC_ACCESS.filter(([k]) => k !== 'kiosk' || m?.role === 'kiosk');
+  const org = isOrgAdmin();
+  // Facilities admins can't make full admins or change Media / Events access.
+  const facOpts = FAC_ACCESS.filter(([k]) => (k !== 'kiosk' || m?.role === 'kiosk') && (org || k !== 'admin'));
+  const otherSite = (key, roles) => `<div class="muted access-hint">${esc(roles[m?.[key]] || 'No access')}. Only a full admin can change this.</div>`;
+  if (isAdminRow && !org) return '<p class="muted">This is a full admin. Only another full admin can change them.</p>';
   const defFac = m ? m.role : (SITE === 'facilities' ? 'member' : 'none');
   return `<form class="person-form" ${m ? `data-person-form="${m.id}"` : 'id="add"'}>
     <div class="row">
@@ -2703,9 +2715,9 @@ function personForm(m = null) {
         ${pickRow('role', facOpts, defFac, self)}
         <div class="muted access-hint" data-hint>${esc(FAC_HINT[defFac] || '')}</div></div>
       <div class="access-site acc-media"><div class="access-head">Media Gear</div>
-        ${isAdminRow ? '<div class="muted access-hint">Admins have full access.</div>' : pickRow('media_role', [['', 'No access'], ['member', 'Team — sign out & reserve'], ['lead', 'Admin — full Media access']], m ? m.media_role : (SITE === 'media' ? 'member' : ''))}</div>
+        ${isAdminRow ? '<div class="muted access-hint">Admins have full access.</div>' : !org ? otherSite('media_role', { member: 'Team', lead: 'Admin' }) : pickRow('media_role', [['', 'No access'], ['member', 'Team — sign out & reserve'], ['lead', 'Admin — full Media access']], m ? m.media_role : (SITE === 'media' ? 'member' : ''))}</div>
       <div class="access-site acc-events"><div class="access-head">Events</div>
-        ${isAdminRow ? '<div class="muted access-hint">Admins have full access.</div>' : pickRow('events_role', [['', 'No access'], ['member', 'Team — plan & run events'], ['admin', 'Admin — full Events access']], m ? m.events_role : (SITE === 'events' ? 'member' : ''))}</div>
+        ${isAdminRow ? '<div class="muted access-hint">Admins have full access.</div>' : !org ? otherSite('events_role', { member: 'Team', admin: 'Admin' }) : pickRow('events_role', [['', 'No access'], ['member', 'Team — plan & run events'], ['admin', 'Admin — full Events access']], m ? m.events_role : (SITE === 'events' ? 'member' : ''))}</div>
     </div>
     ${self ? '<p class="muted" style="margin:10px 0 0">This is you, so your own Facilities access and status are locked. Ask another admin to change them.</p>' : ''}
     <div class="row" style="margin-top:14px;align-items:center">
@@ -2811,13 +2823,13 @@ async function renderPeople() {
     ['facilities', 'Facilities', (m) => m.active && m.role !== 'none'],
     ['media', 'Media', (m) => m.active && (m.role === 'admin' || !!m.media_role)],
     ['events', 'Events', (m) => m.active && (m.role === 'admin' || !!m.events_role)],
-    ['admin', 'Admins', (m) => m.active && m.role === 'admin'],
+    ['admin', 'Admins', (m) => m.active && ['admin', 'fac_admin'].includes(m.role)],
     ['nologin', 'Can\'t sign in', (m) => m.active && !m.email],
     ['off', 'Deactivated', (m) => !m.active],
   ];
   let filter = 'all';
   app.innerHTML = `
-    ${pageHead('Team', 'People', 'One list for Facilities, Media Gear and Events. Each person\'s tags show where they have access.')}
+    ${pageHead('Team', 'People', isOrgAdmin() ? 'One list for Facilities, Media Gear and Events. Each person\'s tags show where they have access.' : 'Everyone on the list. You can add people and set their Facilities access; Media and Events access is set by a full admin.')}
     <div class="row" style="margin-bottom:14px;align-items:center">
       <button class="btn primary big-add" id="add-open">+ Add person</button>
       <input id="psearch" placeholder="Search names or emails…" style="flex:1;min-width:200px">
@@ -2846,7 +2858,7 @@ async function renderPeople() {
     app.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
       const box = app.querySelector(`#edit-${b.dataset.edit}`);
       box.hidden = !box.hidden;
-      if (!box.hidden) box.querySelector('input[name="name"]').focus();
+      if (!box.hidden) box.querySelector('input[name="name"]')?.focus();
     }));
     app.querySelectorAll('form[data-person-form]').forEach(bindEdit);
   };
@@ -2856,7 +2868,8 @@ async function renderPeople() {
     const h = form.querySelector('[data-hint]');
     if (h) h.textContent = FAC_HINT[r.value] || '';
   }));
-  const accessOf = (f) => ({ media_role: f.get('media_role') || null, events_role: f.get('events_role') || null });
+  // Only the access rows on the form (Facilities admins don't get the Media / Events rows).
+  const accessOf = (f) => Object.fromEntries(['media_role', 'events_role'].filter((k) => f.has(k) || isOrgAdmin()).map((k) => [k, f.get(k) || null]));
 
   function bindEdit(form) {
     const m = members.find((x) => x.id === form.dataset.personForm);
