@@ -3,6 +3,7 @@ import { SUPABASE_URL, SUPABASE_KEY, SITE_URLS, VAPID_PUBLIC_KEY } from './confi
 import './select.js?v=__V__';
 import { openCamera } from './camera.js?v=__V__';
 import { boardPages } from './boards.js?v=__V__';
+import { schedulePages } from './pm.js?v=__V__';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app');
@@ -60,7 +61,7 @@ const isKiosk = () => state.me?.role === 'kiosk';
 // What each role can open. Only admin and the kiosk can change anything; the
 // database enforces the same rules (see 0008_view_roles.sql).
 const ALL_PAGES = [
-  ['requests', 'Maintenance Requests'], ['checklist', 'Weekly Checklist'],
+  ['requests', 'Maintenance Requests'], ['checklist', 'Weekly Checklist'], ['schedule', 'Maintenance Schedule'],
   ['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
   ['items/facilities', 'Facilities Stock'], ['items/maintenance', 'Maintenance Stock'], ['items/paint', 'Paint'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
   ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories'],
@@ -78,7 +79,7 @@ const ROLES = {
     pages: ['kiosk', 'requests', 'request', 'checklist', 'items/facilities', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
   maintenance: { label: 'Maintenance manager', act: false, home: 'kiosk', stock: ['maintenance', 'paint'], tools: true,
     scanStock: ['maintenance', 'paint'], scanTools: true,
-    pages: ['kiosk', 'requests', 'request', 'checklist', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
+    pages: ['kiosk', 'requests', 'request', 'checklist', 'schedule', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
   custodian: { label: 'Custodian manager', act: false, home: 'kiosk', stock: ['facilities'], tools: false,
     scanStock: ['facilities'], scanTools: false,
     pages: ['kiosk', 'checklist', 'requests', 'request', 'items/facilities', 'history', 'item'] },
@@ -164,7 +165,7 @@ const siteHome = () => (SITE === 'events' ? (siteRole().scanTools ? 'kiosk' : 'e
 // A few big tabs; everything else lives under one "Admin" / "More" menu.
 const NAV = {
   facilities: {
-    main: [['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Checklist'], ['items', 'Stock'], ['toollist', 'Tools']],
+    main: [['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Checklist'], ['schedule', 'Schedule'], ['items', 'Stock'], ['toollist', 'Tools']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
       ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories']],
   },
@@ -719,6 +720,7 @@ const routes = {
   notifications: renderNotifications,
   requests: (...a) => BOARDS.renderRequests(...a), request: (...a) => BOARDS.renderRequest(...a),
   checklist: (...a) => BOARDS.renderChecklist(...a),
+  schedule: (...a) => SCHEDULE.renderSchedule(...a),
 };
 
 // Maintenance Requests and the Weekly Checklist (boards.js). Editing: admin and
@@ -728,6 +730,9 @@ const BOARDS = boardPages({
   canEdit: () => ['admin', 'member', 'maintenance', 'custodian'].includes(state.me?.role),
   isAdmin, me: () => state.me,
 });
+
+// Recurring maintenance schedule (pm.js): Maintenance managers and admins.
+const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, loadLocations: () => loadLocations() });
 
 window.addEventListener('hashchange', () => state.me && route());
 
@@ -3338,7 +3343,7 @@ boot();
 // if they changed, offer a one-tap update. The shared kiosk updates itself
 // when nobody is mid-scan.
 // ---------------------------------------------------------------------------
-const UPDATE_FILES = ['/app.js', '/boards.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {
