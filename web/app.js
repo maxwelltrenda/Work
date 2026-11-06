@@ -1578,11 +1578,11 @@ async function renderKiosk() {
 
 const fmtDay = (d) => (d ? new Date(`${d}T12:00`).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '');
 
-function eventForm(ev = {}) {
+function eventForm(ev = {}, locations = []) {
   return `
     <div class="row">
       <label style="flex:2;min-width:200px">Event name <input name="name" required value="${esc(ev.name)}" placeholder="County fair booth"></label>
-      <label style="flex:1;min-width:160px">Location <input name="location" value="${esc(ev.location)}"></label>
+      ${locationSelect(locations, ev.location)}
       <label>Starts <input name="starts_on" type="date" value="${esc(ev.starts_on)}"></label>
       <label>Ends <input name="ends_on" type="date" value="${esc(ev.ends_on)}"></label>
     </div>
@@ -1590,15 +1590,16 @@ function eventForm(ev = {}) {
 }
 
 const eventFields = (f) => ({
-  name: f.get('name').trim(), location: f.get('location').trim() || null,
+  name: f.get('name').trim(), location: (f.get('location') || '').trim() || null,
   starts_on: f.get('starts_on') || null, ends_on: f.get('ends_on') || null, notes: f.get('notes').trim() || null,
 });
 
 async function renderEvents() {
-  const [events, members, open] = await Promise.all([
+  const [events, members, open, locations] = await Promise.all([
     q(sb.from('events').select('*').order('starts_on', { ascending: false, nullsFirst: true })),
     loadMembers(),
     q(sb.from('tool_checkouts').select('event_id').is('returned_at', null).not('event_id', 'is', null)),
+    loadLocations(),
   ]);
   const crew = people(members);
   const outBy = {};
@@ -1612,14 +1613,15 @@ async function renderEvents() {
   app.innerHTML = `
     ${pageHead('Offsite', 'Events', 'Plan an offsite job, then pick it on the Check In / Out screen when loading the truck. Everything scanned goes on the event’s list.')}
     <details class="card" ${live.length ? '' : 'open'} ${canManageEvents() ? '' : 'hidden'}><summary><b>New event</b></summary>
-      <form id="add" style="margin-top:12px">${eventForm()}
+      <form id="add" style="margin-top:12px">${eventForm({}, locations)}
         <h2>Crew</h2><div class="people-pick">${crew.map((m) => `<label class="chip"><input type="checkbox" name="crew" value="${m.id}"> ${esc(m.name)}</label>`).join('')}</div>
         <div style="margin-top:12px"><button class="btn primary">Create event</button></div></form></details>
     <h2>Upcoming &amp; active</h2>
-    <div class="table-wrap"><table><tr><th>Code</th><th>Event</th><th>Where</th><th>When</th><th>Status</th><th class="num">Tools</th></tr>
+    <div class="table-wrap"><table><tr><th>Code</th><th>Event</th><th>Where</th><th>When</th><th>Status</th><th class="num">${TW.list}</th></tr>
       ${rows(live) || '<tr><td colspan="6" class="muted">No open events.</td></tr>'}</table></div>
-    ${closed.length ? `<h2>Closed</h2><div class="table-wrap"><table><tr><th>Code</th><th>Event</th><th>Where</th><th>When</th><th>Status</th><th class="num">Tools</th></tr>${rows(closed)}</table></div>` : ''}`;
+    ${closed.length ? `<h2>Closed</h2><div class="table-wrap"><table><tr><th>Code</th><th>Event</th><th>Where</th><th>When</th><th>Status</th><th class="num">${TW.list}</th></tr>${rows(closed)}</table></div>` : ''}`;
 
+  bindLocationSelects(app.querySelector('#add'));
   app.querySelector('#add').addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = new FormData(e.target);
@@ -1634,7 +1636,7 @@ async function renderEvents() {
 }
 
 async function renderEvent(id) {
-  const [[ev], members, crewRows, checkouts, tx, tools, items] = await Promise.all([
+  const [[ev], members, crewRows, checkouts, tx, tools, items, locations] = await Promise.all([
     q(sb.from('events').select('*').eq('id', id)),
     loadMembers(),
     q(sb.from('event_crew').select('member_id').eq('event_id', id)),
@@ -1642,6 +1644,7 @@ async function renderEvent(id) {
     q(sb.from('item_transactions').select('*').eq('event_id', id).order('created_at')),
     loadTools(),
     loadItems(),
+    loadLocations(),
   ]);
   if (!ev) throw new Error('Event not found');
   const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
@@ -1666,8 +1669,8 @@ async function renderEvent(id) {
     <p class="muted" style="margin-top:-6px">${esc(ev.location || '')}${ev.location && ev.starts_on ? ' · ' : ''}${fmtDay(ev.starts_on)}${ev.ends_on && ev.ends_on !== ev.starts_on ? ` – ${fmtDay(ev.ends_on)}` : ''}${ev.notes ? ` · ${esc(ev.notes)}` : ''}</p>
     <div class="stats">
       <div class="stat"><b>${crewIds.size}</b><span>crew</span></div>
-      <div class="stat"><b>${sumQty(checkouts)}</b><span>tools sent</span></div>
-      <div class="stat"><b style="color:${stillOut.length ? 'var(--out)' : 'var(--in)'}">${sumQty(stillOut)}</b><span>tools not back yet</span></div>
+      <div class="stat"><b>${sumQty(checkouts)}</b><span>${TW.list.toLowerCase()} sent</span></div>
+      <div class="stat"><b style="color:${stillOut.length ? 'var(--out)' : 'var(--in)'}">${sumQty(stillOut)}</b><span>${TW.list.toLowerCase()} not back yet</span></div>
       <div class="stat"><b>${Object.keys(stock).length}</b><span>stock items used</span></div>
     </div>
 
@@ -1677,12 +1680,12 @@ async function renderEvent(id) {
       ${ev.status !== 'closed' && notCrew.length && canManageEvents() ? `<select id="add-crew"><option value="">+ Add person…</option>${notCrew.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>` : ''}
     </div></div>
 
-    <h2>Tools</h2>
+    <h2>${TW.list}</h2>
     <div class="table-wrap"><table><tr><th>${TW_HEAD}</th><th>Signed out by</th><th>Out</th><th>Back</th><th></th></tr>
       ${checkouts.map((c) => { const t = toolBy[c.tool_id]; return `<tr class="${c.returned_at ? '' : 'overdue'}"><td><a href="#/tool/${t?.id}">${esc(t?.name)}</a>${xQty(c.qty)} <span class="code muted">${esc(t?.code)}</span></td><td>${esc(who[c.borrower_id])}</td><td>${fmtDate(c.checked_out_at)}</td>
         <td>${c.returned_at ? `${fmtDate(c.returned_at)}${c.return_condition && c.return_condition !== 'good' ? ` <span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}` : '<span class="pill out">NOT BACK</span>'}</td>
         <td>${c.returned_at || !canManageEvents() ? '' : `<button class="btn small bad" data-lost="${c.id}">Mark lost</button>`}</td></tr>`; }).join('')
-      || '<tr><td colspan="5" class="muted">No tools signed out to this event yet. Pick this event on the Check In/Out screen and scan.</td></tr>'}</table></div>
+      || `<tr><td colspan="5" class="muted">No ${TW.list.toLowerCase()} signed out to this event yet. Pick this event on the Check In/Out screen and scan.</td></tr>`}</table></div>
 
     <h2>Stock</h2>
     <div class="table-wrap"><table><tr><th>Item</th><th class="num">Taken</th><th class="num">Brought back</th><th class="num">Used</th></tr>
@@ -1693,7 +1696,7 @@ async function renderEvent(id) {
       ${!canManageEvents() ? '' : ev.status !== 'closed' ? '<button class="btn primary" id="close">Close event</button>' : '<button class="btn" id="reopen">Reopen event</button>'}
       <button class="btn" id="csv">Export CSV</button>
     </div>
-    ${ev.status !== 'closed' && canManageEvents() ? `<details class="card" style="margin-top:16px"><summary><b>Edit event details</b></summary><form id="edit" style="margin-top:12px">${eventForm(ev)}<div style="margin-top:12px"><button class="btn primary">Save</button></div></form></details>` : ''}`;
+    ${ev.status !== 'closed' && canManageEvents() ? `<details class="card" style="margin-top:16px"><summary><b>Edit event details</b></summary><form id="edit" style="margin-top:12px">${eventForm(ev, locations)}<div style="margin-top:12px"><button class="btn primary">Save</button></div></form></details>` : ''}`;
 
   const reload = () => route();
   app.querySelectorAll('[data-remove]').forEach((b) => b.addEventListener('click', async () => {
@@ -1713,18 +1716,19 @@ async function renderEvent(id) {
     try { await rpc('mark_checkout_lost', { p_checkout: c.id, p_note: `Not returned from ${ev.name}` }); reload(); } catch (e) { toast(errMsg(e), true); }
   }));
   app.querySelector('#close')?.addEventListener('click', async () => {
-    if (stillOut.length && !(await askConfirm('Close the event anyway?', { message: `${sumQty(stillOut)} tool(s) still aren't back. They'll stay signed out to the person who took them.`, ok: 'Close event' }))) return;
+    if (stillOut.length && !(await askConfirm('Close the event anyway?', { message: `${sumQty(stillOut)} ${TW.one === 'tool' ? 'tool(s)' : TW.list.toLowerCase()} still aren't back. They'll stay signed out to the person who took them.`, ok: 'Close event' }))) return;
     try { await q(sb.from('events').update({ status: 'closed' }).eq('id', id).select()); toast('Event closed'); reload(); } catch (e) { toast(errMsg(e), true); }
   });
   app.querySelector('#reopen')?.addEventListener('click', async () => {
     try { await q(sb.from('events').update({ status: 'active' }).eq('id', id).select()); reload(); } catch (e) { toast(errMsg(e), true); }
   });
+  if (app.querySelector('#edit')) bindLocationSelects(app.querySelector('#edit'));
   app.querySelector('#edit')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try { await q(sb.from('events').update(eventFields(new FormData(e.target))).eq('id', id).select()); toast('Saved'); reload(); } catch (err) { toast(errMsg(err), true); }
   });
   app.querySelector('#csv').addEventListener('click', () => downloadCsv(`${ev.code}-${ev.name}.csv`, [
-    ...checkouts.map((c) => ({ kind: 'tool', code: toolBy[c.tool_id]?.code, name: toolBy[c.tool_id]?.name, who: who[c.borrower_id], out: fmtDate(c.checked_out_at), back: c.returned_at ? fmtDate(c.returned_at) : 'NOT BACK', qty: '', condition: c.return_condition || '' })),
+    ...checkouts.map((c) => ({ kind: TW.one, code: toolBy[c.tool_id]?.code, name: toolBy[c.tool_id]?.name, who: who[c.borrower_id], out: fmtDate(c.checked_out_at), back: c.returned_at ? fmtDate(c.returned_at) : 'NOT BACK', qty: '', condition: c.return_condition || '' })),
     ...Object.entries(stock).map(([iid, s]) => ({ kind: 'stock', code: itemBy[iid]?.code, name: itemBy[iid]?.name, who: '', out: s.taken, back: s.back, qty: s.taken - s.back, condition: '' })),
   ]));
 }
@@ -1870,7 +1874,7 @@ function locationSelect(locations, current, label = 'Location') {
     <select name="location" data-location>
       <option value="">— None —</option>
       ${names.map((n) => `<option ${n === current ? 'selected' : ''}>${esc(n)}</option>`).join('')}
-      ${isAdmin() ? '<option value="__new">+ Add new location…</option><option value="__manage">Manage locations…</option>' : ''}
+      ${isAdmin() || isSiteAdmin() ? '<option value="__new">+ Add new location…</option>' : ''}${isAdmin() ? '<option value="__manage">Manage locations…</option>' : ''}
     </select></label>`;
 }
 
