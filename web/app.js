@@ -112,6 +112,8 @@ const TW = {
   events: { list: 'Decor', eyebrow: 'Events', one: 'decor', many: 'decor items', add: 'Add decor', edit: 'Edit decor', history: 'Decor sign-outs', cat: 'decor' },
   facilities: { list: 'Tools', eyebrow: 'Equipment', one: 'tool', many: 'tools', add: 'Add a tool', edit: 'Edit tool', history: 'Tool sign-outs', cat: 'tool' },
 }[TOOL_SITE];
+// Archived: taken off the list (or the old "retired" status). History is kept.
+const isArchived = (t) => !t.active || t.status === 'retired';
 // Events doesn't track what decor is worth.
 const SHOW_VALUE = TOOL_SITE !== 'events';
 const TW_HEAD = TW.list === 'Tools' ? 'Tool' : TW.list;
@@ -2358,6 +2360,7 @@ async function renderToolList() {
   const openBy = {};
   open.forEach((c) => (openBy[c.tool_id] ||= []).push(c));
   const statusCell = (t) => {
+    if (isArchived(t)) return '<span class="pill closed">archived</span>';
     const n = toolCounts(t, open);
     if (!n.multi || ['lost', 'retired'].includes(t.status)) return `<span class="pill ${t.status}">${t.status}</span>`;
     return `<span class="pill ${n.inQty ? 'available' : t.status}">${n.inQty} of ${n.qty} in</span>`;
@@ -2374,20 +2377,27 @@ async function renderToolList() {
     if (!c || openBy[t.id]?.length) return '';
     return `${c.batteries_ok === false ? ' <span class="pill low">Needs charging</span>' : ''}${c.cards_offloaded === false ? ' <span class="pill low">Card not offloaded</span>' : ''}`;
   };
-  const show = tools.filter((t) => t.active);
-  const total = show.reduce((s, t) => s + Number(t.value || 0), 0);
+  const current = tools.filter((t) => !isArchived(t));
+  const archived = tools.filter(isArchived);
+  const tab = state.toolTab === 'archived' ? 'archived' : 'current';
+  const show = tab === 'archived' ? archived : current;
+  const total = current.reduce((s, t) => s + Number(t.value || 0), 0);
   await refreshCategories();
   const cats = [...new Set(show.map((t) => t.category).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
   app.innerHTML = `
     ${pageHead(TW.eyebrow, TW.list)}
     <div class="stats">
-      <div class="stat"><b>${show.length}</b><span>${TW.many}</span></div>
+      <div class="stat"><b>${current.length}</b><span>${TW.many}</span></div>
       ${SHOW_VALUE ? `<div class="stat"><b>${total ? `$${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}</b><span>total value</span></div>` : ''}
     </div>
     ${canEditTool() ? `<details class="card"><summary><b>${TW.add}</b></summary><form id="add" style="margin-top:14px">${toolForm({}, locations)}
       <label style="margin-top:12px">Photo (optional) <input name="photo" type="file" accept="image/*"></label>
       <div style="margin-top:12px"><button class="btn primary">${TW.add}</button></div></form></details>` : ''}
+    <div class="seg tool-tabs" role="tablist">
+      <a href="#/toollist" role="tab" data-tab="current" class="${tab === 'current' ? 'on' : ''}">In use (${current.length})</a>
+      <a href="#/toollist" role="tab" data-tab="archived" class="${tab === 'archived' ? 'on' : ''}">Archived (${archived.length})</a></div>
+    ${tab === 'archived' ? `<p class="muted" style="margin:0 0 10px">Archived ${TW.list.toLowerCase()} don't show on the list or scan at Check In / Out. Their history is kept. Open one to restore it.</p>` : ''}
     <div class="row" style="margin-bottom:10px"><input id="filter" placeholder="Search…" style="flex:1;min-width:200px">
       <select id="catfilter"><option value="">All categories</option>${cats.map((c) => `<option>${esc(c)}</option>`).join('')}${show.some((t) => !t.category) ? '<option value="__none">No category</option>' : ''}</select>
       <button class="btn" id="csv">Export CSV</button></div>
@@ -2401,12 +2411,17 @@ async function renderToolList() {
       && (!cat || (cat === '__none' ? !t.category : t.category === cat)));
     app.querySelector('#tbl').innerHTML = `<tr><th>Code</th><th>${TW_HEAD}</th><th>Category</th><th>Status</th><th>With</th></tr>
       ${rows.map((t) => `<tr><td class="code">${esc(t.code)}</td><td><a class="tool-name" href="#/tool/${t.id}">${thumb(photos[t.photo_path])}${esc(t.name)}</a>${t.label_printed_at ? '' : ' <span class="pill closed">No label</span>'}${checkPills(t)}</td><td>${esc(t.category || '')}</td><td>${statusCell(t)}</td><td>${withCell(t)}</td></tr>`).join('')
-      || '<tr><td colspan="5" class="muted">No tools yet.</td></tr>'}`;
+      || `<tr><td colspan="5" class="muted">${tab === 'archived' ? 'Nothing archived.' : `No ${TW.list.toLowerCase()} yet.`}</td></tr>`}`;
   };
+  app.querySelectorAll('.tool-tabs [data-tab]').forEach((a) => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    state.toolTab = a.dataset.tab;
+    route();
+  }));
   app.querySelector('#catfilter').addEventListener('change', paint);
   photoUrlsFor(show.map((t) => t.photo_path)).then((p) => { photos = p; if (app.querySelector('#tbl')) paint(); });
   app.querySelector('#filter').addEventListener('input', paint);
-  app.querySelector('#csv').addEventListener('click', () => downloadCsv('tools.csv', show.map((t) => ({
+  app.querySelector('#csv').addEventListener('click', () => downloadCsv(`${TW.list.toLowerCase().replace(/\s+/g, '-')}${tab === 'archived' ? '-archived' : ''}.csv`, show.map((t) => ({
     code: t.code, name: t.name, category: t.category || '', quantity: t.quantity || 1, in: toolCounts(t, open).inQty, status: t.status,
     with: (openBy[t.id] || []).map((c) => `${who[c.borrower_id]}${c.qty > 1 ? ` x${c.qty}` : ''}`).join('; '), location: t.location, ...(SHOW_VALUE ? { value: t.value } : {}),
   }))));
@@ -2443,9 +2458,11 @@ async function renderTool(id) {
   app.innerHTML = `
     <p><a href="#/toollist">← ${TW.list}</a></p>
     <h1>${esc(t.name)} <span class="code muted">${esc(t.code)}</span></h1>
+    ${isArchived(t) ? `<div class="archived-banner"><span><b>Archived.</b> This ${esc(TW.one)} doesn't show on the ${esc(TW.list)} list or scan at Check In / Out. Its history is kept.</span>
+      ${canEditTool(toolSiteOf(t)) ? '<button class="btn primary" id="restore" type="button">Restore</button>' : ''}</div>` : ''}
     ${photoBlock(t, photo, canEditTool(toolSiteOf(t)))}
     <div class="stats">
-      <div class="stat"><b><span class="pill ${t.status}">${t.status}</span></b><span>status</span></div>
+      <div class="stat"><b>${isArchived(t) ? '<span class="pill closed">archived</span>' : `<span class="pill ${t.status}">${t.status}</span>`}</b><span>status</span></div>
       <div class="stat"><b>${esc(t.category || '—')}</b><span>category</span></div>
       ${SHOW_VALUE ? `<div class="stat"><b>${t.value ? `$${Number(t.value).toLocaleString()}` : '—'}</b><span>value</span></div>` : ''}
       ${(t.quantity || 1) > 1 ? (() => { const n = toolCounts(t, hist); return `<div class="stat"><b>${n.inQty} of ${n.qty}</b><span>in right now${n.outQty ? ` · ${n.outQty} out` : ''}${t.repair_qty ? ` · ${t.repair_qty} in repair` : ''}</span></div>`; })() : ''}
@@ -2454,11 +2471,11 @@ async function renderTool(id) {
     ${toolSiteOf(t) === 'media' ? await gearExtras(t, hist, members) : ''}
     <div class="row" style="margin-bottom:16px">${canAct() || canEditTool(toolSiteOf(t)) ? `<a class="btn" href="#/labels/tool/${t.id}">Print label</a>` : ''}
       <span class="muted" style="align-self:center;font-size:14px">${t.label_printed_at ? `Label printed ${fmtDate(t.label_printed_at)}` : 'Label not printed yet'}</span>
-      ${canEditTool(toolSiteOf(t)) && (t.status !== 'out' || (t.quantity || 1) > 1) ? `<select id="status">${['available', 'repair', 'lost', 'retired'].map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" id="set-status">Set status</button>` : ''}
+      ${canEditTool(toolSiteOf(t)) && !isArchived(t) && (t.status !== 'out' || (t.quantity || 1) > 1) ? `<select id="status">${['available', 'repair', 'lost'].map((s) => `<option ${s === t.status ? 'selected' : ''}>${s}</option>`).join('')}</select><button class="btn" id="set-status">Set status</button>` : ''}
+      ${canEditTool(toolSiteOf(t)) && !isArchived(t) ? '<button class="btn bad" id="archive" type="button">Archive</button>' : ''}
     </div>
     ${canEditTool(toolSiteOf(t)) ? `<details class="card"><summary><b>${TW.edit}</b></summary><form id="edit" style="margin-top:14px">${toolForm(t, locations)}
-      <div class="row" style="margin-top:12px"><button class="btn primary">Save</button>
-      <button type="button" class="btn ${t.active ? 'bad' : ''}" id="archive">${t.active ? 'Archive' : 'Restore'}</button></div></form></details>` : ''}
+      <div class="row" style="margin-top:12px"><button class="btn primary">Save</button></div></form></details>` : ''}
     <h2>Sign-out history</h2>
     <div class="table-wrap"><table><tr><th>Who</th><th>Out</th><th>Returned</th><th>Condition</th><th>Notes</th></tr>
       ${hist.map((c) => `<tr><td>${esc(who[c.borrower_id])}${xQty(c.qty)}</td><td>${fmtDate(c.checked_out_at)}</td><td>${c.returned_at ? fmtDate(c.returned_at) : '<span class="pill out">still out</span>'}</td><td>${c.return_condition ? `<span class="pill ${c.return_condition}">${c.return_condition.replace('_', ' ')}</span>` : ''}</td><td>${esc([c.out_note, c.return_note].filter(Boolean).join(' / '))}</td></tr>`).join('')
@@ -2475,8 +2492,18 @@ async function renderTool(id) {
     try { await q(sb.from('tools').update(toolFields(new FormData(e.target))).eq('id', t.id).select()); toast('Saved'); route(); } catch (err) { toast(errMsg(err), true); }
   });
   app.querySelector('#archive')?.addEventListener('click', async () => {
-    if (t.active && !(await askConfirm(`Archive ${t.name}?`, { message: 'It will stop scanning but keep its history.', ok: 'Archive', danger: true }))) return;
-    try { await q(sb.from('tools').update({ active: !t.active }).eq('id', t.id).select()); route(); } catch (err) { toast(errMsg(err), true); }
+    const out = hist.filter((c) => !c.returned_at).reduce((n, c) => n + (c.qty || 1), 0);
+    if (out) return toast(`${out} still signed out. Return ${out > 1 ? 'them' : 'it'} before archiving.`, true);
+    if (!(await askConfirm(`Archive ${t.name}?`, { message: `It moves to the Archived tab on ${TW.list}, stops scanning, and keeps its history. You can restore it any time.`, ok: 'Archive', danger: true }))) return;
+    try { await q(sb.from('tools').update({ active: false }).eq('id', t.id).select()); toast(`Archived ${t.name}`); location.hash = '#/toollist'; } catch (err) { toast(errMsg(err), true); }
+  });
+  app.querySelector('#restore')?.addEventListener('click', async () => {
+    try {
+      if (!t.active) await q(sb.from('tools').update({ active: true }).eq('id', t.id).select());
+      if (t.status === 'retired') await rpc('set_tool_status', { p_tool: t.id, p_status: 'available' });
+      toast(`Restored ${t.name}`);
+      route();
+    } catch (err) { toast(errMsg(err), true); }
   });
 }
 
