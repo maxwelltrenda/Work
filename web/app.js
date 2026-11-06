@@ -1,6 +1,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/+esm';
 import { SUPABASE_URL, SUPABASE_KEY, SITE_URLS, VAPID_PUBLIC_KEY } from './config.js?v=__V__';
 import './select.js?v=__V__';
+import './datepick.js?v=__V__';
 import { openCamera } from './camera.js?v=__V__';
 import { boardPages } from './boards.js?v=__V__';
 import { schedulePages } from './pm.js?v=__V__';
@@ -3365,7 +3366,7 @@ boot();
 // if they changed, offer a one-tap update. The shared kiosk updates itself
 // when nobody is mid-scan.
 // ---------------------------------------------------------------------------
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/team.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {

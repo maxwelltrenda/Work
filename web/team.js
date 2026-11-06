@@ -39,8 +39,11 @@ export function teamPages(ctx) {
     const to = [gridEnd, listEnd, weekDays[6]].sort()[2];
     const [rows, members] = await Promise.all([
       q(sb.from('time_off').select('*').lte('starts_on', to).gte('ends_on', from).order('starts_on')),
-      q(sb.from('team_members').select('id, name, active, role, media_role, events_role, team, work_hours').order('name')),
+      // Team and hours need the 0034 database update; until it's in, show the rest without them.
+      q(sb.from('team_members').select('id, name, active, role, media_role, events_role, team, work_hours').order('name'))
+        .catch(() => q(sb.from('team_members').select('id, name, active, role, media_role, events_role').order('name')).then((ms) => ms.map((m) => ({ ...m, noHours: true })))),
     ]);
+    const hoursReady = !members.some((m) => m.noHours);
     const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
     const mine = (r) => r.member_id === me()?.id;
     const manage = canManage();
@@ -49,7 +52,7 @@ export function teamPages(ctx) {
     const upcoming = rows.filter((r) => r.ends_on >= today && r.starts_on <= listEnd);
     const prev = iso(new Date(firstD.getFullYear(), firstD.getMonth() - 1, 1)).slice(0, 7);
     const next = iso(new Date(firstD.getFullYear(), firstD.getMonth() + 1, 1)).slice(0, 7);
-    const pill = (r) => `<span class="to-pill ${KIND_CLASS[r.kind]}" title="${esc(`${who[r.member_id] || ''} · ${r.kind}${r.part ? ` (${r.part})` : ''}${r.note ? ` · ${r.note}` : ''}`)}">${esc((who[r.member_id] || '?').split(' ')[0])}${r.part ? ' ½' : ''}</span>`;
+    const pill = (r) => `<button type="button" data-to-info="${r.id}" class="to-pill ${KIND_CLASS[r.kind]}" title="${esc(`${who[r.member_id] || ''} · ${r.kind}${r.part ? ` (${r.part})` : ''}${r.note ? ` · ${r.note}` : ''}`)}">${esc((who[r.member_id] || '?').split(' ')[0])}${r.part ? ' ½' : ''}</button>`;
 
     const days = [];
     for (let d = gridStart; d <= gridEnd; d = addDays(d, 1)) days.push(d);
@@ -64,12 +67,12 @@ export function teamPages(ctx) {
     const cell = (m, day) => {
       const off = offOn(m, day);
       const h = shift(m, day);
-      if (off && !off.part) return `<span class="to-pill ${KIND_CLASS[off.kind]}">${esc(off.kind)}</span>`;
-      if (off) return `${h ? `<span class="wk-hours">${hours(h)}</span>` : ''}<span class="to-pill ${KIND_CLASS[off.kind]}">${esc(off.kind)} ${off.part === 'Morning' ? 'AM' : 'PM'}</span>`;
+      if (off && !off.part) return `<button type="button" data-to-info="${off.id}" class="to-pill ${KIND_CLASS[off.kind]}">${esc(off.kind)}</button>`;
+      if (off) return `${h ? `<span class="wk-hours">${hours(h)}</span>` : ''}<button type="button" data-to-info="${off.id}" class="to-pill ${KIND_CLASS[off.kind]}">${esc(off.kind)} ${off.part === 'Morning' ? 'AM' : 'PM'}</button>`;
       return h ? `<span class="wk-hours">${hours(h)}</span>` : '<span class="wk-off">Off</span>';
     };
     const weekLabel = `${MON[fromIso(weekStart).getMonth()]} ${fromIso(weekStart).getDate()} – ${MON[fromIso(weekDays[6]).getMonth()]} ${fromIso(weekDays[6]).getDate()}`;
-    const weekTable = `<div class="wk-bar"><button class="btn small" data-wk="-1" aria-label="Previous week">‹</button><h2>${weekOffset === 0 ? 'This week' : weekOffset === 1 ? 'Next week' : weekOffset === -1 ? 'Last week' : 'Week'} <span class="muted">${weekLabel}</span></h2><button class="btn small" data-wk="1" aria-label="Next week">›</button>
+    const weekTable = !hoursReady ? '' : `<div class="wk-bar"><button class="btn small" data-wk="-1" aria-label="Previous week">‹</button><h2>${weekOffset === 0 ? 'This week' : weekOffset === 1 ? 'Next week' : weekOffset === -1 ? 'Last week' : 'Week'} <span class="muted">${weekLabel}</span></h2><button class="btn small" data-wk="1" aria-label="Next week">›</button>
         ${weekOffset ? '<button class="btn small" data-wk="0">This week</button>' : ''}
         <span class="wk-filter">${['', ...shownTeams.filter(Boolean)].map((t) => `<button class="chip-btn${teamFilter === t ? ' on' : ''}" data-team="${esc(t)}">${t ? esc(t) : 'Everyone'}</button>`).join('')}</span></div>
       <div class="table-wrap wk-wrap"><table class="wk-table"><tr><th>Person</th>${weekDays.map((d) => `<th class="${d === today ? 'today' : ''}">${DOW[fromIso(d).getDay()]} ${fromIso(d).getDate()}</th>`).join('')}</tr>
@@ -81,8 +84,8 @@ export function teamPages(ctx) {
 
     app.innerHTML = `
       ${pageHead('Facilities team', 'Team <span class="accent">schedule</span>', 'Who works when, and who\'s out. Add your days off so the team can plan around it.')}
-      <div class="to-today card"><b>Working today</b>${workingToday.length ? workingToday.map((m) => `<span class="to-chip wk-in">${esc(m.name)} · ${hours(shift(m, today))}</span>`).join('') : '<span class="muted">No hours set for today yet.</span>'}</div>
-      <div class="to-today card"><b>Out today</b>${outToday.length ? outToday.map((r) => `<span class="to-chip ${KIND_CLASS[r.kind]}">${esc(who[r.member_id] || '?')} · ${esc(r.kind)}${r.part ? ` (${r.part.toLowerCase()})` : ''}</span>`).join('') : '<span class="muted">Everyone is in.</span>'}</div>
+      ${!hoursReady ? '' : `<div class="to-today card"><b>Working today</b>${workingToday.length ? workingToday.map((m) => `<span class="to-chip wk-in">${esc(m.name)} · ${hours(shift(m, today))}</span>`).join('') : '<span class="muted">No hours set for today yet.</span>'}</div>`}
+      <div class="to-today card"><b>Out today</b>${outToday.length ? outToday.map((r) => `<button type="button" data-to-info="${r.id}" class="to-chip ${KIND_CLASS[r.kind]}">${esc(who[r.member_id] || '?')} · ${esc(r.kind)}${r.part ? ` (${r.part.toLowerCase()})` : ''}</button>`).join('') : '<span class="muted">Everyone is in.</span>'}</div>
       ${weekTable}
       <details class="card" id="to-add-card"><summary><b>+ Add time off</b></summary>
         <form id="to-add" style="margin-top:12px">
@@ -133,10 +136,44 @@ export function teamPages(ctx) {
       const m = members.find((x) => x.id === b.dataset.person);
       if (await editPerson(m, teams)) renderTeam(ym);
     }));
+    // Tap any time off (calendar, week view, Out today) for the full details.
+    app.querySelectorAll('[data-to-info]').forEach((b) => b.addEventListener('click', async () => {
+      const r = rows.find((x) => x.id === Number(b.dataset.toInfo));
+      if (r && (await showInfo(r, who, mine(r) || manage))) renderTeam(ym);
+    }));
     app.querySelectorAll('[data-to-del]').forEach((b) => b.addEventListener('click', async () => {
       if (!(await askConfirm('Remove this time off?', { ok: 'Remove', danger: true }))) return;
       try { await rpc('time_off_remove', { p_id: Number(b.dataset.toDel) }); toast('Removed'); renderTeam(ym); } catch (err) { toast(errMsg(err), true); }
     }));
+  }
+
+  // Full details of one time off, with Remove for its owner or an admin.
+  function showInfo(r, who, canRemove) {
+    const days = Math.round((fromIso(r.ends_on) - fromIso(r.starts_on)) / 864e5) + 1;
+    return new Promise((resolve) => {
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML = `<div class="modal to-info" role="dialog" aria-modal="true" aria-labelledby="to-info-title">
+        <span class="to-chip ${KIND_CLASS[r.kind]}">${esc(r.kind)}</span>
+        <h3 id="to-info-title">${esc(who[r.member_id] || 'Someone')}</h3>
+        <dl>
+          <dt>When</dt><dd>${span(r)}${r.part ? '' : ` · ${days} day${days === 1 ? '' : 's'}`}</dd>
+          ${r.note ? `<dt>Note</dt><dd>${esc(r.note)}</dd>` : ''}
+          ${r.created_by ? `<dt>Added by</dt><dd>${esc(who[r.created_by] || 'Someone')}${r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}` : ''}</dd>` : ''}
+        </dl>
+        <div class="modal-actions">${canRemove ? '<button type="button" class="btn bad" data-remove>Remove</button>' : ''}<button type="button" class="btn primary" data-close>Close</button></div>
+      </div>`;
+      const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
+      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(false); } };
+      document.addEventListener('keydown', onKey, true);
+      back.addEventListener('click', (e) => { if (e.target === back) done(false); });
+      back.querySelector('[data-close]').addEventListener('click', () => done(false));
+      back.querySelector('[data-remove]')?.addEventListener('click', async () => {
+        try { await rpc('time_off_remove', { p_id: r.id }); toast('Removed'); done(true); } catch (err) { toast(errMsg(err), true); }
+      });
+      document.body.appendChild(back);
+      back.querySelector('[data-close]').focus();
+    });
   }
 
   // Set someone's team and regular weekly hours.
