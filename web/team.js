@@ -68,9 +68,23 @@ export function teamPages(ctx) {
       const off = offOn(m, day);
       const h = shift(m, day);
       if (off && !off.part) return `<button type="button" data-to-info="${off.id}" class="to-pill ${KIND_CLASS[off.kind]}">${esc(off.kind)}</button>`;
-      if (off) return `${h ? `<span class="wk-hours">${hours(h)}</span>` : ''}<button type="button" data-to-info="${off.id}" class="to-pill ${KIND_CLASS[off.kind]}">${esc(off.kind)} ${off.part === 'Morning' ? 'AM' : 'PM'}</button>`;
-      return h ? `<span class="wk-hours">${hours(h)}</span>` : '<span class="wk-off">Off</span>';
+      if (off) return `${h ? `<span class="wk-hours k-work">${hours(h)}</span>` : ''}<button type="button" data-to-info="${off.id}" class="to-pill ${KIND_CLASS[off.kind]}">${esc(off.kind)} ${off.part === 'Morning' ? 'AM' : 'PM'}</button>`;
+      return h ? `<span class="wk-hours k-work">${hours(h)}</span>` : '<span class="wk-off">Off</span>';
     };
+    // Month calendar: time off first, then who's working that day (green).
+    const dayEntries = (d) => {
+      const offs = on(d).filter((r) => !teamFilter || (members.find((m) => m.id === r.member_id)?.team || '') === teamFilter);
+      const offWhole = new Set(offs.filter((r) => !r.part).map((r) => r.member_id));
+      const working = !hoursReady ? [] : people.filter((m) => (!teamFilter || (m.team || '') === teamFilter) && shift(m, d) && !offWhole.has(m.id));
+      return [...offs.map(pill), ...working.map((m) => `<span class="to-pill k-work" title="${esc(`${m.name} · ${hours(shift(m, d))}`)}">${esc(m.name.split(' ')[0])}</span>`)];
+    };
+    const monthCal = `<div class="to-monthbar"><a class="btn small" href="#/team/${prev}" aria-label="Previous month">‹</a><h2>${MONTH[firstD.getMonth()]} ${firstD.getFullYear()}</h2><a class="btn small" href="#/team/${next}" aria-label="Next month">›</a>
+        ${ym !== today.slice(0, 7) ? '<a class="btn small" href="#/team">This month</a>' : ''}
+        <span class="to-legend">${hoursReady ? '<span class="to-pill k-work">Working</span>' : ''}${KINDS.map((k) => `<span class="to-pill ${KIND_CLASS[k]}">${k}</span>`).join('')}</span></div>
+      <div class="to-grid">${DOW.map((d) => `<div class="to-dow">${d}</div>`).join('')}
+        ${days.map((d) => { const dd = fromIso(d); const list = dayEntries(d); return `<div class="to-day${d.slice(0, 7) !== ym ? ' other' : ''}${d === today ? ' today' : ''}${dd.getDay() % 6 === 0 ? ' weekend' : ''}">
+          <span class="to-num">${dd.getDate()}</span>${list.slice(0, 5).join('')}${list.length > 5 ? `<span class="muted to-more">+${list.length - 5} more</span>` : ''}</div>`; }).join('')}
+      </div>`;
     const weekLabel = `${MON[fromIso(weekStart).getMonth()]} ${fromIso(weekStart).getDate()} – ${MON[fromIso(weekDays[6]).getMonth()]} ${fromIso(weekDays[6]).getDate()}`;
     const weekTable = !hoursReady ? '' : `<div class="wk-bar"><button class="btn small" data-wk="-1" aria-label="Previous week">‹</button><h2>${weekOffset === 0 ? 'This week' : weekOffset === 1 ? 'Next week' : weekOffset === -1 ? 'Last week' : 'Week'} <span class="muted">${weekLabel}</span></h2><button class="btn small" data-wk="1" aria-label="Next week">›</button>
         ${weekOffset ? '<button class="btn small" data-wk="0">This week</button>' : ''}
@@ -84,6 +98,7 @@ export function teamPages(ctx) {
 
     app.innerHTML = `
       ${pageHead('Facilities team', 'Team <span class="accent">schedule</span>', 'Who works when, and who\'s out. Add your days off so the team can plan around it.')}
+      ${monthCal}
       ${!hoursReady ? '' : `<div class="to-today card"><b>Working today</b>${workingToday.length ? workingToday.map((m) => `<span class="to-chip wk-in">${esc(m.name)} · ${hours(shift(m, today))}</span>`).join('') : '<span class="muted">No hours set for today yet.</span>'}</div>`}
       <div class="to-today card"><b>Out today</b>${outToday.length ? outToday.map((r) => `<button type="button" data-to-info="${r.id}" class="to-chip ${KIND_CLASS[r.kind]}">${esc(who[r.member_id] || '?')} · ${esc(r.kind)}${r.part ? ` (${r.part.toLowerCase()})` : ''}</button>`).join('') : '<span class="muted">Everyone is in.</span>'}</div>
       ${weekTable}
@@ -99,13 +114,6 @@ export function teamPages(ctx) {
           <label style="margin-top:10px">Note <span class="muted">(optional)</span><input name="note" placeholder="Out of town, back Monday"></label>
           <div style="margin-top:12px"><button class="btn primary">Add</button></div>
         </form></details>
-      <div class="to-monthbar"><a class="btn small" href="#/team/${prev}" aria-label="Previous month">‹</a><h2>${MONTH[firstD.getMonth()]} ${firstD.getFullYear()}</h2><a class="btn small" href="#/team/${next}" aria-label="Next month">›</a>
-        ${ym !== today.slice(0, 7) ? '<a class="btn small" href="#/team">This month</a>' : ''}
-        <span class="to-legend">${KINDS.map((k) => `<span class="to-pill ${KIND_CLASS[k]}">${k}</span>`).join('')}</span></div>
-      <div class="to-grid">${DOW.map((d) => `<div class="to-dow">${d}</div>`).join('')}
-        ${days.map((d) => { const dd = fromIso(d); const list = on(d); return `<div class="to-day${d.slice(0, 7) !== ym ? ' other' : ''}${d === today ? ' today' : ''}${dd.getDay() % 6 === 0 ? ' weekend' : ''}">
-          <span class="to-num">${dd.getDate()}</span>${list.slice(0, 4).map(pill).join('')}${list.length > 4 ? `<span class="muted to-more">+${list.length - 4} more</span>` : ''}</div>`; }).join('')}
-      </div>
       <h2>Coming up</h2>
       <div class="to-list">${upcoming.length ? upcoming.map((r) => `<div class="to-row">
           <span class="to-dot ${KIND_CLASS[r.kind]}"></span>
@@ -177,49 +185,86 @@ export function teamPages(ctx) {
   }
 
   // Set someone's team and regular weekly hours.
+  // Set someone's team and regular hours: tap the days, tap a shift. Custom times
+  // and different hours on different days are there when needed.
+  const SHIFTS = [['06:00', '14:30'], ['07:00', '15:30'], ['07:30', '16:00'], ['08:00', '16:30'], ['08:00', '17:00'], ['09:00', '17:30']];
   function editPerson(m, teams) {
     const cur = m.work_hours || {};
+    const set = DAY_KEYS.filter((k) => cur[k]);
+    const kinds = new Set(set.map((k) => `${cur[k].start}-${cur[k].end}`));
+    let days = new Set(set.length ? set : ['mon', 'tue', 'wed', 'thu', 'fri']);
+    let same = kinds.size <= 1;
+    let shift = set.length ? [cur[set[0]].start, cur[set[0]].end] : ['08:00', '16:30'];
+    const timeOpts = (sel) => { const o = []; for (let t = 5 * 60; t <= 22 * 60; t += 30) { const v = `${pad(Math.floor(t / 60))}:${pad(t % 60)}`; o.push(`<option value="${v}" ${v === sel ? 'selected' : ''}>${hm(v)}</option>`); } if (sel && !o.some((x) => x.includes(`"${sel}"`))) o.push(`<option value="${sel}" selected>${hm(sel)}</option>`); return o.join(''); };
     return new Promise((resolve) => {
       const back = document.createElement('div');
       back.className = 'modal-back';
       back.innerHTML = `<form class="modal wk-modal" role="dialog" aria-modal="true" aria-labelledby="wk-title">
         <h3 id="wk-title">${esc(m.name)}</h3>
-        <label>Team <input name="team" list="wk-teams" value="${esc(m.team || '')}" placeholder="Maintenance, Custodial…" autocomplete="off"></label>
-        <datalist id="wk-teams">${teams.map((t) => `<option value="${esc(t)}">`).join('')}</datalist>
-        <div class="wk-days">${DAY_KEYS.map((k, i) => `<div class="wk-dayrow" data-day="${k}">
-            <label class="wk-check"><input type="checkbox" name="on_${k}" ${cur[k] ? 'checked' : ''}> ${DOW[i]}</label>
-            <input type="time" name="start_${k}" value="${cur[k]?.start || '08:00'}" step="900" aria-label="${DOW[i]} start">
-            <span class="muted">to</span>
-            <input type="time" name="end_${k}" value="${cur[k]?.end || '16:30'}" step="900" aria-label="${DOW[i]} end"></div>`).join('')}</div>
-        <button type="button" class="btn small" data-copy>Copy Monday to Tue–Fri</button>
+        <div class="wk-sect">Team</div>
+        <div class="wk-chips" data-teams>${teams.map((t) => `<button type="button" class="chip-btn${(m.team || '') === t ? ' on' : ''}" data-team-pick="${esc(t)}">${esc(t)}</button>`).join('')}
+          <input name="team" value="${esc(m.team || '')}" placeholder="Other team…" autocomplete="off" class="wk-teamtext"></div>
+        <div class="wk-sect">Works on <button type="button" class="dp-link" data-days="mon tue wed thu fri">Mon–Fri</button><button type="button" class="dp-link" data-days="">None</button></div>
+        <div class="wk-chips" data-daychips>${DAY_KEYS.map((k, i) => `<button type="button" class="chip-btn day" data-day="${k}">${DOW[i]}</button>`).join('')}</div>
+        <div data-same>
+          <div class="wk-sect">Hours</div>
+          <div class="wk-chips">${SHIFTS.map(([a, b]) => `<button type="button" class="chip-btn" data-shift="${a}-${b}">${hm(a)}–${hm(b)}</button>`).join('')}</div>
+          <div class="wk-custom"><span class="muted">or</span><select name="s_start" aria-label="Start">${timeOpts(shift[0])}</select><span class="muted">to</span><select name="s_end" aria-label="End">${timeOpts(shift[1])}</select></div>
+        </div>
+        <div data-perday hidden><div class="wk-days">${DAY_KEYS.map((k, i) => `<div class="wk-dayrow" data-row="${k}"><b>${DOW[i]}</b>
+            <select name="start_${k}" aria-label="${DOW[i]} start">${timeOpts(cur[k]?.start || shift[0])}</select><span class="muted">to</span>
+            <select name="end_${k}" aria-label="${DOW[i]} end">${timeOpts(cur[k]?.end || shift[1])}</select></div>`).join('')}</div></div>
+        <button type="button" class="dp-link wk-toggle" data-toggle></button>
+        <p class="wk-summary" data-summary></p>
         <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">Save</button></div>
       </form>`;
       const form = back.querySelector('form');
-      const sync = () => form.querySelectorAll('.wk-dayrow').forEach((r) => r.classList.toggle('off', !r.querySelector('[type=checkbox]').checked));
-      form.addEventListener('change', sync);
-      sync();
-      const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
-      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(false); } };
-      document.addEventListener('keydown', onKey, true);
-      form.querySelector('[data-cancel]').addEventListener('click', () => done(false));
-      form.querySelector('[data-copy]').addEventListener('click', () => {
-        const on = form.querySelector('[name=on_mon]').checked;
-        const st = form.querySelector('[name=start_mon]').value;
-        const en = form.querySelector('[name=end_mon]').value;
-        ['tue', 'wed', 'thu', 'fri'].forEach((k) => {
-          form.querySelector(`[name=on_${k}]`).checked = on;
-          form.querySelector(`[name=start_${k}]`).value = st;
-          form.querySelector(`[name=end_${k}]`).value = en;
-        });
+      const $ = (sel) => form.querySelector(sel);
+      const sync = () => {
+        form.querySelectorAll('[data-day]').forEach((b) => b.classList.toggle('on', days.has(b.dataset.day)));
+        form.querySelectorAll('[data-shift]').forEach((b) => b.classList.toggle('on', b.dataset.shift === `${shift[0]}-${shift[1]}`));
+        form.querySelectorAll('[data-team-pick]').forEach((b) => b.classList.toggle('on', b.dataset.teamPick === $('[name=team]').value.trim()));
+        $('[data-same]').hidden = !same;
+        $('[data-perday]').hidden = same;
+        form.querySelectorAll('[data-row]').forEach((r) => { r.hidden = !days.has(r.dataset.row); });
+        $('[data-toggle]').textContent = same ? 'Different hours on different days?' : 'Same hours every day';
+        const list = DAY_KEYS.filter((k) => days.has(k));
+        $('[data-summary]').textContent = !list.length ? 'Not on the schedule (no regular hours).'
+          : same ? `${list.map((k) => DOW[DAY_KEYS.indexOf(k)]).join(', ')} · ${hm(shift[0])}–${hm(shift[1])}`
+            : list.map((k) => `${DOW[DAY_KEYS.indexOf(k)]} ${hm($(`[name=start_${k}]`).value)}–${hm($(`[name=end_${k}]`).value)}`).join(' · ');
+      };
+      form.querySelectorAll('[data-day]').forEach((b) => b.addEventListener('click', () => { days.has(b.dataset.day) ? days.delete(b.dataset.day) : days.add(b.dataset.day); sync(); }));
+      form.querySelectorAll('[data-days]').forEach((b) => b.addEventListener('click', () => { days = new Set(b.dataset.days.split(' ').filter(Boolean)); sync(); }));
+      form.querySelectorAll('[data-shift]').forEach((b) => b.addEventListener('click', () => {
+        shift = b.dataset.shift.split('-');
+        $('[name=s_start]').value = shift[0];
+        $('[name=s_end]').value = shift[1];
+        sync();
+      }));
+      form.querySelectorAll('[data-team-pick]').forEach((b) => b.addEventListener('click', () => { $('[name=team]').value = b.dataset.teamPick; sync(); }));
+      $('[name=team]').addEventListener('input', sync);
+      $('[name=s_start]').addEventListener('change', (e) => { shift = [e.target.value, shift[1]]; sync(); });
+      $('[name=s_end]').addEventListener('change', (e) => { shift = [shift[0], e.target.value]; sync(); });
+      form.querySelectorAll('[data-row] select').forEach((x) => x.addEventListener('change', sync));
+      $('[data-toggle]').addEventListener('click', () => {
+        // Going to per-day starts every day from the shift picked so far.
+        if (same) DAY_KEYS.forEach((k) => { if (!cur[k] || kinds.size <= 1) { $(`[name=start_${k}]`).value = shift[0]; $(`[name=end_${k}]`).value = shift[1]; } });
+        same = !same;
         sync();
       });
+      sync();
+      const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
+      const onKey = (e) => { if (e.key === 'Escape' && !document.querySelector('.dd-menu')) { e.preventDefault(); done(false); } };
+      document.addEventListener('keydown', onKey, true);
+      $('[data-cancel]').addEventListener('click', () => done(false));
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const f = new FormData(form);
         const hrs = {};
-        DAY_KEYS.forEach((k) => { if (f.get(`on_${k}`)) hrs[k] = { start: f.get(`start_${k}`), end: f.get(`end_${k}`) }; });
+        DAY_KEYS.filter((k) => days.has(k)).forEach((k) => {
+          hrs[k] = same ? { start: shift[0], end: shift[1] } : { start: $(`[name=start_${k}]`).value, end: $(`[name=end_${k}]`).value };
+        });
         try {
-          await rpc('set_member_schedule', { p_member: m.id, p_team: f.get('team') || null, p_hours: hrs });
+          await rpc('set_member_schedule', { p_member: m.id, p_team: $('[name=team]').value.trim() || null, p_hours: hrs });
           toast(`Saved ${m.name}'s schedule`);
           done(true);
         } catch (err) { toast(errMsg(err), true); }
