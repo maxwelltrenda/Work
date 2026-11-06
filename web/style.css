@@ -1072,3 +1072,12 @@ button.to-pill:hover, button.to-chip:hover { filter: brightness(.95); box-shadow
 .tm-sect [data-tog-h] { cursor: pointer; user-select: none; }
 .tm-sect.shut .tm-body { display: none; }
 .tm-sect.shut .wk-bar > :not(.tm-tog):not(h2), .tm-sect.shut .to-monthbar > :not(.tm-tog):not(h2) { display: none; }
+.pm-card.upcoming { background: var(--paper); box-shadow: none; }
+.pm-wait { display: grid; place-items: center; font-size: 17px; border-style: dashed; cursor: default; }
+.pm-tasks { display: grid; gap: 8px; }
+.pm-task-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 14px; align-items: center; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 18px; font: inherit; color: var(--ink); cursor: pointer; }
+.pm-task-row:hover { border-color: var(--line-strong); }
+.pm-task-row b { font-size: 16px; font-weight: 600; grid-column: 1; }
+.pm-task-row .muted { grid-column: 1; font-size: 14px; }
+.pm-task-row .pm-edit { grid-column: 2; grid-row: 1 / span 2; font-weight: 600; font-size: 14px; color: var(--accent); border: 1px solid var(--line-strong); border-radius: 9px; padding: 6px 14px; }
+.pm-task-row.off { opacity: .65; }

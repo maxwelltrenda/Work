@@ -98,13 +98,44 @@ export function schedulePages(ctx) {
       ${pw ? pulled.block('maintenance', pw) : ''}
       <div class="pm-bar"><div class="seg">${tabs.map(([k, t]) => `<a href="#/schedule${k === 'now' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
         <button class="btn primary" data-pm-new>+ Add task</button></div>
-      <div id="pm-view">${view === 'tasks' ? taskList(tasks, locations) : view === 'history' ? history(runs, taskBy, who, today) : nowView(current, taskBy, who, today)}</div>`;
+      <div id="pm-view">${view === 'tasks' ? taskList(tasks, locations) : view === 'history' ? history(runs, taskBy, who, today) : nowView(current, taskBy, who, today, active)}</div>`;
 
     bind(view, tasks, current);
   }
 
   // ---- This period -------------------------------------------------------
-  function nowView(current, taskBy, who, today) {
+  // When a task's next round starts, for ones waiting on their next window.
+  function nextStart(t, today) {
+    const [y, m, d] = parts(today);
+    const iso = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    const after = (dt) => iso(dt) > today;
+    if (t.frequency === 'weekly') { const dt = new Date(y, m - 1, d); dt.setDate(dt.getDate() + 7 - dt.getDay()); return iso(dt); }
+    const sd = t.start_day || 1;
+    for (let k = 0; k <= 24; k += 1) {
+      const dt = new Date(y, m - 1 + k, sd);
+      const mm = dt.getMonth() + 1;
+      const ok = t.frequency === 'monthly' || (t.frequency === 'quarterly' && (mm - 1) % 3 === ((t.start_month || 1) - 1) % 3) || (t.frequency === 'yearly' && mm === (t.start_month || 1));
+      if (ok && after(dt)) return iso(dt);
+    }
+    return null;
+  }
+  function comingUp(waiting, today) {
+    if (!waiting.length) return '';
+    const rows = waiting.map((t) => {
+      const st = nextStart(t, today);
+      let end = null;
+      if (st && t.due_days) { const [a, b, c] = parts(st); const dt = new Date(a, b - 1, c + t.due_days - 1); end = `${MON[dt.getMonth()]} ${dt.getDate()}`; }
+      return { t, st, txt: st ? `Next round starts ${dshort(st)}${end ? ` · due by ${end}` : ''}` : '' };
+    }).sort((a, b) => String(a.st).localeCompare(String(b.st)));
+    return `<h2 class="pm-sect">Coming up <span class="muted">not due yet this period</span></h2>
+      <div class="pm-list">${rows.map(({ t, txt }) => `<div class="pm-card upcoming"><span class="pm-check pm-wait" aria-hidden="true">⏳</span>
+        <div class="pm-body"><b class="pm-name">${esc(t.name)}</b><span class="pm-meta">${[FREQ_LABEL[t.frequency], t.location ? esc(t.location) : '', txt].filter(Boolean).join(' · ')}</span></div><div></div></div>`).join('')}</div>`;
+  }
+
+  function nowView(current, taskBy, who, today, active = []) {
+    const have = new Set(current.map((r) => r.task_id));
+    const waiting = active.filter((t) => !have.has(t.id));
+    if (!current.length && waiting.length) return comingUp(waiting, today);
     if (!current.length) {
       return `<div class="card pm-empty"><b>Nothing on the schedule yet.</b><p class="muted">Add each recurring job once: what it is, how often, and how long the team has to get it done. It then comes up on its own every week, month, quarter or year.</p>
         <div class="row" style="margin-top:14px"><button class="btn primary" data-pm-new>+ Add your first task</button></div>
@@ -118,7 +149,7 @@ export function schedulePages(ctx) {
       const left = rs.filter((r) => r.status === 'open').length;
       return `<h2 class="pm-sect">${label} <span class="muted">${periodLabel(f, rs[0].period_start, rs[0].period_end)} · ${left ? `${left} to do` : 'all done'}</span></h2>
         <div class="pm-list">${rs.map((r) => runCard(r, taskBy[r.task_id], who, today)).join('')}</div>`;
-    }).join('');
+    }).join('') + comingUp(waiting, today);
   }
 
   function dueText(r, today) {
