@@ -94,7 +94,23 @@
     :root[data-site="media"] .who .alerts { color: #fff; border-color: rgba(255,255,255,.4); }
     .real-link { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px dashed var(--line-strong); border-radius: var(--radius); padding: 14px 16px; margin-top: 18px; font-size: 15px; color: var(--body); }
     .real-link span { flex: 1; }
+    .sch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--c); border-radius: var(--radius); padding: 12px 16px; margin: 0 0 12px; font-size: 15px; color: var(--body); }
+    .sch .n { font: 800 22px/1 var(--serif); color: var(--ink); }
+    .sch .outs { display: flex; flex-wrap: wrap; gap: 6px; }
+    .sch-week { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; flex-basis: 100%; }
+    .sch-week div { background: var(--paper); border-radius: 9px; padding: 6px 8px; font-size: 13px; min-width: 0; }
+    .sch-week div.today { outline: 2px solid var(--c); }
+    .sch-week b { display: block; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .sch-week span { display: block; color: var(--bad); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sch-week i { font-style: normal; color: var(--in); }
+    .hrs { font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--in); background: var(--in-soft); border-radius: 999px; padding: 2px 9px; }
+    .hrs.off { color: var(--muted); background: var(--paper-2); }
+    .pill.away { background: var(--bad-soft); color: var(--bad); }
+    .ops-row.is-out .av { opacity: .45; }
     @media (max-width: 760px) {
+      .sch-week { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+      .sch-week div { padding: 5px; font-size: 12px; }
+      .ops-row .hrs { display: none; }
       .ops-teams { grid-template-columns: minmax(0, 1fr); }
       .ops-row { gap: 10px; padding: 12px 14px; }
       .ops-row .avs { display: none; }
@@ -165,8 +181,37 @@ function isOpen(r){ return CLOSED.indexOf(r.status)<0; }
 function teamReqs(t){ return S.reqs.filter(function(r){return r.team===t;}); }
 function teamShort(t){ return TEAMS[t].short||TEAMS[t].name; }
 
+/* ---------- schedule (Facilities; example hours and time off) ---------- */
+var WK=["mon","tue","wed","thu","fri"], DOWN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+var HOURS={ max:{days:WK,s:"07:00",e:"15:30"}, rick:{days:WK,s:"07:00",e:"15:30"}, kenny:{days:WK,s:"08:00",e:"16:30"},
+  judah:{days:WK,s:"07:30",e:"16:00"}, aaron:{days:WK,s:"06:00",e:"14:30"}, marah:{days:["tue","wed","thu","fri","sat"],s:"09:00",e:"17:30"}, lexi:{days:WK,s:"09:00",e:"17:30"} };
+function hm(t){ var p=t.split(":"), h=+p[0], m=+p[1]; return (h%12||12)+(m?":"+String(m).padStart(2,"0"):"")+" "+(h<12?"AM":"PM"); }
+function dkey(d){ return ["sun","mon","tue","wed","thu","fri","sat"][new Date(d+"T12:00:00").getDay()]; }
+function weekDays(){ var t=today(), dow=new Date(t+"T12:00:00").getDay(), mon=addDays(t, dow===0?1:dow===6?2:1-dow); return [0,1,2,3,4].map(function(i){return addDays(mon,i);}); }
+function timeOff(){ var t=today(), w=weekDays();
+  return [{who:"aaron",kind:"PTO",from:t,to:addDays(t,1)},{who:"kenny",kind:"Other",from:t,to:t,part:"Out after 12 PM"},{who:"marah",kind:"Vacation",from:w[2],to:addDays(w[4],7)}]; }
+function offOn(id,d){ return timeOff().find(function(o){ return o.who===id && o.from<=d && o.to>=d; }); }
+// Today's status for someone with a schedule: {on:true,hours} | {on:false,why}
+function sched(id,d){ d=d||today(); var h=HOURS[id]; if(!h) return null;
+  var o=offOn(id,d), works=h.days.indexOf(dkey(d))>=0;
+  if(o && !o.part) return {on:false, why:o.kind+(o.to>d?" through "+dshort(o.to):"")};
+  if(!works) return {on:false, why:"Not scheduled"};
+  return {on:true, hours:hm(h.s)+" – "+hm(h.e), note:o?o.part:""}; }
+function schedStrip(t){
+  var ids=Object.keys(PEOPLE).filter(function(id){return PEOPLE[id].team===t && HOURS[id];}); if(!ids.length) return "";
+  var td=today(), out=ids.filter(function(id){return !sched(id).on;}), part=ids.filter(function(id){var x=sched(id); return x.on && x.note;});
+  var week=weekDays().map(function(d){ var o=ids.filter(function(id){ return !sched(id,d).on; });
+    return '<div class="'+(d===td?'today':'')+'"><b>'+DOWN[new Date(d+"T12:00:00").getDay()]+' '+(+d.split("-")[2])+'</b>'+(o.length?o.map(function(id){return '<span title="'+esc(PEOPLE[id].name+" · "+sched(id,d).why)+'">'+esc(PEOPLE[id].name)+'</span>';}).join(""):'<i>All in</i>')+'</div>'; }).join("");
+  return '<div class="sch" style="--c:'+TEAMS[t].c+'"><span><span class="n">'+(ids.length-out.length)+'</span> of '+ids.length+' on site today</span>'
+    +'<span class="outs">'+out.map(function(id){return '<span class="pill away">'+esc(PEOPLE[id].name)+' · '+esc(sched(id).why)+'</span>';}).join("")
+    +part.map(function(id){return '<span class="pill chk">'+esc(PEOPLE[id].name)+' · '+esc(sched(id).note)+'</span>';}).join("")+'</span>'
+    +'<div class="sch-week">'+week+'</div></div>';
+}
+
 /* ---------- where people are ---------- */
 function nowFor(id){
+  var sc=sched(id);
+  if(sc && !sc.on) return {pill:"away", tag:"Out", text:sc.why==="Not scheduled"?"Not scheduled today":"Out today · "+esc(sc.why), out:true};
   var r=S.reqs.find(function(r){ return r.status==="In Progress" && r.startedAt && r.who.indexOf(id)>=0; });
   if(r) return {pill:"req", tag:"Request", text:"<b>"+esc(r.subject)+"</b>"+(r.location?" · "+esc(r.location):"")+" · "+since(r.startedAt)};
   var c=S.check.find(function(c){ return c.timerSince && c.who===id; });
@@ -181,9 +226,11 @@ function nowFor(id){
 }
 function peopleList(team, withAsk){
   var ids=Object.keys(PEOPLE).filter(function(id){ return !team || PEOPLE[id].team===team; });
-  ids.sort(function(a,b){ return (nowFor(a).tag==="Free")-(nowFor(b).tag==="Free"); });
+  var rank=function(id){ var n=nowFor(id); return n.out?2:n.tag==="Free"?1:0; };
+  ids.sort(function(a,b){ return rank(a)-rank(b); });
   return '<div class="ops-list">'+ids.map(function(id){ var n=nowFor(id), p=PEOPLE[id];
-    return '<button class="ops-row" data-person="'+id+'">'+av(id)+'<span class="ops-grow"><b>'+esc(p.name)+' <span class="team-name">· '+teamShort(p.team)+'</span></b><small>'+n.text+'</small></span><span class="pill '+n.pill+'">'+n.tag+'</span>'+(withAsk?'<span class="btn small">Ask</span>':'')+'</button>'; }).join("")+'</div>';
+    var sc=sched(id), hrs=sc&&sc.on?'<span class="hrs" title="Today\'s hours">'+sc.hours+(sc.note?' · '+esc(sc.note):'')+'</span>':'';
+    return '<button class="ops-row'+(n.out?' is-out':'')+'" data-person="'+id+'">'+av(id)+'<span class="ops-grow"><b>'+esc(p.name)+' <span class="team-name">· '+teamShort(p.team)+'</span></b><small>'+n.text+'</small></span>'+hrs+'<span class="pill '+n.pill+'">'+n.tag+'</span>'+(withAsk?'<span class="btn small">Ask</span>':'')+'</button>'; }).join("")+'</div>';
 }
 
 /* ---------- top bar ---------- */
@@ -214,7 +261,7 @@ function renderOps(){
   setTop(null, opsNav("ops"));
   var open=S.reqs.filter(isOpen), td=today();
   var late=open.filter(function(r){return r.due && r.due<td;}).length;
-  var busy=Object.keys(PEOPLE).filter(function(id){return nowFor(id).tag!=="Free";}).length;
+  var busy=Object.keys(PEOPLE).filter(function(id){var n=nowFor(id); return n.tag!=="Free" && !n.out;}).length;
   var done=S.check.filter(function(c){return c.status==="Done";}).length;
   var h='';
   if(!S.tipOff) h+='<div class="ops-tip"><span><b>Preview with example data.</b> Tap a person to ask them for something, open a team\'s live site, or preview it here. The request form is in the menu. Facilities requests and today\'s checklist are real items from Monday.</span><button data-act="tip" aria-label="Hide tip">×</button></div>';
@@ -236,7 +283,7 @@ function teamCard(t){
 function renderPeople(){
   setTop(null, opsNav("people"));
   var h='<header class="page-head"><div class="eyebrow">Operations</div><h1>People</h1><p class="lede">Everyone on the teams you\'re over, and what they\'re on right now.</p></header>';
-  ["facilities","events","media"].forEach(function(t){ h+='<h2>'+TEAMS[t].name+'</h2>'+peopleList(t, true); });
+  ["facilities","events","media"].forEach(function(t){ h+='<h2>'+TEAMS[t].name+'</h2>'+schedStrip(t)+peopleList(t, true); });
   app.innerHTML=h+foot();
 }
 var reqFilter="all";
