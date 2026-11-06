@@ -1027,3 +1027,4 @@ button.to-pill:hover, button.to-chip:hover { filter: brightness(.95); box-shadow
 
 /* Pickers and dropdown menus sit above pop-up windows. */
 .dd-menu { z-index: 1000; }
+.pm-preview { margin: 10px 0 0; font-weight: 600; color: var(--dept-maint); }

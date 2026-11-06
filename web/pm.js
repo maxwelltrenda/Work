@@ -13,20 +13,52 @@ const parts = (d) => String(d).slice(0, 10).split('-').map(Number);
 const dshort = (d) => { const [, m, dd] = parts(d); return `${MON[m - 1]} ${dd}`; };
 const dayDiff = (a, b) => Math.round((new Date(`${a}T12:00:00`) - new Date(`${b}T12:00:00`)) / 864e5);
 
-function periodLabel(freq, start) {
-  const [y, m] = parts(start);
+function periodLabel(freq, start, end) {
+  const [y, m, d] = parts(start);
+  // A period that doesn't start on a plain calendar boundary shows its dates.
+  if (end && freq !== 'weekly' && (d !== 1 || (freq === 'quarterly' && (m - 1) % 3) || (freq === 'yearly' && m !== 1))) return `${dshort(start)} – ${dshort(end)}`;
   if (freq === 'weekly') return `Week of ${dshort(start)}`;
   if (freq === 'monthly') return `${MONTH[m - 1]} ${y}`;
   if (freq === 'quarterly') return `Q${Math.floor((m - 1) / 3) + 1} ${y} · ${MON[m - 1]}–${MON[m + 1]}`;
   return String(y);
 }
-const windowText = (t) => (t.due_days ? `First ${t.due_days} day${t.due_days === 1 ? '' : 's'} of each ${FREQ_NOUN[t.frequency]}` : `Any time in the ${FREQ_NOUN[t.frequency]}`);
+// When a task is due, in plain words, from how often, its start month / day and window.
+// e.g. quarterly, starts Dec 1, 14 days -> "Due Dec 1–14, Mar 1–14, Jun 1–14, Sep 1–14"
+const STEP = { monthly: 1, quarterly: 3, yearly: 12 };
+function windowText(t) {
+  const n = t.due_days;
+  if (t.frequency === 'weekly') return n ? `First ${n} day${n === 1 ? '' : 's'} of each week (from Sunday)` : 'Any time in the week';
+  const sd = t.start_day || 1;
+  const sm = t.start_month || 1;
+  const starts = t.frequency === 'monthly' ? [null] : t.frequency === 'quarterly' ? [0, 3, 6, 9].map((k) => ((sm - 1 + k) % 12) + 1) : [sm];
+  const range = (m) => {
+    const y = 2027;   // any non-leap year: only months and days are shown
+    const a = new Date(y, (m || 1) - 1, sd);
+    const len = n || null;
+    const b = len ? new Date(y, (m || 1) - 1, sd + len - 1) : new Date(y, (m || 1) - 1 + STEP[t.frequency], sd - 1);
+    const fmt = (d) => (m ? `${MON[d.getMonth()]} ${d.getDate()}` : `${d.getDate()}${['th', 'st', 'nd', 'rd'][(d.getDate() % 10 > 3 || Math.floor(d.getDate() / 10) === 1) ? 0 : d.getDate() % 10]}`);
+    return a.getMonth() === b.getMonth() && m ? `${fmt(a)}–${b.getDate()}` : `${fmt(a)}–${fmt(b)}`;
+  };
+  if (t.frequency === 'monthly') return n ? `Due the ${range(null)} of each month` : sd === 1 ? 'Any time in the month' : `Any time, each month runs from the ${range(null).split('–')[0]}`;
+  if (!n) return `Any time · rounds start ${starts.map((m) => `${MON[m - 1]} ${sd}`).join(', ')}`;
+  return `Due ${starts.map(range).join(', ')}${t.frequency === 'yearly' ? ' each year' : ''}`;
+}
 
 export function schedulePages(ctx) {
   const { sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, loadLocations, pulled } = ctx;
   const app = document.getElementById('app');
 
+  // Start months need the 0035 database update; until it's in, the form keeps the old fields.
+  let anchorsReady = null;
+  const checkAnchors = async () => {
+    if (anchorsReady === null) {
+      anchorsReady = await rpc('pm_period_start', { p_freq: 'monthly', p_day: '2026-01-01', p_month: null, p_dom: 1 }).then(() => true, () => false);
+    }
+    return anchorsReady;
+  };
+
   async function renderSchedule(view = 'now') {
+    await checkAnchors();
     const today = await rpc('pm_refresh');
     const [tasks, runs, members, locations, pw] = await Promise.all([
       q(sb.from('pm_tasks').select('*').order('sort').order('id')),
@@ -68,7 +100,7 @@ export function schedulePages(ctx) {
         .sort((a, b) => (b.status === 'open') - (a.status === 'open') || a.due_on.localeCompare(b.due_on) || taskBy[a.task_id].sort - taskBy[b.task_id].sort);
       if (!rs.length) return '';
       const left = rs.filter((r) => r.status === 'open').length;
-      return `<h2 class="pm-sect">${label} <span class="muted">${periodLabel(f, rs[0].period_start)} · ${left ? `${left} to do` : 'all done'}</span></h2>
+      return `<h2 class="pm-sect">${label} <span class="muted">${periodLabel(f, rs[0].period_start, rs[0].period_end)} · ${left ? `${left} to do` : 'all done'}</span></h2>
         <div class="pm-list">${rs.map((r) => runCard(r, taskBy[r.task_id], who, today)).join('')}</div>`;
     }).join('');
   }
@@ -105,9 +137,12 @@ export function schedulePages(ctx) {
     return `<div class="row">
         <label style="flex:2;min-width:220px">Task <input name="name" required value="${esc(t.name || '')}" placeholder="Change AC filters"></label>
         <label style="width:150px">How often <select name="frequency">${FREQS.map(([k, l]) => `<option value="${k}" ${t.frequency === k || (!t.frequency && k === 'monthly') ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-        <label style="width:210px" title="Leave empty if it can be done any time in the period">Due within the first <input name="due_days" type="number" min="1" max="366" value="${t.due_days ?? ''}" placeholder="any time"> <span class="muted pm-unit">days</span></label>
+        ${anchorsReady ? '' : '<!--'}<label style="width:150px" data-pm-for="quarterly yearly" title="The month the first round starts">Starts in <select name="start_month">${MONTH.map((mn, i) => `<option value="${i + 1}" ${(t.start_month || 1) === i + 1 ? 'selected' : ''}>${mn}</option>`).join('')}</select></label>
+        <label style="width:110px" data-pm-for="monthly quarterly yearly" title="The day of the month each round starts (1–28)">On day <input name="start_day" type="number" min="1" max="28" value="${t.start_day || 1}"></label>${anchorsReady ? '' : '-->'}
+        <label style="width:160px" title="How many days from the start to get it done. Leave empty for any time in the period">Days to do it <input name="due_days" type="number" min="1" max="366" value="${t.due_days ?? ''}" placeholder="any time"></label>
         <label style="flex:1;min-width:170px">Location <select name="location"><option value="">— None —</option>${locNames.map((n) => `<option ${n === t.location ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
       </div>
+      <p class="pm-preview" data-pm-preview></p>
       <label style="margin-top:10px">Steps <span class="muted">(optional, one per line)</span><textarea name="steps" rows="3" placeholder="North building units&#10;South building units">${esc((t.steps || []).join('\n'))}</textarea></label>
       <label style="margin-top:10px">Notes <span class="muted">(optional: sizes, part numbers, who to call)</span><input name="notes" value="${esc(t.notes || '')}" placeholder="20x25x1 MERV 8"></label>`;
   }
@@ -122,7 +157,7 @@ export function schedulePages(ctx) {
           <button type="button" class="btn ${t.active ? 'bad' : ''}" data-active="${t.id}" data-to="${t.active ? '0' : '1'}">${t.active ? 'Take off the schedule' : 'Put back on the schedule'}</button></div></form></details>`).join('');
     return `<details class="card" ${tasks.length ? '' : 'open'}><summary><b>+ Add a recurring task</b></summary>
         <form id="pm-add" style="margin-top:12px">${taskForm({}, locations)}
-          <p class="muted pm-hint">Example: <b>Change AC filters</b> · Quarterly · first 14 days → due Jan 1–14, Apr 1–14, Jul 1–14 and Oct 1–14.</p>
+          <p class="muted pm-hint">${anchorsReady ? 'Example: <b>Change AC filters</b> · Quarterly · starts in December on day 1 · 14 days to do it → due Dec 1–14, Mar 1–14, Jun 1–14 and Sep 1–14.' : 'Example: <b>Change AC filters</b> · Quarterly · 14 days to do it → due Jan 1–14, Apr 1–14, Jul 1–14 and Oct 1–14.'}</p>
           <button class="btn primary">Add task</button></form></details>
       ${FREQS.map(([f, label]) => { const list = active.filter((t) => t.frequency === f); return list.length ? `<h2 class="pm-sect">${label} <span class="muted">${list.length}</span></h2>${rows(list)}` : ''; }).join('')}
       ${archived.length ? `<h2 class="pm-sect">Off the schedule <span class="muted">${archived.length}</span></h2>${rows(archived)}` : ''}`;
@@ -135,7 +170,7 @@ export function schedulePages(ctx) {
     const label = { done: 'Done', skipped: 'Skipped', missed: 'Missed', open: 'Open' };
     return `<div class="table-wrap"><table><tr><th>Period</th><th>Task</th><th>Status</th><th>Who</th><th>When</th><th>Note</th></tr>
       ${past.map((r) => { const t = taskBy[r.task_id]; const late = r.status === 'done' && r.done_at && r.done_at.slice(0, 10) > r.due_on;
-        return `<tr><td>${periodLabel(t.frequency, r.period_start)}</td><td>${esc(t.name)}</td>
+        return `<tr><td>${periodLabel(t.frequency, r.period_start, r.period_end)}</td><td>${esc(t.name)}</td>
         <td><span class="pill ${r.status === 'done' ? 'available' : r.status === 'missed' ? 'lost' : 'closed'}">${label[r.status]}</span>${late ? ' <span class="muted">late</span>' : ''}</td>
         <td>${esc(who[r.done_by] || '')}</td><td>${r.done_at ? new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</td><td>${esc(r.note || '')}</td></tr>`; }).join('')}</table></div>`;
   }
@@ -146,10 +181,29 @@ export function schedulePages(ctx) {
     p_due_days: f.get('due_days') ? Math.max(1, parseInt(f.get('due_days'), 10)) : null,
     p_location: f.get('location') || null, p_notes: f.get('notes') || null,
     p_steps: String(f.get('steps') || '').split('\n').map((s) => s.trim()).filter(Boolean),
+    ...(anchorsReady ? {
+      p_start_month: ['quarterly', 'yearly'].includes(f.get('frequency')) ? Number(f.get('start_month')) || 1 : null,
+      p_start_day: f.get('frequency') !== 'weekly' ? Math.min(28, Math.max(1, parseInt(f.get('start_day'), 10) || 1)) : null,
+    } : {}),
   });
+
+  // Show only the fields that apply to how often it repeats, and preview the due dates.
+  function bindTaskForm(form) {
+    const sync = () => {
+      const f = new FormData(form);
+      const freq = f.get('frequency');
+      form.querySelectorAll('[data-pm-for]').forEach((el) => { el.hidden = !el.dataset.pmFor.split(' ').includes(freq); });
+      const v = fields(f);
+      form.querySelector('[data-pm-preview]').textContent = windowText({ frequency: freq, due_days: v.p_due_days, start_month: v.p_start_month, start_day: v.p_start_day });
+    };
+    form.addEventListener('input', sync);
+    form.addEventListener('change', sync);
+    sync();
+  }
 
   function bind(view, tasks, current) {
     const reload = () => renderSchedule(view);
+    app.querySelectorAll('#pm-add, form[data-edit]').forEach(bindTaskForm);
     pulled.bind(app, reload);
     app.querySelectorAll('[data-mark]').forEach((b) => b.addEventListener('click', async () => {
       const to = b.dataset.to;
