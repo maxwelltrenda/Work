@@ -1047,3 +1047,20 @@ button.to-pill:hover, button.to-chip:hover { filter: brightness(.95); box-shadow
 .wk-mode button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
 .wk-hours.k-work { white-space: normal; line-height: 1.3; }
 .wk-table td { min-width: 96px; }
+
+/* Maintenance: Add task button beside the tabs, and the add-task pop-up. */
+.pm-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pm-bar .seg { margin-bottom: 0; }
+.pm-bar + #pm-view { margin-top: 18px; }
+.pm-new { display: flex; flex-direction: column; }
+.pm-new .modal-input { font-size: 18px; }
+.pm-new .pm-common { margin-top: 8px; }
+.pm-new .pm-common .chip-btn { font-weight: 500; font-size: 12px; padding: 4px 10px; }
+.chip-btn.big { padding: 9px 16px; font-size: 14px; }
+.pm-day { flex-direction: row !important; align-items: center; gap: 6px; font-size: 14px; margin-top: 10px; }
+.pm-day input { width: 70px; }
+.wk-chips .pm-day { margin-top: 0; margin-left: 4px; }
+.pm-more { margin-top: 12px; }
+.pm-more summary { cursor: pointer; font-weight: 600; font-size: 14px; color: var(--ink); }
+.pm-new .modal-actions { flex-wrap: wrap; }
+@media (max-width: 560px) { .pm-bar .btn { width: 100%; } .pm-new .modal-actions .btn { flex: 1 1 auto; } }

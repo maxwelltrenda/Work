@@ -8,6 +8,17 @@ const FREQS = [['weekly', 'Weekly', 'week'], ['monthly', 'Monthly', 'month'], ['
 const FREQ_LABEL = Object.fromEntries(FREQS.map(([k, l]) => [k, l]));
 const FREQ_NOUN = Object.fromEntries(FREQS.map(([k, , n]) => [k, n]));
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+// One-tap starters for the add-task pop-up.
+const COMMON = [
+  { name: 'Change AC filters', frequency: 'quarterly', start_month: 12, due_days: 14 },
+  { name: 'Test emergency and exit lights', frequency: 'monthly', due_days: 7 },
+  { name: 'Inspect fire extinguishers', frequency: 'monthly', due_days: 7 },
+  { name: 'Clean gutters', frequency: 'yearly', start_month: 11, due_days: 30 },
+  { name: 'Check roof and drains', frequency: 'quarterly', start_month: 1, due_days: 14 },
+  { name: 'Flush water heaters', frequency: 'yearly', start_month: 3, due_days: 30 },
+  { name: 'Walk the parking lot lights', frequency: 'monthly', due_days: 7 },
+  { name: 'Clean ice machine', frequency: 'quarterly', start_month: 2, due_days: 14 },
+];
 const MONTH = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const parts = (d) => String(d).slice(0, 10).split('-').map(Number);
 const dshort = (d) => { const [, m, dd] = parts(d); return `${MON[m - 1]} ${dd}`; };
@@ -84,7 +95,8 @@ export function schedulePages(ctx) {
         <div class="stat"><b>${done.length} of ${current.length}</b><span>done this period</span></div>
       </div>
       ${pw ? pulled.block('maintenance', pw) : ''}
-      <div class="seg">${tabs.map(([k, t]) => `<a href="#/schedule${k === 'now' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
+      <div class="pm-bar"><div class="seg">${tabs.map(([k, t]) => `<a href="#/schedule${k === 'now' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
+        <button class="btn primary" data-pm-new>+ Add task</button></div>
       <div id="pm-view">${view === 'tasks' ? taskList(tasks, locations) : view === 'history' ? history(runs, taskBy, who, today) : nowView(current, taskBy, who, today)}</div>`;
 
     bind(view, tasks, current);
@@ -93,7 +105,10 @@ export function schedulePages(ctx) {
   // ---- This period -------------------------------------------------------
   function nowView(current, taskBy, who, today) {
     if (!current.length) {
-      return `<div class="card pm-empty"><b>Nothing on the schedule yet.</b><p class="muted">Add the recurring jobs under <a href="#/schedule/tasks">All tasks</a>: what it is, how often, and how many days into the period it should be done by.</p></div>`;
+      return `<div class="card pm-empty"><b>Nothing on the schedule yet.</b><p class="muted">Add each recurring job once: what it is, how often, and how long the team has to get it done. It then comes up on its own every week, month, quarter or year.</p>
+        <div class="row" style="margin-top:14px"><button class="btn primary" data-pm-new>+ Add your first task</button></div>
+        <div class="wk-sect">Or start from a common one</div>
+        <div class="wk-chips">${COMMON.map((c, i) => `<button type="button" class="chip-btn" data-pm-new data-common="${i}">${esc(c.name)}</button>`).join('')}</div></div>`;
     }
     return FREQS.map(([f, label]) => {
       const rs = current.filter((r) => taskBy[r.task_id].frequency === f)
@@ -155,12 +170,99 @@ export function schedulePages(ctx) {
         <form data-edit="${t.id}" style="margin-top:12px">${taskForm(t, locations)}
           <div class="row" style="margin-top:12px"><button class="btn primary">Save</button>
           <button type="button" class="btn ${t.active ? 'bad' : ''}" data-active="${t.id}" data-to="${t.active ? '0' : '1'}">${t.active ? 'Take off the schedule' : 'Put back on the schedule'}</button></div></form></details>`).join('');
-    return `<details class="card" ${tasks.length ? '' : 'open'}><summary><b>+ Add a recurring task</b></summary>
-        <form id="pm-add" style="margin-top:12px">${taskForm({}, locations)}
-          <p class="muted pm-hint">${anchorsReady ? 'Example: <b>Change AC filters</b> · Quarterly · starts in December on day 1 · 14 days to do it → due Dec 1–14, Mar 1–14, Jun 1–14 and Sep 1–14.' : 'Example: <b>Change AC filters</b> · Quarterly · 14 days to do it → due Jan 1–14, Apr 1–14, Jul 1–14 and Oct 1–14.'}</p>
-          <button class="btn primary">Add task</button></form></details>
+    return `${tasks.length ? '' : '<div class="card pm-empty"><b>No tasks yet.</b><p class="muted">Use <b>+ Add task</b> above to add your first recurring job.</p></div>'}
       ${FREQS.map(([f, label]) => { const list = active.filter((t) => t.frequency === f); return list.length ? `<h2 class="pm-sect">${label} <span class="muted">${list.length}</span></h2>${rows(list)}` : ''; }).join('')}
       ${archived.length ? `<h2 class="pm-sect">Off the schedule <span class="muted">${archived.length}</span></h2>${rows(archived)}` : ''}`;
+  }
+
+  // ---- Add a task (pop-up) ------------------------------------------------
+  // Tap through it: name, how often, when it starts, how long they have.
+  function addTaskModal(locations, preset = {}) {
+    const locNames = locations.map((l) => l.name);
+    let freq = preset.frequency || 'monthly';
+    let month = preset.start_month || 1;
+    let days = preset.due_days ?? '';
+    const CYCLES = [[1, 'Jan · Apr · Jul · Oct'], [2, 'Feb · May · Aug · Nov'], [3, 'Mar · Jun · Sep · Dec']];
+    const DAYS = [['', 'Any time'], [3, '3 days'], [7, '7 days'], [14, '14 days'], [30, '30 days']];
+    return new Promise((resolve) => {
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML = `<form class="modal sheet pm-new" role="dialog" aria-modal="true" aria-labelledby="pm-new-title">
+        <h3 id="pm-new-title">New maintenance task</h3>
+        <label>What needs doing? <input name="name" required autocomplete="off" placeholder="e.g. Change AC filters" class="modal-input"></label>
+        <div class="wk-chips pm-common">${COMMON.map((c, i) => `<button type="button" class="chip-btn" data-common="${i}">${esc(c.name)}</button>`).join('')}</div>
+        <div class="wk-sect">How often</div>
+        <div class="wk-chips">${FREQS.map(([k, l]) => `<button type="button" class="chip-btn big" data-freq="${k}">${l}</button>`).join('')}</div>
+        ${anchorsReady ? `<div data-when>
+          <div class="wk-sect" data-for="quarterly">Which months</div>
+          <div class="wk-chips" data-for="quarterly">${CYCLES.map(([m, l]) => `<button type="button" class="chip-btn" data-month="${m}">${l}</button>`).join('')}</div>
+          <div class="wk-sect" data-for="yearly">Which month</div>
+          <div class="wk-chips" data-for="yearly">${MON.map((mn, i) => `<button type="button" class="chip-btn" data-month="${i + 1}">${mn}</button>`).join('')}</div>
+          <label class="pm-day" data-for="monthly quarterly yearly">Starts on day <input name="start_day" type="number" min="1" max="28" value="${preset.start_day || 1}"> <span class="muted">of the month</span></label>
+        </div>` : ''}
+        <input type="hidden" name="frequency"><input type="hidden" name="start_month">
+        <div class="wk-sect">How long they have</div>
+        <div class="wk-chips">${DAYS.map(([v, l]) => `<button type="button" class="chip-btn" data-days="${v}">${l}</button>`).join('')}
+          <label class="pm-day">or <input name="due_days" type="number" min="1" max="366" placeholder="#"> days</label></div>
+        <p class="pm-preview" data-pm-preview></p>
+        <label style="margin-top:12px"><span>Where <span class="muted">(optional)</span></span><select name="location"><option value="">— None —</option>${locNames.map((n) => `<option>${esc(n)}</option>`).join('')}</select></label>
+        <details class="pm-more"><summary>Steps and notes <span class="muted">(optional)</span></summary>
+          <label style="margin-top:10px"><span>Steps <span class="muted">(one per line)</span></span><textarea name="steps" rows="3" placeholder="North building units&#10;South building units"></textarea></label>
+          <label style="margin-top:10px"><span>Notes <span class="muted">(sizes, part numbers, who to call)</span></span><input name="notes" placeholder="20x25x1 MERV 8"></label>
+        </details>
+        <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button type="button" class="btn" data-again>Save &amp; add another</button><button class="btn primary">Add task</button></div>
+      </form>`;
+      const form = back.querySelector('form');
+      const $ = (sel) => form.querySelector(sel);
+      let added = 0;
+      const sync = () => {
+        $('[name=frequency]').value = freq;
+        $('[name=start_month]').value = month;
+        if (String($('[name=due_days]').value) !== String(days ?? '')) $('[name=due_days]').value = days ?? '';
+        form.querySelectorAll('[data-freq]').forEach((b) => b.classList.toggle('on', b.dataset.freq === freq));
+        form.querySelectorAll('[data-for]').forEach((el) => { el.hidden = !el.dataset.for.split(' ').includes(freq); });
+        form.querySelectorAll('[data-month]').forEach((b) => {
+          const m = Number(b.dataset.month);
+          b.classList.toggle('on', freq === 'quarterly' ? (m - 1) % 3 === (month - 1) % 3 : m === month);
+        });
+        form.querySelectorAll('[data-days]').forEach((b) => b.classList.toggle('on', String(b.dataset.days) === String(days ?? '')));
+        const v = fields(new FormData(form));
+        $('[data-pm-preview]').textContent = windowText({ frequency: freq, due_days: v.p_due_days, start_month: v.p_start_month, start_day: v.p_start_day });
+      };
+      const fill = (c) => {
+        $('[name=name]').value = c.name;
+        freq = c.frequency; month = c.start_month || month; days = c.due_days ?? '';
+        if (c.notes) $('[name=notes]').value = c.notes;
+        sync();
+      };
+      form.querySelectorAll('[data-common]').forEach((b) => b.addEventListener('click', () => fill(COMMON[b.dataset.common])));
+      form.querySelectorAll('[data-freq]').forEach((b) => b.addEventListener('click', () => { freq = b.dataset.freq; sync(); }));
+      form.querySelectorAll('[data-month]').forEach((b) => b.addEventListener('click', () => { month = Number(b.dataset.month); sync(); }));
+      form.querySelectorAll('[data-days]').forEach((b) => b.addEventListener('click', () => { days = b.dataset.days; sync(); }));
+      $('[name=due_days]').addEventListener('input', (e) => { days = e.target.value; sync(); });
+      form.addEventListener('input', sync);
+      if (preset.name) fill(preset);
+      sync();
+      const done = () => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(added); };
+      const onKey = (e) => { if (e.key === 'Escape' && !document.querySelector('.dd-menu, .dp-pop')) { e.preventDefault(); done(); } };
+      document.addEventListener('keydown', onKey, true);
+      back.addEventListener('mousedown', (e) => { if (e.target === back) done(); });
+      $('[data-cancel]').addEventListener('click', done);
+      const save = async (again) => {
+        if (!form.reportValidity()) return;
+        try {
+          await rpc('pm_save_task', { p_id: null, ...fields(new FormData(form)) });
+          added += 1;
+          toast(`Added “${$('[name=name]').value.trim()}” to the schedule`);
+          if (!again) return done();
+          form.reset(); days = ''; sync(); $('[name=name]').focus();
+        } catch (err) { toast(errMsg(err), true); }
+      };
+      $('[data-again]').addEventListener('click', () => save(true));
+      form.addEventListener('submit', (e) => { e.preventDefault(); save(false); });
+      document.body.appendChild(back);
+      $('[name=name]').focus();
+    });
   }
 
   // ---- History ------------------------------------------------------------
@@ -203,6 +305,10 @@ export function schedulePages(ctx) {
 
   function bind(view, tasks, current) {
     const reload = () => renderSchedule(view);
+    app.querySelectorAll('[data-pm-new]').forEach((b) => b.addEventListener('click', async () => {
+      const added = await addTaskModal(await loadLocations(), b.dataset.common ? COMMON[b.dataset.common] : {});
+      if (added) reload();
+    }));
     app.querySelectorAll('#pm-add, form[data-edit]').forEach(bindTaskForm);
     pulled.bind(app, reload);
     app.querySelectorAll('[data-mark]').forEach((b) => b.addEventListener('click', async () => {
