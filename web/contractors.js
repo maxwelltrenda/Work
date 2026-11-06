@@ -3,12 +3,19 @@
 // Maintenance tasks can name one (pm.js), and its contact shows on the task.
 
 export const telHref = (p) => `tel:${String(p || '').replace(/[^\d+]/g, '')}`;
+// 8175588181 / 817.558.8181 -> (817) 558-8181; anything else stays as typed.
+export const fmtPhone = (p) => {
+  const d = String(p || '').replace(/\D/g, '').replace(/^1(?=\d{10}$)/, '');
+  return d.length === 10 ? `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}` : String(p || '');
+};
+const webHref = (w) => (/^https?:/i.test(w) ? w : `https://${w}`);
+const webText = (w) => String(w).replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '');
 
 // Contact line used on the list and on maintenance tasks.
 export function contractorContact(c, esc) {
   if (!c) return '';
   return [c.contact ? esc(c.contact) : '',
-    c.phone ? `<a href="${telHref(c.phone)}">${esc(c.phone)}</a>` : '',
+    c.phone ? `<a href="${telHref(c.phone)}">${esc(fmtPhone(c.phone))}</a>` : '',
     c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ''].filter(Boolean).join(' · ');
 }
 
@@ -27,14 +34,22 @@ export function contractorPages(ctx) {
     const old = list.filter((c) => !c.active);
     const jobs = (c) => tasks.filter((t) => t.contractor_id === c.id && t.active).map((t) => t.name);
     const match = (c) => !search || [c.name, c.trade, c.contact, c.notes].join(' ').toLowerCase().includes(search.toLowerCase());
-    const card = (c) => `<div class="ct-card${c.active ? '' : ' off'}">
-        <div class="ct-main"><b>${esc(c.name)}</b>${c.trade ? `<span class="ct-trade">${esc(c.trade)}</span>` : ''}
-          <span class="ct-contact">${contractorContact(c, esc) || '<span class="muted">No contact info yet</span>'}</span>
-          ${c.website ? `<a class="ct-web" href="${esc(/^https?:/i.test(c.website) ? c.website : `https://${c.website}`)}" target="_blank" rel="noopener">${esc(c.website.replace(/^https?:\/\//i, ''))}</a>` : ''}
-          ${c.notes ? `<span class="ct-notes">${esc(c.notes)}</span>` : ''}
-          ${jobs(c).length ? `<span class="ct-jobs">Maintenance: ${jobs(c).map(esc).join(', ')}</span>` : ''}</div>
-        <div class="ct-actions">${c.phone ? `<a class="btn small" href="${telHref(c.phone)}">Call</a>` : ''}${c.email ? `<a class="btn small" href="mailto:${esc(c.email)}">Email</a>` : ''}
-          ${edit ? `<button class="btn small" data-ct-edit="${c.id}">Edit</button>` : ''}</div></div>`;
+    const row = (label, html) => (html ? `<div class="ct-row"><span class="ct-label">${label}</span><span class="ct-val">${html}</span></div>` : '');
+    const card = (c) => `<article class="ct-card${c.active ? '' : ' off'}">
+        <header class="ct-head">
+          <div class="ct-title"><h3>${esc(c.name)}</h3>${c.trade ? `<span class="ct-trade">${esc(c.trade)}</span>` : ''}</div>
+          <div class="ct-actions">${c.phone ? `<a class="btn small primary" href="${telHref(c.phone)}">Call</a>` : ''}${c.email ? `<a class="btn small" href="mailto:${esc(c.email)}">Email</a>` : ''}${edit ? `<button class="btn small" data-ct-edit="${c.id}">Edit</button>` : ''}</div>
+        </header>
+        <div class="ct-rows">
+          ${row('Phone', c.phone ? `<a href="${telHref(c.phone)}">${esc(fmtPhone(c.phone))}</a>` : '')}
+          ${row('Contact', c.contact ? esc(c.contact) : '')}
+          ${row('Email', c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : '')}
+          ${row('Website', c.website ? `<a href="${esc(webHref(c.website))}" target="_blank" rel="noopener">${esc(webText(c.website))}</a>` : '')}
+          ${!c.phone && !c.contact && !c.email && !c.website ? '<p class="muted ct-none">No contact info yet.</p>' : ''}
+        </div>
+        ${c.notes ? `<div class="ct-notes"><span class="ct-label">Notes</span>${esc(c.notes)}</div>` : ''}
+        ${jobs(c).length ? `<footer class="ct-jobs"><span class="ct-label">Handles</span>${jobs(c).map((j) => `<span class="ct-job">${esc(j)}</span>`).join('')}</footer>` : ''}
+      </article>`;
     app.innerHTML = `
       ${pageHead('Facilities', 'Contractors', 'Outside companies we hire for jobs our team doesn\'t do, with who to call. Pick one on a maintenance task and the contact shows up there.')}
       <div class="ct-bar"><input type="search" id="ct-search" placeholder="Search by name or trade…" value="${esc(search)}">${edit ? '<button class="btn primary" data-ct-new>+ Add contractor</button>' : ''}</div>
