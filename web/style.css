@@ -1081,3 +1081,12 @@ button.to-pill:hover, button.to-chip:hover { filter: brightness(.95); box-shadow
 .pm-task-row .muted { grid-column: 1; font-size: 14px; }
 .pm-task-row .pm-edit { grid-column: 2; grid-row: 1 / span 2; font-weight: 600; font-size: 14px; color: var(--accent); border: 1px solid var(--line-strong); border-radius: 9px; padding: 6px 14px; }
 .pm-task-row.off { opacity: .65; }
+/* Maintenance: get-ready steps in the task pop-up. */
+.pm-opt { font: 400 12px var(--sans); text-transform: none; letter-spacing: 0; }
+.pm-preps { display: grid; gap: 8px; }
+.pm-prep { display: grid; grid-template-columns: minmax(0, 1fr) 175px 34px; gap: 6px 8px; align-items: center; }
+.pm-prep-x { width: 34px; height: 34px; border: 0; background: var(--paper-2); border-radius: 9px; font-size: 18px; cursor: pointer; color: var(--body); }
+.pm-prep-when { grid-column: 1 / -1; font-size: 13px; margin-top: -2px; }
+.pm-prep-add { align-self: flex-start; margin-top: 6px; font-size: 14px; }
+.pm-prepline { font-size: 13px; grid-column: 1; }
+@media (max-width: 560px) { .pm-prep { grid-template-columns: minmax(0, 1fr) 34px; } .pm-prep .dd, .pm-prep select { grid-column: 1; } }

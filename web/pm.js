@@ -5,13 +5,13 @@ import { loadPlaces, attachPlaces } from './places.js?v=__V__';
 // opening the page calls pm_refresh(), which opens this period's tasks and
 // marks anything left from an ended period as Missed.
 
-const FREQS = [['weekly', 'Weekly', 'week'], ['monthly', 'Monthly', 'month'], ['quarterly', 'Quarterly', 'quarter'], ['yearly', 'Yearly', 'year']];
+const FREQS = [['weekly', 'Weekly', 'week'], ['biweekly', 'Every 2 weeks', '2 weeks'], ['monthly', 'Monthly', 'month'], ['quarterly', 'Quarterly', 'quarter'], ['yearly', 'Yearly', 'year']];
 const FREQ_LABEL = Object.fromEntries(FREQS.map(([k, l]) => [k, l]));
 const FREQ_NOUN = Object.fromEntries(FREQS.map(([k, , n]) => [k, n]));
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 // One-tap starters for the add-task pop-up.
 const COMMON = [
-  { name: 'Change AC filters', frequency: 'quarterly', start_month: 12, due_days: 14 },
+  { name: 'Change AC filters', frequency: 'quarterly', start_month: 12, due_days: 14, preps: [{ name: 'Order filters', lead: 7 }] },
   { name: 'Test emergency and exit lights', frequency: 'monthly', due_days: 7 },
   { name: 'Inspect fire extinguishers', frequency: 'monthly', due_days: 7 },
   { name: 'Clean gutters', frequency: 'yearly', start_month: 11, due_days: 30 },
@@ -23,13 +23,27 @@ const COMMON = [
 const MONTH = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const parts = (d) => String(d).slice(0, 10).split('-').map(Number);
 const dshort = (d) => { const [, m, dd] = parts(d); return `${MON[m - 1]} ${dd}`; };
+const DAYN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const isoOf = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+const addD = (iso, n) => { const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number); return isoOf(new Date(y, m - 1, d + n)); };
+// Every-2-weeks rounds start on Sundays; start_day 1 = the fortnight lined up
+// with Sun Jan 4 2026, 2 = the other week (same rule as the database).
+const fortnightStart = (iso, parity = 1) => {
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
+  const sun = new Date(y, m - 1, d - new Date(y, m - 1, d).getDay());
+  const weeks = Math.round((sun - new Date(2026, 0, 4)) / 6048e5);
+  const k = (((weeks - (parity - 1)) % 2) + 2) % 2;
+  return isoOf(new Date(sun.getFullYear(), sun.getMonth(), sun.getDate() - 7 * k));
+};
 const dayDiff = (a, b) => Math.round((new Date(`${a}T12:00:00`) - new Date(`${b}T12:00:00`)) / 864e5);
 
 function periodLabel(freq, start, end) {
   const [y, m, d] = parts(start);
+  if (freq === 'biweekly') return `${dshort(start)} – ${dshort(end || addD(start, 13))}`;
   // A period that doesn't start on a plain calendar boundary shows its dates.
   if (end && freq !== 'weekly' && (d !== 1 || (freq === 'quarterly' && (m - 1) % 3) || (freq === 'yearly' && m !== 1))) return `${dshort(start)} – ${dshort(end)}`;
   if (freq === 'weekly') return `Week of ${dshort(start)}`;
+  if (freq === 'biweekly') return `${dshort(start)} – ${dshort(end || addD(start, 13))}`;
   if (freq === 'monthly') return `${MONTH[m - 1]} ${y}`;
   if (freq === 'quarterly') return `Q${Math.floor((m - 1) / 3) + 1} ${y} · ${MON[m - 1]}–${MON[m + 1]}`;
   return String(y);
@@ -39,6 +53,10 @@ function periodLabel(freq, start, end) {
 const STEP = { monthly: 1, quarterly: 3, yearly: 12 };
 function windowText(t) {
   const n = t.due_days;
+  if (t.frequency === 'biweekly') {
+    if (!n || n >= 14) return 'Any time in the 2 weeks';
+    return `Due by ${n <= 7 ? 'the first' : 'the second'} ${DAYN[(n - 1) % 7]} of each 2 weeks`;
+  }
   if (t.frequency === 'weekly') return n ? (n >= 7 ? 'Any time in the week' : `Due by ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][n - 1]} each week`) : 'Any time in the week';
   const sd = t.start_day || 1;
   const sm = t.start_month || 1;
@@ -81,11 +99,12 @@ export function schedulePages(ctx) {
     ]);
     const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
     const taskBy = Object.fromEntries(tasks.map((t) => [t.id, t]));
+    preps = tasks.filter((t) => t.parent_id);
     const current = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today && r.period_end >= today);
     const overdue = current.filter((r) => r.status === 'open' && r.due_on < today);
     const dueSoon = current.filter((r) => r.status === 'open' && r.due_on >= today && dayDiff(r.due_on, today) <= 7);
     const done = current.filter((r) => r.status === 'done');
-    const active = tasks.filter((t) => t.active);
+    const active = tasks.filter((t) => t.active && !t.parent_id);
     const tabs = [['now', 'This period'], ['tasks', `All tasks <b>${active.length}</b>`], ['history', 'History']];
 
     app.innerHTML = `
@@ -110,6 +129,7 @@ export function schedulePages(ctx) {
     const iso = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
     const after = (dt) => iso(dt) > today;
     if (t.frequency === 'weekly') { const dt = new Date(y, m - 1, d); dt.setDate(dt.getDate() + 7 - dt.getDay()); return iso(dt); }
+    if (t.frequency === 'biweekly') return addD(fortnightStart(today, t.start_day || 1), 14);
     const sd = t.start_day || 1;
     for (let k = 0; k <= 24; k += 1) {
       const dt = new Date(y, m - 1 + k, sd);
@@ -119,13 +139,15 @@ export function schedulePages(ctx) {
     }
     return null;
   }
+  let preps = [];   // get-ready steps of every task, set on each render
   function comingUp(waiting, today) {
     if (!waiting.length) return '';
     const rows = waiting.map((t) => {
       const st = nextStart(t, today);
       let end = null;
       if (st && t.due_days) { const [a, b, c] = parts(st); const dt = new Date(a, b - 1, c + t.due_days - 1); end = `${MON[dt.getMonth()]} ${dt.getDate()}`; }
-      return { t, st, txt: st ? `Next round starts ${dshort(st)}${end ? ` · due by ${end}` : ''}` : '' };
+      const pr = preps.filter((c) => c.parent_id === t.id && c.active && c.lead_days).map((c) => `${esc(c.name)} from ${dshort(addD(st, -c.lead_days))}`);
+      return { t, st, txt: st ? `Next round starts ${dshort(st)}${end ? ` · due by ${end}` : ''}${pr.length ? ` · Get ready: ${pr.join(', ')}` : ''}` : '' };
     }).sort((a, b) => String(a.st).localeCompare(String(b.st)));
     return `<h2 class="pm-sect">Coming up <span class="muted">not due yet this period</span></h2>
       <div class="pm-list">${rows.map(({ t, txt }) => `<div class="pm-card upcoming"><span class="pm-check pm-wait" aria-hidden="true">⏳</span>
@@ -135,15 +157,20 @@ export function schedulePages(ctx) {
   function nowView(current, taskBy, who, today, active = []) {
     const have = new Set(current.map((r) => r.task_id));
     const waiting = active.filter((t) => !have.has(t.id));
+    const preps = current.filter((r) => taskBy[r.task_id].parent_id)
+      .sort((a, b) => (b.status === 'open') - (a.status === 'open') || a.due_on.localeCompare(b.due_on));
+    const prepHtml = preps.length ? `<h2 class="pm-sect">Get ready <span class="muted">before upcoming rounds · ${preps.filter((r) => r.status === 'open').length} to do</span></h2>
+      <div class="pm-list">${preps.map((r) => runCard(r, taskBy[r.task_id], who, today, taskBy[taskBy[r.task_id].parent_id])).join('')}</div>` : '';
     if (!current.length && waiting.length) return comingUp(waiting, today);
+    if (current.length && current.length === preps.length) return prepHtml + comingUp(waiting, today);
     if (!current.length) {
       return `<div class="card pm-empty"><b>Nothing on the schedule yet.</b><p class="muted">Add each recurring job once: what it is, how often, and how long the team has to get it done. It then comes up on its own every week, month, quarter or year.</p>
         <div class="row" style="margin-top:14px"><button class="btn primary" data-pm-new>+ Add your first task</button></div>
         <div class="wk-sect">Or start from a common one</div>
         <div class="wk-chips">${COMMON.map((c, i) => `<button type="button" class="chip-btn" data-pm-new data-common="${i}">${esc(c.name)}</button>`).join('')}</div></div>`;
     }
-    return FREQS.map(([f, label]) => {
-      const rs = current.filter((r) => taskBy[r.task_id].frequency === f)
+    return prepHtml + FREQS.map(([f, label]) => {
+      const rs = current.filter((r) => taskBy[r.task_id].frequency === f && !taskBy[r.task_id].parent_id)
         .sort((a, b) => (b.status === 'open') - (a.status === 'open') || a.due_on.localeCompare(b.due_on) || taskBy[a.task_id].sort - taskBy[b.task_id].sort);
       if (!rs.length) return '';
       const left = rs.filter((r) => r.status === 'open').length;
@@ -161,14 +188,14 @@ export function schedulePages(ctx) {
     return `<span class="pm-due${n <= 7 ? ' soon' : ''}">Due by ${dshort(r.due_on)}${n <= 7 ? ` · ${n} day${n === 1 ? '' : 's'}` : ''}</span>`;
   }
 
-  function runCard(r, t, who, today) {
+  function runCard(r, t, who, today, parent = null) {
     const isDone = r.status === 'done';
     const steps = t.steps || [];
     return `<div class="pm-card ${r.status}${r.status === 'open' && r.due_on < today ? ' late' : ''}">
       <button class="pm-check" data-mark="${r.id}" data-to="${isDone ? 'open' : 'done'}" aria-label="${isDone ? 'Mark not done' : 'Mark done'}">${isDone ? '✓' : ''}</button>
       <div class="pm-body">
         <b class="pm-name">${esc(t.name)}</b>
-        <span class="pm-meta">${[t.location ? esc(t.location) : '', dueText(r, today)].filter(Boolean).join(' · ')}</span>
+        <span class="pm-meta">${[parent ? `Before <b>${esc(parent.name)}</b> (starts ${dshort(addD(r.period_end, 1))})` : '', t.location ? esc(t.location) : '', dueText(r, today)].filter(Boolean).join(' · ')}</span>
         ${isDone ? `<span class="pm-meta pm-donewho">Done by ${esc(who[r.done_by] || 'someone')} · ${new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}${r.note ? ` · ${esc(r.note)}` : ''}</span>` : ''}
         ${t.notes ? `<span class="pm-notes">${esc(t.notes)}</span>` : ''}
         ${steps.length ? `<div class="pm-steps">${steps.map((s, i) => `<label><input type="checkbox" data-step="${r.id}" data-i="${i}" ${(r.steps_done || []).includes(i) ? 'checked' : ''}> ${esc(s)}</label>`).join('')}</div>` : ''}
@@ -179,11 +206,14 @@ export function schedulePages(ctx) {
 
   // ---- All tasks (the master list) ---------------------------------------
   function taskList(tasks, locations) {
-    const active = tasks.filter((t) => t.active);
-    const archived = tasks.filter((t) => !t.active);
+    const top = tasks.filter((t) => !t.parent_id);
+    const active = top.filter((t) => t.active);
+    const archived = top.filter((t) => !t.active);
+    const LEAD = (n) => (n % 7 === 0 ? `${n / 7} week${n === 7 ? '' : 's'}` : `${n} day${n === 1 ? '' : 's'}`);
+    const prepLine = (t) => { const ps = tasks.filter((c) => c.parent_id === t.id && c.active); return ps.length ? `<span class="muted pm-prepline">Get ready: ${ps.map((c) => `${esc(c.name)} · ${LEAD(c.lead_days)} before`).join(' · ')}</span>` : ''; };
     const rows = (list) => `<div class="pm-tasks">${list.map((t) => `<button type="button" class="pm-task-row${t.active ? '' : ' off'}" data-pm-edit="${t.id}">
-        <b>${esc(t.name)}</b><span class="muted">${FREQ_LABEL[t.frequency]} · ${windowText(t)}${t.location ? ` · ${esc(t.location)}` : ''}</span><span class="pm-edit">Edit</span></button>`).join('')}</div>`;
-    return `${tasks.length ? '' : '<div class="card pm-empty"><b>No tasks yet.</b><p class="muted">Use <b>+ Add task</b> above to add your first recurring job.</p></div>'}
+        <b>${esc(t.name)}</b><span class="muted">${FREQ_LABEL[t.frequency]} · ${windowText(t)}${t.location ? ` · ${esc(t.location)}` : ''}</span>${prepLine(t)}<span class="pm-edit">Edit</span></button>`).join('')}</div>`;
+    return `${top.length ? '' : '<div class="card pm-empty"><b>No tasks yet.</b><p class="muted">Use <b>+ Add task</b> above to add your first recurring job.</p></div>'}
       ${FREQS.map(([f, label]) => { const list = active.filter((t) => t.frequency === f); return list.length ? `<h2 class="pm-sect">${label} <span class="muted">${list.length}</span></h2>${rows(list)}` : ''; }).join('')}
       ${archived.length ? `<h2 class="pm-sect">Off the schedule <span class="muted">${archived.length}</span></h2>${rows(archived)}` : ''}`;
   }
@@ -193,6 +223,8 @@ export function schedulePages(ctx) {
   // when in that month it should get done. That is stored as a start day and
   // a number of days (start_day / due_days), which the database schedules from.
   const WEEK_WIN = [['any', 'Any day that week', null], ['mon', 'By Monday', 2], ['wed', 'By Wednesday', 4], ['fri', 'By Friday', 6]];
+  const BIWEEK_WIN = [['any', 'Any time in the 2 weeks', null], ['fri1', 'By the first Friday', 6], ['w1', 'In the first week', 7], ['fri2', 'By the second Friday', 13]];
+  const LEADS = [[3, '3 days'], [7, '1 week'], [14, '2 weeks'], [21, '3 weeks'], [30, '30 days']];
   const MONTH_WIN = [['any', 'Any time', 1, null], ['w1', 'First week (1st–7th)', 1, 7], ['w2', 'First 2 weeks (1st–14th)', 1, 14], ['h2', 'Second half (15th–28th)', 15, 14]];
   const ord = (n) => `${n}${['th', 'st', 'nd', 'rd'][(n % 10 > 3 || Math.floor(n / 10) % 10 === 1) ? 0 : n % 10]}`;
   function taskModal(places, t = {}) {
@@ -202,23 +234,28 @@ export function schedulePages(ctx) {
     let win = 'any';
     let from = 1;
     let to = '';
+    let parity = 1;   // every 2 weeks: which Sunday it starts on (1 or 2)
+    let prepList = (t.preps || []).map((c) => ({ id: c.id, name: c.name, lead: c.lead_days || 7 }));
+    const todayIso = isoOf(new Date());
     // Work out which choice an existing task matches.
     const load = (x) => {
       freq = x.frequency || freq; month = x.start_month || month;
       const sd = x.start_day || 1;
       const n = x.due_days ?? null;
       if (freq === 'weekly') { win = (WEEK_WIN.find((w) => w[2] === n) || ['custom'])[0]; from = 1; to = n || ''; return; }
+      if (freq === 'biweekly') { parity = x.start_day || 1; win = (BIWEEK_WIN.find((w) => w[2] === n) || ['custom'])[0]; from = 1; to = n || ''; return; }
       const m = MONTH_WIN.find((w) => w[2] === sd && w[3] === n) || (freq === 'quarterly' && sd === 1 && n === 30 ? ['m1'] : null);
       win = m ? m[0] : 'custom'; from = sd; to = n ? Math.min(31, sd + n - 1) : '';
     };
     load(t);
     const CYCLES = [[1, 'Jan · Apr · Jul · Oct'], [2, 'Feb · May · Aug · Nov'], [3, 'Mar · Jun · Sep · Dec']];
-    const winChoices = () => (freq === 'weekly' ? WEEK_WIN.map(([k, l]) => [k, l])
+    const winChoices = () => (freq === 'weekly' ? WEEK_WIN.map(([k, l]) => [k, l]) : freq === 'biweekly' ? BIWEEK_WIN.map(([k, l]) => [k, l])
       : [...MONTH_WIN.map(([k, l]) => [k, k === 'any' ? (freq === 'monthly' ? 'Any time that month' : freq === 'quarterly' ? 'Any time in the 3 months' : 'Any time that year') : l]),
         ...(freq === 'quarterly' ? [['m1', 'Any time in that first month']] : [])]);
     // start_day / due_days from the choice.
     const params = () => {
       if (freq === 'weekly') { const w = WEEK_WIN.find((x) => x[0] === win); return { sd: null, n: w ? w[2] : (parseInt(to, 10) || null) }; }
+      if (freq === 'biweekly') { const w = BIWEEK_WIN.find((x) => x[0] === win); return { sd: parity, n: w ? w[2] : (Math.min(14, parseInt(to, 10)) || null) }; }
       if (win === 'm1') return { sd: 1, n: 30 };
       const w = MONTH_WIN.find((x) => x[0] === win);
       if (w) return { sd: w[2], n: w[3] };
@@ -239,10 +276,15 @@ export function schedulePages(ctx) {
           <div class="wk-chips">${CYCLES.map(([m, l]) => `<button type="button" class="chip-btn" data-month="${m}">${l}</button>`).join('')}</div></div>
         <div data-for="yearly"><div class="wk-sect">Which month</div>
           <div class="wk-chips">${MON.map((mn, i) => `<button type="button" class="chip-btn" data-month="${i + 1}">${mn}</button>`).join('')}</div></div>` : ''}
+        <div data-for="biweekly"><div class="wk-sect">Which weeks</div>
+          <div class="wk-chips">${[1, 2].map((pp) => { const a = addD(fortnightStart(todayIso, pp), 14); return `<button type="button" class="chip-btn" data-parity="${pp}">Next starts Sun ${dshort(a)}, then ${dshort(addD(a, 14))}…</button>`; }).join('')}</div></div>
         <div class="wk-sect" data-when-title></div>
         <div class="wk-chips" data-wins></div>
         <div class="pm-custom" data-custom-row></div>
         <p class="pm-preview" data-pm-preview></p>
+        <div class="wk-sect">Get ready first <span class="muted pm-opt">(optional: ordering parts, booking a vendor…)</span></div>
+        <div class="pm-preps" data-preps></div>
+        <button type="button" class="dp-link pm-prep-add" data-prep-add>+ Add a get-ready step</button>
         <label style="margin-top:12px"><span>Where <span class="muted">(optional)</span></span><input name="location" value="${esc(t.location || '')}" placeholder="Type a place, e.g. Main entrance, Kids wing"></label>
         <details class="pm-more" ${(t.steps || []).length || t.notes ? 'open' : ''}><summary>Steps and notes <span class="muted">(optional)</span></summary>
           <label style="margin-top:10px"><span>Steps <span class="muted">(one per line)</span></span><textarea name="steps" rows="3" placeholder="North entrance&#10;South entrance">${esc((t.steps || []).join('\n'))}</textarea></label>
@@ -257,10 +299,11 @@ export function schedulePages(ctx) {
       const $ = (sel) => form.querySelector(sel);
       let changed = false;
       const drawWins = () => {
-        const where = freq === 'weekly' ? 'When in the week' : freq === 'monthly' ? 'When in the month' : freq === 'quarterly' ? 'When in the first of those months' : 'When in that month';
+        const where = freq === 'weekly' ? 'When in the week' : freq === 'biweekly' ? 'When in the 2 weeks' : freq === 'monthly' ? 'When in the month' : freq === 'quarterly' ? 'When in the first of those months' : 'When in that month';
         $('[data-when-title]').textContent = freq === 'quarterly' && win === 'any' ? 'When' : where;
         $('[data-wins]').innerHTML = [...winChoices(), ['custom', freq === 'weekly' ? 'Other' : 'Pick the days']].map(([k, l]) => `<button type="button" class="chip-btn${win === k ? ' on' : ''}" data-win="${k}">${l}</button>`).join('');
         $('[data-custom-row]').innerHTML = win !== 'custom' ? ''
+          : freq === 'biweekly' ? `<label class="pm-day">Within the first <input name="to" type="number" min="1" max="14" value="${esc(to)}"> days <span class="muted">(starting Sunday)</span></label>`
           : freq === 'weekly' ? `<label class="pm-day">Within the first <input name="to" type="number" min="1" max="7" value="${esc(to)}"> days of the week <span class="muted">(weeks start Sunday)</span></label>`
             : `<label class="pm-day">From the <input name="from" type="number" min="1" max="28" value="${esc(from)}"> to the <input name="to" type="number" min="1" max="31" value="${esc(to)}" placeholder="any"> <span class="muted">of the month</span></label>`;
         $('[data-custom-row]').querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { if (i.name === 'from') from = i.value; else to = i.value; preview(); }));
@@ -271,8 +314,23 @@ export function schedulePages(ctx) {
         let txt = windowText({ frequency: freq, due_days: n, start_month: month, start_day: sd });
         if (win === 'custom' && freq !== 'weekly' && to && parseInt(to, 10) < (parseInt(from, 10) || 1)) txt = 'The end day has to be after the start day.';
         $('[data-pm-preview]').textContent = txt;
+        drawPreps();
+      };
+      // Get-ready steps, each with how long before the round it comes up.
+      const drawPreps = () => {
+        const { sd } = params();
+        const st = nextStart({ frequency: freq, start_month: month, start_day: freq === 'weekly' ? null : sd }, todayIso);
+        $('[data-preps]').innerHTML = prepList.map((c, i) => `<div class="pm-prep">
+            <input data-pn="${i}" value="${esc(c.name)}" placeholder="e.g. Order filters" aria-label="Get-ready step">
+            <select data-pl="${i}" aria-label="How long before">${[...LEADS, ...(LEADS.some(([v]) => v === c.lead) ? [] : [[c.lead, `${c.lead} days`]])].map(([v, l]) => `<option value="${v}" ${v === c.lead ? 'selected' : ''}>${l} before</option>`).join('')}</select>
+            <button type="button" class="pm-prep-x" data-pr="${i}" aria-label="Remove">×</button>
+            ${st ? `<span class="muted pm-prep-when">Next: ${dshort(addD(st, -c.lead))} – ${dshort(addD(st, -1))}, before the ${dshort(st)} round</span>` : ''}</div>`).join('');
+        $('[data-preps]').querySelectorAll('[data-pn]').forEach((x) => x.addEventListener('input', () => { prepList[x.dataset.pn].name = x.value; }));
+        $('[data-preps]').querySelectorAll('[data-pl]').forEach((x) => x.addEventListener('change', () => { prepList[x.dataset.pl].lead = Number(x.value); drawPreps(); }));
+        $('[data-preps]').querySelectorAll('[data-pr]').forEach((x) => x.addEventListener('click', () => { prepList.splice(Number(x.dataset.pr), 1); drawPreps(); }));
       };
       const sync = () => {
+        form.querySelectorAll('[data-parity]').forEach((b) => b.classList.toggle('on', Number(b.dataset.parity) === parity));
         form.querySelectorAll('[data-freq]').forEach((b) => b.classList.toggle('on', b.dataset.freq === freq));
         form.querySelectorAll('[data-for]').forEach((el) => { el.hidden = el.dataset.for !== freq; });
         form.querySelectorAll('[data-month]').forEach((b) => {
@@ -281,7 +339,9 @@ export function schedulePages(ctx) {
         });
         drawWins(); preview();
       };
-      const fill = (c) => { $('[name=name]').value = c.name; load({ frequency: c.frequency, start_month: c.start_month, start_day: 1, due_days: c.due_days ?? null }); if (c.notes) $('[name=notes]').value = c.notes; sync(); };
+      const fill = (c) => { $('[name=name]').value = c.name; load({ frequency: c.frequency, start_month: c.start_month, start_day: 1, due_days: c.due_days ?? null }); if (c.notes) $('[name=notes]').value = c.notes; if (c.preps) prepList = c.preps.map((x) => ({ ...x })); sync(); };
+      form.querySelectorAll('[data-parity]').forEach((b) => b.addEventListener('click', () => { parity = Number(b.dataset.parity); sync(); }));
+      $('[data-prep-add]').addEventListener('click', () => { prepList.push({ name: '', lead: 7 }); drawPreps(); $(`[data-pn="${prepList.length - 1}"]`).focus(); });
       form.querySelectorAll('[data-common]').forEach((b) => b.addEventListener('click', () => fill(COMMON[b.dataset.common])));
       form.querySelectorAll('[data-freq]').forEach((b) => b.addEventListener('click', () => {
         if (freq === b.dataset.freq) return;
@@ -309,16 +369,18 @@ export function schedulePages(ctx) {
         if (win === 'custom' && freq !== 'weekly' && to && parseInt(to, 10) < (parseInt(from, 10) || 1)) { toast('The end day has to be after the start day', true); return; }
         const f = new FormData(form);
         try {
-          await rpc('pm_save_task', {
+          const id = await rpc('pm_save_task', {
             p_id: t.id || null, p_name: name, p_frequency: freq, p_due_days: n,
             p_location: String(f.get('location') || '').trim() || null, p_notes: f.get('notes') || null,
             p_steps: String(f.get('steps') || '').split('\n').map((x) => x.trim()).filter(Boolean),
             ...(anchorsReady ? { p_start_month: ['quarterly', 'yearly'].includes(freq) ? month : null, p_start_day: freq === 'weekly' ? null : sd } : {}),
           });
+          const keep = prepList.filter((c) => c.name.trim());
+          if (editing || keep.length) await rpc('pm_set_preps', { p_parent: t.id || id, p_preps: keep.map((c) => ({ id: c.id || null, name: c.name.trim(), lead_days: c.lead })) });
           changed = true;
           toast(editing ? 'Saved' : `Added “${name}” to the schedule`);
           if (!again) return done();
-          form.reset(); $('[name=name]').value = ''; win = 'any'; sync(); $('[name=name]').focus();
+          form.reset(); $('[name=name]').value = ''; win = 'any'; prepList = []; sync(); $('[name=name]').focus();
         } catch (err) { toast(errMsg(err), true); }
       };
       $('[data-again]')?.addEventListener('click', () => save(true));
@@ -336,7 +398,8 @@ export function schedulePages(ctx) {
     const label = { done: 'Done', skipped: 'Skipped', missed: 'Missed', open: 'Open' };
     return `<div class="table-wrap"><table><tr><th>Period</th><th>Task</th><th>Status</th><th>Who</th><th>When</th><th>Note</th></tr>
       ${past.map((r) => { const t = taskBy[r.task_id]; const late = r.status === 'done' && r.done_at && r.done_at.slice(0, 10) > r.due_on;
-        return `<tr><td>${periodLabel(t.frequency, r.period_start, r.period_end)}</td><td>${esc(t.name)}</td>
+        const par = t.parent_id ? taskBy[t.parent_id] : null;
+        return `<tr><td>${par ? `${dshort(r.period_start)} – ${dshort(r.period_end)}` : periodLabel(t.frequency, r.period_start, r.period_end)}</td><td>${esc(t.name)}${par ? ` <span class="muted">· before ${esc(par.name)}</span>` : ''}</td>
         <td><span class="pill ${r.status === 'done' ? 'available' : r.status === 'missed' ? 'lost' : 'closed'}">${label[r.status]}</span>${late ? ' <span class="muted">late</span>' : ''}</td>
         <td>${esc(who[r.done_by] || '')}</td><td>${r.done_at ? new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</td><td>${esc(r.note || '')}</td></tr>`; }).join('')}</table></div>`;
   }
@@ -350,7 +413,7 @@ export function schedulePages(ctx) {
     }));
     app.querySelectorAll('[data-pm-edit]').forEach((b) => b.addEventListener('click', async () => {
       const t = tasks.find((x) => x.id === Number(b.dataset.pmEdit));
-      if (t && (await taskModal(await loadPlaces(sb), t))) reload();
+      if (t && (await taskModal(await loadPlaces(sb), { ...t, preps: tasks.filter((c) => c.parent_id === t.id && c.active) }))) reload();
     }));
     pulled.bind(app, reload);
     app.querySelectorAll('[data-mark]').forEach((b) => b.addEventListener('click', async () => {
