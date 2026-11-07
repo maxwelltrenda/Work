@@ -1125,3 +1125,16 @@ button.to-pill:hover, button.to-chip:hover { filter: brightness(.95); box-shadow
 .pm-ctrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
 .pm-ctrow select, .pm-ctrow .dd { flex: 1 1 240px; }
 .pm-ctinfo { margin: 6px 0 0; font-size: 14px; }
+.pm-onit { font-size: 14px; color: var(--body); }
+.pm-onit-tag { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 8px; }
+button.pm-card.upcoming { width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; align-items: center; }
+button.pm-card.upcoming:hover { border-color: var(--line-strong); background: var(--card); }
+.pm-open { font-weight: 600; font-size: 14px; color: var(--accent); border: 1px solid var(--line-strong); border-radius: 9px; padding: 6px 14px; background: var(--card); }
+.pm-nobody { color: var(--warn); font-weight: 600; }
+/* Custodial: people on a task. */
+.b-who { border: 1px solid transparent; background: none; border-radius: 999px; padding: 2px 4px; cursor: pointer; flex: none; display: inline-flex; align-items: center; }
+.b-who:hover { border-color: var(--line-strong); }
+.b-who.empty { border: 1px dashed var(--line-strong); padding: 4px 10px; }
+.b-whoadd { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.b-pickpeople .chip-btn { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; }
+.b-pickpeople .b-av { width: 24px; height: 24px; font-size: 10px; }

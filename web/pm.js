@@ -67,6 +67,9 @@ function windowText(t) {
 export function schedulePages(ctx) {
   const { sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled } = ctx;
   let contractors = [];   // the Contractors list, loaded with the page
+  let crew = [];          // Facilities people who can be put on a task
+  let whoAll = {};        // id -> name, everyone
+  const onIt = (t) => (t.assignees || []).map((id) => whoAll[id]).filter(Boolean);
   const ctBy = (id) => contractors.find((c) => c.id === id);
   const app = document.getElementById('app');
 
@@ -85,12 +88,14 @@ export function schedulePages(ctx) {
     const [tasks, runs, members, locations, pw] = await Promise.all([
       q(sb.from('pm_tasks').select('*').order('sort').order('id')),
       q(sb.from('pm_runs').select('*').order('period_start', { ascending: false }).limit(1000)),
-      q(sb.from('team_members').select('id, name')),
+      q(sb.from('team_members').select('id, name, role, active')),
       null,
       view === 'now' ? pulled.load('maintenance').catch(() => null) : null,
       q(sb.from('contractors').select('*').order('name')).then((x) => { contractors = x; }, () => { contractors = []; }),
     ]);
     const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
+    whoAll = who;
+    crew = members.filter((m) => m.active && !['kiosk', 'none'].includes(m.role)).sort((a, b) => a.name.localeCompare(b.name));
     const taskBy = Object.fromEntries(tasks.map((t) => [t.id, t]));
     preps = tasks.filter((t) => t.parent_id);
     const current = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today && r.period_end >= today);
@@ -143,8 +148,11 @@ export function schedulePages(ctx) {
       return { t, st, txt: st ? `Next round starts ${dshort(st)}${end ? ` · due by ${end}` : ''}${pr.length ? ` · Get ready: ${pr.join(', ')}` : ''}` : '' };
     }).sort((a, b) => String(a.st).localeCompare(String(b.st)));
     return `<h2 class="pm-sect">Coming up <span class="muted">not due yet this period</span></h2>
-      <div class="pm-list">${rows.map(({ t, txt }) => `<div class="pm-card upcoming"><span class="pm-check pm-wait" aria-hidden="true">⏳</span>
-        <div class="pm-body"><b class="pm-name">${esc(t.name)}</b><span class="pm-meta">${[FREQ_LABEL[t.frequency], t.location ? esc(t.location) : '', txt].filter(Boolean).join(' · ')}</span></div><div></div></div>`).join('')}</div>`;
+      <div class="pm-list">${rows.map(({ t, txt }) => `<button type="button" class="pm-card upcoming" data-pm-edit="${t.id}" title="Open ${esc(t.name)}"><span class="pm-check pm-wait" aria-hidden="true">⏳</span>
+        <span class="pm-body"><b class="pm-name">${esc(t.name)}</b><span class="pm-meta">${[FREQ_LABEL[t.frequency], t.location ? esc(t.location) : '', txt].filter(Boolean).join(' · ')}</span>
+          ${ctBy(t.contractor_id) ? `<span class="pm-meta">Contractor: ${esc(ctBy(t.contractor_id).name)}</span>` : ''}
+          <span class="pm-meta ${onIt(t).length ? '' : 'pm-nobody'}">${onIt(t).length ? `On it: ${onIt(t).map(esc).join(', ')}` : 'Nobody on it yet'}</span></span>
+        <span class="pm-open">Open</span></button>`).join('')}</div>`;
   }
 
   function nowView(current, taskBy, who, today, active = []) {
@@ -195,6 +203,7 @@ export function schedulePages(ctx) {
         ${isDone ? `<span class="pm-meta pm-donewho">Done by ${esc(who[r.done_by] || 'someone')} · ${new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}${r.note ? ` · ${esc(r.note)}` : ''}</span>` : ''}
         ${t.notes ? `<span class="pm-notes">${esc(t.notes)}</span>` : ''}
         ${ctLine(t)}
+        ${onIt(t).length ? `<span class="pm-onit"><span class="pm-onit-tag">On it</span> ${onIt(t).map(esc).join(', ')}</span>` : ''}
         ${steps.length ? `<div class="pm-steps">${steps.map((s, i) => `<label><input type="checkbox" data-step="${r.id}" data-i="${i}" ${(r.steps_done || []).includes(i) ? 'checked' : ''}> ${esc(s)}</label>`).join('')}</div>` : ''}
       </div>
       <div class="pm-actions">${r.status === 'open' ? `<button class="btn small" data-mark="${r.id}" data-to="skipped" title="Not needed this time">Skip</button>` : r.status === 'skipped' ? `<button class="btn small" data-mark="${r.id}" data-to="open">Undo skip</button>` : ''}</div>
@@ -209,7 +218,7 @@ export function schedulePages(ctx) {
     const LEAD = (n) => (n % 7 === 0 ? `${n / 7} week${n === 7 ? '' : 's'}` : `${n} day${n === 1 ? '' : 's'}`);
     const prepLine = (t) => { const ps = tasks.filter((c) => c.parent_id === t.id && c.active); return ps.length ? `<span class="muted pm-prepline">Get ready: ${ps.map((c) => `${esc(c.name)} · ${LEAD(c.lead_days)} before`).join(' · ')}</span>` : ''; };
     const rows = (list) => `<div class="pm-tasks">${list.map((t) => `<button type="button" class="pm-task-row${t.active ? '' : ' off'}" data-pm-edit="${t.id}">
-        <b>${esc(t.name)}</b><span class="muted">${FREQ_LABEL[t.frequency]} · ${windowText(t)}${t.location ? ` · ${esc(t.location)}` : ''}${ctBy(t.contractor_id) ? ` · Contractor: ${esc(ctBy(t.contractor_id).name)}` : ''}</span>${prepLine(t)}<span class="pm-edit">Edit</span></button>`).join('')}</div>`;
+        <b>${esc(t.name)}</b><span class="muted">${FREQ_LABEL[t.frequency]} · ${windowText(t)}${t.location ? ` · ${esc(t.location)}` : ''}${ctBy(t.contractor_id) ? ` · Contractor: ${esc(ctBy(t.contractor_id).name)}` : ''}${onIt(t).length ? ` · On it: ${onIt(t).map(esc).join(', ')}` : ''}</span>${prepLine(t)}<span class="pm-edit">Edit</span></button>`).join('')}</div>`;
     return `${top.length ? '' : '<div class="card pm-empty"><b>No tasks yet.</b><p class="muted">Use <b>+ Add task</b> above to add your first recurring job.</p></div>'}
       ${FREQS.map(([f, label]) => { const list = active.filter((t) => t.frequency === f); return list.length ? `<h2 class="pm-sect">${label} <span class="muted">${list.length}</span></h2>${rows(list)}` : ''; }).join('')}
       ${archived.length ? `<h2 class="pm-sect">Off the schedule <span class="muted">${archived.length}</span></h2>${rows(archived)}` : ''}`;
@@ -235,6 +244,7 @@ export function schedulePages(ctx) {
     let prepList = (t.preps || []).map((c) => ({ id: c.id, name: c.name, lead: c.lead_days || 7 }));
     const todayIso = isoOf(new Date());
     let ctId = t.contractor_id || null;
+    let people = new Set(t.assignees || []);
     let byCt = !!ctId;
     // Work out which choice an existing task matches.
     const load = (x) => {
@@ -286,6 +296,8 @@ export function schedulePages(ctx) {
         <div class="wk-sect">Who does it</div>
         <div class="wk-chips"><button type="button" class="chip-btn" data-by="team">Our team</button><button type="button" class="chip-btn" data-by="ct">A contractor we hire</button></div>
         <div class="pm-ctpick" data-ctpick></div>
+        <div class="wk-sect">Who's on it <span class="muted pm-opt">(optional: tap to add or remove)</span></div>
+        <div class="wk-chips" data-people>${crew.map((m) => `<button type="button" class="chip-btn pm-person" data-person="${m.id}">${esc(m.name)}</button>`).join('') || '<span class="muted">No team members yet.</span>'}</div>
         <label style="margin-top:12px"><span>Where <span class="muted">(optional)</span></span><input name="location" value="${esc(t.location || '')}" placeholder="Type a place, e.g. Main entrance, Kids wing"></label>
         <details class="pm-more" ${(t.steps || []).length || t.notes ? 'open' : ''}><summary>Steps and notes <span class="muted">(optional)</span></summary>
           <label style="margin-top:10px"><span>Steps <span class="muted">(one per line)</span></span><textarea name="steps" rows="3" placeholder="North entrance&#10;South entrance">${esc((t.steps || []).join('\n'))}</textarea></label>
@@ -346,6 +358,9 @@ export function schedulePages(ctx) {
         });
       };
       form.querySelectorAll('[data-by]').forEach((b) => b.addEventListener('click', () => { byCt = b.dataset.by === 'ct'; drawCt(); }));
+      const drawPeople = () => form.querySelectorAll('[data-person]').forEach((b) => b.classList.toggle('on', people.has(b.dataset.person)));
+      form.querySelectorAll('[data-person]').forEach((b) => b.addEventListener('click', () => { const id = b.dataset.person; if (people.has(id)) people.delete(id); else people.add(id); drawPeople(); }));
+      drawPeople();
       drawCt();
       const sync = () => {
         form.querySelectorAll('[data-parity]').forEach((b) => b.classList.toggle('on', Number(b.dataset.parity) === parity));
@@ -394,11 +409,13 @@ export function schedulePages(ctx) {
           const keep = prepList.filter((c) => c.name.trim());
           const newCt = byCt ? ctId : null;
           if (newCt !== (t.contractor_id || null)) await rpc('pm_set_contractor', { p_task: t.id || id, p_contractor: newCt });
+          const ppl = [...people];
+          if (ppl.sort().join() !== [...(t.assignees || [])].sort().join()) await rpc('pm_set_assignees', { p_task: t.id || id, p_people: ppl });
           if (editing || keep.length) await rpc('pm_set_preps', { p_parent: t.id || id, p_preps: keep.map((c) => ({ id: c.id || null, name: c.name.trim(), lead_days: c.lead })) });
           changed = true;
           toast(editing ? 'Saved' : `Added “${name}” to the schedule`);
           if (!again) return done();
-          form.reset(); $('[name=name]').value = ''; win = 'any'; prepList = []; byCt = false; ctId = null; drawCt(); sync(); $('[name=name]').focus();
+          form.reset(); $('[name=name]').value = ''; win = 'any'; prepList = []; byCt = false; ctId = null; people = new Set(); drawPeople(); drawCt(); sync(); $('[name=name]').focus();
         } catch (err) { toast(errMsg(err), true); }
       };
       $('[data-again]')?.addEventListener('click', () => save(true));

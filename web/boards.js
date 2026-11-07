@@ -447,7 +447,8 @@ export function boardPages(ctx) {
       q(sb.from('checklist_tasks').select('*').eq('week_of', week).order('sort').order('id')),
       q(sb.from('checklist_subtasks').select('*, checklist_tasks!inner(week_of)').eq('checklist_tasks.week_of', week).order('sort').order('id')),
       pulled.load('custodial').catch(() => null),
-    ]);
+      q(sb.from('team_members').select('name, role, active')).catch(() => []),
+    ]).then((r) => { ckCrew = (r[3] || []).filter((m) => m.active && !['kiosk', 'none'].includes(m.role)).map((m) => m.name).sort(); return r; });
     const byTask = {};
     subs.forEach((s) => { (byTask[s.task_id] = byTask[s.task_id] || []).push(s); });
     const done = tasks.filter((t) => t.status === 'Done').length;
@@ -477,6 +478,13 @@ export function boardPages(ctx) {
       try { await q(sb.from('checklist_tasks').update({ status: next }).eq('id', b.dataset.tick).select('id')); if (next === 'Done') toast('Done ✓'); } catch (err) { toast(errMsg(err), true); }
       rerender();
     }));
+    app.querySelectorAll('[data-ckwho]').forEach((b) => b.addEventListener('click', async () => {
+      const t = tasks.find((x) => String(x.id) === b.dataset.ckwho);
+      const names = await pickPeople(t.name, whoList(t));
+      if (!names) return;
+      try { await q(sb.from('checklist_tasks').update({ who: names.join(', ') || null }).eq('id', t.id).select('id')); toast(names.length ? `On it: ${names.join(', ')}` : 'Nobody on it'); } catch (err) { toast(errMsg(err), true); }
+      rerender();
+    }));
     app.querySelectorAll('[data-skip]').forEach((b) => b.addEventListener('click', async () => {
       try { await q(sb.from('checklist_tasks').update({ status: 'Skipped' }).eq('id', b.dataset.skip).select('id')); toast('Skipped this week'); } catch (err) { toast(errMsg(err), true); }
       rerender();
@@ -494,6 +502,33 @@ export function boardPages(ctx) {
     startTick();
   }
 
+  // People on a checklist task ("who"), like Monday's person column.
+  let ckCrew = [];
+  const whoList = (t) => String(t.who || '').split(',').map((x) => x.trim()).filter(Boolean);
+  function pickPeople(title, current) {
+    return new Promise((resolve) => {
+      let sel = new Set(current);
+      const names = [...new Set([...ckCrew, ...current])];
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML = `<div class="modal b-pickpeople" role="dialog" aria-modal="true" aria-label="Who's on it">
+        <h3>Who's on it?</h3><p class="muted">${esc(title)}</p>
+        <div class="wk-chips">${names.map((n) => `<button type="button" class="chip-btn b-pp" data-pp="${esc(n)}"><span class="b-av" style="background:${hue(n)}">${esc(initials(n))}</span>${esc(n)}</button>`).join('')}</div>
+        <div class="modal-actions"><button type="button" class="btn" data-clear>Nobody</button><button type="button" class="btn" data-cancel>Cancel</button><button type="button" class="btn primary" data-ok>Save</button></div></div>`;
+      const draw = () => back.querySelectorAll('[data-pp]').forEach((b) => b.classList.toggle('on', sel.has(b.dataset.pp)));
+      back.querySelectorAll('[data-pp]').forEach((b) => b.addEventListener('click', () => { if (sel.has(b.dataset.pp)) sel.delete(b.dataset.pp); else sel.add(b.dataset.pp); draw(); }));
+      const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
+      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(null); } };
+      document.addEventListener('keydown', onKey, true);
+      back.addEventListener('mousedown', (e) => { if (e.target === back) done(null); });
+      back.querySelector('[data-cancel]').addEventListener('click', () => done(null));
+      back.querySelector('[data-clear]').addEventListener('click', () => { sel = new Set(); draw(); });
+      back.querySelector('[data-ok]').addEventListener('click', () => done(names.filter((n) => sel.has(n))));
+      draw();
+      document.body.appendChild(back);
+    });
+  }
+
   function checkTask(t, subs) {
     const ed = canEdit();
     const isDone = t.status === 'Done';
@@ -503,8 +538,10 @@ export function boardPages(ctx) {
       <div class="b-taskrow">
         <button class="b-tick${isDone ? ' on' : ''}" data-tick="${t.id}" data-done="${isDone ? 1 : 0}" aria-label="${isDone ? 'Mark not done' : 'Mark done'}: ${esc(t.name)}"${ed ? '' : ' disabled'}>✓</button>
         <div class="b-taskname"><b>${esc(t.name)}</b>
-          <small>${[t.status === 'Skipped' ? 'Skipped' : t.status === 'Missed' ? 'Missed' : '', isDone && t.who ? `${t.who}, ${tshort(t.done_on)}` : '', !isDone ? t.includes : '']
+          <small>${[t.status === 'Skipped' ? 'Skipped' : t.status === 'Missed' ? 'Missed' : '', isDone && t.done_on ? `Done ${tshort(t.done_on)}` : '', !isDone ? t.includes : '']
             .filter(Boolean).map(esc).join(' · ')}</small></div>
+        ${ed ? `<button class="b-who${whoList(t).length ? '' : ' empty'}" data-ckwho="${t.id}" title="${whoList(t).length ? esc(whoList(t).join(', ')) : 'Add people'}">${whoList(t).length ? avatars(whoList(t), 3) : '<span class="b-whoadd">+ Person</span>'}</button>`
+          : whoList(t).length ? `<span class="b-who">${avatars(whoList(t), 3)}</span>` : ''}
         ${t.timer_started_at || t.worked_seconds ? `<span class="b-time num">${liveSpan(t)}</span>` : ''}
         ${ed && !closed ? `<button class="btn small${t.timer_started_at ? ' b-running' : ''}" data-cktimer="${t.id}" data-run="${t.timer_started_at ? 0 : 1}">${t.timer_started_at ? '■ Stop' : '▶ Start'}</button>` : ''}
       </div>
