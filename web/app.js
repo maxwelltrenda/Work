@@ -3369,6 +3369,15 @@ boot();
 // if they changed, offer a one-tap update. The shared kiosk updates itself
 // when nobody is mid-scan.
 // ---------------------------------------------------------------------------
+// Mac Dock app in full screen: macOS draws its title bar over the page, so the
+// header gets extra room at the top (style.css .app-fullscreen).
+const markFullscreen = () => {
+  const app = matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+  const mac = /Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints < 2;
+  document.documentElement.classList.toggle('app-fullscreen', app && mac && Math.abs(window.innerHeight - screen.height) < 4);
+};
+markFullscreen();
+window.addEventListener('resize', markFullscreen);
 const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;

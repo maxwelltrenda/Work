@@ -1138,3 +1138,12 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .b-whoadd { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
 .b-pickpeople .chip-btn { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; }
 .b-pickpeople .b-av { width: 24px; height: 24px; font-size: 10px; }
+
+/* Mac / iPhone app windows: keep the header below the system title bar. In a
+   full-screen Dock app macOS lays its title bar over the top of the page. */
+.topbar { padding-top: calc(14px + env(safe-area-inset-top, 0px)); }
+@media (display-mode: fullscreen) {
+  .topbar { padding-top: calc(42px + env(safe-area-inset-top, 0px)); }
+}
+@media (max-width: 760px) { .topbar { padding-top: calc(10px + env(safe-area-inset-top, 0px)); } }
+.app-fullscreen .topbar { padding-top: 42px; }
