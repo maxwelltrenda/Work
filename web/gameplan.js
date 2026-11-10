@@ -9,15 +9,16 @@ export function gameplanPages(ctx) {
   let dayIdx = 0;
 
   async function renderGameplan() {
-    const [sat, sun] = weekendOf();
+    const [fri, sat, sun] = weekendOf();
     const [plan, wx] = await Promise.all([
       rpc('get_gameplan', { p_weekend: sat }).then((r) => (Array.isArray(r) ? r[0] : r) || null),
       loadWeekendWeather().catch((e) => ({ error: errMsg(e) })),
     ]);
     let status = plan?.status || 'normal';
+    if (!wx.error) dayIdx = Math.min(dayIdx, wx.days.length - 1);
     const when = plan?.updated_at ? new Date(plan.updated_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
     app.innerHTML = `
-      ${pageHead('Facilities', 'Weekend <span class="accent">plan</span>', `${wxDayLabel(sat)} – ${wxDayLabel(sun).split(', ')[1]}. Check the weather, then write the Facilities gameplan. Skyler sees it on the Operations page.`)}
+      ${pageHead('Facilities', 'Weekend <span class="accent">plan</span>', `${wxDayLabel(fri)} – ${wxDayLabel(sun)}. Check the weather, then write the Facilities gameplan. Skyler sees it on the Operations page.`)}
       <div class="gp-page">
         <section class="card"><h2>Weather</h2>
           ${wx.error ? `<p class="muted">${esc(wx.error)}</p>` : `${wxCard(wx, null, false)}

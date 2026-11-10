@@ -12,12 +12,13 @@ const DAYN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 
 const MONS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const wxEsc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-// This weekend's Saturday and Sunday (on a weekend, the one we're in).
+// This weekend's Friday, Saturday and Sunday (on a weekend, the one we're in).
+// The gameplan is saved under the Saturday: weekendOf()[1].
 export function weekendOf(now = new Date()) {
   const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const dow = d.getDay();
   const sat = new Date(d.getFullYear(), d.getMonth(), d.getDate() + (dow === 6 ? 0 : dow === 0 ? -1 : 6 - dow));
-  return [isoOf(sat), isoOf(new Date(sat.getFullYear(), sat.getMonth(), sat.getDate() + 1))];
+  return [-1, 0, 1].map((k) => isoOf(new Date(sat.getFullYear(), sat.getMonth(), sat.getDate() + k)));
 }
 export const wxDayLabel = (iso) => { const [y, m, d] = iso.split('-').map(Number); const dt = new Date(y, m - 1, d); return `${DAYN[dt.getDay()]}, ${MONS[m - 1]} ${d}`; };
 export const wxHour = (h) => `${h % 12 || 12} ${h < 12 ? 'AM' : 'PM'}`;
@@ -37,12 +38,13 @@ export function wxIcon(text, day = true) {
 
 // { days: [{ date, hours:[{hour,temp,rain,wind,text,day}], hi, lo, rain, summary, detail, night }], at }
 export async function loadWeekendWeather() {
-  try { const c = JSON.parse(sessionStorage.getItem(CACHE) || 'null'); if (c && Date.now() - c.at < 30 * 60e3 && c.days[0].date === weekendOf()[0]) return c; } catch { /* no storage */ }
+  try { const c = JSON.parse(sessionStorage.getItem(CACHE) || 'null'); if (c && Date.now() - c.at < 30 * 60e3 && c.key === weekendOf()[1] + isoOf(new Date())) return c; } catch { /* no storage */ }
   const get = (u) => fetch(u, { headers: { Accept: 'application/geo+json' } }).then((r) => { if (!r.ok) throw new Error('The weather service did not answer. Try again in a minute.'); return r.json(); });
   const [h, d] = await Promise.all([get(`${NWS}/hourly`), get(NWS)]);
   const hp = h.properties.periods;
   const dp = d.properties.periods;
-  const days = weekendOf().map((date) => {
+  const today = isoOf(new Date());
+  const days = weekendOf().filter((date) => date >= today).map((date) => {
     const hours = hp.filter((p) => p.startTime.slice(0, 10) === date).map((p) => ({
       hour: Number(p.startTime.slice(11, 13)), temp: p.temperature, rain: p.probabilityOfPrecipitation?.value ?? 0,
       wind: `${p.windSpeed}${p.windDirection ? ` ${p.windDirection}` : ''}`, text: p.shortForecast, day: p.isDaytime,
@@ -61,7 +63,7 @@ export async function loadWeekendWeather() {
       detail: dayP ? dayP.detailedForecast : '', night: nightP ? nightP.detailedForecast : '',
     };
   });
-  const out = { days, at: Date.now() };
+  const out = { days, at: Date.now(), key: weekendOf()[1] + today };
   try { sessionStorage.setItem(CACHE, JSON.stringify(out)); } catch { /* no storage */ }
   return out;
 }

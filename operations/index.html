@@ -109,7 +109,7 @@
     .ops-row.is-out .av { opacity: .45; }
     .ops-top { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; }
     .ops-top .page-head { flex: 1 1 auto; min-width: 0; }
-    .wx-corner { flex: 0 0 310px; text-align: left; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; cursor: pointer; }
+    .wx-corner { flex: 0 0 360px; text-align: left; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; cursor: pointer; }
     .wx-corner:hover { border-color: var(--line-strong); }
     .wx-corner-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
     .wx-corner-head b { font: 700 12px var(--serif); text-transform: uppercase; letter-spacing: .1em; color: var(--ink); }
@@ -290,7 +290,7 @@ function renderOps(){
 var WX=null, GP=null, WXERR=null, wxDay=0, wxLoading=false;
 function loadWx(){
   if(wxLoading) return; wxLoading=true;
-  var sat=weekendOf()[0];
+  var sat=weekendOf()[1];
   var gp=fetch(SB_URL+"/rest/v1/rpc/get_gameplan",{method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json"},body:JSON.stringify({p_weekend:sat})})
     .then(function(r){return r.ok?r.json():[];}).then(function(rows){GP=rows&&rows[0]||null;}).catch(function(){GP=null;});
   var wx=loadWeekendWeather().then(function(w){WX=w;}).catch(function(e){WXERR=e.message||"Weather unavailable";});
@@ -302,6 +302,7 @@ function wxCorner(){
   return '<button class="wx-corner" id="wx-corner" data-act="wx"><div class="wx-corner-head"><b>This weekend</b><span>Hour by hour ›</span></div>'+body+'</button>';
 }
 function openWx(){
+  if(WX) wxDay=Math.min(wxDay, WX.days.length-1);
   var gpHtml = GP ? '<div class="gp-box"><h4>Facilities gameplan</h4><span class="gp-pill '+GAMEPLAN_STATUS[GP.status][1]+'" style="margin-top:0">'+GAMEPLAN_STATUS[GP.status][0]+'</span>'+(GP.plan?'<p class="gp-text">'+esc(GP.plan)+'</p>':'')+'<div class="gp-meta">From '+esc(GP.updated_by||'Facilities')+' · '+new Date(GP.updated_at).toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"})+'</div></div>'
     : '<div class="gp-box"><h4>Facilities gameplan</h4><p class="muted" style="margin:0">Facilities hasn\'t posted a plan for this weekend yet.</p></div>';
   var body = gpHtml + (WX ? '<div class="wx-tabs">'+WX.days.map(function(d,i){return '<button type="button" class="chip-btn big'+(i===wxDay?' on':'')+'" data-wxday="'+i+'">'+esc(wxDayLabel(d.date))+'</button>';}).join("")+'</div><div>'+wxHourly(WX.days[wxDay])+'</div><p class="muted" style="font-size:12px;margin:0">National Weather Service forecast for Fort Worth.</p>'
