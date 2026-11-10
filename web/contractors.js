@@ -34,21 +34,20 @@ export function contractorPages(ctx) {
     const old = list.filter((c) => !c.active);
     const jobs = (c) => tasks.filter((t) => t.contractor_id === c.id && t.active).map((t) => t.name);
     const match = (c) => !search || [c.name, c.trade, c.contact, c.notes].join(' ').toLowerCase().includes(search.toLowerCase());
-    const row = (label, html) => (html ? `<div class="ct-row"><span class="ct-label">${label}</span><span class="ct-val">${html}</span></div>` : '');
+    const row = (label, html) => `<div class="ct-row"><span class="ct-label">${label}</span><span class="ct-val">${html || '<span class="ct-none">Not added</span>'}</span></div>`;
     const card = (c) => `<article class="ct-card${c.active ? '' : ' off'}">
         <header class="ct-head">
           <div class="ct-title"><h3>${esc(c.name)}</h3>${c.trade ? `<span class="ct-trade">${esc(c.trade)}</span>` : ''}</div>
-          <div class="ct-actions">${c.phone ? `<a class="btn small primary" href="${telHref(c.phone)}">Call</a>` : ''}${c.email ? `<a class="btn small" href="mailto:${esc(c.email)}">Email</a>` : ''}${edit ? `<button class="btn small" data-ct-edit="${c.id}">Edit</button>` : ''}</div>
+          <div class="ct-actions">${c.phone ? `<a class="btn small" href="${telHref(c.phone)}">Call</a>` : '<span class="btn small ct-off" aria-disabled="true">Call</span>'}${c.email ? `<a class="btn small" href="mailto:${esc(c.email)}">Email</a>` : '<span class="btn small ct-off" aria-disabled="true">Email</span>'}${edit ? `<button class="btn small" data-ct-edit="${c.id}">Edit</button>` : ''}</div>
         </header>
         <div class="ct-rows">
           ${row('Phone', c.phone ? `<a href="${telHref(c.phone)}">${esc(fmtPhone(c.phone))}</a>` : '')}
           ${row('Contact', c.contact ? esc(c.contact) : '')}
           ${row('Email', c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : '')}
           ${row('Website', c.website ? `<a href="${esc(webHref(c.website))}" target="_blank" rel="noopener">${esc(webText(c.website))}</a>` : '')}
-          ${!c.phone && !c.contact && !c.email && !c.website ? '<p class="muted ct-none">No contact info yet.</p>' : ''}
         </div>
-        ${c.notes ? `<div class="ct-notes"><span class="ct-label">Notes</span>${esc(c.notes)}</div>` : ''}
-        ${jobs(c).length ? `<footer class="ct-jobs"><span class="ct-label">Handles</span>${jobs(c).map((j) => `<span class="ct-job">${esc(j)}</span>`).join('')}</footer>` : ''}
+        <div class="ct-notes"><span class="ct-label">Notes</span>${c.notes ? esc(c.notes) : '<span class="ct-none">No notes</span>'}</div>
+        <footer class="ct-jobs"><span class="ct-label">Handles</span>${jobs(c).length ? jobs(c).map((j) => `<span class="ct-job">${esc(j)}</span>`).join('') : '<span class="ct-none">No maintenance tasks yet</span>'}</footer>
       </article>`;
     app.innerHTML = `
       ${pageHead('Facilities', 'Contractors', 'Outside companies we hire for jobs our team doesn\'t do, with who to call. Pick one on a maintenance task and the contact shows up there.')}
