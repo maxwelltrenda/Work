@@ -8,6 +8,7 @@ import { schedulePages } from './pm.js?v=__V__';
 import { pulledKit } from './pulled.js?v=__V__';
 import { teamPages } from './team.js?v=__V__';
 import { contractorPages } from './contractors.js?v=__V__';
+import { gameplanPages } from './gameplan.js?v=__V__';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app');
@@ -71,7 +72,7 @@ const ALL_PAGES = [
   ['requests', 'Maintenance Requests'], ['checklist', 'Custodial Checklist'], ['schedule', 'Maintenance Checklist'],
   ['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
   ['items/facilities', 'Facilities Stock'], ['items/maintenance', 'Maintenance Stock'], ['items/paint', 'Paint'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
-  ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories'], ['contractors', 'Contractors'],
+  ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories'], ['contractors', 'Contractors'], ['gameplan', 'Weekend plan'],
 ];
 const ROLES = {
   admin: { label: 'Admin', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'paint', 'events'], tools: true,
@@ -178,7 +179,7 @@ const NAV = {
   facilities: {
     main: [['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools'], ['team', 'Team']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
-      ['people', 'People'], ['locations', 'Locations'], ['contractors', 'Contractors'], ['categories', 'Categories']],
+      ['people', 'People'], ['locations', 'Locations'], ['contractors', 'Contractors'], ['gameplan', 'Weekend plan'], ['categories', 'Categories']],
   },
   events: {
     main: [['kiosk', 'Check In / Out'], ['events', 'Events'], ['toollist', 'Decor'], ['items', 'Stock']],
@@ -734,6 +735,7 @@ const routes = {
   schedule: (...a) => SCHEDULE.renderSchedule(...a),
   team: (...a) => TEAM.renderTeam(...a),
   contractors: () => CONTRACTORS.renderContractors(),
+  gameplan: () => GAMEPLAN.renderGameplan(),
 };
 
 // Maintenance Requests and the Weekly Checklist (boards.js). Editing: admin and
@@ -747,6 +749,7 @@ const BOARDS = boardPages({
 });
 
 // Recurring maintenance schedule (pm.js): Maintenance managers and admins.
+const GAMEPLAN = gameplanPages({ rpc, esc, toast, errMsg, pageHead });
 const CONTRACTORS = contractorPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, canEdit: () => isAdmin() });
 const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled: PULLED, contractors: CONTRACTORS, isAdmin });
 
@@ -3378,7 +3381,7 @@ const markFullscreen = () => {
 };
 markFullscreen();
 window.addEventListener('resize', markFullscreen);
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {

@@ -1147,3 +1147,47 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 }
 @media (max-width: 760px) { .topbar { padding-top: calc(10px + env(safe-area-inset-top, 0px)); } }
 .app-fullscreen .topbar { padding-top: 42px; }
+
+/* ---------- Weekend weather + Facilities gameplan ---------- */
+.wx-card-days { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.wx-mini { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; background: var(--paper); border-radius: 10px; padding: 8px 10px; }
+.wx-mini-day { grid-column: 1 / -1; font: 700 11px var(--serif); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.wx-mini-ico { font-size: 24px; line-height: 1; grid-row: 2 / span 2; }
+.wx-mini-t { font-weight: 700; font-size: 17px; color: var(--ink); }
+.wx-mini-t small { font-weight: 500; font-size: 13px; color: var(--muted); }
+.wx-mini-rain { font-size: 12px; color: var(--muted); }
+.wx-mini-rain.wet { color: #1f5f9e; font-weight: 700; }
+.gp-pill { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 4px 10px; }
+.gp-pill::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.gp-normal { background: var(--in-soft); color: var(--in); }
+.gp-watch { background: var(--warn-soft); color: var(--warn); }
+.gp-action { background: var(--bad-soft); color: var(--bad); }
+.gp-none { background: var(--paper-2); color: var(--muted); }
+.wx-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.wx-detail { font-size: 14px; color: var(--body); margin: 12px 0 10px; line-height: 1.45; }
+.wx-hours { display: grid; gap: 2px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.wx-h { display: grid; grid-template-columns: 58px 30px 44px minmax(0, 1fr) 64px 96px; gap: 8px; align-items: center; padding: 7px 12px; background: var(--card); font-size: 14px; }
+.wx-h:nth-child(even) { background: var(--paper); }
+.wx-h.wet { background: #e8f1fb; }
+.wx-h-time { font-weight: 600; color: var(--ink); white-space: nowrap; }
+.wx-h-ico { font-size: 18px; text-align: center; }
+.wx-h-temp { font-weight: 700; color: var(--ink); }
+.wx-h-text { color: var(--body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wx-h-rain { color: var(--muted); white-space: nowrap; }
+.wx-h.wet .wx-h-rain { color: #1f5f9e; font-weight: 700; }
+.wx-h-wind { color: var(--muted); font-size: 13px; white-space: nowrap; text-align: right; }
+@media (max-width: 560px) {
+  .wx-h { grid-template-columns: 50px 26px 40px minmax(0, 1fr) 58px; }
+  .wx-h-wind { display: none; }
+}
+.gp-box { border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 12px; padding: 14px 16px; background: var(--card); }
+.gp-box h4 { margin: 0 0 6px; font: 700 13px var(--serif); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.gp-box .gp-text { white-space: pre-line; font-size: 15px; color: var(--ink); line-height: 1.5; margin: 8px 0 0; }
+.gp-box .gp-meta { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.gp-page { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.gp-page .card h2 { margin-top: 0; }
+.gp-status { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 12px; }
+.gp-status .chip-btn.on.gp-normal, .gp-status .chip-btn.on.gp-watch, .gp-status .chip-btn.on.gp-action { border-color: currentColor; }
+.gp-status .chip-btn:not(.on) { background: var(--card); color: var(--body); }
+.gp-page textarea { min-height: 220px; font-size: 15px; line-height: 1.5; }
+@media (max-width: 900px) { .gp-page { grid-template-columns: minmax(0, 1fr); } }

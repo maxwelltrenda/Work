@@ -107,7 +107,18 @@
     .hrs.off { color: var(--muted); background: var(--paper-2); }
     .pill.away { background: var(--bad-soft); color: var(--bad); }
     .ops-row.is-out .av { opacity: .45; }
+    .ops-top { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; }
+    .ops-top .page-head { flex: 1 1 auto; min-width: 0; }
+    .wx-corner { flex: 0 0 310px; text-align: left; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; cursor: pointer; }
+    .wx-corner:hover { border-color: var(--line-strong); }
+    .wx-corner-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .wx-corner-head b { font: 700 12px var(--serif); text-transform: uppercase; letter-spacing: .1em; color: var(--ink); }
+    .wx-corner-head span { font-size: 12px; color: var(--accent); font-weight: 600; }
+    .wx-corner .gp-pill { margin-top: 8px; }
+    .wx-sheet { max-width: 680px; }
     @media (max-width: 760px) {
+      .ops-top { flex-direction: column; gap: 0; }
+      .wx-corner { flex: none; width: 100%; margin: -8px 0 20px; }
       .sch-week { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
       .sch-week div { padding: 5px; font-size: 12px; }
       .ops-row .hrs { display: none; }
@@ -127,11 +138,14 @@
   </header>
   <main id="app"></main>
   <div id="layer"></div>
+<script src="weather.js"></script>
 <script>
 (function(){
 "use strict";
 var DATA = {"reqs": [{"id": 1, "team": "facilities", "subject": "Signs for parking lot", "location": "At entry points", "status": "In Progress", "who": ["rick"], "due": null, "from": null}, {"id": 2, "team": "facilities", "subject": "Leaking gutters", "location": "South parking lot", "status": "Needs Scheduled", "who": ["kenny"], "due": null, "from": null}, {"id": 3, "team": "facilities", "subject": "Paint touch up", "location": "Upstairs south conference room", "status": "Project", "who": ["max"], "due": null, "from": null}, {"id": 4, "team": "facilities", "subject": "Parking lot lights not all working at East Fort Worth campus", "location": "Multiple", "status": "Project", "who": ["max", "rick"], "due": null, "from": null}, {"id": 5, "team": "facilities", "subject": "Kitchen sink leak repair", "location": "Kitchen", "status": "New", "who": [], "due": null, "from": null}, {"id": 6, "team": "facilities", "subject": "Repair stove top burners that are not working", "location": "Kitchen", "status": "New", "who": [], "due": null, "from": null}, {"id": 7, "team": "facilities", "subject": "Lights replaced", "location": "Upstairs office hallway", "status": "Ordered", "who": ["rick", "judah"], "due": null, "from": null}, {"id": 8, "team": "facilities", "subject": "South men\u2019s restroom urinal repair", "location": "South Bathrooms", "status": "Needs Ordered", "who": ["kenny"], "due": null, "from": null}, {"id": 9, "team": "facilities", "subject": "Tear in wall", "location": "Family Center", "status": "New", "who": [], "due": "2026-12-21", "from": null}, {"id": 10, "team": "facilities", "subject": "Exchange white outlets for black", "location": "South upstairs offices.", "status": "Needs Ordered", "who": ["rick", "judah"], "due": null, "from": null}, {"id": 11, "team": "facilities", "subject": "Ventilation", "location": "Grand Lobby", "status": "Waiting for Approval", "who": ["kenny"], "due": null, "from": null}, {"id": 12, "team": "facilities", "subject": "Clean out and organize playground", "location": "Playground", "status": "Project", "who": ["rick"], "due": "2026-04-30", "from": null}, {"id": 13, "team": "facilities", "subject": "Flooring in MC Media offices are tearing up", "location": "MC Media Offices", "status": "Paused", "who": ["kenny"], "due": null, "from": null}], "check": [{"id": 1, "name": "Clean South after MC Students", "area": "Building", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Bathrooms: sweep + mop, toilets, mirrors, sinks, stock", "d": false}, {"t": "Family Center: trash, chairs, vacuum", "d": false}, {"t": "Chapel: trash, chairs, vacuum", "d": false}, {"t": "Entryways: glass, rugs, mop", "d": false}, {"t": "Sweep + mop hallway", "d": false}]}, {"id": 2, "name": "Serve Team Lounge", "area": "Building", "status": "Done", "who": "lexi", "includes": "", "steps": [{"t": "Vacuum (move chairs for crumbs)", "d": false}, {"t": "Wipe down white chairs if needed", "d": false}]}, {"id": 3, "name": "Nursing Mothers Room", "area": "Building", "status": "Done", "who": "marah", "includes": "", "steps": [{"t": "Bathroom: sweep + mop, toilet, mirror, sink, stock", "d": false}, {"t": "Wipe down surfaces", "d": false}, {"t": "Vacuum", "d": false}, {"t": "Mop floor", "d": false}]}, {"id": 4, "name": "Ready Room", "area": "Building", "status": "Done", "who": "lexi", "includes": "", "steps": [{"t": "Wipe surfaces / dust", "d": false}, {"t": "Adjust chairs + pillows", "d": false}, {"t": "Vacuum", "d": false}, {"t": "Mop", "d": false}, {"t": "Bathroom: mirrors, sink, toilet, sweep/mop", "d": false}, {"t": "Trash", "d": false}]}, {"id": 5, "name": "Executive Host Room", "area": "Building", "status": "Done", "who": "lexi", "includes": "", "steps": [{"t": "Wipe surfaces / dust", "d": false}, {"t": "Adjust pillows", "d": false}, {"t": "Vacuum", "d": false}, {"t": "Trash", "d": false}]}, {"id": 6, "name": "Sanctuary reset", "area": "Building", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Straighten all chairs", "d": false}, {"t": "Spot vacuum if needed", "d": false}, {"t": "Chair stain treatment", "d": false}, {"t": "Lost + found to the cabinet", "d": false}]}, {"id": 7, "name": "Detail work", "area": "Building", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Pick from the Detail Work list as time allows", "d": false}]}, {"id": 8, "name": "Office: Quick exec check", "area": "Offices", "status": "Done", "who": "lexi", "includes": "", "steps": [{"t": "PL + PH offices", "d": false}, {"t": "Board room", "d": false}, {"t": "Bathroom", "d": false}, {"t": "Kitchenette", "d": false}, {"t": "Trash", "d": false}]}, {"id": 9, "name": "Office: South Upstairs check", "area": "Offices", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Office trashes + major needs", "d": false}, {"t": "Hall vacuum (stairs if needed)", "d": false}, {"t": "Bathroom check, stock + trash", "d": false}, {"t": "Kitchenette trash + surfaces", "d": false}, {"t": "Copy room trash", "d": false}]}, {"id": 10, "name": "Office: North Offices", "area": "Offices", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Trash", "d": false}, {"t": "Dust", "d": false}, {"t": "Vacuum", "d": false}]}, {"id": 11, "name": "Office: Conference Room F", "area": "Offices", "status": "Not started", "who": null, "includes": "", "steps": [{"t": "Vacuum", "d": false}, {"t": "Dust", "d": false}, {"t": "Wipe table", "d": false}, {"t": "Fix chairs", "d": false}]}, {"id": 12, "name": "Office: Check Family Center office trash", "area": "Offices", "status": "Not started", "who": null, "includes": "", "steps": []}, {"id": 13, "name": "Sign off: Thursday cleaning complete", "area": "Sign-off", "status": "Not started", "who": null, "includes": "Mark Done when all of today's cleaning is finished. This notifies Max and Kenny.", "steps": []}]};
 var BOSS = "Skyler";
+// Facilities gameplan comes from the live database (read-only, no login).
+var SB_URL = "https://cwuzlpgicxymezvghqgn.supabase.co", SB_KEY = "sb_publishable_c3mCo75lLLKpFX6AjKMv5A_K08DqCUq";
 var LOGO = "https://shop-inventory-one-omega.vercel.app/brand/mc-mark.png";
 var REAL = { facilities:"https://shop-inventory-one-omega.vercel.app", events:"https://mercy-culture-events.vercel.app", media:"https://mercy-culture-media-gear.vercel.app" };
 var TEAMS = { facilities:{name:"Facilities", c:"#11404b", pill:"tool"}, events:{name:"Events", c:"#2d6a62", pill:"evt"}, media:{name:"Media Gear", short:"Media", c:"#6a4cf0", pill:"med"} };
@@ -265,13 +279,38 @@ function renderOps(){
   var done=S.check.filter(function(c){return c.status==="Done";}).length;
   var h='';
   if(!S.tipOff) h+='<div class="ops-tip"><span><b>Preview with example data.</b> Tap a person to ask them for something, open a team\'s live site, or preview it here. The request form is in the menu. Facilities requests and today\'s checklist are real items from Monday.</span><button data-act="tip" aria-label="Hide tip">×</button></div>';
-  h+='<header class="page-head"><div class="eyebrow">Operations</div><h1>'+greet()+', <span class="accent">'+BOSS+'</span>.</h1><p class="lede">Every operations team and where everyone is, in one place.</p></header>';
+  h+='<div class="ops-top"><header class="page-head"><div class="eyebrow">Operations</div><h1>'+greet()+', <span class="accent">'+BOSS+'</span>.</h1><p class="lede">Every operations team and where everyone is, in one place.</p></header>'+wxCorner()+'</div>';
   h+='<div class="stats"><div class="stat"><b>'+busy+'</b><span>People on something now</span></div><div class="stat"><b>'+open.length+'</b><span>Open requests</span></div><div class="stat"><b style="color:var(--bad)">'+late+'</b><span>Past due</span></div><div class="stat"><b>'+done+'/'+S.check.length+'</b><span>Today\'s checklist</span></div></div>';
   h+='<div class="ops-head"><h2>Where people are</h2><span>Tap someone to ask them for something</span></div>'+peopleList();
   h+='<div class="ops-head"><h2>Teams</h2><span>Open a team\'s live site, or preview it here</span></div><div class="ops-teams">'+["facilities","events","media"].map(teamCard).join("")+'</div>';
   h+=foot();
   app.innerHTML=h;
 }
+/* ---------- weekend weather + Facilities gameplan (live) ---------- */
+var WX=null, GP=null, WXERR=null, wxDay=0, wxLoading=false;
+function loadWx(){
+  if(wxLoading) return; wxLoading=true;
+  var sat=weekendOf()[0];
+  var gp=fetch(SB_URL+"/rest/v1/rpc/get_gameplan",{method:"POST",headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json"},body:JSON.stringify({p_weekend:sat})})
+    .then(function(r){return r.ok?r.json():[];}).then(function(rows){GP=rows&&rows[0]||null;}).catch(function(){GP=null;});
+  var wx=loadWeekendWeather().then(function(w){WX=w;}).catch(function(e){WXERR=e.message||"Weather unavailable";});
+  Promise.all([gp,wx]).then(function(){ wxLoading=false; var c=$("wx-corner"); if(c) c.outerHTML=wxCorner(); if($("wx-sheet")) openWx(); });
+}
+function wxCorner(){
+  if(!WX && !WXERR) loadWx();
+  var body = WX ? wxCard(WX, GP) : WXERR ? '<span class="muted" style="font-size:13px">'+esc(WXERR)+'</span>' : '<span class="muted" style="font-size:13px">Loading the forecast…</span>';
+  return '<button class="wx-corner" id="wx-corner" data-act="wx"><div class="wx-corner-head"><b>This weekend</b><span>Hour by hour ›</span></div>'+body+'</button>';
+}
+function openWx(){
+  var gpHtml = GP ? '<div class="gp-box"><h4>Facilities gameplan</h4><span class="gp-pill '+GAMEPLAN_STATUS[GP.status][1]+'" style="margin-top:0">'+GAMEPLAN_STATUS[GP.status][0]+'</span>'+(GP.plan?'<p class="gp-text">'+esc(GP.plan)+'</p>':'')+'<div class="gp-meta">From '+esc(GP.updated_by||'Facilities')+' · '+new Date(GP.updated_at).toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"})+'</div></div>'
+    : '<div class="gp-box"><h4>Facilities gameplan</h4><p class="muted" style="margin:0">Facilities hasn\'t posted a plan for this weekend yet.</p></div>';
+  var body = gpHtml + (WX ? '<div class="wx-tabs">'+WX.days.map(function(d,i){return '<button type="button" class="chip-btn big'+(i===wxDay?' on':'')+'" data-wxday="'+i+'">'+esc(wxDayLabel(d.date))+'</button>';}).join("")+'</div><div>'+wxHourly(WX.days[wxDay])+'</div><p class="muted" style="font-size:12px;margin:0">National Weather Service forecast for Fort Worth.</p>'
+    : '<p class="muted">'+esc(WXERR||"Loading the forecast…")+'</p>');
+  sheet("This weekend", '<div id="wx-sheet" style="display:flex;flex-direction:column;gap:14px">'+body+'</div>');
+  $("layer").querySelector(".ops-sheet").classList.add("wx-sheet");
+  $("layer").onclick=function(e){ var b=e.target.closest("[data-wxday],[data-close]"); if(!b||closeHit(e,b)) return; wxDay=+b.dataset.wxday; openWx(); };
+}
+
 function teamCard(t){
   var rs=teamReqs(t).filter(isOpen), td=today(), late=rs.filter(function(r){return r.due && r.due<td;}).length;
   var lines=['<li><b>'+rs.length+'</b> open requests</li>', late?'<li class="late"><b>'+late+'</b> past due</li>':'<li>Nothing past due</li>'];
@@ -502,7 +541,8 @@ document.addEventListener("click", function(e){
   if(b.dataset.pick){ formState.team=b.dataset.pick; document.querySelectorAll("[data-pick]").forEach(function(x){x.classList.toggle("on", x===b);}); return; }
   if(b.dataset.when){ document.querySelectorAll("[data-when]").forEach(function(x){x.classList.toggle("on", x===b);}); return; }
   var a=b.dataset.act;
-  if(a==="notifs") openNotifs();
+  if(a==="wx") openWx();
+  else if(a==="notifs") openNotifs();
   else if(a==="tip"){ S.tipOff=true; save(); render(); }
   else if(a==="again"){ formState={team:null,sent:null}; render(); }
   else if(a==="reset"){ if(b.dataset.arm){ S=seed(); formState={team:null,sent:null}; save(); toast("Back to the start"); location.hash="#ops"; render(); } else { b.dataset.arm="1"; b.textContent="Tap again to start over"; } }
