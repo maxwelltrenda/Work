@@ -217,6 +217,23 @@ function sitePages() {
 const siteHome = () => (SITE === 'events' ? (siteRole().scanTools ? 'kiosk' : 'events') : SITE === 'media' ? (mediaRole() ? 'kiosk' : 'toollist') : myRole().home);
 
 // A few big tabs; everything else lives under one "Admin" / "More" menu.
+// Small icons for the menu (shown on phones, where the menu is one swipeable row).
+const NAV_ICON_PATHS = {
+  overview: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+  kiosk: '<path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2"/><path d="M8 8v8M11 8v8M14 8v8M17 8v8"/>',
+  requests: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5h6v2H9zM9 11h6M9 15h4"/>',
+  checklist: '<path d="M4 6.5 5.5 8 8 5.5M4 12.5 5.5 14 8 11.5M4 18.5 5.5 20 8 17.5"/><path d="M11 7h9M11 13h9M11 19h9"/>',
+  schedule: '<path d="M14.7 6.3a4 4 0 0 0 5 5L12 19a2.1 2.1 0 0 1-3-3l7.7-7.7a4 4 0 0 0-5-5l2.6 2.6-.6 2.4-2.4.6z"/>',
+  items: '<path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/>',
+  toollist: '<path d="M14 4.5 19.5 10M17 7l-9.5 9.5M5 14l5 5M3.5 20.5l3-3"/><path d="m12.5 3 8.5 8.5-2 2L10.5 5z"/>',
+  team: '<circle cx="9" cy="8" r="3.2"/><path d="M3 19c.7-3.2 3.1-5 6-5s5.3 1.8 6 5"/><circle cx="17" cy="9" r="2.6"/><path d="M16.5 14.2c2.3.2 3.9 1.8 4.5 4.8"/>',
+  events: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  reservations: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/>',
+  out: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  more: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+};
+const navIcon = (k) => `<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAV_ICON_PATHS[k] || NAV_ICON_PATHS.items}</svg>`;
+
 const NAV = {
   facilities: {
     main: [['overview', 'Overview'], ['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools'], ['team', 'Team']],
@@ -484,17 +501,27 @@ function renderTopbar() {
     const [h0, h1] = location.hash.slice(2).split('/');
     const cur = h0 ? pageKey(h0, h1) : siteHome();
     const link = ([k, t]) => {
-      if (k === 'items') return firstStock ? `<a href="#/${firstStock}" class="${cur.startsWith('items/') ? 'active' : ''}">${t}</a>` : '';
-      return pages.includes(k) ? `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${t}</a>` : '';
+      if (k === 'items') return firstStock ? `<a href="#/${firstStock}" class="${cur.startsWith('items/') ? 'active' : ''}">${navIcon('items')}<span>${t}</span></a>` : '';
+      return pages.includes(k) ? `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${navIcon(k)}<span>${t}</span></a>` : '';
     };
     const more = NAV[SITE].more.map(link).filter(Boolean);
     const others = Object.keys(SITES).filter((k) => k !== SITE && SITE_URLS?.[k] && canUseSite(k))
       .map((k) => `<a href="${esc(SITE_URLS[k])}">${esc(SITES[k].name)} ↗</a>`);
     const moreActive = NAV[SITE].more.some(([k]) => k === cur);
     nav.innerHTML = NAV[SITE].main.map(link).join('')
-      + (more.length || others.length ? `<details class="more ${moreActive ? 'active' : ''}"><summary>${isSiteAdmin() ? 'Admin' : 'More'}</summary>
+      + (more.length || others.length ? `<details class="more ${moreActive ? 'active' : ''}"><summary>${navIcon('more')}<span>${isSiteAdmin() ? 'Admin' : 'More'}</span></summary>
           <div class="more-menu">${more.join('')}${others.length ? `<div class="more-sub">Other sites</div>${others.join('')}` : ''}</div></details>` : '');
     nav.querySelectorAll('.more-menu a').forEach((a) => a.addEventListener('click', () => a.closest('details').removeAttribute('open')));
+    // Phone: the menu is one swipeable row. Keep the open tab in view, and
+    // place the Admin menu under its button (the row clips anything inside it).
+    const on = nav.querySelector('a.active, .more.active');
+    if (on && nav.scrollWidth > nav.clientWidth) nav.scrollLeft = on.offsetLeft - (nav.clientWidth - on.offsetWidth) / 2;
+    nav.querySelector('details.more')?.addEventListener('toggle', (e) => {
+      const d = e.currentTarget;
+      const menu = d.querySelector('.more-menu');
+      if (!d.open || !matchMedia('(max-width: 1000px)').matches) { menu.style.top = ''; return; }
+      menu.style.top = `${d.querySelector('summary').getBoundingClientRect().bottom + 6}px`;
+    });
     const roleLabel = isOrgAdmin() ? 'Admin' : SITE === 'media' ? (MEDIA_ROLES[mediaRole()] || myRole().label) : SITE === 'events' ? (EVENTS_ROLES[state.me.events_role] || 'Events team') : myRole().label;
     who.innerHTML = `${canSeeNotifs() ? BELL : ''}<span class="who-name">${esc(state.me.name)} · ${esc(roleLabel)}</span><button id="signout">Sign out</button>`;
     bindBell();

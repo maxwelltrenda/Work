@@ -1249,3 +1249,29 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .ov-prog { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
 .ov-bar { height: 10px; border-radius: 9px; background: var(--paper-2); overflow: hidden; }
 .ov-bar i { display: block; height: 100%; background: var(--in); border-radius: 9px; }
+
+/* ---------- Menu: icons on phones, one swipeable row ---------- */
+/* Computer: icon next to each tab name. */
+#nav { flex-wrap: nowrap; gap: 0; }
+#nav > a, #nav .more > summary { display: inline-flex; align-items: center; gap: 6px; padding-left: 9px; padding-right: 9px; font-size: 16px; white-space: nowrap; }
+#nav .nav-ico { width: 18px; height: 18px; flex: none; color: var(--muted); }
+#nav > a.active .nav-ico, #nav .more.active .nav-ico, #nav > a:hover .nav-ico { color: var(--accent); }
+#nav > a[href="#/checklist"] .nav-ico { color: var(--dept-custodial); }
+#nav > a[href="#/schedule"] .nav-ico { color: var(--dept-maint); }
+#nav > a[href="#/checklist"]::before, #nav > a[href="#/schedule"]::before { display: none; }
+#nav .more-menu .nav-ico { display: none; }
+@media (max-width: 1000px) {
+  #nav { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 0; margin: 2px -16px 0; padding: 0 8px; scroll-behavior: smooth; }
+  #nav::-webkit-scrollbar { display: none; }
+  #nav > a, #nav .more > summary { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: none; min-width: 66px; padding: 6px 8px 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  #nav > a.active, #nav .more.active > summary { color: var(--ink); }
+  #nav .nav-ico { display: block; width: 22px; height: 22px; }
+  #nav > a.active .nav-ico, #nav .more.active .nav-ico { color: var(--accent); }
+  #nav > a[href="#/checklist"] .nav-ico { color: var(--dept-custodial); }
+  #nav > a[href="#/schedule"] .nav-ico { color: var(--dept-maint); }
+  #nav > a[href="#/checklist"]::before, #nav > a[href="#/schedule"]::before { display: none; }
+  #nav .more { flex: none; }
+  #nav .more > summary::after { content: none; }
+  #nav .more-menu { position: fixed; right: 12px; left: auto; top: 120px; max-height: 70vh; overflow-y: auto; }
+  .topbar { padding-bottom: 0; }
+}
