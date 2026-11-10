@@ -9,6 +9,7 @@ import { pulledKit } from './pulled.js?v=__V__';
 import { teamPages } from './team.js?v=__V__';
 import { contractorPages } from './contractors.js?v=__V__';
 import { gameplanPages } from './gameplan.js?v=__V__';
+import { overviewPages } from './overview.js?v=__V__';
 
 // Demo mode (?demo): the Facilities app with sample data, no login, nothing
 // saved. It never connects to the real database (demo.js).
@@ -23,6 +24,7 @@ if (DEMO) {
 }
 // A short guide to the tabs, shown the first time the demo opens.
 const DEMO_GUIDE = [
+  ['overview', 'Overview', 'The start page. Every department on one screen.'],
   ['kiosk', 'Check In / Out', 'Scan a tool to take it or bring it back. Scan stock to take it off the shelf.'],
   ['requests', 'Requests', 'All work requests. Move each one from New to Done.'],
   ['checklist', 'Custodial', 'The cleaning list for each day. Tap the circle when a room is done.'],
@@ -109,13 +111,13 @@ const isKiosk = () => state.me?.role === 'kiosk';
 // What each role can open. Only admin and the kiosk can change anything; the
 // database enforces the same rules (see 0008_view_roles.sql).
 const ALL_PAGES = [
-  ['requests', 'Maintenance Requests'], ['checklist', 'Custodial Checklist'], ['schedule', 'Maintenance Checklist'],
+  ['overview', 'Overview'], ['requests', 'Maintenance Requests'], ['checklist', 'Custodial Checklist'], ['schedule', 'Maintenance Checklist'],
   ['kiosk', 'Check In / Out'], ['out', 'Who Has What'], ['events', 'Events'],
   ['items/facilities', 'Facilities Stock'], ['items/maintenance', 'Maintenance Stock'], ['items/paint', 'Paint'], ['items/events', 'Event Stock'], ['toollist', 'Tools'],
   ['stock', 'Scan Stock'], ['history', 'History'], ['labels', 'Labels'], ['people', 'People'], ['locations', 'Locations'], ['categories', 'Categories'], ['contractors', 'Contractors'], ['gameplan', 'Weekend plan'],
 ];
 const ROLES = {
-  admin: { label: 'Admin', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'paint', 'events'], tools: true,
+  admin: { label: 'Admin', act: true, home: 'overview', stock: ['facilities', 'maintenance', 'paint', 'events'], tools: true,
     scanStock: ['facilities', 'maintenance', 'paint', 'events'], scanTools: true,
     pages: [...ALL_PAGES.map(([k]) => k), 'item', 'tool', 'event', 'request'] },
   kiosk: { label: 'Kiosk (shared iPad)', act: true, home: 'kiosk', stock: ['facilities', 'maintenance', 'paint', 'events'], tools: true,
@@ -125,10 +127,10 @@ const ROLES = {
   member: { label: 'Facilities & Maintenance', act: false, home: 'kiosk', stock: ['facilities', 'maintenance', 'paint'], tools: true,
     scanStock: ['facilities', 'maintenance', 'paint'], scanTools: true,
     pages: ['kiosk', 'requests', 'request', 'checklist', 'items/facilities', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
-  maintenance: { label: 'Maintenance manager', act: false, home: 'kiosk', stock: ['maintenance', 'paint'], tools: true,
+  maintenance: { label: 'Maintenance manager', act: false, home: 'schedule', stock: ['maintenance', 'paint'], tools: true,
     scanStock: ['maintenance', 'paint'], scanTools: true,
     pages: ['kiosk', 'requests', 'request', 'checklist', 'schedule', 'contractors', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
-  custodian: { label: 'Custodian manager', act: false, home: 'kiosk', stock: ['facilities'], tools: false,
+  custodian: { label: 'Custodian manager', act: false, home: 'checklist', stock: ['facilities'], tools: false,
     scanStock: ['facilities'], scanTools: false,
     pages: ['kiosk', 'checklist', 'requests', 'request', 'items/facilities', 'history', 'item'] },
   oversight: { label: 'Oversight', act: false, home: 'out', stock: ['facilities', 'maintenance', 'paint', 'events'], tools: true,
@@ -217,7 +219,7 @@ const siteHome = () => (SITE === 'events' ? (siteRole().scanTools ? 'kiosk' : 'e
 // A few big tabs; everything else lives under one "Admin" / "More" menu.
 const NAV = {
   facilities: {
-    main: [['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools'], ['team', 'Team']],
+    main: [['overview', 'Overview'], ['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools'], ['team', 'Team']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
       ['people', 'People'], ['locations', 'Locations'], ['contractors', 'Contractors'], ['gameplan', 'Weekend plan'], ['categories', 'Categories']],
   },
@@ -776,6 +778,7 @@ const routes = {
   team: (...a) => TEAM.renderTeam(...a),
   contractors: () => CONTRACTORS.renderContractors(),
   gameplan: () => GAMEPLAN.renderGameplan(),
+  overview: () => OVERVIEW.renderOverview(),
 };
 
 // Maintenance Requests and the Weekly Checklist (boards.js). Editing: admin and
@@ -789,6 +792,7 @@ const BOARDS = boardPages({
 });
 
 // Recurring maintenance schedule (pm.js): Maintenance managers and admins.
+const OVERVIEW = overviewPages({ sb, q, rpc, esc, me: () => state.me });
 const GAMEPLAN = gameplanPages({ rpc, esc, toast, errMsg, pageHead });
 const CONTRACTORS = contractorPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, canEdit: () => isAdmin() });
 const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled: PULLED, contractors: CONTRACTORS, isAdmin });
@@ -3426,7 +3430,7 @@ const markFullscreen = () => {
 };
 markFullscreen();
 window.addEventListener('resize', markFullscreen);
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {
