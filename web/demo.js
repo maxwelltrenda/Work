@@ -160,6 +160,8 @@ pm({ name: 'Lawn care', frequency: 'biweekly', start_day: 1, steps: ['Mow', 'Wee
 pm({ name: 'Test emergency and exit lights', frequency: 'monthly', due_days: 7, assignees: ['judah'] });
 const gt = pm({ name: 'Grease trap cleaning', frequency: 'quarterly', start_month: 1, contractor_id: 1, assignees: ['max'] });
 pm({ name: 'Book the grease trap company', frequency: 'quarterly', parent_id: gt.id, lead_days: 14 });
+pm({ name: 'Replace lobby carpet tiles', frequency: 'once', once_start: dayIso(5), once_due: dayIso(21), location: 'Grand Lobby', assignees: ['kenny'], notes: 'Tiles are in the warehouse.' });
+pm({ name: 'Fix the back gate latch', frequency: 'once', once_due: dayIso(2), location: 'Back gate', assignees: ['judah'] });
 pm({ name: 'Fire extinguisher inspection', frequency: 'yearly', start_month: 1, due_days: 30, contractor_id: 2 });
 
 // Team schedule extras
@@ -194,8 +196,13 @@ function periodEnd(freq, start) {
   return addDays(isoOf(new Date(y, m - 1 + STEP_M[freq], d)), -1);
 }
 function pmRefresh() {
-  db.pm_runs.forEach((r) => { if (r.status === 'open' && r.period_end < TODAY) r.status = 'missed'; });
-  db.pm_tasks.filter((t) => t.active && !t.parent_id).forEach((t) => {
+  db.pm_runs.forEach((r) => { if (r.status === 'open' && r.period_end < TODAY && db.pm_tasks.find((t) => t.id === r.task_id)?.frequency !== 'once') r.status = 'missed'; });
+  db.pm_tasks.filter((t) => t.active && !t.parent_id && t.frequency === 'once' && t.once_due).forEach((t) => {
+    if (db.pm_runs.some((r) => r.task_id === t.id)) return;
+    const st = t.once_start || TODAY;
+    db.pm_runs.push({ id: nextId(), task_id: t.id, period_start: st < t.once_due ? st : t.once_due, period_end: t.once_due, due_on: t.once_due, status: 'open', steps_done: [] });
+  });
+  db.pm_tasks.filter((t) => t.active && !t.parent_id && t.frequency !== 'once').forEach((t) => {
     const ps = periodStart(t.frequency, TODAY, t.start_month, t.start_day);
     if (db.pm_runs.some((r) => r.task_id === t.id && r.period_start === ps)) return;
     const pe = periodEnd(t.frequency, ps);
@@ -219,7 +226,7 @@ function pmRefresh() {
 pmRefresh();
 // Some history, and one done this period
 db.pm_runs.filter((r) => db.pm_tasks.find((t) => t.id === r.task_id)?.name === 'Test emergency and exit lights').forEach((r) => { r.status = 'done'; r.done_by = 'judah'; r.done_at = ago(60 * 26); });
-db.pm_tasks.filter((t) => !t.parent_id && t.frequency !== 'yearly').forEach((t, i) => {
+db.pm_tasks.filter((t) => !t.parent_id && !['yearly', 'once'].includes(t.frequency)).forEach((t, i) => {
   const prev = periodStart(t.frequency, addDays(periodStart(t.frequency, TODAY, t.start_month, t.start_day), -1), t.start_month, t.start_day);
   db.pm_runs.push({ id: nextId(), task_id: t.id, period_start: prev, period_end: periodEnd(t.frequency, prev), due_on: periodEnd(t.frequency, prev), status: i === 2 ? 'missed' : 'done', done_by: t.assignees[0] || 'max', done_at: i === 2 ? null : `${addDays(prev, 3)}T15:00:00Z`, steps_done: [] });
 });
@@ -423,6 +430,12 @@ const RPC = {
     });
     db.pm_tasks.filter((c) => c.parent_id === p_parent && !keep.includes(c.id)).forEach((c) => { c.active = false; });
     db.pm_runs = db.pm_runs.filter((r) => !(db.pm_tasks.find((c) => c.id === r.task_id)?.parent_id === p_parent && r.status === 'open'));
+    pmRefresh();
+  },
+  pm_set_once({ p_task, p_start, p_due }) {
+    const t = db.pm_tasks.find((x) => loose(x.id, p_task));
+    Object.assign(t, { frequency: 'once', once_start: p_start || null, once_due: p_due, due_days: null, start_month: null, start_day: null });
+    db.pm_runs = db.pm_runs.filter((r) => !(r.task_id === t.id && r.status === 'open'));
     pmRefresh();
   },
   pm_set_contractor({ p_task, p_contractor }) { db.pm_tasks.find((x) => loose(x.id, p_task)).contractor_id = p_contractor; },

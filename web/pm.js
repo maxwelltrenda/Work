@@ -6,7 +6,7 @@ import { contractorContact } from './contractors.js?v=__V__';
 // opening the page calls pm_refresh(), which opens this period's tasks and
 // marks anything left from an ended period as Missed.
 
-const FREQS = [['weekly', 'Weekly', 'week'], ['biweekly', 'Every 2 weeks', '2 weeks'], ['monthly', 'Monthly', 'month'], ['quarterly', 'Quarterly', 'quarter'], ['yearly', 'Yearly', 'year']];
+const FREQS = [['once', 'One time', 'time'], ['weekly', 'Weekly', 'week'], ['biweekly', 'Every 2 weeks', '2 weeks'], ['monthly', 'Monthly', 'month'], ['quarterly', 'Quarterly', 'quarter'], ['yearly', 'Yearly', 'year']];
 const FREQ_LABEL = Object.fromEntries(FREQS.map(([k, l]) => [k, l]));
 const FREQ_NOUN = Object.fromEntries(FREQS.map(([k, , n]) => [k, n]));
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -28,6 +28,7 @@ const fortnightStart = (iso, parity = 1) => {
 const dayDiff = (a, b) => Math.round((new Date(`${a}T12:00:00`) - new Date(`${b}T12:00:00`)) / 864e5);
 
 function periodLabel(freq, start, end) {
+  if (freq === 'once') return `Due ${dshort(end)}`;
   const [y, m, d] = parts(start);
   if (freq === 'biweekly') return `${dshort(start)} – ${dshort(end || addD(start, 13))}`;
   // A period that doesn't start on a plain calendar boundary shows its dates.
@@ -42,6 +43,7 @@ function periodLabel(freq, start, end) {
 // e.g. quarterly, starts Dec 1, 14 days -> "Due Dec 1–14, Mar 1–14, Jun 1–14, Sep 1–14"
 const STEP = { monthly: 1, quarterly: 3, yearly: 12 };
 function windowText(t) {
+  if (t.frequency === 'once') return t.once_due ? `One time · due ${dshort(t.once_due)}${t.once_start ? ` · shows up ${dshort(t.once_start)}` : ''}` : 'One time · pick the date it is due';
   const n = t.due_days;
   if (t.frequency === 'biweekly') {
     if (!n || n >= 14) return 'Any time in the 2 weeks';
@@ -98,7 +100,9 @@ export function schedulePages(ctx) {
     crew = members.filter((m) => m.active && !['kiosk', 'none'].includes(m.role)).sort((a, b) => a.name.localeCompare(b.name));
     const taskBy = Object.fromEntries(tasks.map((t) => [t.id, t]));
     preps = tasks.filter((t) => t.parent_id);
-    const current = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today && r.period_end >= today);
+    // A one-time task stays on the list until it's done, even past its due date.
+    const current = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today && (r.period_end >= today || (taskBy[r.task_id].frequency === 'once' && r.status === 'open')));
+    allRuns = runs;
     const overdue = current.filter((r) => r.status === 'open' && r.due_on < today);
     const dueSoon = current.filter((r) => r.status === 'open' && r.due_on >= today && dayDiff(r.due_on, today) <= 7);
     const done = current.filter((r) => r.status === 'done');
@@ -123,6 +127,7 @@ export function schedulePages(ctx) {
   // ---- This period -------------------------------------------------------
   // When a task's next round starts, for ones waiting on their next window.
   function nextStart(t, today) {
+    if (t.frequency === 'once') return t.once_start || t.once_due || null;
     const [y, m, d] = parts(today);
     const iso = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
     const after = (dt) => iso(dt) > today;
@@ -138,13 +143,16 @@ export function schedulePages(ctx) {
     return null;
   }
   let preps = [];   // get-ready steps of every task, set on each render
+  let allRuns = []; // every round, set on each render
   function comingUp(waiting, today) {
     if (!waiting.length) return '';
     const rows = waiting.map((t) => {
       const st = nextStart(t, today);
       let end = null;
-      if (st && t.due_days) { const [a, b, c] = parts(st); const dt = new Date(a, b - 1, c + t.due_days - 1); end = `${MON[dt.getMonth()]} ${dt.getDate()}`; }
+      if (t.frequency === 'once' && t.once_due) end = dshort(t.once_due);
+      else if (st && t.due_days) { const [a, b, c] = parts(st); const dt = new Date(a, b - 1, c + t.due_days - 1); end = `${MON[dt.getMonth()]} ${dt.getDate()}`; }
       const pr = preps.filter((c) => c.parent_id === t.id && c.active && c.lead_days).map((c) => `${esc(c.name)} from ${dshort(addD(st, -c.lead_days))}`);
+      if (t.frequency === 'once') return { t, st, txt: `Shows up ${dshort(st)}${end ? ` · due by ${end}` : ''}` };
       return { t, st, txt: st ? `Next round starts ${dshort(st)}${end ? ` · due by ${end}` : ''}${pr.length ? ` · Get ready: ${pr.join(', ')}` : ''}` : '' };
     }).sort((a, b) => String(a.st).localeCompare(String(b.st)));
     return `<h2 class="pm-sect">Coming up <span class="muted">not due yet this period</span></h2>
@@ -157,7 +165,8 @@ export function schedulePages(ctx) {
 
   function nowView(current, taskBy, who, today, active = []) {
     const have = new Set(current.map((r) => r.task_id));
-    const waiting = active.filter((t) => !have.has(t.id));
+    // Waiting for their next round (a one-time task that's finished isn't waiting).
+    const waiting = active.filter((t) => !have.has(t.id) && !(t.frequency === 'once' && allRuns.some((r) => r.task_id === t.id && r.status !== 'open')));
     const preps = current.filter((r) => taskBy[r.task_id].parent_id)
       .sort((a, b) => (b.status === 'open') - (a.status === 'open') || a.due_on.localeCompare(b.due_on));
     const prepHtml = preps.length ? `<h2 class="pm-sect">Get ready <span class="muted">before upcoming rounds · ${preps.filter((r) => r.status === 'open').length} to do</span></h2>
@@ -173,7 +182,7 @@ export function schedulePages(ctx) {
         .sort((a, b) => (b.status === 'open') - (a.status === 'open') || a.due_on.localeCompare(b.due_on) || taskBy[a.task_id].sort - taskBy[b.task_id].sort);
       if (!rs.length) return '';
       const left = rs.filter((r) => r.status === 'open').length;
-      return `<h2 class="pm-sect">${label} <span class="muted">${periodLabel(f, rs[0].period_start, rs[0].period_end)} · ${left ? `${left} to do` : 'all done'}</span></h2>
+      return `<h2 class="pm-sect">${label} <span class="muted">${f === 'once' ? '' : `${periodLabel(f, rs[0].period_start, rs[0].period_end)} · `}${left ? `${left} to do` : 'all done'}</span></h2>
         <div class="pm-list">${rs.map((r) => runCard(r, taskBy[r.task_id], who, today)).join('')}</div>`;
     }).join('') + comingUp(waiting, today);
   }
@@ -245,10 +254,13 @@ export function schedulePages(ctx) {
     const todayIso = isoOf(new Date());
     let ctId = t.contractor_id || null;
     let people = new Set(t.assignees || []);
+    let onceDue = t.once_due || '';
+    let onceStart = t.once_start || '';
     let byCt = !!ctId;
     // Work out which choice an existing task matches.
     const load = (x) => {
       freq = x.frequency || freq; month = x.start_month || month;
+      if (freq === 'once') { win = 'any'; return; }
       const sd = x.start_day || 1;
       const n = x.due_days ?? null;
       if (freq === 'weekly') { win = (WEEK_WIN.find((w) => w[2] === n) || ['custom'])[0]; from = 1; to = n || ''; return; }
@@ -286,13 +298,17 @@ export function schedulePages(ctx) {
           <div class="wk-chips">${MON.map((mn, i) => `<button type="button" class="chip-btn" data-month="${i + 1}">${mn}</button>`).join('')}</div></div>` : ''}
         <div data-for="biweekly"><div class="wk-sect">Which weeks</div>
           <div class="wk-chips">${[1, 2].map((pp) => { const a = addD(fortnightStart(todayIso, pp), 14); return `<button type="button" class="chip-btn" data-parity="${pp}">Next starts Sun ${dshort(a)}, then ${dshort(addD(a, 14))}…</button>`; }).join('')}</div></div>
-        <div class="wk-sect" data-when-title></div>
+        <div data-for="once"><div class="wk-sect">When</div>
+          <div class="pm-once"><label><span>Due by</span><input type="date" name="once_due" value="${esc(onceDue)}"></label>
+          <label><span>Put it on the list on <span class="muted">(optional)</span></span><input type="date" name="once_start" value="${esc(onceStart)}"></label></div>
+          <p class="muted pm-once-hint">Leave the second date empty to put it on the list now. It stays on the list until it's done.</p></div>
+        <div data-notonce><div class="wk-sect" data-when-title></div>
         <div class="wk-chips" data-wins></div>
-        <div class="pm-custom" data-custom-row></div>
+        <div class="pm-custom" data-custom-row></div></div>
         <p class="pm-preview" data-pm-preview></p>
-        <div class="wk-sect">Get ready first <span class="muted pm-opt">(optional: ordering parts, booking a vendor…)</span></div>
+        <div data-notonce><div class="wk-sect">Get ready first <span class="muted pm-opt">(optional: ordering parts, booking a vendor…)</span></div>
         <div class="pm-preps" data-preps></div>
-        <button type="button" class="dp-link pm-prep-add" data-prep-add>+ Add a get-ready step</button>
+        <button type="button" class="dp-link pm-prep-add" data-prep-add>+ Add a get-ready step</button></div>
         <div class="wk-sect">Who does it</div>
         <div class="wk-chips"><button type="button" class="chip-btn" data-by="team">Our team</button><button type="button" class="chip-btn" data-by="ct">A contractor we hire</button></div>
         <div class="pm-ctpick" data-ctpick></div>
@@ -323,6 +339,7 @@ export function schedulePages(ctx) {
         $('[data-wins]').querySelectorAll('[data-win]').forEach((b) => b.addEventListener('click', () => { win = b.dataset.win; drawWins(); preview(); }));
       };
       const preview = () => {
+        if (freq === 'once') { $('[data-pm-preview]').textContent = windowText({ frequency: 'once', once_due: onceDue, once_start: onceStart }); return; }
         const { sd, n } = params();
         let txt = windowText({ frequency: freq, due_days: n, start_month: month, start_day: sd });
         if (win === 'custom' && freq !== 'weekly' && to && parseInt(to, 10) < (parseInt(from, 10) || 1)) txt = 'The end day has to be after the start day.';
@@ -366,6 +383,7 @@ export function schedulePages(ctx) {
         form.querySelectorAll('[data-parity]').forEach((b) => b.classList.toggle('on', Number(b.dataset.parity) === parity));
         form.querySelectorAll('[data-freq]').forEach((b) => b.classList.toggle('on', b.dataset.freq === freq));
         form.querySelectorAll('[data-for]').forEach((el) => { el.hidden = el.dataset.for !== freq; });
+        form.querySelectorAll('[data-notonce]').forEach((el) => { el.hidden = freq === 'once'; });
         form.querySelectorAll('[data-month]').forEach((b) => {
           const m = Number(b.dataset.month);
           b.classList.toggle('on', freq === 'quarterly' ? (m - 1) % 3 === (month - 1) % 3 : m === month);
@@ -373,6 +391,8 @@ export function schedulePages(ctx) {
         drawWins(); preview();
       };
       form.querySelectorAll('[data-parity]').forEach((b) => b.addEventListener('click', () => { parity = Number(b.dataset.parity); sync(); }));
+      $('[name=once_due]').addEventListener('change', (e) => { onceDue = e.target.value; preview(); });
+      $('[name=once_start]').addEventListener('change', (e) => { onceStart = e.target.value; preview(); });
       $('[data-prep-add]').addEventListener('click', () => { prepList.push({ name: '', lead: 7 }); drawPreps(); $(`[data-pn="${prepList.length - 1}"]`).focus(); });
       form.querySelectorAll('[data-freq]').forEach((b) => b.addEventListener('click', () => {
         if (freq === b.dataset.freq) return;
@@ -396,7 +416,9 @@ export function schedulePages(ctx) {
       const save = async (again) => {
         const name = $('[name=name]').value.trim();
         if (!name) { $('[name=name]').focus(); toast('Say what needs doing', true); return; }
-        const { sd, n } = params();
+        if (freq === 'once' && !onceDue) { toast('Pick the date it is due', true); return; }
+        if (freq === 'once' && onceStart && onceStart > onceDue) { toast('The list date has to be on or before the due date', true); return; }
+        const { sd, n } = freq === 'once' ? { sd: null, n: null } : params();
         if (win === 'custom' && freq !== 'weekly' && to && parseInt(to, 10) < (parseInt(from, 10) || 1)) { toast('The end day has to be after the start day', true); return; }
         const f = new FormData(form);
         try {
@@ -404,18 +426,19 @@ export function schedulePages(ctx) {
             p_id: t.id || null, p_name: name, p_frequency: freq, p_due_days: n,
             p_location: String(f.get('location') || '').trim() || null, p_notes: f.get('notes') || null,
             p_steps: String(f.get('steps') || '').split('\n').map((x) => x.trim()).filter(Boolean),
-            ...(anchorsReady ? { p_start_month: ['quarterly', 'yearly'].includes(freq) ? month : null, p_start_day: freq === 'weekly' ? null : sd } : {}),
+            ...(anchorsReady ? { p_start_month: ['quarterly', 'yearly'].includes(freq) ? month : null, p_start_day: ['weekly', 'once'].includes(freq) ? null : sd } : {}),
           });
+          if (freq === 'once' && (onceDue !== (t.once_due || '') || onceStart !== (t.once_start || '') || t.frequency !== 'once')) await rpc('pm_set_once', { p_task: t.id || id, p_start: onceStart || null, p_due: onceDue });
           const keep = prepList.filter((c) => c.name.trim());
           const newCt = byCt ? ctId : null;
           if (newCt !== (t.contractor_id || null)) await rpc('pm_set_contractor', { p_task: t.id || id, p_contractor: newCt });
           const ppl = [...people];
           if (ppl.sort().join() !== [...(t.assignees || [])].sort().join()) await rpc('pm_set_assignees', { p_task: t.id || id, p_people: ppl });
-          if (editing || keep.length) await rpc('pm_set_preps', { p_parent: t.id || id, p_preps: keep.map((c) => ({ id: c.id || null, name: c.name.trim(), lead_days: c.lead })) });
+          if (freq !== 'once' && (editing || keep.length)) await rpc('pm_set_preps', { p_parent: t.id || id, p_preps: keep.map((c) => ({ id: c.id || null, name: c.name.trim(), lead_days: c.lead })) });
           changed = true;
           toast(editing ? 'Saved' : `Added “${name}” to the schedule`);
           if (!again) return done();
-          form.reset(); $('[name=name]').value = ''; win = 'any'; prepList = []; byCt = false; ctId = null; people = new Set(); drawPeople(); drawCt(); sync(); $('[name=name]').focus();
+          form.reset(); $('[name=name]').value = ''; win = 'any'; prepList = []; byCt = false; ctId = null; people = new Set(); onceDue = ''; onceStart = ''; drawPeople(); drawCt(); sync(); $('[name=name]').focus();
         } catch (err) { toast(errMsg(err), true); }
       };
       $('[data-again]')?.addEventListener('click', () => save(true));

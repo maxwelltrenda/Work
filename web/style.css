@@ -1219,3 +1219,6 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .dg-row span { grid-column: 1; font-size: 13px; line-height: 1.4; }
 .dg-row i { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-style: normal; font-size: 20px; color: var(--muted); }
 @media (max-width: 560px) { .demo-bar span { display: none; } }
+.pm-once { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pm-once-hint { font-size: 13px; margin: 6px 0 0; }
+@media (max-width: 560px) { .pm-once { grid-template-columns: 1fr; } }
