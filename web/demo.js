@@ -243,6 +243,7 @@ function onUpdate(table, row, patch) {
     db.maint_updates.push({ id: nextId(), request_id: row.id, parent_id: null, kind: 'system', author: 'Skyler', body: `Status: ${row.status} → ${st}`, created_at: nowIso() });
   }
   if (table === 'checklist_tasks' && patch.status && patch.status !== row.status) {
+    if (patch.status === 'Done' && row.week_of) db.notifications.push({ id: nextId(), created_at: nowIso(), site: 'facilities', kind: 'done', title: `Custodial done: ${row.name}`, body: `By Skyler · ${row.day || ''}`, link: '#/checklist' });
     if (patch.status === 'Done') { row.done_on = nowIso(); const who = String(row.who || '').split(',').map((x) => x.trim()).filter(Boolean); if (!who.includes('Skyler')) row.who = [...who, 'Skyler'].join(', '); }
     else if (row.status === 'Done') row.done_on = null;
     if (row.timer_started_at && ['Done', 'Skipped', 'Missed', 'Not started'].includes(patch.status)) { row.worked_seconds += Math.round((Date.now() - new Date(row.timer_started_at)) / 1000); row.timer_started_at = null; }
@@ -441,7 +442,8 @@ const RPC = {
   pm_set_contractor({ p_task, p_contractor }) { db.pm_tasks.find((x) => loose(x.id, p_task)).contractor_id = p_contractor; },
   pm_set_assignees({ p_task, p_people }) { db.pm_tasks.find((x) => loose(x.id, p_task)).assignees = p_people || []; },
   pm_set_active({ p_id, p_active }) { const t = db.pm_tasks.find((x) => loose(x.id, p_id)); t.active = p_active; if (p_active) t.active_since = TODAY; else db.pm_runs = db.pm_runs.filter((r) => !(r.task_id === t.id && r.status === 'open')); pmRefresh(); },
-  pm_mark({ p_run, p_status, p_note }) { const r = db.pm_runs.find((x) => loose(x.id, p_run)); r.status = p_status; r.note = p_note || null; r.done_by = p_status === 'done' ? ME : null; r.done_at = p_status === 'done' ? nowIso() : null; },
+  pm_mark({ p_run, p_status, p_note }) { const r = db.pm_runs.find((x) => loose(x.id, p_run));
+    if (p_status === 'done' && r.status !== 'done') db.notifications.push({ id: nextId(), created_at: nowIso(), site: 'facilities', kind: 'done', title: `Maintenance done: ${db.pm_tasks.find((t) => t.id === r.task_id)?.name || 'a task'}`, body: 'By Skyler', link: '#/schedule' }); r.status = p_status; r.note = p_note || null; r.done_by = p_status === 'done' ? ME : null; r.done_at = p_status === 'done' ? nowIso() : null; },
   pm_step({ p_run, p_index, p_done }) { const r = db.pm_runs.find((x) => loose(x.id, p_run)); r.steps_done = p_done ? [...new Set([...(r.steps_done || []), p_index])] : (r.steps_done || []).filter((i) => i !== p_index); },
   get_gameplan: ({ p_weekend }) => db.weekend_gameplan.filter((g) => g.weekend_of === p_weekend),
   set_gameplan_days({ p_weekend, p_days }) {

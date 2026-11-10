@@ -1275,3 +1275,4 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
   #nav .more-menu { position: fixed; right: 12px; left: auto; top: 120px; max-height: 70vh; overflow-y: auto; }
   .topbar { padding-bottom: 0; }
 }
+.notif.done .notif-dot { background: var(--in-soft); color: var(--in); }

@@ -631,7 +631,7 @@ function renderNotOnList() {
 // ---------------------------------------------------------------------------
 
 const canSeeNotifs = () => isAdmin() || state.me?.media_role === 'lead' || state.me?.events_role === 'admin';
-const NOTIF_LINK = (n) => (n.kind === 'low' && n.item_id ? `#/item/${n.item_id}` : n.tool_id ? `#/tool/${n.tool_id}` : '');
+const NOTIF_LINK = (n) => n.link || (n.kind === 'low' && n.item_id ? `#/item/${n.item_id}` : n.tool_id ? `#/tool/${n.tool_id}` : '');
 const BELL = `<button id="bell" class="bell" aria-label="Notifications" aria-haspopup="true"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm-2.2 15.5a2.3 2.3 0 0 0 4.4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="bell-count" hidden></span></button>`;
 let notifTimer = null;
 
@@ -641,7 +641,7 @@ const unreadCount = () => state.notifs.list.filter((n) => isUnread(n)).length;
 async function loadNotifs() {
   if (!state.me || !canSeeNotifs()) return;
   try {
-    state.notifs.list = await q(sb.from('notifications').select('id, created_at, site, kind, title, body, tool_id, item_id')
+    state.notifs.list = await q(sb.from('notifications').select('*')
       .order('created_at', { ascending: false }).limit(80));
     state.notifs.loaded = true;
     updateBell();
@@ -671,7 +671,7 @@ const SITE_TAG = { facilities: 'Facilities', media: 'Media', events: 'Events' };
 function notifRow(n, seenAt) {
   const showSite = isOrgAdmin() && SITE_TAG[n.site] && n.site !== SITE;
   return `<li class="notif ${n.kind} ${isUnread(n, seenAt) ? 'unread' : ''}">
-    <span class="notif-dot" aria-hidden="true">${{ out: '↗', in: '↙', low: '!' }[n.kind]}</span>
+    <span class="notif-dot" aria-hidden="true">${{ out: '↗', in: '↙', low: '!', done: '✓' }[n.kind] || '•'}</span>
     <div class="notif-text">${NOTIF_LINK(n) && n.site === (SITE === 'media' ? 'media' : SITE) ? `<a href="${NOTIF_LINK(n)}"><b>${esc(n.title)}</b></a>` : `<b>${esc(n.title)}</b>`}${n.body ? `<span>${esc(n.body)}</span>` : ''}</div>
     <div class="notif-meta">${showSite ? `<span class="notif-site">${SITE_TAG[n.site]}</span>` : ''}<time title="${esc(fmtDate(n.created_at))}">${since(n.created_at)}</time></div>
   </li>`;
@@ -700,7 +700,7 @@ function bindBell() {
     const list = state.notifs.list.slice(0, 12);
     panel.innerHTML = `<div class="notif-head"><b>Notifications</b><a href="#/notifications">See all</a></div>
       ${!state.notifs.loaded ? LOADER : list.length ? `<ul class="notif-list">${list.map((n) => notifRow(n, seenAt)).join('')}</ul>`
-        : '<p class="muted notif-empty">Nothing yet. Sign-outs, returns and low stock show up here.</p>'}
+        : '<p class="muted notif-empty">Nothing yet. Sign-outs, returns, low stock and checked-off tasks show up here.</p>'}
       <div class="notif-foot" id="push-box"></div>`;
     document.body.appendChild(panel);
     panel.addEventListener('click', (ev) => { ev.stopPropagation(); if (ev.target.closest('a')) closeBell(); });
@@ -718,10 +718,10 @@ async function renderNotifications() {
   const seenAt = state.me.notif_seen_at;
   const list = state.notifs.list;
   app.innerHTML = `
-    ${pageHead('Admin', 'Sign-outs &amp; <span class="accent">returns</span>', `Every sign-out, return and low-stock alert${isOrgAdmin() ? ' on every site' : ''}, newest first.`)}
+    ${pageHead('Admin', '<span class="accent">Alerts</span>', `Tool sign-outs and returns, low stock, and Maintenance and Custodial tasks checked off${isOrgAdmin() ? ', on every site' : ''}. Newest first.`)}
     <div class="card" id="push-box"></div>
     <div class="card" style="margin-top:16px">${list.length ? `<ul class="notif-list">${list.map((n) => notifRow(n, seenAt)).join('')}</ul>`
-      : '<p class="muted">Nothing yet. Sign-outs, returns and low stock show up here.</p>'}</div>`;
+      : '<p class="muted">Nothing yet. Sign-outs, returns, low stock and checked-off tasks show up here.</p>'}</div>`;
   renderPushBox(app.querySelector('#push-box'));
   markSeen();
 }
