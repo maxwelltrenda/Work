@@ -10,7 +10,47 @@ import { teamPages } from './team.js?v=__V__';
 import { contractorPages } from './contractors.js?v=__V__';
 import { gameplanPages } from './gameplan.js?v=__V__';
 
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+// Demo mode (?demo): the Facilities app with sample data, no login, nothing
+// saved. It never connects to the real database (demo.js).
+const DEMO = /[?&]demo\b/.test(location.search);
+const sb = DEMO ? (await import('./demo.js?v=__V__')).demoClient() : createClient(SUPABASE_URL, SUPABASE_KEY);
+if (DEMO) {
+  document.documentElement.classList.add('is-demo');
+  const bar = document.createElement('div');
+  bar.className = 'demo-bar';
+  bar.innerHTML = '<b>Demo</b><span>Sample data. Try anything; nothing is saved.</span><button type="button" id="demo-guide">Guide</button>';
+  document.body.appendChild(bar);
+}
+// A short guide to the tabs, shown the first time the demo opens.
+const DEMO_GUIDE = [
+  ['kiosk', 'Check In / Out', 'Sign tools out and back in, and take stock off the shelf, by scanning a barcode.'],
+  ['requests', 'Requests', 'Every work request in one place. Move each one along (New, In Progress, Done). The person who asked gets updates.'],
+  ['checklist', 'Custodial', 'The weekly cleaning list, by day. Tap the circle when a room is done. Tap the people spot to say who is on it.'],
+  ['schedule', 'Maintenance', 'Upkeep that repeats: AC filters, lawn care, grease trap. It comes up on its own each week, month or quarter.'],
+  ['items', 'Stock', 'What is on the shelves and what is running low.'],
+  ['toollist', 'Tools', 'Every tool, where it lives, and who has it right now.'],
+  ['team', 'Team', 'Who works when, and who is out. Add days off here.'],
+  ['gameplan', 'Weekend plan', 'The weekend weather and our plan for each day. Skyler sees this on Operations.'],
+  ['contractors', 'Contractors', 'Outside companies we hire, with who to call.'],
+];
+function openDemoGuide() {
+  const back = document.createElement('div');
+  back.className = 'modal-back';
+  back.innerHTML = `<div class="modal sheet demo-guide" role="dialog" aria-modal="true" aria-labelledby="dg-title">
+    <h3 id="dg-title">Welcome to the Facilities demo</h3>
+    <p class="muted">This is the real Facilities app with sample data. You're signed in as a Facilities admin. Click around and try things; nothing here changes the real site.</p>
+    <div class="dg-list">${DEMO_GUIDE.map(([h, t, d]) => `<a class="dg-row" href="#/${h}"><b>${esc(t)}</b><span>${esc(d)}</span><i aria-hidden="true">›</i></a>`).join('')}</div>
+    <div class="modal-actions"><button type="button" class="btn primary" data-close>Start exploring</button></div></div>`;
+  const close = () => { back.remove(); try { localStorage.setItem('mc-demo-guide', '1'); } catch { /* private mode */ } };
+  back.addEventListener('click', (e) => { if (e.target === back || e.target.closest('[data-close], .dg-row')) close(); });
+  document.body.appendChild(back);
+}
+if (DEMO) {
+  document.getElementById('demo-guide').addEventListener('click', openDemoGuide);
+  let seen = false;
+  try { seen = !!localStorage.getItem('mc-demo-guide'); } catch { /* private mode */ }
+  if (!seen) setTimeout(openDemoGuide, 900);
+}
 const app = document.getElementById('app');
 
 // Special barcodes you can print from the Labels page and scan to switch modes.
@@ -663,7 +703,7 @@ const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platfor
 const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 
 function registerSw() {
-  if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+  if (DEMO || !('serviceWorker' in navigator)) return Promise.resolve(null);
   return navigator.serviceWorker.register('/sw.js').catch(() => null);
 }
 
@@ -744,7 +784,7 @@ const routes = {
 const PULLED = pulledKit({ sb, q, rpc, esc, toast, errMsg, me: () => state.me, isAdmin });
 const BOARDS = boardPages({
   sb, q, rpc, esc, toast, askText, askConfirm, errMsg, pageHead, route, pulled: PULLED,
-  canEdit: () => ['admin', 'member', 'maintenance', 'custodian'].includes(state.me?.role),
+  canEdit: () => ['admin', 'fac_admin', 'member', 'maintenance', 'custodian'].includes(state.me?.role),
   isAdmin, me: () => state.me,
 });
 
@@ -1595,6 +1635,11 @@ async function renderKiosk() {
   }
 
   bindScanner(scan, onScan);
+  if (DEMO) {   // No scanner in the demo: tap a sample code instead.
+    const tries = [['TL-0002', '12 ft ladder (tool)'], ['TL-0004', 'Drill kit (Rick has it)'], ['INV-0002', 'Paper towels (stock)'], ['INV-0007', 'AC filters (stock)']];
+    app.querySelector('.scanrow').insertAdjacentHTML('afterend', `<div class="demo-try"><span>No scanner? Tap one to try:</span>${tries.map(([c, l]) => `<button type="button" class="chip-btn" data-try="${c}"><b>${c}</b> ${esc(l)}</button>`).join('')}</div>`);
+    app.querySelectorAll('[data-try]').forEach((b) => b.addEventListener('click', () => onScan(b.dataset.try)));
+  }
   app.querySelector('#cam')?.addEventListener('click', () => openCamera(async (code) => {
     await onScan(code);
     // A pop-up now needs an answer (where / how many): close the camera so it's visible.
