@@ -198,6 +198,7 @@ var BOSS = "Skyler";
 // Facilities gameplan comes from the live database (read-only, no login).
 var SB_URL = "https://cwuzlpgicxymezvghqgn.supabase.co", SB_KEY = "sb_publishable_c3mCo75lLLKpFX6AjKMv5A_K08DqCUq";
 var LOGO = "https://shop-inventory-one-omega.vercel.app/brand/mc-mark.png";
+var DEMO_URL = "https://shop-inventory-one-omega.vercel.app/?demo#/requests";
 var REAL = { facilities:"https://shop-inventory-one-omega.vercel.app", events:"https://mercy-culture-events.vercel.app", media:"https://mercy-culture-media-gear.vercel.app" };
 var TEAMS = { facilities:{name:"Facilities", c:"#11404b", pill:"tool"}, events:{name:"Events", c:"#2d6a62", pill:"evt"}, media:{name:"Media Gear", short:"Media", c:"#6a4cf0", pill:"med"} };
 var PEOPLE = {
@@ -327,7 +328,7 @@ function drawTabbar(site){
     +'<button type="button" data-act="teams" class="'+(site?'on':'')+'">'+svg("teams")+'Teams</button>';
 }
 function openTeams(){
-  sheet("Teams", '<div class="teams-list">'+["facilities","events","media"].map(function(t){ return '<div class="team-row" style="--c:'+TEAMS[t].c+'"><b>'+TEAMS[t].name+'</b><a class="btn small" href="#'+t+'" data-close="1">Preview</a><a class="btn small primary" href="'+REAL[t]+'" target="_blank" rel="noopener">Live ↗</a></div>'; }).join("")+'</div>');
+  sheet("Teams", '<div class="teams-list">'+["facilities","events","media"].map(function(t){ return '<div class="team-row" style="--c:'+TEAMS[t].c+'"><b>'+TEAMS[t].name+'</b><a class="btn small" href="#'+t+'" data-close="1">Preview</a>'+(t==="facilities"?'<a class="btn small" href="'+DEMO_URL+'" target="_blank" rel="noopener">Demo ↗</a>':'')+'<a class="btn small primary" href="'+REAL[t]+'" target="_blank" rel="noopener">Live ↗</a></div>'; }).join("")+'</div>');
   $("layer").onclick=function(e){ var a=e.target.closest("a[href^='#']"); if(a){ closeSheet(); return; } var b=e.target.closest("[data-close]"); if(b) closeHit(e,b); };
 }
 function opsNav(cur){
@@ -390,7 +391,7 @@ function teamCard(t){
   if(t==="facilities"){ var d=S.check.filter(function(c){return c.status==="Done";}).length; lines.push('<li>Today\'s checklist <b>'+d+'/'+S.check.length+'</b></li>','<li><b>4</b> low on stock</li>'); }
   if(t==="events") lines.push('<li>Next: <b>Winter Conference</b></li>','<li><b>11</b> decor items out</li>');
   if(t==="media") lines.push('<li><b>'+S.tools.filter(function(x){return x.team==="media";}).length+'</b> gear out</li>','<li><b>2</b> reservations this week</li>');
-  return '<div class="ops-team" style="--c:'+TEAMS[t].c+'"><h3>'+TEAMS[t].name+'</h3><ul>'+lines.join("")+'</ul><div class="ops-team-go"><a class="btn primary small" href="'+REAL[t]+'" target="_blank" rel="noopener">Open live site ↗</a><a class="btn small" href="#'+t+'">Preview here</a></div></div>';
+  return '<div class="ops-team" style="--c:'+TEAMS[t].c+'"><h3>'+TEAMS[t].name+'</h3><ul>'+lines.join("")+'</ul><div class="ops-team-go">'+(t==="facilities"?'<a class="btn primary small" href="'+DEMO_URL+'" target="_blank" rel="noopener">Try the full demo ↗</a>':'')+'<a class="btn '+(t==="facilities"?'':'primary ')+'small" href="'+REAL[t]+'" target="_blank" rel="noopener">Open live site ↗</a><a class="btn small" href="#'+t+'">Preview here</a></div></div>';
 }
 function renderPeople(){
   setTop(null, opsNav("people"));
@@ -650,7 +651,7 @@ var TOUR=[
   {sel:"#wx-corner", title:"This weekend", text:"The weekend weather, Friday to Sunday. Facilities posts a gameplan for each day based on the forecast, so you know what's being done about rain or wind. Tap the card for hour by hour."},
   {sel:".stats", title:"The big numbers", text:"Who's working on something right now, open requests across every team, anything past due, and how far the custodial team is through today's checklist."},
   {sel:"#app .ops-list", title:"Where people are", text:"Everyone on your teams and what they're doing: a request, the checklist, a tool or gear they have out, or out for the day. Tap anyone to ask them for something; it lands on their list as From "+BOSS+"."},
-  {sel:".ops-teams", title:"Your teams", text:"Facilities, Events and Media at a glance. Open a team's live site to see exactly what they use, or preview it right here."},
+  {sel:".ops-teams", title:"Your teams", text:"Facilities, Events and Media at a glance. For Facilities, tap Try the full demo: it's the real Facilities app with sample data, no login needed."},
   {sel:function(){ return phone()?'.tabbar a[href="#requests"]':'#nav a[href="#requests"]'; }, title:"All requests", text:"Every open request from every team in one list, soonest due first. Filter by team, tap one to assign it or change the due date."},
   {sel:function(){ return phone()?'.tabbar a[href="#form"]':'#nav a[href="#form"]'; }, title:"One request form", text:"One link for the whole church. People pick what they need (facilities, an event, media) and it goes straight to the right team. No login."},
   {sel:".alerts", title:"Alerts", text:"New requests and anything sent your way show up here."},
