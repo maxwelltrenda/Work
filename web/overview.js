@@ -22,9 +22,9 @@ export function overviewPages(ctx) {
     await safe(rpc('pm_refresh'), null);
     const [reqs, ck, runs, tasks, members, off, outs, items, pulled, plan, wx, tools] = await Promise.all([
       safe(q(sb.from('maint_requests').select('id, subject, status, board_group, location, due_date, created_at, experts').neq('board_group', 'solved').order('created_at', { ascending: false })), []),
-      week ? safe(q(sb.from('checklist_tasks').select('id, name, status, day, who').eq('week_of', week)), []) : [],
+      week ? safe(q(sb.from('checklist_tasks').select('id, name, status, day, who, timer_started_at').eq('week_of', week)), []) : [],
       safe(q(sb.from('pm_runs').select('*').order('due_on')), []),
-      safe(q(sb.from('pm_tasks').select('id, name, frequency, active, parent_id')), []),
+      safe(q(sb.from('pm_tasks').select('id, name, frequency, active, parent_id, assignees')), []),
       safe(q(sb.from('team_members').select('id, name, role, active, team, work_hours')), []),
       safe(q(sb.from('time_off').select('*').lte('starts_on', today).gte('ends_on', today)), []),
       safe(q(sb.from('tool_checkouts').select('id, tool_id, borrower_id, checked_out_at').is('returned_at', null)), []),
@@ -46,7 +46,7 @@ export function overviewPages(ctx) {
     const ckToday = ck.filter((t) => (t.day || '') === todayName);
     const ckDone = ckToday.filter((t) => t.status === 'Done').length;
     const ckWeekDone = ck.filter((t) => t.status === 'Done').length;
-    const ckNow = ck.filter((t) => t.status === 'Working on it');
+    const ckNow = ck.filter((t) => t.timer_started_at || t.status === 'Working on it');
     // Maintenance
     const taskBy = Object.fromEntries(tasks.map((t) => [t.id, t]));
     const cur = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today && (r.period_end >= today || (taskBy[r.task_id].frequency === 'once' && r.status === 'open')));
@@ -71,12 +71,17 @@ export function overviewPages(ctx) {
       const r = working.find((x) => (x.experts || []).some((e) => has(e, m.name)));
       const c = ckNow.find((x) => has(x.who, m.name));
       const tl = outs.find((x) => x.borrower_id === m.id);
+      // Not on anything yet: what's next for them today.
+      const ckNext = ckToday.filter((x) => !['Done', 'Skipped', 'Missed'].includes(x.status) && !ckNow.includes(x) && has(x.who, m.name));
+      const pmNext = pmOpen.filter((x) => (taskBy[x.task_id].assignees || []).includes(m.id));
       let tag; let text; let rank = 1;
       if (offRow && !offRow.part) { tag = ['Out', 'out']; text = `Out today · ${offRow.kind}`; rank = 3; }
       else if (p) { tag = ['Pulled', 'work']; text = `<b>${esc(p.what)}</b>${p.location ? ` · ${esc(p.location)}` : ''} · ${since(p.started_at)}`; rank = 0; }
       else if (r) { tag = ['Request', 'new']; text = `<b>${esc(r.subject)}</b>${r.location ? ` · ${esc(r.location)}` : ''}`; rank = 0; }
       else if (c) { tag = ['Custodial', 'work']; text = `<b>${esc(c.name)}</b>`; rank = 0; }
       else if (tl) { tag = ['Tool', 'out']; text = `Has the <b>${esc(toolName[tl.tool_id] || 'a tool')}</b> since ${esc(new Date(tl.checked_out_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}`; rank = 0; }
+      else if (ckNext.length) { tag = ['Up next', 'todo']; text = `Custodial: <b>${esc(ckNext[0].name)}</b>${ckNext.length > 1 ? ` <span class="muted">+${ckNext.length - 1} more today</span>` : ''}`; }
+      else if (pmNext.length) { tag = ['Up next', 'todo']; text = `Maintenance: <b>${esc(taskBy[pmNext[0].task_id].name)}</b> · due ${esc(dshort(pmNext[0].due_on))}${pmNext.length > 1 ? ` <span class="muted">+${pmNext.length - 1} more</span>` : ''}`; }
       else if (h) { tag = ['Free', 'free']; text = 'Not on anything right now'; }
       else { tag = ['Off', 'free']; text = 'Not scheduled today'; rank = 4; }
       return { m, tag, text, rank, hours: h && !(offRow && !offRow.part) ? `${hm(h.start)} – ${hm(h.end)}${offRow?.part ? ` · ${offRow.part.toLowerCase()} off` : ''}` : '' };

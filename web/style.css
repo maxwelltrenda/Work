@@ -1318,3 +1318,4 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .ov-tag.new { background: #e6eefb; color: #2f5d8a; } .ov-tag.work { background: var(--warn-soft); color: var(--warn); }
 .ov-tag.out { background: var(--bad-soft); color: var(--bad); }
 @media (max-width: 560px) { .ov-hrs { display: none; } }
+.ov-tag.todo { background: var(--accent-soft); color: var(--accent); }
