@@ -68,13 +68,32 @@ export async function loadWeekendWeather() {
   return out;
 }
 
+// fri / sat / sun for a date, and that day's plan ({status, plan}) from a saved gameplan.
+export const dayKey = (iso) => { const [y, m, d] = iso.split('-').map(Number); return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][new Date(y, m - 1, d).getDay()]; };
+export function dayPlan(plan, iso) {
+  if (!plan) return null;
+  if (plan.days && Object.keys(plan.days).length) return plan.days[dayKey(iso)] || null;
+  return dayKey(iso) === 'sat' ? { status: plan.status, plan: plan.plan } : null;   // older one-box plan
+}
+// One day's plan, for Skyler's view.
+export function gpDayBox(plan, iso) {
+  const d = dayPlan(plan, iso);
+  const name = wxDayLabel(iso).split(',')[0];
+  if (!d) return `<div class="gp-box"><h4>${name} gameplan</h4><p class="muted" style="margin:0">Facilities hasn't posted a plan for ${name} yet.</p></div>`;
+  const st = GAMEPLAN_STATUS[d.status] || GAMEPLAN_STATUS.normal;
+  return `<div class="gp-box ${st[1]}-edge"><h4>${name} gameplan</h4><span class="gp-pill ${st[1]}" style="margin-top:0">${st[0]}</span>
+    ${d.plan ? `<p class="gp-text">${wxEsc(d.plan)}</p>` : ''}
+    ${plan.updated_at ? `<div class="gp-meta">From ${wxEsc(plan.updated_by || 'Facilities')} · ${new Date(plan.updated_at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}</div>` : ''}</div>`;
+}
+
 export const GAMEPLAN_STATUS = { normal: ['All normal', 'gp-normal'], watch: ['Watching the weather', 'gp-watch'], action: ['Weather plan in place', 'gp-action'] };
 
 // Small weekend card (the corner on Operations, the top of the Facilities page).
 export function wxCard(w, plan, showPlan = true) {
   const st = plan && GAMEPLAN_STATUS[plan.status];
+  const dot = (d) => { const p = showPlan && dayPlan(plan, d.date); return p && p.status !== 'normal' ? ` <i class="gp-dot ${GAMEPLAN_STATUS[p.status][1]}" title="${GAMEPLAN_STATUS[p.status][0]}"></i>` : ''; };
   return `<div class="wx-card-days">${w.days.map((d) => `<div class="wx-mini">
-      <span class="wx-mini-day">${wxDayLabel(d.date).split(',')[0].slice(0, 3)}</span>
+      <span class="wx-mini-day">${wxDayLabel(d.date).split(',')[0].slice(0, 3)}${dot(d)}</span>
       <span class="wx-mini-ico" aria-hidden="true">${d.hours.length ? wxIcon(d.summary) : '–'}</span>
       <span class="wx-mini-t">${d.hi != null ? `${d.hi}°` : '–'}<small>${d.lo != null ? ` / ${d.lo}°` : ''}</small></span>
       <span class="wx-mini-rain${d.rain >= 40 ? ' wet' : ''}">${d.hours.length ? `💧 ${d.rain}%` : 'Not out yet'}</span></div>`).join('')}</div>

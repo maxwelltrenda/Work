@@ -1191,3 +1191,14 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .gp-status .chip-btn:not(.on) { background: var(--card); color: var(--body); }
 .gp-page textarea { min-height: 220px; font-size: 15px; line-height: 1.5; }
 @media (max-width: 900px) { .gp-page { grid-template-columns: minmax(0, 1fr); } }
+.gp-days { display: flex; flex-direction: column; gap: 14px; }
+.gp-day { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--paper); }
+.gp-dayhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.gp-dayhead b { font-size: 15px; color: var(--ink); }
+.gp-dayhead .muted { font-size: 13px; }
+.gp-day .gp-status { margin: 8px 0 8px; }
+.gp-page .gp-day textarea { width: 100%; box-sizing: border-box; min-height: 84px; background: var(--card); display: block; }
+.gp-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin-left: 4px; vertical-align: middle; }
+.gp-box.gp-watch-edge { border-left-color: var(--warn); }
+.gp-box.gp-action-edge { border-left-color: var(--bad); }
+.gp-box.gp-normal-edge { border-left-color: var(--in); }

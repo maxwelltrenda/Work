@@ -303,10 +303,12 @@ function wxCorner(){
 }
 function openWx(){
   if(WX) wxDay=Math.min(wxDay, WX.days.length-1);
-  var gpHtml = GP ? '<div class="gp-box"><h4>Facilities gameplan</h4><span class="gp-pill '+GAMEPLAN_STATUS[GP.status][1]+'" style="margin-top:0">'+GAMEPLAN_STATUS[GP.status][0]+'</span>'+(GP.plan?'<p class="gp-text">'+esc(GP.plan)+'</p>':'')+'<div class="gp-meta">From '+esc(GP.updated_by||'Facilities')+' · '+new Date(GP.updated_at).toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"})+'</div></div>'
-    : '<div class="gp-box"><h4>Facilities gameplan</h4><p class="muted" style="margin:0">Facilities hasn\'t posted a plan for this weekend yet.</p></div>';
-  var body = gpHtml + (WX ? '<div class="wx-tabs">'+WX.days.map(function(d,i){return '<button type="button" class="chip-btn big'+(i===wxDay?' on':'')+'" data-wxday="'+i+'">'+esc(wxDayLabel(d.date))+'</button>';}).join("")+'</div><div>'+wxHourly(WX.days[wxDay])+'</div><p class="muted" style="font-size:12px;margin:0">National Weather Service forecast for Fort Worth.</p>'
-    : '<p class="muted">'+esc(WXERR||"Loading the forecast…")+'</p>');
+  var tabDot=function(iso){ var p=dayPlan(GP, iso); return p&&p.status!=="normal"?' <i class="gp-dot '+GAMEPLAN_STATUS[p.status][1]+'"></i>':''; };
+  var body = WX
+    ? '<div class="wx-tabs">'+WX.days.map(function(d,i){return '<button type="button" class="chip-btn big'+(i===wxDay?' on':'')+'" data-wxday="'+i+'">'+esc(wxDayLabel(d.date))+tabDot(d.date)+'</button>';}).join("")+'</div>'
+      + gpDayBox(GP, WX.days[wxDay].date)
+      + '<div>'+wxHourly(WX.days[wxDay])+'</div><p class="muted" style="font-size:12px;margin:0">National Weather Service forecast for Fort Worth.</p>'
+    : weekendOf().map(function(iso){ return gpDayBox(GP, iso); }).join("") + '<p class="muted">'+esc(WXERR||"Loading the forecast…")+'</p>';
   sheet("This weekend", '<div id="wx-sheet" style="display:flex;flex-direction:column;gap:14px">'+body+'</div>');
   $("layer").querySelector(".ops-sheet").classList.add("wx-sheet");
   $("layer").onclick=function(e){ var b=e.target.closest("[data-wxday],[data-close]"); if(!b||closeHit(e,b)) return; wxDay=+b.dataset.wxday; openWx(); };
