@@ -18,27 +18,27 @@ if (DEMO) {
   document.documentElement.classList.add('is-demo');
   const bar = document.createElement('div');
   bar.className = 'demo-bar';
-  bar.innerHTML = '<b>Demo</b><span>Sample data. Try anything; nothing is saved.</span><button type="button" id="demo-guide">Guide</button>';
+  bar.innerHTML = '<b>Demo</b><span>Practice data. Nothing is saved.</span><button type="button" id="demo-guide">Guide</button>';
   document.body.appendChild(bar);
 }
 // A short guide to the tabs, shown the first time the demo opens.
 const DEMO_GUIDE = [
-  ['kiosk', 'Check In / Out', 'Sign tools out and back in, and take stock off the shelf, by scanning a barcode.'],
-  ['requests', 'Requests', 'Every work request in one place. Move each one along (New, In Progress, Done). The person who asked gets updates.'],
-  ['checklist', 'Custodial', 'The weekly cleaning list, by day. Tap the circle when a room is done. Tap the people spot to say who is on it.'],
-  ['schedule', 'Maintenance', 'Upkeep that repeats: AC filters, lawn care, grease trap. It comes up on its own each week, month or quarter.'],
+  ['kiosk', 'Check In / Out', 'Scan a tool to take it or bring it back. Scan stock to take it off the shelf.'],
+  ['requests', 'Requests', 'All work requests. Move each one from New to Done.'],
+  ['checklist', 'Custodial', 'The cleaning list for each day. Tap the circle when a room is done.'],
+  ['schedule', 'Maintenance', 'Jobs that repeat, like AC filters and lawn care. They show up on their own.'],
   ['items', 'Stock', 'What is on the shelves and what is running low.'],
-  ['toollist', 'Tools', 'Every tool, where it lives, and who has it right now.'],
-  ['team', 'Team', 'Who works when, and who is out. Add days off here.'],
-  ['gameplan', 'Weekend plan', 'The weekend weather and our plan for each day. Skyler sees this on Operations.'],
-  ['contractors', 'Contractors', 'Outside companies we hire, with who to call.'],
+  ['toollist', 'Tools', 'Every tool, where it is, and who has it.'],
+  ['team', 'Team', 'Who works when and who is off.'],
+  ['gameplan', 'Weekend plan', 'The weekend weather and our plan for each day.'],
+  ['contractors', 'Contractors', 'Companies we hire, and who to call.'],
 ];
 function openDemoGuide() {
   const back = document.createElement('div');
   back.className = 'modal-back';
   back.innerHTML = `<div class="modal sheet demo-guide" role="dialog" aria-modal="true" aria-labelledby="dg-title">
     <h3 id="dg-title">Welcome to the Facilities demo</h3>
-    <p class="muted">This is the real Facilities app with sample data. You're signed in as a Facilities admin. Click around and try things; nothing here changes the real site.</p>
+    <p class="muted">This is the Facilities app with practice data. Tap around and try things. Nothing here changes the real site.</p>
     <div class="dg-list">${DEMO_GUIDE.map(([h, t, d]) => `<a class="dg-row" href="#/${h}"><b>${esc(t)}</b><span>${esc(d)}</span><i aria-hidden="true">›</i></a>`).join('')}</div>
     <div class="modal-actions"><button type="button" class="btn primary" data-close>Start exploring</button></div></div>`;
   const close = () => { back.remove(); try { localStorage.setItem('mc-demo-guide', '1'); } catch { /* private mode */ } };
@@ -1637,7 +1637,7 @@ async function renderKiosk() {
   bindScanner(scan, onScan);
   if (DEMO) {   // No scanner in the demo: tap a sample code instead.
     const tries = [['TL-0002', '12 ft ladder (tool)'], ['TL-0004', 'Drill kit (Rick has it)'], ['INV-0002', 'Paper towels (stock)'], ['INV-0007', 'AC filters (stock)']];
-    app.querySelector('.scanrow').insertAdjacentHTML('afterend', `<div class="demo-try"><span>No scanner? Tap one to try:</span>${tries.map(([c, l]) => `<button type="button" class="chip-btn" data-try="${c}"><b>${c}</b> ${esc(l)}</button>`).join('')}</div>`);
+    app.querySelector('.scanrow').insertAdjacentHTML('afterend', `<div class="demo-try"><span>No scanner? Tap one:</span>${tries.map(([c, l]) => `<button type="button" class="chip-btn" data-try="${c}"><b>${c}</b> ${esc(l)}</button>`).join('')}</div>`);
     app.querySelectorAll('[data-try]').forEach((b) => b.addEventListener('click', () => onScan(b.dataset.try)));
   }
   app.querySelector('#cam')?.addEventListener('click', () => openCamera(async (code) => {

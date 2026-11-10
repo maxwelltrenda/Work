@@ -647,15 +647,15 @@ setInterval(function(){ if(document.activeElement && /INPUT|TEXTAREA/.test(docum
 var TOUR_KEY="mc-ops-tour-v1";
 var phone=function(){ return matchMedia("(max-width: 760px)").matches; };
 var TOUR=[
-  {title:"Hi "+BOSS+" 👋", text:"This is your Operations hub: every team you're over, where people are, and what's going on, in one place. This quick tour takes about a minute. Tap Next."},
-  {sel:"#wx-corner", title:"This weekend", text:"The weekend weather, Friday to Sunday. Facilities posts a gameplan for each day based on the forecast, so you know what's being done about rain or wind. Tap the card for hour by hour."},
-  {sel:".stats", title:"The big numbers", text:"Who's working on something right now, open requests across every team, anything past due, and how far the custodial team is through today's checklist."},
-  {sel:"#app .ops-list", title:"Where people are", text:"Everyone on your teams and what they're doing: a request, the checklist, a tool or gear they have out, or out for the day. Tap anyone to ask them for something; it lands on their list as From "+BOSS+"."},
-  {sel:".ops-teams", title:"Your teams", text:"Facilities, Events and Media at a glance. For Facilities, tap Try the full demo: it's the real Facilities app with sample data, no login needed."},
-  {sel:function(){ return phone()?'.tabbar a[href="#requests"]':'#nav a[href="#requests"]'; }, title:"All requests", text:"Every open request from every team in one list, soonest due first. Filter by team, tap one to assign it or change the due date."},
-  {sel:function(){ return phone()?'.tabbar a[href="#form"]':'#nav a[href="#form"]'; }, title:"One request form", text:"One link for the whole church. People pick what they need (facilities, an event, media) and it goes straight to the right team. No login."},
-  {sel:".alerts", title:"Alerts", text:"New requests and anything sent your way show up here."},
-  {title:"That's it", text:"Click around and try things. This is a preview with example data, so nothing you do here changes the real sites. The weather and the Facilities gameplan are live. Tap the ? at the top any time to see this again."}
+  {title:"Hi "+BOSS+" 👋", text:"This is your home page. It shows all your teams in one place. This tour takes one minute. Tap Next."},
+  {sel:"#wx-corner", title:"This weekend", text:"The weather for Friday to Sunday. Facilities writes a plan for each day. Tap the card to see it hour by hour."},
+  {sel:".stats", title:"Quick numbers", text:"Who is busy now, how many requests are open, what is late, and how much cleaning is done today."},
+  {sel:"#app .ops-list", title:"Where people are", text:"See what each person is doing right now. Tap a name to ask them for something."},
+  {sel:".ops-teams", title:"Your teams", text:"Facilities, Events and Media. Tap Try the full demo to see the Facilities app. No login needed."},
+  {sel:function(){ return phone()?'.tabbar a[href="#requests"]':'#nav a[href="#requests"]'; }, title:"All requests", text:"Every request from every team in one list. Tap one to change it."},
+  {sel:function(){ return phone()?'.tabbar a[href="#form"]':'#nav a[href="#form"]'; }, title:"Request form", text:"One form for the whole church. People say what they need, and it goes to the right team."},
+  {sel:".alerts", title:"Alerts", text:"New requests show up here."},
+  {title:"All done", text:"Tap around and try things. This is practice data, so nothing here changes the real sites. Tap the ? at the top to see this tour again."}
 ];
 var tourAt=-1;
 function startTour(){
