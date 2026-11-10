@@ -60,6 +60,28 @@ export function overviewPages(ctx) {
     const key = DAY_KEYS[new Date().getDay()];
     const working_today = crew.filter((m) => (m.work_hours || {})[key] && !outIds.has(m.id));
     const outToday = off.map((o) => `${first(who[o.member_id])}${o.part ? ` (${o.part.toLowerCase()})` : ''} · ${o.kind}`);
+    // Where people are: what each person is on right now.
+    const hue = (n) => ['#11404b', '#2f5d8a', '#8a6630', '#3c418f', '#9b2763', '#a3470f', '#2d6a62', '#6a4cf0'][[...String(n)].reduce((a, c) => a + c.charCodeAt(0), 0) % 8];
+    const has = (list, name) => String(list || '').split(',').map((x) => x.trim().toLowerCase()).some((x) => x && (x === name.toLowerCase() || x === first(name).toLowerCase()));
+    const since = (iso) => { const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${pad(m % 60)}m`; };
+    const where = crew.map((m) => {
+      const h = (m.work_hours || {})[key];
+      const offRow = off.find((o) => o.member_id === m.id);
+      const p = pulled.find((x) => x.member_id === m.id);
+      const r = working.find((x) => (x.experts || []).some((e) => has(e, m.name)));
+      const c = ckNow.find((x) => has(x.who, m.name));
+      const tl = outs.find((x) => x.borrower_id === m.id);
+      let tag; let text; let rank = 1;
+      if (offRow && !offRow.part) { tag = ['Out', 'out']; text = `Out today · ${offRow.kind}`; rank = 3; }
+      else if (p) { tag = ['Pulled', 'work']; text = `<b>${esc(p.what)}</b>${p.location ? ` · ${esc(p.location)}` : ''} · ${since(p.started_at)}`; rank = 0; }
+      else if (r) { tag = ['Request', 'new']; text = `<b>${esc(r.subject)}</b>${r.location ? ` · ${esc(r.location)}` : ''}`; rank = 0; }
+      else if (c) { tag = ['Custodial', 'work']; text = `<b>${esc(c.name)}</b>`; rank = 0; }
+      else if (tl) { tag = ['Tool', 'out']; text = `Has the <b>${esc(toolName[tl.tool_id] || 'a tool')}</b> since ${esc(new Date(tl.checked_out_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}`; rank = 0; }
+      else if (h) { tag = ['Free', 'free']; text = 'Not on anything right now'; }
+      else { tag = ['Off', 'free']; text = 'Not scheduled today'; rank = 4; }
+      return { m, tag, text, rank, hours: h && !(offRow && !offRow.part) ? `${hm(h.start)} – ${hm(h.end)}${offRow?.part ? ` · ${offRow.part.toLowerCase()} off` : ''}` : '' };
+    }).sort((a, b) => a.rank - b.rank || a.m.name.localeCompare(b.m.name));
+
     // Tools and stock
     const low = items.filter((i) => i.reorder_level > 0 && i.quantity <= i.reorder_level);
 
@@ -71,6 +93,11 @@ export function overviewPages(ctx) {
     app.innerHTML = `
       <header class="page-head"><div class="eyebrow">Facilities</div><h1>${greet}, <span class="accent">${esc(first(me()?.name))}</span>.</h1>
         <p class="lede">All your departments today: ${esc(new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }))}.</p></header>
+      <section class="ov-where"><div class="ov-where-head"><h2>Where people are</h2><a href="#/team">Team schedule ›</a></div>
+        <div class="ov-people">${where.map(({ m, tag, text, hours }) => `<div class="ov-person${tag[0] === 'Out' || tag[0] === 'Off' ? ' away' : ''}">
+          <span class="ov-av" style="background:${hue(m.name)}">${esc(m.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase())}</span>
+          <span class="ov-who"><span><b>${esc(m.name)}</b>${m.team ? ` <span class="muted">· ${esc(m.team)}</span>` : ''}</span><small>${text}</small></span>
+          ${hours ? `<span class="ov-hrs">${esc(hours)}</span>` : ''}<span class="ov-tag ${tag[1]}">${tag[0]}</span></div>`).join('') || '<p class="ov-empty">No one on the team list yet.</p>'}</div></section>
       <div class="ov-grid">
         ${card('#/requests', 'Requests', 'ov-req', nums([[reqs.length, 'open'], [isNew.length, 'new', isNew.length ? 'hot' : ''], [late.length, 'past due', late.length ? 'bad' : '']])
           + lines([...working.slice(0, 2).map((r) => `<span class="ov-pill work">Working</span> ${esc(r.subject)}${r.experts?.length ? ` <span class="muted">· ${esc(r.experts.map(first).join(', '))}</span>` : ''}`),

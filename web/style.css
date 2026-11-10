@@ -1280,3 +1280,41 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .b-ckform { display: flex; flex-direction: column; }
 .b-ckform .chip-btn.b-pp { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; }
 .b-ckform .b-av { width: 24px; height: 24px; font-size: 10px; }
+.b-tplist { display: grid; gap: 6px; padding: 4px 0 8px; }
+.b-tprow { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font: inherit; color: inherit; cursor: pointer; }
+.b-tprow:hover:not(:disabled) { border-color: var(--line-strong); }
+.b-tprow:disabled { cursor: default; }
+.b-tpmain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.b-tpmain b { color: var(--ink); }
+.b-tpmain small { font-size: 13px; }
+.b-tpedit { font-size: 13px; font-weight: 600; color: var(--accent); border: 1px solid var(--line-strong); border-radius: 9px; padding: 5px 12px; flex: none; }
+.b-tpweek { flex-direction: row !important; align-items: center; gap: 8px; margin-top: 12px; font-size: 14px; }
+.b-tpweek input { width: 18px; height: 18px; min-height: 0; }
+
+/* Page tools: the extra actions for a page, as clear buttons near the top. */
+.page-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.page-tools .btn { font-size: 14px; }
+/* "More details" sections: a clear show/hide bar. */
+.b-moredetails > summary { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; list-style: none; cursor: pointer; font-weight: 600; color: var(--ink); }
+.b-moredetails > summary::-webkit-details-marker { display: none; }
+.b-moredetails > summary::before { content: '▸'; color: var(--accent); transition: transform .15s; display: inline-block; }
+.b-moredetails[open] > summary::before { transform: rotate(90deg); }
+.b-moredetails > summary small { font-weight: 400; font-size: 13px; }
+.ov-where { margin-bottom: 22px; }
+.ov-where-head { display: flex; justify-content: space-between; align-items: baseline; }
+.ov-where-head h2 { margin: 0 0 10px; }
+.ov-where-head a { font-size: 14px; font-weight: 600; }
+.ov-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr)); background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.ov-person { display: flex; align-items: center; gap: 12px; padding: 11px 16px; border-bottom: 1px solid var(--line); min-width: 0; }
+.ov-person.away .ov-av { opacity: .45; }
+.ov-av { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; flex: none; }
+.ov-who { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 15px; color: var(--ink); }
+.ov-who b { font-weight: 600; }
+.ov-who .muted { font-size: 12px; }
+.ov-who small { font-size: 13px; color: var(--body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-who small b { font-weight: 600; color: var(--ink); }
+.ov-hrs { font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--in); background: var(--in-soft); border-radius: 999px; padding: 2px 9px; }
+.ov-tag { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; flex: none; background: var(--paper-2); color: var(--muted); }
+.ov-tag.new { background: #e6eefb; color: #2f5d8a; } .ov-tag.work { background: var(--warn-soft); color: var(--warn); }
+.ov-tag.out { background: var(--bad-soft); color: var(--bad); }
+@media (max-width: 560px) { .ov-hrs { display: none; } }

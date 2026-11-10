@@ -89,8 +89,7 @@ export function boardPages(ctx) {
     const match = (r) => (!statusPick || r.status === statusPick) && (!search || [r.subject, r.requester_name, r.location, r.campus, r.request_category, ...(r.experts || [])].join(' ').toLowerCase().includes(search.toLowerCase()));
     const list = rows.filter(match);
     const open = rows.filter((r) => r.board_group !== 'solved');
-    const tabs = [['board', `Status board <b>${open.length}</b>`], ['open', 'List'], ['solved', `Done <b>${rows.length - open.length}</b>`]];
-    const isMore = MORE_VIEWS.some(([k]) => k === view);
+    const tabs = [['board', `Status board <b>${open.length}</b>`], ['open', 'List'], ['solved', `Done <b>${rows.length - open.length}</b>`], ...MORE_VIEWS];
 
     app.innerHTML = `
       <header class="page-head b-simplehead"><h1>Requests</h1>
@@ -104,7 +103,6 @@ export function boardPages(ctx) {
         <input id="b-q" type="search" placeholder="Search" value="${esc(search)}" aria-label="Search requests">
       </div>
       ${statusPick ? `<p class="b-filtered">Showing only <b>${esc(statusPick)}</b>. <a href="#" id="b-clear">Show all</a></p>` : ''}
-      <div class="b-more">More views: ${MORE_VIEWS.map(([k, t]) => `<a href="#/requests/${k}" class="${view === k ? 'on' : ''}">${t}</a>`).join(' · ')}${isMore ? ' · <a href="#/requests">Back to the status board</a>' : ''}</div>
       <div id="b-view">${view === 'board' ? reqBoard(list) : view === 'dashboard' ? reqDashboard(list) : view === 'timeline' ? reqTimeline(list)
         : view === 'solved' ? reqList(list.filter((r) => r.board_group === 'solved').sort((a, b) => String(b.completion_date || b.created_at).localeCompare(String(a.completion_date || a.created_at))), nUp, true)
         : reqGroups(list, nUp)}</div>`;
@@ -309,7 +307,7 @@ export function boardPages(ctx) {
         <div class="b-ups">${top.length ? top.map((u) => upHtml(u)).join('') : '<p class="muted">No notes yet.</p>'}</div>
         ${!subs.length && ed ? `<details class="b-addstep"><summary>+ Break it into steps</summary>${addStep}</details>` : ''}
       </div>
-      <details class="card b-box b-moredetails"><summary>More details</summary>
+      <details class="card b-box b-moredetails"><summary><span>More details</span><small class="muted">Requester, campus, cost, links and more</small></summary>
         ${ed ? `<div class="b-headrow">
           ${r.requester_email ? '<button class="btn small" id="r-reply">Reply to requester</button>' : ''}
           <button class="btn small" id="r-timer">${r.timer_started_at ? 'Stop timer' : 'Start timer'}</button>
@@ -460,7 +458,11 @@ export function boardPages(ctx) {
       <header class="page-head b-simplehead dept-custodial"><div><div class="eyebrow dept-tag">Custodial</div><h1>Custodial <span class="accent">checklist</span></h1></div></header>
       <div class="b-progress"><div class="b-progbar"><i style="width:${pct}%"></i></div><span><b>${done} of ${tasks.length}</b> done this week</span></div>
       ${pw && canEdit() ? pulled.block('custodial', pw) : ''}
-      ${canEdit() ? '<div class="b-ckadd"><button class="btn" data-ck-add>+ Add a task this week</button><span class="muted">For one-off jobs. It won\'t come back next week.</span></div>' : ''}
+      <div class="page-tools">
+        ${canEdit() ? '<button class="btn" data-ck-add title="A one-off job, only on this week\'s list">+ Add a task this week</button>' : ''}
+        <a class="btn" href="#/checklist/template" title="The tasks added every week">↻ Repeating tasks</a>
+        <a class="btn" href="#/checklist/log" title="Earlier weeks and time spent">🕘 Past weeks &amp; time log</a>
+      </div>
       ${order.map((d) => {
         const items = tasks.filter((t) => (t.day || 'Detail Work') === d);
         if (!items.length) return '';
@@ -469,7 +471,7 @@ export function boardPages(ctx) {
         return `<details class="b-group b-day${isToday ? ' today' : ''}"${isToday ? ' open' : ''}><summary><span class="b-gname">${isToday ? `Today · ${d}` : d}</span><span class="muted">${left ? `${left} to do` : 'all done ✓'}</span></summary>
           <div class="b-tasks">${items.map((t) => checkTask(t, byTask[t.id] || [])).join('')}</div></details>`;
       }).join('')}
-      <div class="b-more">More: <a href="#/checklist/log">Past weeks and time log</a> · <a href="#/checklist/template">Weekly template</a></div>`;
+`;
 
     const rerender = () => renderChecklist('week');
     pulled.bind(app, rerender);
@@ -633,43 +635,119 @@ export function boardPages(ctx) {
   }
 
   async function renderTemplate() {
-    const [tasks, subs] = await Promise.all([
+    const [tasks, subs, week, members] = await Promise.all([
       q(sb.from('checklist_tasks').select('*').is('week_of', null).order('sort').order('id')),
       q(sb.from('checklist_subtasks').select('*, checklist_tasks!inner(week_of)').is('checklist_tasks.week_of', null).order('sort').order('id')),
+      rpc('start_checklist_week', {}).catch(() => null),
+      q(sb.from('team_members').select('name, role, active')).catch(() => []),
     ]);
+    ckCrew = members.filter((m) => m.active && !['kiosk', 'none'].includes(m.role)).map((m) => m.name).sort();
     const admin = isAdmin();
+    const stepsOf = (t) => subs.filter((x) => x.task_id === t.id);
     app.innerHTML = `
       <p><a href="#/checklist">← Checklist</a></p>
-      <header class="page-head b-simplehead"><h1>Weekly template</h1></header>
-      <p class="muted b-note">${tasks.length} tasks, copied into a fresh week every Sunday. ${admin ? 'Changes show up from next week.' : 'Only admins can change it.'}</p>
-      ${admin ? `<form id="tp-add" class="card b-inline"><input name="name" required placeholder="New task, e.g. Wipe lobby glass doors" aria-label="New task">
-        <select name="day" aria-label="Day">${DAYS.map((d) => `<option>${d}</option>`).join('')}</select>
-        <select name="area" aria-label="Area">${AREAS.map((a) => `<option>${a}</option>`).join('')}</select><button class="btn primary">Add</button></form>` : ''}
+      <header class="page-head b-simplehead"><h1>Repeating tasks</h1></header>
+      <p class="muted b-note">${tasks.length} tasks. They're added to the list fresh every Sunday. ${admin ? 'Tap a task to change it. You can also update this week\'s list when you save.' : 'Only admins can change them.'}</p>
+      ${admin ? '<div class="b-ckadd"><button class="btn primary" data-tpnew>+ Add a repeating task</button></div>' : ''}
       ${DAYS.map((d) => {
         const items = tasks.filter((t) => (t.day || 'Detail Work') === d);
         if (!items.length) return '';
-        return `<details class="b-group"><summary><span class="b-gname">${d}</span><span class="muted">${items.length} tasks</span></summary>
-          <div class="table-wrap"><table class="b-table b-narrow"><tr><th>Task</th><th>Area</th><th class="num">Steps</th><th></th></tr>
-          ${items.map((t) => `<tr><td><b>${esc(t.name)}</b>${t.includes ? `<br><small class="muted">${esc(t.includes)}</small>` : ''}</td><td>${esc(t.area || '')}</td><td class="num">${subs.filter((s) => s.task_id === t.id).length || ''}</td>
-            <td style="text-align:right;white-space:nowrap">${admin ? `<button class="btn small" data-tpren="${t.id}">Rename</button> <button class="btn small bad" data-tpdel="${t.id}">Remove</button>` : ''}</td></tr>`).join('')}</table></div></details>`;
+        return `<details class="b-group" open><summary><span class="b-gname">${d}</span><span class="muted">${items.length} tasks</span></summary>
+          <div class="b-tplist">${items.map((t) => `<button type="button" class="b-tprow" data-tpedit="${t.id}"${admin ? '' : ' disabled'}>
+            <span class="b-tpmain"><b>${esc(t.name)}</b><small class="muted">${[t.area, stepsOf(t).length ? `${stepsOf(t).length} steps` : '', t.who ? `Usually ${t.who}` : '', t.includes || ''].filter(Boolean).map(esc).join(' · ')}</small></span>
+            ${admin ? '<span class="b-tpedit">Edit</span>' : ''}</button>`).join('')}</div></details>`;
       }).join('')}`;
     const reload = () => renderChecklist('template');
-    app.querySelector('#tp-add')?.addEventListener('submit', async (e) => {
-      e.preventDefault(); const f = new FormData(e.target);
-      try { await q(sb.from('checklist_tasks').insert({ name: f.get('name').trim(), day: f.get('day'), area: f.get('area'), sort: (tasks.at(-1)?.sort || 0) + 1 }).select('id')); toast('Added to the template'); reload(); } catch (err) { toast(errMsg(err), true); }
-    });
-    app.querySelectorAll('[data-tpren]').forEach((b) => b.addEventListener('click', async () => {
-      const t = tasks.find((x) => x.id === Number(b.dataset.tpren));
-      const name = await askText('Rename task', { value: t.name, ok: 'Rename' });
-      if (!name || name === t.name) return;
-      try { await q(sb.from('checklist_tasks').update({ name }).eq('id', t.id).select('id')); reload(); } catch (err) { toast(errMsg(err), true); }
-    }));
-    app.querySelectorAll('[data-tpdel]').forEach((b) => b.addEventListener('click', async () => {
-      const t = tasks.find((x) => x.id === Number(b.dataset.tpdel));
-      if (!(await askConfirm(`Remove "${t.name}" from the template?`, { message: 'This week and past weeks keep it. From next Sunday it won’t be added.', ok: 'Remove', danger: true }))) return;
-      try { await q(sb.from('checklist_tasks').delete().eq('id', t.id).select('id')); reload(); } catch (err) { toast(errMsg(err), true); }
+    app.querySelector('[data-tpnew]')?.addEventListener('click', async () => { if (await editTemplateTask(null, [], week, tasks)) reload(); });
+    app.querySelectorAll('[data-tpedit]').forEach((b) => b.addEventListener('click', async () => {
+      const t = tasks.find((x) => x.id === Number(b.dataset.tpedit));
+      if (await editTemplateTask(t, stepsOf(t), week, tasks)) reload();
     }));
   }
+
+  // Add or change a repeating (template) task. Can also update this week's copy.
+  function editTemplateTask(t, steps, week, tasks) {
+    const editing = !!t;
+    return new Promise((resolve) => {
+      let day = t?.day || new Date().toLocaleDateString('en-US', { weekday: 'long' });
+      let area = t?.area || 'Building';
+      const sel = new Set(String(t?.who || '').split(',').map((x) => x.trim()).filter(Boolean));
+      const names = [...new Set([...ckCrew, ...sel])];
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML = `<form class="modal sheet b-ckform" role="dialog" aria-modal="true" aria-labelledby="tp-title">
+        <h3 id="tp-title">${editing ? 'Edit repeating task' : 'New repeating task'}</h3>
+        <p class="muted">This task is added to the list every week.</p>
+        <label><span>Task</span><input name="name" required autocomplete="off" value="${esc(t?.name || '')}" placeholder="e.g. Wipe lobby glass doors" class="modal-input"></label>
+        <div class="wk-sect">Which day</div>
+        <div class="wk-chips">${DAYS.map((d) => `<button type="button" class="chip-btn" data-tpday="${d}">${d === 'Detail Work' ? 'Any day (detail work)' : d.slice(0, 3)}</button>`).join('')}</div>
+        <div class="wk-sect">Area</div>
+        <div class="wk-chips">${AREAS.map((a) => `<button type="button" class="chip-btn" data-tparea="${a}">${a}</button>`).join('')}</div>
+        <div class="wk-sect">Who usually does it <span class="muted pm-opt">(optional; fills in each week)</span></div>
+        <div class="wk-chips">${names.map((n) => `<button type="button" class="chip-btn b-pp" data-tppp="${esc(n)}"><span class="b-av" style="background:${hue(n)}">${esc(initials(n))}</span>${esc(n)}</button>`).join('') || '<span class="muted">No team members yet.</span>'}</div>
+        <label style="margin-top:12px"><span>Steps <span class="muted">(one per line)</span></span><textarea name="steps" rows="5" placeholder="Vacuum&#10;Wipe tables&#10;Trash">${esc(steps.map((x) => x.name).join('\n'))}</textarea></label>
+        <label style="margin-top:10px"><span>Note <span class="muted">(optional, shows under the name)</span></span><input name="includes" value="${esc(t?.includes || '')}" placeholder="e.g. Wednesday: also do the Family Center office"></label>
+        <label class="b-tpweek"><input type="checkbox" name="thisweek" checked> <span>Also ${editing ? 'update' : 'add it to'} this week's list</span></label>
+        <div class="modal-actions">${editing ? '<button type="button" class="btn bad pm-left" data-tpdelete>Remove</button>' : ''}
+          <button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">${editing ? 'Save' : 'Add'}</button></div>
+      </form>`;
+      const form = back.querySelector('form');
+      const draw = () => {
+        form.querySelectorAll('[data-tpday]').forEach((b) => b.classList.toggle('on', b.dataset.tpday === (day || 'Detail Work')));
+        form.querySelectorAll('[data-tparea]').forEach((b) => b.classList.toggle('on', b.dataset.tparea === area));
+        form.querySelectorAll('[data-tppp]').forEach((b) => b.classList.toggle('on', sel.has(b.dataset.tppp)));
+      };
+      form.querySelectorAll('[data-tpday]').forEach((b) => b.addEventListener('click', () => { day = b.dataset.tpday; draw(); }));
+      form.querySelectorAll('[data-tparea]').forEach((b) => b.addEventListener('click', () => { area = b.dataset.tparea; draw(); }));
+      form.querySelectorAll('[data-tppp]').forEach((b) => b.addEventListener('click', () => { const n = b.dataset.tppp; if (sel.has(n)) sel.delete(n); else sel.add(n); draw(); }));
+      const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
+      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(false); } };
+      document.addEventListener('keydown', onKey, true);
+      back.addEventListener('mousedown', (e) => { if (e.target === back) done(false); });
+      form.querySelector('[data-cancel]').addEventListener('click', () => done(false));
+      form.querySelector('[data-tpdelete]')?.addEventListener('click', async () => {
+        if (!(await askConfirm(`Remove "${t.name}"?`, { message: 'It stops being added each week. This week\'s list and past weeks keep it.', ok: 'Remove', danger: true }))) return;
+        try { await q(sb.from('checklist_tasks').delete().eq('id', t.id).select('id')); toast('Removed'); done(true); } catch (err) { toast(errMsg(err), true); }
+      });
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = new FormData(form);
+        const name = String(f.get('name') || '').trim();
+        if (!name) return form.querySelector('[name=name]').focus();
+        const list = String(f.get('steps') || '').split('\n').map((x) => x.trim()).filter(Boolean);
+        const fields = { name, day: day === 'Detail Work' ? null : day, area, includes: String(f.get('includes') || '').trim() || null, who: sel.size ? [...sel].join(', ') : null };
+        try {
+          // The template row and its steps.
+          let id = t?.id;
+          if (editing) await q(sb.from('checklist_tasks').update(fields).eq('id', id).select('id'));
+          else [{ id }] = await q(sb.from('checklist_tasks').insert({ ...fields, week_of: null, sort: Math.max(0, ...tasks.map((x) => x.sort || 0)) + 1 }).select('id'));
+          if (editing) await q(sb.from('checklist_subtasks').delete().eq('task_id', id).select('id'));
+          if (list.length) await q(sb.from('checklist_subtasks').insert(list.map((n, i) => ({ task_id: id, name: n, sort: i }))).select('id'));
+          // This week's copy: same fields; keep steps already checked off.
+          if (f.get('thisweek') && week) {
+            const [copy] = editing ? await q(sb.from('checklist_tasks').select('*').eq('template_id', id).eq('week_of', week)) : [];
+            if (copy) {
+              await q(sb.from('checklist_tasks').update({ ...fields, who: fields.who || copy.who }).eq('id', copy.id).select('id'));
+              const have = await q(sb.from('checklist_subtasks').select('*').eq('task_id', copy.id));
+              const drop = have.filter((x) => !list.includes(x.name) && !x.done).map((x) => x.id);
+              if (drop.length) await q(sb.from('checklist_subtasks').delete().in('id', drop).select('id'));
+              const add = list.filter((n) => !have.some((x) => x.name === n));
+              if (add.length) await q(sb.from('checklist_subtasks').insert(add.map((n) => ({ task_id: copy.id, name: n, sort: list.indexOf(n) }))).select('id'));
+            } else {
+              const [nw] = await q(sb.from('checklist_tasks').insert({ ...fields, week_of: week, template_id: id, status: 'Not started', sort: 999 }).select('id'));
+              if (list.length) await q(sb.from('checklist_subtasks').insert(list.map((n, i) => ({ task_id: nw.id, name: n, sort: i }))).select('id'));
+            }
+          }
+          toast(editing ? 'Saved' : 'Added');
+          done(true);
+        } catch (err) { toast(errMsg(err), true); }
+      });
+      draw();
+      document.body.appendChild(back);
+      if (!editing) form.querySelector('[name=name]').focus();
+    });
+  }
+
 
   return { renderRequests, renderRequest, renderChecklist };
 }
