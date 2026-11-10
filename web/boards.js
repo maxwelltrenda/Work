@@ -460,6 +460,7 @@ export function boardPages(ctx) {
       <header class="page-head b-simplehead dept-custodial"><div><div class="eyebrow dept-tag">Custodial</div><h1>Custodial <span class="accent">checklist</span></h1></div></header>
       <div class="b-progress"><div class="b-progbar"><i style="width:${pct}%"></i></div><span><b>${done} of ${tasks.length}</b> done this week</span></div>
       ${pw && canEdit() ? pulled.block('custodial', pw) : ''}
+      ${canEdit() ? '<div class="b-ckadd"><button class="btn" data-ck-add>+ Add a task this week</button><span class="muted">For one-off jobs. It won\'t come back next week.</span></div>' : ''}
       ${order.map((d) => {
         const items = tasks.filter((t) => (t.day || 'Detail Work') === d);
         if (!items.length) return '';
@@ -472,6 +473,9 @@ export function boardPages(ctx) {
 
     const rerender = () => renderChecklist('week');
     pulled.bind(app, rerender);
+    app.querySelector('[data-ck-add]')?.addEventListener('click', async () => {
+      if (await addWeekTask(week, todayName, tasks)) rerender();
+    });
     app.querySelectorAll('[data-tick]').forEach((b) => b.addEventListener('click', async () => {
       const next = b.dataset.done === '1' ? 'Not started' : 'Done';
       b.closest('.b-task').classList.toggle('st-done', next === 'Done');
@@ -526,6 +530,58 @@ export function boardPages(ctx) {
       back.querySelector('[data-ok]').addEventListener('click', () => done(names.filter((n) => sel.has(n))));
       draw();
       document.body.appendChild(back);
+    });
+  }
+
+  // A task for this week only (not on the weekly template).
+  function addWeekTask(week, todayName, tasks) {
+    return new Promise((resolve) => {
+      let day = todayName;
+      const sel = new Set();
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML = `<form class="modal sheet b-ckform" role="dialog" aria-modal="true" aria-labelledby="ck-add-title">
+        <h3 id="ck-add-title">Add a task this week</h3>
+        <p class="muted">Only on this week's list. It won't come back next week.</p>
+        <label><span>What needs doing?</span><input name="name" required autocomplete="off" placeholder="e.g. Deep clean the green room" class="modal-input"></label>
+        <div class="wk-sect">Which day</div>
+        <div class="wk-chips">${DAYS.filter((d) => d !== 'Detail Work').map((d) => `<button type="button" class="chip-btn" data-ckday="${d}">${d.slice(0, 3)}${d === todayName ? ' (today)' : ''}</button>`).join('')}</div>
+        <div class="wk-sect">Who's on it <span class="muted pm-opt">(optional)</span></div>
+        <div class="wk-chips">${ckCrew.map((n) => `<button type="button" class="chip-btn b-pp" data-ckpp="${esc(n)}"><span class="b-av" style="background:${hue(n)}">${esc(initials(n))}</span>${esc(n)}</button>`).join('') || '<span class="muted">No team members yet.</span>'}</div>
+        <label style="margin-top:12px"><span>Steps <span class="muted">(optional, one per line)</span></span><textarea name="steps" rows="3" placeholder="Vacuum&#10;Wipe tables&#10;Trash"></textarea></label>
+        <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">Add to this week</button></div>
+      </form>`;
+      const form = back.querySelector('form');
+      const draw = () => {
+        form.querySelectorAll('[data-ckday]').forEach((b) => b.classList.toggle('on', b.dataset.ckday === day));
+        form.querySelectorAll('[data-ckpp]').forEach((b) => b.classList.toggle('on', sel.has(b.dataset.ckpp)));
+      };
+      form.querySelectorAll('[data-ckday]').forEach((b) => b.addEventListener('click', () => { day = b.dataset.ckday; draw(); }));
+      form.querySelectorAll('[data-ckpp]').forEach((b) => b.addEventListener('click', () => { const n = b.dataset.ckpp; if (sel.has(n)) sel.delete(n); else sel.add(n); draw(); }));
+      const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
+      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(false); } };
+      document.addEventListener('keydown', onKey, true);
+      back.addEventListener('mousedown', (e) => { if (e.target === back) done(false); });
+      form.querySelector('[data-cancel]').addEventListener('click', () => done(false));
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const f = new FormData(form);
+        const name = String(f.get('name') || '').trim();
+        if (!name) return form.querySelector('[name=name]').focus();
+        const steps = String(f.get('steps') || '').split('\n').map((x) => x.trim()).filter(Boolean);
+        try {
+          const [row] = await q(sb.from('checklist_tasks').insert({
+            week_of: week, name, day, area: 'Building', status: 'Not started', includes: 'This week only',
+            who: sel.size ? [...sel].join(', ') : null, sort: Math.max(0, ...tasks.map((t) => t.sort || 0)) + 1,
+          }).select('id'));
+          if (steps.length) await q(sb.from('checklist_subtasks').insert(steps.map((s, i) => ({ task_id: row.id, name: s, sort: i }))).select('id'));
+          toast(`Added for ${day}`);
+          done(true);
+        } catch (err) { toast(errMsg(err), true); }
+      });
+      draw();
+      document.body.appendChild(back);
+      form.querySelector('[name=name]').focus();
     });
   }
 
