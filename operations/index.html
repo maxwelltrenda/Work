@@ -142,6 +142,21 @@
     .teams-list { display: grid; gap: 10px; }
     .teams-list .team-row { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-left: 5px solid var(--c); border-radius: 12px; padding: 12px 14px; }
     .teams-list .team-row b { flex: 1; font-size: 16px; color: var(--ink); }
+    /* ---------- Guided tour ---------- */
+    .tour-back { position: fixed; inset: 0; z-index: 400; }
+    .tour-hole { position: fixed; z-index: 401; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(15, 22, 26, .62); transition: all .25s ease; pointer-events: none; }
+    .tour-hole.none { width: 0 !important; height: 0 !important; left: 50% !important; top: 40% !important; }
+    .tour-tip { position: fixed; z-index: 402; width: min(380px, calc(100vw - 32px)); background: var(--card); border-radius: 16px; padding: 18px 18px 14px; box-shadow: 0 20px 50px rgba(0,0,0,.3); transition: top .25s ease, left .25s ease; }
+    .tour-tip .step { font: 700 11px var(--serif); text-transform: uppercase; letter-spacing: .1em; color: var(--accent); }
+    .tour-tip h3 { margin: 4px 0 6px; font: 700 22px/1.1 var(--serif); text-transform: uppercase; }
+    .tour-tip p { margin: 0; font-size: 15px; color: var(--body); line-height: 1.45; }
+    .tour-tip .tour-foot { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+    .tour-tip .dots { display: flex; gap: 5px; margin-right: auto; }
+    .tour-tip .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
+    .tour-tip .dots i.on { background: var(--accent); width: 18px; border-radius: 4px; }
+    .tour-tip .skip { border: 0; background: none; color: var(--muted); font: 600 13px var(--sans); cursor: pointer; padding: 6px; }
+    .who .help { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-strong); background: var(--card); font: 700 15px var(--sans); color: var(--ink); cursor: pointer; }
+    @media (max-width: 760px) { .tour-tip { left: 16px !important; right: 16px; width: auto; } }
     .ops-top { display: flex; gap: 24px; align-items: flex-start; justify-content: space-between; }
     .ops-top .page-head { flex: 1 1 auto; min-width: 0; }
     .wx-corner { flex: 0 0 360px; text-align: left; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 14px; cursor: pointer; }
@@ -293,7 +308,7 @@ function setTop(site, navHtml){
   $("brand").innerHTML='<a href="#ops" class="brand-link"><span class="brand-mark">'+mark+'</span><span class="brand-name">'+(site==="media"?'':'<small>MERCY CULTURE</small>')+esc(site==="media"?"Gear":name)+'</span></a>';
   $("nav").innerHTML=navHtml;
   var unread=S.notifs.filter(function(n){return !n.read;}).length;
-  $("who").innerHTML='<button class="alerts" data-act="notifs" aria-label="Alerts">'+BELL+(unread?'<span class="n">'+unread+'</span>':'')+'</button><span class="who-name">'+BOSS+' · Operations</span>';
+  $("who").innerHTML='<button class="help" data-act="tour" aria-label="Take the tour" title="Take the tour">?</button><button class="alerts" data-act="notifs" aria-label="Alerts">'+BELL+(unread?'<span class="n">'+unread+'</span>':'')+'</button><span class="who-name">'+BOSS+' · Operations</span>';
   document.title = site ? TEAMS[site].name+" · Operations" : "Operations";
   drawTabbar(site);
 }
@@ -402,7 +417,7 @@ function renderAllRequests(){
   }).join("")+'</table></div>';
   app.innerHTML=h+foot();
 }
-function foot(){ return '<p class="ops-foot">Preview · changes stay on this device · <button data-act="reset">Start over</button></p>'; }
+function foot(){ return '<p class="ops-foot">Preview · changes stay on this device · <button data-act="tour">Take the tour</button> · <button data-act="reset">Start over</button></p>'; }
 
 /* ---------- team sites ---------- */
 function reqRow(r){
@@ -604,7 +619,8 @@ document.addEventListener("click", function(e){
   if(b.dataset.pick){ formState.team=b.dataset.pick; document.querySelectorAll("[data-pick]").forEach(function(x){x.classList.toggle("on", x===b);}); return; }
   if(b.dataset.when){ document.querySelectorAll("[data-when]").forEach(function(x){x.classList.toggle("on", x===b);}); return; }
   var a=b.dataset.act;
-  if(a==="wx") openWx();
+  if(a==="tour") startTour();
+  else if(a==="wx") openWx();
   else if(a==="teams") openTeams();
   else if(a==="notifs") openNotifs();
   else if(a==="tip"){ S.tipOff=true; save(); render(); }
@@ -626,7 +642,82 @@ document.addEventListener("submit", function(e){
   }
 });
 setInterval(function(){ if(document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return; if(!$("layer").innerHTML && route!=="form") render(); }, 60000);
+/* ---------- Guided tour: runs the first time, and from the ? button ---------- */
+var TOUR_KEY="mc-ops-tour-v1";
+var phone=function(){ return matchMedia("(max-width: 760px)").matches; };
+var TOUR=[
+  {title:"Hi "+BOSS+" 👋", text:"This is your Operations hub: every team you're over, where people are, and what's going on, in one place. This quick tour takes about a minute. Tap Next."},
+  {sel:"#wx-corner", title:"This weekend", text:"The weekend weather, Friday to Sunday. Facilities posts a gameplan for each day based on the forecast, so you know what's being done about rain or wind. Tap the card for hour by hour."},
+  {sel:".stats", title:"The big numbers", text:"Who's working on something right now, open requests across every team, anything past due, and how far the custodial team is through today's checklist."},
+  {sel:"#app .ops-list", title:"Where people are", text:"Everyone on your teams and what they're doing: a request, the checklist, a tool or gear they have out, or out for the day. Tap anyone to ask them for something; it lands on their list as From "+BOSS+"."},
+  {sel:".ops-teams", title:"Your teams", text:"Facilities, Events and Media at a glance. Open a team's live site to see exactly what they use, or preview it right here."},
+  {sel:function(){ return phone()?'.tabbar a[href="#requests"]':'#nav a[href="#requests"]'; }, title:"All requests", text:"Every open request from every team in one list, soonest due first. Filter by team, tap one to assign it or change the due date."},
+  {sel:function(){ return phone()?'.tabbar a[href="#form"]':'#nav a[href="#form"]'; }, title:"One request form", text:"One link for the whole church. People pick what they need (facilities, an event, media) and it goes straight to the right team. No login."},
+  {sel:".alerts", title:"Alerts", text:"New requests and anything sent your way show up here."},
+  {title:"That's it", text:"Click around and try things. This is a preview with example data, so nothing you do here changes the real sites. The weather and the Facilities gameplan are live. Tap the ? at the top any time to see this again."}
+];
+var tourAt=-1;
+function startTour(){
+  closeSheet();
+  if((location.hash||"#ops")!=="#ops"){ location.hash="#ops"; setTimeout(function(){ showTour(0); }, 350); return; }
+  showTour(0);
+}
+function endTour(){
+  tourAt=-1; ["tour-back","tour-hole","tour-tip"].forEach(function(id){ var e=$(id); if(e) e.remove(); });
+  try{ localStorage.setItem(TOUR_KEY,"1"); }catch(e){}
+  window.removeEventListener("resize", placeTour);
+}
+function showTour(i){
+  tourAt=i;
+  if(!$("tour-back")){
+    ["tour-back","tour-hole","tour-tip"].forEach(function(id){ var d=document.createElement("div"); d.id=id; d.className=id; document.body.appendChild(d); });
+    $("tour-back").addEventListener("click", function(e){ e.stopPropagation(); });
+    window.addEventListener("resize", placeTour);
+  }
+  var st=TOUR[i];
+  $("tour-tip").innerHTML='<div class="step">'+(i+1)+' of '+TOUR.length+'</div><h3>'+esc(st.title)+'</h3><p>'+esc(st.text)+'</p>'
+    +'<div class="tour-foot"><span class="dots">'+TOUR.map(function(_,k){return '<i class="'+(k===i?'on':'')+'"></i>';}).join("")+'</span>'
+    +(i<TOUR.length-1?'<button class="skip" data-tour="skip">Skip</button>':'')
+    +(i?'<button class="btn small" data-tour="back">Back</button>':'')
+    +'<button class="btn small primary" data-tour="next">'+(i===TOUR.length-1?"Done":i===0?"Show me":"Next")+'</button></div>';
+  $("tour-tip").querySelectorAll("[data-tour]").forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); var t=b.dataset.tour;
+    if(t==="skip"||(t==="next"&&tourAt===TOUR.length-1)) return endTour();
+    showTour(tourAt+(t==="next"?1:-1)); }; });
+  var el=tourTarget(st);
+  if(el && !el.closest(".topbar, .tabbar")){
+    // Bring it into view right away (no smooth scroll, so the highlight lands in the right place).
+    var head=document.querySelector(".topbar").getBoundingClientRect().bottom, r=el.getBoundingClientRect();
+    var room=innerHeight-head-(phone()?$("tour-tip").offsetHeight+24:$("tour-tip").offsetHeight+40);
+    window.scrollTo(0, window.scrollY + r.top - head - (r.height < room ? Math.max(12, (room - r.height) / 2) : 12));
+  }
+  requestAnimationFrame(placeTour);
+  $("tour-tip").querySelector('[data-tour="next"]').focus({preventScroll:true});
+}
+function tourTarget(st){ if(!st||!st.sel) return null; var sel=typeof st.sel==="function"?st.sel():st.sel; var el=document.querySelector(sel); return el && el.getClientRects().length ? el : null; }
+function placeTour(){
+  if(tourAt<0) return;
+  var hole=$("tour-hole"), tip=$("tour-tip"), el=tourTarget(TOUR[tourAt]);
+  if(!el){ hole.className="tour-hole none"; tip.style.left=Math.max(16,(innerWidth-tip.offsetWidth)/2)+"px"; tip.style.top=Math.max(16,(innerHeight-tip.offsetHeight)/2)+"px"; return; }
+  var r=el.getBoundingClientRect(), pad=8, th=tip.offsetHeight, tw=tip.offsetWidth;
+  var inBar=!!el.closest(".topbar, .tabbar");
+  var head=inBar?0:document.querySelector(".topbar").getBoundingClientRect().bottom;
+  // Keep the highlight on screen: below the header, and above the tip on a phone.
+  var top=Math.max(r.top, head+pad+4), bottom=Math.min(r.bottom, innerHeight-(phone()&&!inBar?th+28:pad+4));
+  if(phone()&&el.closest(".tabbar")) bottom=r.bottom;
+  hole.className="tour-hole";
+  hole.style.left=(r.left-pad)+"px"; hole.style.top=(top-pad)+"px"; hole.style.width=(r.width+pad*2)+"px"; hole.style.height=Math.max(20, bottom-top+pad*2)+"px";
+  if(phone()){ tip.style.left="16px"; tip.style.top=(el.closest(".tabbar") ? r.top-pad-12-th : el.closest(".topbar") ? r.bottom+pad+12 : innerHeight-th-16)+"px"; return; }
+  r={top:top, bottom:bottom, left:r.left, width:r.width};
+  var below=r.bottom+pad+12, above=r.top-pad-12-th;
+  var top = below+th < innerHeight-8 ? below : above > 8 ? above : Math.max(8, innerHeight-th-8);
+  tip.style.top=top+"px";
+  tip.style.left=Math.min(Math.max(16, r.left+r.width/2-tw/2), innerWidth-tw-16)+"px";
+}
+document.addEventListener("keydown", function(e){ if(tourAt<0) return; if(e.key==="Escape") endTour(); else if(e.key==="ArrowRight"&&tourAt<TOUR.length-1) showTour(tourAt+1); else if(e.key==="ArrowLeft"&&tourAt>0) showTour(tourAt-1); });
+
 render();
+var tourSeen=false; try{ tourSeen=!!localStorage.getItem(TOUR_KEY); }catch(e){}
+if(!tourSeen && !/[?&]notour/.test(location.search)) setTimeout(startTour, 700);
 })();
 </script>
 </body>
