@@ -11,6 +11,7 @@ import { contractorPages } from './contractors.js?v=__V__';
 import { gameplanPages } from './gameplan.js?v=__V__';
 import { overviewPages } from './overview.js?v=__V__';
 import { myTaskPages } from './mytasks.js?v=__V__';
+import { mountAssistant } from './assistant.js?v=__V__';
 
 // Demo mode (?demo): the Facilities app with sample data, no login, nothing
 // saved. It never connects to the real database (demo.js).
@@ -444,6 +445,9 @@ async function signOut(expired = false) {
   state.session = null;
   state.me = null;
   stopNotifs();
+  document.getElementById('ask-btn')?.remove();
+  document.querySelector('.ask-panel')?.remove();
+  try { sessionStorage.removeItem('mc-ask-chat'); } catch { /* private mode */ }
   history.replaceState(null, '', location.pathname);
   renderTopbar();
   renderLogin('signin', expired === true ? 'Your session ended. Please sign in again.' : '');
@@ -488,6 +492,10 @@ async function bootInner() {
   }
   renderTopbar();
   startNotifs();
+  // The "Ask" helper: for the Facilities team (not the kiosk).
+  if (SITE === 'facilities' && ['admin', 'fac_admin', 'member', 'maintenance', 'custodian'].includes(state.me.role)) {
+    mountAssistant({ sb, esc, demo: DEMO, onChange: () => state.me && route() });
+  }
   await route();
 }
 
@@ -3461,7 +3469,7 @@ const markFullscreen = () => {
 };
 markFullscreen();
 window.addEventListener('resize', markFullscreen);
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/mytasks.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/mytasks.js', '/assistant.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {
