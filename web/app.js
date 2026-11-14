@@ -692,7 +692,8 @@ function notifRow(n, seenAt) {
 // Clear: empty my list (only for me).
 async function clearNotifs() {
   try {
-    const at = await rpc('clear_notifications');
+    // If the server can't save it yet, still clear this screen.
+    const at = await rpc('clear_notifications').catch(() => null);
     state.me.notif_cleared_at = at || new Date().toISOString();
     state.me.notif_seen_at = state.me.notif_cleared_at;
     state.notifs.list = [];
