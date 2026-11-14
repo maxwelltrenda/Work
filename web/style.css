@@ -1392,3 +1392,16 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .ask-choices { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .ask-choices .chip-btn { font-size: 13px; }
 .ask-done.only { margin: 0; padding: 0; border: 0; }
+
+/* Alerts button: a clear pill with a label, not just a small bell */
+.bell { width: auto; height: 38px; margin: -6px 2px; padding: 0 12px 0 10px; gap: 6px; border-radius: 999px;
+  border: 1px solid var(--line-strong); background: var(--card); font: 600 14px var(--sans); text-decoration: none; cursor: pointer; }
+.bell-count { top: -6px; right: -6px; }
+.bell:has(.bell-count:not([hidden])) { border-color: #d13b2b; }
+:root[data-site="media"] .bell { background: transparent; border-color: rgba(255, 255, 255, .35); }
+@media (max-width: 340px) { .bell { padding: 0 9px; } .bell-label { display: none; } }
+.notif-head { gap: 12px; }
+.notif-head b { margin-right: auto; }
+.notif-clear { background: none; border: 0; padding: 0; color: var(--muted); font: 14px var(--sans); cursor: pointer; text-decoration: underline; }
+.notif-page-tools { display: flex; justify-content: flex-end; margin-top: 16px; }
+.notif.assigned .notif-dot { background: var(--accent-soft); color: var(--accent); }

@@ -637,12 +637,13 @@ function renderNotOnList() {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Notifications: sign-outs and returns, for admins (bell in the top bar)
+// Alerts (bell in the top bar). Admins: sign-outs, returns, low stock, work
+// checked off. Everyone: when someone gives them work (personal alerts).
 // ---------------------------------------------------------------------------
 
-const canSeeNotifs = () => isAdmin() || state.me?.media_role === 'lead' || state.me?.events_role === 'admin';
+const canSeeNotifs = () => !!state.me && !isKiosk();
 const NOTIF_LINK = (n) => n.link || (n.kind === 'low' && n.item_id ? `#/item/${n.item_id}` : n.tool_id ? `#/tool/${n.tool_id}` : '');
-const BELL = `<button id="bell" class="bell" aria-label="Notifications" aria-haspopup="true"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm-2.2 15.5a2.3 2.3 0 0 0 4.4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="bell-count" hidden></span></button>`;
+const BELL = `<button id="bell" class="bell" aria-label="Alerts" aria-haspopup="true"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3a6 6 0 0 0-6 6v3.6L4.3 15.4A1 1 0 0 0 5.2 17h13.6a1 1 0 0 0 .9-1.6L18 12.6V9a6 6 0 0 0-6-6Zm-2.2 15.5a2.3 2.3 0 0 0 4.4 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg><span class="bell-label">Alerts</span><span class="bell-count" hidden></span></button>`;
 let notifTimer = null;
 
 const isUnread = (n, seenAt = state.me?.notif_seen_at) => !seenAt || Date.parse(n.created_at) > Date.parse(seenAt);
@@ -651,8 +652,9 @@ const unreadCount = () => state.notifs.list.filter((n) => isUnread(n)).length;
 async function loadNotifs() {
   if (!state.me || !canSeeNotifs()) return;
   try {
-    state.notifs.list = await q(sb.from('notifications').select('*')
-      .order('created_at', { ascending: false }).limit(80));
+    let query = sb.from('notifications').select('*');
+    if (state.me.notif_cleared_at) query = query.gt('created_at', state.me.notif_cleared_at);
+    state.notifs.list = await q(query.order('created_at', { ascending: false }).limit(80));
     state.notifs.loaded = true;
     updateBell();
   } catch { /* try again next time */ }
@@ -674,18 +676,31 @@ function updateBell() {
   const n = unreadCount();
   el.hidden = !n;
   el.textContent = n > 99 ? '99+' : n;
-  document.getElementById('bell').setAttribute('aria-label', n ? `Notifications, ${n} new` : 'Notifications');
+  document.getElementById('bell').setAttribute('aria-label', n ? `Alerts, ${n} new` : 'Alerts');
 }
 
 const SITE_TAG = { facilities: 'Facilities', media: 'Media', events: 'Events' };
 function notifRow(n, seenAt) {
   const showSite = isOrgAdmin() && SITE_TAG[n.site] && n.site !== SITE;
   return `<li class="notif ${n.kind} ${isUnread(n, seenAt) ? 'unread' : ''}">
-    <span class="notif-dot" aria-hidden="true">${{ out: '↗', in: '↙', low: '!', done: '✓' }[n.kind] || '•'}</span>
+    <span class="notif-dot" aria-hidden="true">${{ out: '↗', in: '↙', low: '!', done: '✓', assigned: '→' }[n.kind] || '•'}</span>
     <div class="notif-text">${NOTIF_LINK(n) && n.site === (SITE === 'media' ? 'media' : SITE) ? `<a href="${NOTIF_LINK(n)}"><b>${esc(n.title)}</b></a>` : `<b>${esc(n.title)}</b>`}${n.body ? `<span>${esc(n.body)}</span>` : ''}</div>
     <div class="notif-meta">${showSite ? `<span class="notif-site">${SITE_TAG[n.site]}</span>` : ''}<time title="${esc(fmtDate(n.created_at))}">${since(n.created_at)}</time></div>
   </li>`;
 }
+
+// Clear: empty my list (only for me).
+async function clearNotifs() {
+  try {
+    const at = await rpc('clear_notifications');
+    state.me.notif_cleared_at = at || new Date().toISOString();
+    state.me.notif_seen_at = state.me.notif_cleared_at;
+    state.notifs.list = [];
+    updateBell();
+    toast('Alerts cleared');
+  } catch (err) { toast(errMsg(err), true); }
+}
+const NOTIF_EMPTY = () => (isAdmin() ? 'Nothing new. Work given to you, sign-outs, returns, low stock and checked-off tasks show up here.' : 'Nothing new. When someone gives you a task, it shows up here.');
 
 async function markSeen() {
   if (!unreadCount()) return;
@@ -706,13 +721,14 @@ function bindBell() {
     panel.id = 'notif-panel';
     panel.className = 'notif-panel';
     panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-label', 'Notifications');
+    panel.setAttribute('aria-label', 'Alerts');
     const list = state.notifs.list.slice(0, 12);
-    panel.innerHTML = `<div class="notif-head"><b>Notifications</b><a href="#/notifications">See all</a></div>
+    panel.innerHTML = `<div class="notif-head"><b>Alerts</b>${list.length ? '<button type="button" class="notif-clear" data-clear>Clear all</button>' : ''}<a href="#/notifications">See all</a></div>
       ${!state.notifs.loaded ? LOADER : list.length ? `<ul class="notif-list">${list.map((n) => notifRow(n, seenAt)).join('')}</ul>`
-        : '<p class="muted notif-empty">Nothing yet. Sign-outs, returns, low stock and checked-off tasks show up here.</p>'}
+        : `<p class="muted notif-empty">${NOTIF_EMPTY()}</p>`}
       <div class="notif-foot" id="push-box"></div>`;
     document.body.appendChild(panel);
+    panel.querySelector('[data-clear]')?.addEventListener('click', async () => { await clearNotifs(); closeBell(); });
     panel.addEventListener('click', (ev) => { ev.stopPropagation(); if (ev.target.closest('a')) closeBell(); });
     renderPushBox(panel.querySelector('#push-box'), true);
     markSeen();
@@ -728,11 +744,13 @@ async function renderNotifications() {
   const seenAt = state.me.notif_seen_at;
   const list = state.notifs.list;
   app.innerHTML = `
-    ${pageHead('Admin', '<span class="accent">Alerts</span>', `Tool sign-outs and returns, low stock, and Maintenance and Custodial tasks checked off${isOrgAdmin() ? ', on every site' : ''}. Newest first.`)}
+    ${pageHead('Alerts', '<span class="accent">Alerts</span>', isAdmin() ? `Work given to you, tool sign-outs and returns, low stock, and Maintenance and Custodial tasks checked off${isOrgAdmin() ? ', on every site' : ''}. Newest first.` : 'When someone puts you on a task or gives you a request or to-do. Newest first.')}
     <div class="card" id="push-box"></div>
+    ${list.length ? '<div class="notif-page-tools"><button type="button" class="btn" id="notif-clear">Clear all</button></div>' : ''}
     <div class="card" style="margin-top:16px">${list.length ? `<ul class="notif-list">${list.map((n) => notifRow(n, seenAt)).join('')}</ul>`
-      : '<p class="muted">Nothing yet. Sign-outs, returns, low stock and checked-off tasks show up here.</p>'}</div>`;
+      : `<p class="muted">${NOTIF_EMPTY()}</p>`}</div>`;
   renderPushBox(app.querySelector('#push-box'));
+  app.querySelector('#notif-clear')?.addEventListener('click', async () => { await clearNotifs(); renderNotifications(); });
   markSeen();
 }
 
@@ -787,7 +805,7 @@ async function renderPushBox(box, compact = false) {
   const st = await pushState().catch(() => 'unsupported');
   const msg = {
     on: 'Push notifications are <b>on</b> for this device.',
-    off: 'Get a push notification on this device when something is signed out or returned.',
+    off: 'Get a push notification on this device when you have a new alert.',
     install: 'To get push notifications on iPhone or iPad, add this app to your Home Screen first (Share → Add to Home Screen), then open it from there and turn them on.',
     denied: 'Notifications are blocked for this app. Turn them on in your device settings, then come back here.',
     unsupported: 'This browser can’t do push notifications. You’ll still see everything here.',
