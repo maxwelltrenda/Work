@@ -492,9 +492,9 @@ async function bootInner() {
   }
   renderTopbar();
   startNotifs();
-  // The "Ask" helper: for the Facilities team (not the kiosk).
+  // Quick update box (plain-words commands, no AI): Facilities team, not the kiosk.
   if (SITE === 'facilities' && ['admin', 'fac_admin', 'member', 'maintenance', 'custodian'].includes(state.me.role)) {
-    mountAssistant({ sb, esc, demo: DEMO, onChange: () => state.me && route() });
+    mountAssistant({ sb, esc, me: () => state.me, onChange: () => state.me && route() });
   }
   await route();
 }

@@ -1389,3 +1389,6 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
   .ask-panel { right: 8px; left: 8px; width: auto; bottom: calc(72px + env(safe-area-inset-bottom, 0px)); height: calc(100dvh - 150px); }
   .is-demo .ask-panel { bottom: calc(122px + env(safe-area-inset-bottom, 0px)); height: calc(100dvh - 200px); }
 }
+.ask-choices { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ask-choices .chip-btn { font-size: 13px; }
+.ask-done.only { margin: 0; padding: 0; border: 0; }
