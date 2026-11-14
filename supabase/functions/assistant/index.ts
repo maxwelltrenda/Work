@@ -23,7 +23,8 @@ const CORS = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
-const anthropic = new Anthropic();
+// Made on first use, so a missing key gives a clear message instead of a crash.
+let anthropic: Anthropic | null = null;
 
 type Me = { id: string; name: string; role: string };
 type Ctx = { sb: SupabaseClient; me: Me; today: string; weekday: string; week: string; actions: string[] };
@@ -328,13 +329,14 @@ Deno.serve(async (req: Request) => {
   while (history.length && history[0].role !== 'user') history.shift();
   if (!history.length || history[history.length - 1].role !== 'user') return json({ error: 'Type something first.' }, 400);
 
+  anthropic ??= new Anthropic();
   const { today, weekday, week, time } = clock();
   const c: Ctx = { sb, me, today, weekday, week, actions: [] };
   const messages: Anthropic.Beta.BetaMessageParam[] = history;
 
   try {
     for (let turn = 0; turn < 10; turn++) {
-      const res = await anthropic.beta.messages.create({
+      const res = await anthropic!.beta.messages.create({
         model: MODEL,
         max_tokens: 16000,
         betas: ['server-side-fallback-2026-07-01'],
