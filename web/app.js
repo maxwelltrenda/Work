@@ -10,6 +10,7 @@ import { teamPages } from './team.js?v=__V__';
 import { contractorPages } from './contractors.js?v=__V__';
 import { gameplanPages } from './gameplan.js?v=__V__';
 import { overviewPages } from './overview.js?v=__V__';
+import { myTaskPages } from './mytasks.js?v=__V__';
 
 // Demo mode (?demo): the Facilities app with sample data, no login, nothing
 // saved. It never connects to the real database (demo.js).
@@ -212,7 +213,7 @@ function sitePages() {
     return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history',
       ...(mr === 'lead' ? ['labels', 'categories', 'people', 'notifications'] : [])];
   }
-  return [...myRole().pages.filter((p) => p !== 'events' && p !== 'items/events'), ...(canSeeNotifs() ? ['notifications'] : []), ...(isKiosk() ? [] : ['team'])];
+  return [...myRole().pages.filter((p) => p !== 'events' && p !== 'items/events'), ...(canSeeNotifs() ? ['notifications'] : []), ...(isKiosk() ? [] : ['team', 'mytasks'])];
 }
 const siteHome = () => (SITE === 'events' ? (siteRole().scanTools ? 'kiosk' : 'events') : SITE === 'media' ? (mediaRole() ? 'kiosk' : 'toollist') : myRole().home);
 
@@ -230,13 +231,14 @@ const NAV_ICON_PATHS = {
   events: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   reservations: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/>',
   out: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  mytasks: '<rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 9l1.5 1.5L12 8M8 15l1.5 1.5L12 14M14.5 9.5H17M14.5 15.5H17"/>',
   more: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
 };
 const navIcon = (k) => `<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAV_ICON_PATHS[k] || NAV_ICON_PATHS.items}</svg>`;
 
 const NAV = {
   facilities: {
-    main: [['overview', 'Overview'], ['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools'], ['team', 'Team']],
+    main: [['overview', 'Overview'], ['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools'], ['team', 'Team'], ['mytasks', 'My tasks']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
       ['people', 'People'], ['locations', 'Locations'], ['contractors', 'Contractors'], ['gameplan', 'Weekend plan'], ['categories', 'Categories']],
   },
@@ -519,11 +521,11 @@ function renderTopbar() {
     nav.querySelector('details.more')?.addEventListener('toggle', (e) => {
       const d = e.currentTarget;
       const menu = d.querySelector('.more-menu');
-      if (!d.open || !matchMedia('(max-width: 1000px)').matches) { menu.style.top = ''; return; }
+      if (!d.open || !matchMedia('(max-width: 1160px)').matches) { menu.style.top = ''; return; }
       menu.style.top = `${d.querySelector('summary').getBoundingClientRect().bottom + 6}px`;
     });
     const roleLabel = isOrgAdmin() ? 'Admin' : SITE === 'media' ? (MEDIA_ROLES[mediaRole()] || myRole().label) : SITE === 'events' ? (EVENTS_ROLES[state.me.events_role] || 'Events team') : myRole().label;
-    who.innerHTML = `${canSeeNotifs() ? BELL : ''}<span class="who-name">${esc(state.me.name)} · ${esc(roleLabel)}</span><button id="signout">Sign out</button>`;
+    who.innerHTML = `${canSeeNotifs() ? BELL : ''}${SITE === 'facilities' && !isKiosk() ? `<a class="who-name who-link" href="#/mytasks" title="My tasks">${esc(state.me.name)} · ${esc(roleLabel)}</a>` : `<span class="who-name">${esc(state.me.name)} · ${esc(roleLabel)}</span>`}<button id="signout">Sign out</button>`;
     bindBell();
   }
   document.getElementById('signout')?.addEventListener('click', signOut);
@@ -806,6 +808,7 @@ const routes = {
   contractors: () => CONTRACTORS.renderContractors(),
   gameplan: () => GAMEPLAN.renderGameplan(),
   overview: () => OVERVIEW.renderOverview(),
+  mytasks: (id) => MYTASKS.renderMyTasks(id || null),
 };
 
 // Maintenance Requests and the Weekly Checklist (boards.js). Editing: admin and
@@ -819,6 +822,7 @@ const BOARDS = boardPages({
 });
 
 // Recurring maintenance schedule (pm.js): Maintenance managers and admins.
+const MYTASKS = myTaskPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, me: () => state.me, isAdmin });
 const OVERVIEW = overviewPages({ sb, q, rpc, esc, me: () => state.me });
 const GAMEPLAN = gameplanPages({ rpc, esc, toast, errMsg, pageHead });
 const CONTRACTORS = contractorPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, canEdit: () => isAdmin() });
@@ -3457,7 +3461,7 @@ const markFullscreen = () => {
 };
 markFullscreen();
 window.addEventListener('resize', markFullscreen);
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/mytasks.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {

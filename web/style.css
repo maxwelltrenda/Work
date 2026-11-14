@@ -1260,7 +1260,7 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 #nav > a[href="#/schedule"] .nav-ico { color: var(--dept-maint); }
 #nav > a[href="#/checklist"]::before, #nav > a[href="#/schedule"]::before { display: none; }
 #nav .more-menu .nav-ico { display: none; }
-@media (max-width: 1000px) {
+@media (max-width: 1160px) {
   #nav { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 0; margin: 2px -16px 0; padding: 0 8px; scroll-behavior: smooth; }
   #nav::-webkit-scrollbar { display: none; }
   #nav > a, #nav .more > summary { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: none; min-width: 66px; padding: 6px 8px 8px; font-size: 12px; font-weight: 600; color: var(--muted); }
@@ -1319,3 +1319,35 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .ov-tag.out { background: var(--bad-soft); color: var(--bad); }
 @media (max-width: 560px) { .ov-hrs { display: none; } }
 .ov-tag.todo { background: var(--accent-soft); color: var(--accent); }
+
+/* My tasks */
+.who-link { color: inherit; text-decoration: none !important; border-bottom: 1px dashed var(--line-strong); }
+.who-link:hover { color: var(--ink); }
+.mt-people { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 16px; }
+.mt-people .chip-btn { text-decoration: none !important; }
+.mt-add { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.mt-add > input[name=title] { flex: 1 1 260px; min-width: 0; font-size: 16px; }
+.mt-due { flex-direction: row !important; align-items: center; gap: 8px; font-size: 13px; }
+.mt-due input { width: 170px; }
+.mt-more { flex-basis: 100%; }
+.mt-more summary { cursor: pointer; font-size: 13px; color: var(--accent); font-weight: 600; }
+.mt-more textarea { width: 100%; margin-top: 8px; }
+.mt-h { margin: 26px 0 10px; display: flex; gap: 10px; align-items: baseline; }
+.mt-h .muted { font: 400 15px var(--sans); }
+.mt-list { display: grid; gap: 8px; }
+.mt-item { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; }
+.mt-item.late { border-color: #e7b3ad; background: #fff7f6; }
+.mt-item.done { opacity: .65; }
+.mt-item.done b { text-decoration: line-through; }
+.mt-check { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--card); color: #fff; font-weight: 800; cursor: pointer; }
+.mt-check:hover { border-color: var(--in); }
+.mt-item.done .mt-check { background: var(--in); border-color: var(--in); }
+.mt-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mt-body > b { font-size: 16px; color: var(--ink); font-weight: 600; }
+.mt-meta { font-size: 13px; color: var(--muted); }
+.mt-notes { font-size: 14px; color: var(--body); white-space: pre-line; }
+.mt-x { border: 0; background: none; color: var(--muted); font-size: 20px; cursor: pointer; padding: 0 4px; }
+.mt-x:hover { color: var(--bad); }
+.mt-donebox { margin-top: 22px; }
+.mt-donebox summary { cursor: pointer; font-weight: 600; margin-bottom: 10px; }
+.mt-empty { margin: 4px 0; }
