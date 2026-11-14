@@ -20,6 +20,7 @@ const HELP = `I understand short sentences like:
 • "Start windows and stock"
 • "Pause windows" · "Skip floors"
 • "Add me to laundry" · "Add Cass to windows"
+• "Add sanctuary chair check to Saturday"
 • "Pulled to prep event in the family center" · "Back"
 • "What's left" · "What's left inside" · "What's left today"
 • "Remind me to create stock carts"
@@ -88,7 +89,13 @@ export function parseClause(raw) {
   if (/^(i'?m\s+)?back\b|^done with (that|it|this)$|^(finished|done) (with )?(that|it)$/i.test(low)) return { kind: 'back' };
   if ((m = s.match(/^(?:remind me to|reminder:?|to-?do:?|add to my (?:list|tasks?):?|my tasks?:)\s+(.+)$/i))) return { kind: 'todo', title: m[1].trim().replace(/^./, (c) => c.toUpperCase()) };
   if ((m = s.match(/^(?:new\s+)?request:?\s+(.+)$/i))) return { kind: 'request', subject: m[1].trim().replace(/^./, (c) => c.toUpperCase()) };
-  if ((m = s.match(/^add\s+(.+?)\s+(?:to|on|onto)\s+(.+)$/i))) return { kind: 'people', who: m[1].trim(), target: m[2].trim() };
+  // "Add "Sanctuary chair check" to Saturday list" / "add task mop lobby for today"
+  if ((m = s.match(/^add\s+(?:a\s+)?(?:new\s+)?(?:task\s*:?\s*)?["“']?(.+?)["”']?\s+(?:to|on|for)\s+(?:the\s+|this\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday|today|detail work|week)(?:'?s)?(?:\s+(?:list|checklist|tasks?))?$/i))) {
+    const d = m[2].toLowerCase();
+    return { kind: 'addtask', name: m[1].trim().replace(/^./, (c) => c.toUpperCase()), day: d === 'today' || d === 'week' ? null : d.replace(/\b./g, (c) => c.toUpperCase()) };
+  }
+  if ((m = s.match(/^add\s+(?:a\s+)?(?:new\s+)?task\s*:?\s+["“']?(.+?)["”']?$/i))) return { kind: 'addtask', name: m[1].trim().replace(/^./, (c) => c.toUpperCase()), day: null };
+  if ((m = s.match(/^add\s+(.+?)\s+(?:to|on|onto)\s+(.+)$/i))) return { kind: 'people', who: m[1].trim().replace(/["“”]/g, ''), target: m[2].trim() };
   if ((m = s.match(/^(?:start(?:ing|ed)?|begin(?:ning)?|began|working on|work on|i'?m on|on to|onto|on|resume|continue)\s+(?:on\s+|with\s+)?(.+)$/i))) return { kind: 'start', target: m[1] };
   if ((m = s.match(/^(?:pause|paused|stop|stopping|stopped)\s+(?:on\s+)?(.+)$/i))) return { kind: 'pause', target: m[1] };
   if ((m = s.match(/^(?:skip|skipping|skipped)\s+(.+)$/i))) return { kind: 'skip', target: m[1] };
@@ -239,11 +246,23 @@ export function mountAssistant({ sb, esc, me, onChange }) {
       return out;
     }
 
+    if (cmd.kind === 'addtask') {
+      const day = cmd.day || todayName();
+      const sort = Math.max(0, ...work.tasks.map((t) => t.sort || 0)) + 1;
+      const [row] = await must(sb.from('checklist_tasks').insert({
+        week_of: work.week, name: cmd.name, day, area: 'Building', status: 'Not started', includes: 'This week only', sort,
+      }).select('*'));
+      if (row) work.tasks.push(row);
+      out.actions.push(`Added ${cmd.name} (${day}, this week)`);
+      out.lines.push('To make it repeat every week, use ↻ Repeating tasks on the Custodial page.');
+      return out;
+    }
+
     if (cmd.kind === 'people') {
       const names = cmd.who.split(/\s*(?:,|&|\band\b)\s*/i).filter(Boolean);
       const people = names.map((n) => findPerson(work.team, n));
       const missing = names.filter((n, i) => !people[i]);
-      if (missing.length) { out.lines.push(`I don't know who "${missing.join(', ')}" is.`); return out; }
+      if (missing.length) { out.lines.push(`I don't know anyone named "${missing.join(', ')}". To add a task instead, type: Add ${missing[0]} to Saturday`); return out; }
       for (const part of pieces(cmd.target, work.tasks)) {
         const hit = best(part, work.tasks, openFirst);
         if (hit.choices) { out.lines.push(`Which "${part}"?`); out.choices.push(...hit.choices.map((t) => ({ label: t.name, say: `add ${cmd.who} to ${t.name}` }))); continue; }
