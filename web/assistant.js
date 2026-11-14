@@ -283,11 +283,11 @@ export function mountAssistant({ sb, esc, me, onChange }) {
       }
       if (t.status === status) { out.lines.push(`${t.name} is already ${status === 'Done' ? 'done' : status.toLowerCase()}.`); continue; }
       const patch = { status };
-      // Starting a task puts you on it.
-      if (cmd.kind === 'start' && !whoList(t).includes(person.name)) patch.who = [...whoList(t), person.name].join(', ');
+      // Starting or finishing a task puts you on it, next to anyone already on it.
+      if (cmd.kind !== 'skip' && !whoList(t).includes(person.name)) patch.who = [...whoList(t), person.name].join(', ');
       await must(sb.from('checklist_tasks').update(patch).eq('id', t.id).select('id'));
       Object.assign(t, patch);
-      out.actions.push(`${{ start: 'Started', done: 'Done', skip: 'Skipped' }[cmd.kind]}: ${t.name}`);
+      out.actions.push(`${{ start: 'Started', done: 'Done', skip: 'Skipped' }[cmd.kind]}: ${t.name}${patch.who ? ` (${patch.who})` : ''}`);
     }
     return out;
   }
