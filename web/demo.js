@@ -89,6 +89,16 @@ const tool = (code) => db.tools.find((t) => t.code === code);
   db.notifications.push({ id: nextId(), created_at: ago(min), site: 'facilities', kind: 'out', tool_id: t.id, item_id: null, title: `${nameOf(who)} took the ${t.name}`, body: dest ? `To ${dest}` : null });
 });
 tool('TL-0012').repair_qty = 1; tool('TL-0012').status = 'repair';
+// Personal alerts and My tasks for Skyler: work someone else gave them.
+db.personal_tasks = [
+  { id: nextId(), member_id: ME, title: 'Walk the gym with the event team', notes: 'Look at chairs and the stage for Sunday', due_on: addDays(TODAY, 1), done_at: null, created_by: 'Max', created_at: ago(60 * 5) },
+  { id: nextId(), member_id: ME, title: 'Approve the AC filter order', notes: null, due_on: addDays(TODAY, 3), done_at: null, created_by: 'Skyler', created_at: ago(60 * 26) },
+  { id: nextId(), member_id: ME, title: 'Send contractor list to finance', notes: null, due_on: null, done_at: ago(60 * 30), created_by: 'Skyler', created_at: ago(60 * 50) },
+];
+db.notifications.push(
+  { id: nextId(), created_at: ago(25), site: 'facilities', kind: 'assigned', member_id: ME, title: 'Max put you on Sanctuary reset', body: `Custodial · ${TODAY_NAME}`, link: '#/checklist' },
+  { id: nextId(), created_at: ago(60 * 5), site: 'facilities', kind: 'assigned', member_id: ME, title: 'New task from Max: Walk the gym with the event team', body: `Due ${addDays(TODAY, 1).slice(5).replace('-', '/')}`, link: '#/mytasks' },
+);
 
 // Maintenance requests (sample)
 const GROUP = { New: 'new', 'Waiting for Approval': 'pending_reply', Executive: 'executive', Complete: 'solved', Declined: 'solved' };
@@ -246,6 +256,7 @@ function onUpdate(table, row, patch) {
     if (patch.status === 'Done' && row.week_of) db.notifications.push({ id: nextId(), created_at: nowIso(), site: 'facilities', kind: 'done', title: `Custodial done: ${row.name}`, body: `By Skyler · ${row.day || ''}`, link: '#/checklist' });
     if (patch.status === 'Done') { row.done_on = nowIso(); const who = String(row.who || '').split(',').map((x) => x.trim()).filter(Boolean); if (!who.includes('Skyler')) row.who = [...who, 'Skyler'].join(', '); }
     else if (row.status === 'Done') row.done_on = null;
+    if (patch.status === 'Working on it' && !row.timer_started_at) row.timer_started_at = nowIso();
     if (row.timer_started_at && ['Done', 'Skipped', 'Missed', 'Not started'].includes(patch.status)) { row.worked_seconds += Math.round((Date.now() - new Date(row.timer_started_at)) / 1000); row.timer_started_at = null; }
   }
 }

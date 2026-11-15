@@ -34,6 +34,9 @@ const DEMO_GUIDE = [
   ['items', 'Stock', 'What is on the shelves and what is running low.'],
   ['toollist', 'Tools', 'Every tool, where it is, and who has it.'],
   ['team', 'Team', 'Who works when and who is off.'],
+  ['mytasks', 'My tasks', 'Your own to-do list. Admins can add to anyone’s list.'],
+  ['notifications', 'Alerts', 'The bell at the top. Shows when someone gives you work, and what got done.'],
+  ['checklist', 'Quick update', 'The button in the corner. Type “Chapel done” or “Start windows” and the list updates.'],
   ['gameplan', 'Weekend plan', 'The weekend weather and our plan for each day.'],
   ['contractors', 'Contractors', 'Companies we hire, and who to call.'],
 ];
