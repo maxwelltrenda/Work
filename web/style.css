@@ -1554,3 +1554,6 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 @media (hover: none) { .pm-stepwho.empty { opacity: .7; } }
 .pm-stepwho .b-av { width: 22px; height: 22px; font-size: 10px; }
 .pm-clocked { color: var(--in); font-weight: 600; }
+.tn-list li.tn-reply { margin-left: 22px; background: #fffdf5; border-style: dashed; }
+.pm-parentnotes { margin-top: 4px; padding: 6px 10px; border-left: 3px solid var(--line-strong); }
+.pm-parentnotes > .muted { font-size: 12px; display: block; }

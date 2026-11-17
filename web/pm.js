@@ -392,6 +392,7 @@ export function schedulePages(ctx) {
         <span class="pm-meta">${[parent ? `Before <b>${esc(parent.name)}</b> (starts ${dshort(addD(r.period_end, 1))})` : '', t.location ? esc(t.location) : '', dueText(r, today)].filter(Boolean).join(' · ')}</span>
         ${isDone ? `<span class="pm-meta pm-donewho">Done by ${esc(who[r.done_by] || 'someone')} · ${new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}${r.note ? ` · ${esc(r.note)}` : ''}</span>` : ''}
         ${notesBlock(t.notes, esc)}
+        ${parent && parent.notes ? `<div class="pm-parentnotes"><span class="muted">Notes from ${esc(parent.name)}:</span>${notesBlock(parent.notes, esc)}</div>` : ''}
         ${ctLine(t)}
         ${notesList(pmNotes[r.id], esc, ctx.me?.()?.id, ctx.isAdmin?.())}
         ${steps.length ? `<div class="pm-steps">${steps.map((s, i) => {

@@ -1,5 +1,5 @@
-// Notes on tasks (Custodial tasks and Maintenance rounds): a 📝 Note button,
-// and the notes listed under the task with who wrote them and when.
+// Updates on tasks (Custodial tasks and Maintenance rounds): a 💬 Update button,
+// and the updates listed under the task, with replies, who wrote them and when.
 
 export async function loadNotes(sb, kind, ids) {
   if (!ids.length) return {};
@@ -12,22 +12,26 @@ export async function loadNotes(sb, kind, ids) {
 
 const when = (ts) => new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
+// Updates on a task, each with its replies underneath and a Reply button.
 export function notesList(list, esc, meId, canDeleteAll) {
   if (!list || !list.length) return '';
-  return `<ul class="tn-list">${list.map((n) => `<li><span class="tn-body">${esc(n.body).replace(/\n/g, '<br>')}</span>
-    <span class="tn-meta">${esc(String(n.author || 'Someone').split(' ')[0])} · ${esc(when(n.created_at))}${n.member_id === meId || canDeleteAll ? ` · <button type="button" class="tn-del" data-tn-del="${n.id}">Delete</button>` : ''}</span></li>`).join('')}</ul>`;
+  const one = (n, reply) => `<li class="${reply ? 'tn-reply' : ''}"><span class="tn-body">${esc(n.body).replace(/\n/g, '<br>')}</span>
+    <span class="tn-meta">${esc(String(n.author || 'Someone').split(' ')[0])} · ${esc(when(n.created_at))}${reply ? '' : ` · <button type="button" class="tn-del" data-tn-reply="${n.kind}:${n.task_id}:${n.id}">Reply</button>`}${n.member_id === meId || canDeleteAll ? ` · <button type="button" class="tn-del" data-tn-del="${n.id}">Delete</button>` : ''}</span></li>`;
+  const top = list.filter((n) => !n.parent_id);
+  return `<ul class="tn-list">${top.map((n) => one(n, false) + list.filter((r) => r.parent_id === n.id).map((r) => one(r, true)).join('')).join('')}</ul>`;
 }
 
-export const noteButton = (kind, id, count) => `<button type="button" class="btn small tn-btn" data-tn-add="${kind}:${id}" title="Add a note">📝${count ? ` ${count}` : ' Note'}</button>`;
+export const noteButton = (kind, id, count) => `<button type="button" class="btn small tn-btn" data-tn-add="${kind}:${id}" title="Post an update">💬${count ? ` ${count}` : ' Update'}</button>`;
 
-function askNote(title) {
+function askNote(title, reply = false) {
   return new Promise((resolve) => {
     const back = document.createElement('div');
     back.className = 'modal-back';
     back.innerHTML = `<form class="modal" role="dialog" aria-modal="true" aria-label="Add a note">
-      <h3>Add a note</h3><p class="muted">${title}</p>
-      <textarea class="tn-input" rows="4" placeholder="e.g. Out of mopheads, used the last one" required></textarea>
-      <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">Save note</button></div></form>`;
+      <h3>${reply ? 'Reply' : 'Post an update'}</h3><p class="muted">${title}</p>
+      <textarea class="tn-input" rows="4" placeholder="${reply ? 'Write a reply' : 'e.g. Out of mopheads, used the last one'}" required></textarea>
+      <p class="muted" style="font-size:13px;margin:6px 0 0">The people on this task get an alert.</p>
+      <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">${reply ? 'Send reply' : 'Post'}</button></div></form>`;
     const done = (v) => { back.remove(); resolve(v); };
     back.querySelector('[data-cancel]').addEventListener('click', () => done(null));
     back.addEventListener('mousedown', (e) => { if (e.target === back) done(null); });
@@ -45,7 +49,16 @@ export function bindNotes(root, { sb, toast, errMsg, askConfirm, names = {} }, r
     if (!body) return;
     const { error } = await sb.from('task_notes').insert({ kind, task_id: Number(id), body }).select('id');
     if (error) return toast(errMsg(error), true);
-    toast('Note saved');
+    toast('Update posted');
+    reload();
+  }));
+  root.querySelectorAll('[data-tn-reply]').forEach((b) => b.addEventListener('click', async () => {
+    const [kind, id, parent] = b.dataset.tnReply.split(':');
+    const body = await askNote(names[`${kind}:${id}`] || '', true);
+    if (!body) return;
+    const { error } = await sb.from('task_notes').insert({ kind, task_id: Number(id), parent_id: Number(parent), body }).select('id');
+    if (error) return toast(errMsg(error), true);
+    toast('Reply sent');
     reload();
   }));
   root.querySelectorAll('[data-tn-del]').forEach((b) => b.addEventListener('click', async () => {
