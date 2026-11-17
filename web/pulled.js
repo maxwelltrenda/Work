@@ -21,7 +21,9 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
 
   async function load(dept) {
     const [rows, members] = await Promise.all([
-      q(sb.from('pulled_work').select('*').eq('day', localDay()).order('started_at', { ascending: false })),
+      // Today's, plus any still going from an earlier day (someone forgot "I'm back").
+      q(sb.from('pulled_work').select('*').gte('day', (() => { const d = new Date(); d.setDate(d.getDate() - 30); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; })()).order('started_at', { ascending: false }))
+        .then((all) => all.filter((r) => r.day === localDay() || !r.ended_at)),
       q(sb.from('team_members').select('id, name')),
     ]);
     // Names of what each open one paused, to show "picks back up when you're back".
@@ -50,7 +52,7 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
         <span class="pw-dot" aria-hidden="true"></span>
         <div class="pw-text"><b>${esc(who[r.member_id] || 'Someone')}</b> · ${esc(r.what)}${r.location ? ` <span class="muted">· ${esc(r.location)}</span>` : ''}
           <span class="pw-time">${live ? (paused ? `<b class="pw-paused">⏸ Paused since ${clock(r.paused_at)}</b> · ${dur(worked(r))} so far`
-            : `since ${clock(r.started_at)} · <span data-pw-since="${Date.now() - worked(r)}">${dur(worked(r))}</span>`)
+            : `since ${r.day !== localDay() ? `${new Date(r.started_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}, ` : ''}${clock(r.started_at)} · <span data-pw-since="${Date.now() - worked(r)}">${dur(worked(r))}</span>`)
             : `${clock(r.started_at)}–${clock(r.ended_at)} · ${dur(worked(r))}${r.paused_seconds ? ` <span class="muted">(${dur(r.paused_seconds * 1000)} break)</span>` : ''}`}${r.note ? ` · ${esc(r.note)}` : ''}</span>
           ${notesList(notes[r.id], esc)}
           ${waiting.length ? `<span class="pw-held">⏸ ${waiting.map(esc).join(', ')} · picks back up when ${r.member_id === me()?.id ? "you're" : "they're"} back</span>` : ''}</div>
@@ -62,7 +64,11 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
     return `<section class="pw-box">
       <div class="pw-head"><div><b>Pulled to today</b><span class="muted">${open.length ? `${open.length} away from the plan right now` : 'Work that wasn\'t on the plan'}</span></div>
         <button class="btn primary" data-pw-start="${dept}">↪ ${mine ? 'Pulled to something else' : 'I got pulled to something'}</button></div>
-      ${rows.length ? `<ul class="pw-list">${[...open, ...ended].map(line).join('')}</ul>` : '<p class="muted pw-empty">Nobody has been pulled off the plan today.</p>'}
+      ${open.length ? `<ul class="pw-list">${open.map(line).join('')}</ul>` : ''}
+      ${ended.length ? `<details class="pw-done"><summary>${ended.length} finished today · ${dur(ended.reduce((a, r) => a + worked(r), 0))}</summary>
+        <ul class="pw-mini">${ended.map((r) => `<li><span><b>${esc((who[r.member_id] || 'Someone').split(' ')[0])}</b> · ${esc(r.what)}${r.location ? ` <span class="muted">· ${esc(r.location)}</span>` : ''}</span>
+          <span class="muted pw-mini-t">${clock(r.started_at)}–${clock(r.ended_at)} · ${dur(worked(r))}</span>${noteButton('pulled', r.id, (notes[r.id] || []).length)}</li>`).join('')}</ul></details>` : ''}
+      ${rows.length ? '' : '<p class="muted pw-empty">Nobody has been pulled off the plan today.</p>'}
     </section>`;
   }
 

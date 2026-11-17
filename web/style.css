@@ -1588,3 +1588,12 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
   .pw-item { grid-template-columns: 12px 1fr; }
   .pw-btns { grid-column: 2; justify-content: flex-start; }
 }
+
+.pw-done { margin-top: 8px; }
+.pw-done > summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); padding: 6px 2px; }
+.pw-mini { list-style: none; margin: 4px 0 0; padding: 0; }
+.pw-mini li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-top: 1px solid var(--line); font-size: 14px; }
+.pw-mini li > span:first-child { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pw-mini-t { white-space: nowrap; font-size: 13px; }
+.pw-mini .tn-btn { padding: 4px 8px; font-size: 12px; }
+@media (max-width: 640px) { .pw-mini li { flex-wrap: wrap; } .pw-mini li > span:first-child { flex-basis: 100%; } }

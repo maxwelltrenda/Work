@@ -683,7 +683,7 @@ export function schedulePages(ctx) {
   // Past weeks (Tuesday-Monday): what got done, who did it and how long it took,
   // what was skipped or missed, and what people got pulled to.
   async function pastWeeks(runs, taskBy, who, today) {
-    const { data: pulledRows } = await sb.from('pulled_work').select('*').eq('dept', 'maintenance').order('started_at', { ascending: false }).limit(500);
+    const { data: pulledRows } = await sb.from('pulled_work').select('*').order('started_at', { ascending: false }).limit(1000);
     const pulled = pulledRows || [];
     const wkOf = (r) => weekStart(r.done_at ? isoOf(new Date(r.done_at)) : r.period_end);
     const fin = runs.filter((r) => taskBy[r.task_id] && (r.status !== 'open'));
