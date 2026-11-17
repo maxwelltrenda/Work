@@ -1,4 +1,5 @@
 import { loadPlaces as placesFrom, attachPlaces } from './places.js?v=__V__';
+import { loadNotes, notesList, noteButton, bindNotes } from './notes.js?v=__V__';
 // "I got pulled to something": shared by the custodial Checklist and the
 // Maintenance schedule. Shows today's unplanned work for that department (who,
 // what, where, how long) and the button to log it. See 0030_pulled_work.sql.
@@ -16,6 +17,7 @@ function dur(ms) {
 export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
   const loadPlaces = () => placesFrom(sb);
   let tick = null;
+  let lastRows = [];
 
   async function load(dept) {
     const [rows, members] = await Promise.all([
@@ -30,10 +32,12 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
       rIds.length ? q(sb.from('maint_requests').select('id, subject').in('id', rIds)) : [],
     ]);
     const held = Object.fromEntries([...tasks.map((t) => [`t${t.id}`, t.name]), ...reqs.map((x) => [`r${x.id}`, x.subject])]);
-    return { rows, held, who: Object.fromEntries(members.map((m) => [m.id, m.name])) };
+    const notes = await loadNotes(sb, 'pulled', rows.map((r) => r.id));
+    lastRows = rows;
+    return { rows, held, notes, who: Object.fromEntries(members.map((m) => [m.id, m.name])) };
   }
 
-  function block(dept, { rows, who, held = {} }) {
+  function block(dept, { rows, who, held = {}, notes = {} }) {
     const open = rows.filter((r) => !r.ended_at);
     const ended = rows.filter((r) => r.ended_at);
     const mine = open.find((r) => r.member_id === me()?.id);
@@ -48,8 +52,10 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
           <span class="pw-time">${live ? (paused ? `<b class="pw-paused">⏸ Paused since ${clock(r.paused_at)}</b> · ${dur(worked(r))} so far`
             : `since ${clock(r.started_at)} · <span data-pw-since="${Date.now() - worked(r)}">${dur(worked(r))}</span>`)
             : `${clock(r.started_at)}–${clock(r.ended_at)} · ${dur(worked(r))}${r.paused_seconds ? ` <span class="muted">(${dur(r.paused_seconds * 1000)} break)</span>` : ''}`}${r.note ? ` · ${esc(r.note)}` : ''}</span>
+          ${notesList(notes[r.id], esc)}
           ${waiting.length ? `<span class="pw-held">⏸ ${waiting.map(esc).join(', ')} · picks back up when ${r.member_id === me()?.id ? "you're" : "they're"} back</span>` : ''}</div>
-        ${canEnd ? `<div class="pw-btns"><button class="btn small" data-pw-pause="${r.id}" data-on="${paused ? 0 : 1}">${paused ? '▶ Resume' : '⏸ Pause'}</button>
+        ${!canEnd ? `<div class="pw-btns">${noteButton('pulled', r.id, (notes[r.id] || []).length)}</div>` : ''}
+        ${canEnd ? `<div class="pw-btns">${noteButton('pulled', r.id, (notes[r.id] || []).length)}<button class="btn small" data-pw-pause="${r.id}" data-on="${paused ? 0 : 1}">${paused ? '▶ Resume' : '⏸ Pause'}</button>
           <button class="btn small" data-pw-end="${r.id}">${r.member_id === me()?.id ? "I'm back" : 'End'}</button></div>` : ''}
       </li>`;
     };
@@ -102,6 +108,7 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
   }
 
   function bind(root, reload) {
+    bindNotes(root, { sb, toast, errMsg, esc, meId: me()?.id, canDeleteAll: isAdmin(), names: Object.fromEntries(lastRows.map((r) => [`pulled:${r.id}`, r.what])) }, reload);
     root.querySelectorAll('[data-pw-start]').forEach((b) => b.addEventListener('click', async () => {
       const v = await ask(b.dataset.pwStart);
       if (!v) return;
