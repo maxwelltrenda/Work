@@ -10,7 +10,7 @@ const colorWords = (c) => String(c || '').toLowerCase().replace(/\(.*?\)/g, ' ')
   .split(/\s+/).filter((w) => w.length > 2 && !['the', 'and', 'sherwin', 'behr', 'custom', 'color', 'match', 'base'].includes(w));
 
 export function paintSpotPages(ctx) {
-  const { sb, q, esc, toast, askConfirm, errMsg, canEdit, stockTabs, gal, loadPaint } = ctx;
+  const { sb, q, rpc, esc, toast, askConfirm, errMsg, canEdit, canAddStock, stockTabs, gal, loadPaint, loadLocations } = ctx;
   const app = document.getElementById('app');
   let filter = { text: '', area: '' };
 
@@ -54,6 +54,52 @@ export function paintSpotPages(ctx) {
     });
   }
 
+  // Add a color that was just bought to Paint stock, with the cans on hand.
+  function stockForm(s, locations) {
+    return new Promise((resolve) => {
+      const name = [s.color, s.brand].filter(Boolean).join(' · ');
+      const use = /exterior|outside/i.test(`${s.area} ${s.spot}`) ? 'exterior' : 'interior';
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML = `<form class="modal ps-form" role="dialog" aria-modal="true" aria-labelledby="pst-title">
+        <h3 id="pst-title">Add to paint stock</h3>
+        <p class="muted" style="margin:4px 0 0">${esc(s.area)} · ${esc(s.spot)}</p>
+        <label>Name <input name="name" required value="${esc(name)}"></label>
+        <div class="ps-two">
+          <label>Sheen <select name="sheen"><option value="">—</option>${SHEENS.map((x) => `<option ${s.sheen === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+          <label>Use <select name="paint_use"><option value="interior" ${use === 'interior' ? 'selected' : ''}>Interior</option><option value="exterior" ${use === 'exterior' ? 'selected' : ''}>Exterior</option><option value="roof">Roof</option></select></label>
+        </div>
+        <label>Where it's kept <select name="location"><option value="">—</option>${locations.map((l) => `<option>${esc(l.name)}</option>`).join('')}</select></label>
+        <div class="ps-two">
+          <label>Full cans you bought <input name="n" type="number" min="0" value="1" inputmode="numeric"></label>
+          <label>Can size <select name="size"><option value="1">1 gallon</option><option value="5">5 gallon</option></select></label>
+        </div>
+        <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">Add to stock</button></div></form>`;
+      const done = (v) => { back.remove(); resolve(v); };
+      back.querySelector('[data-cancel]').addEventListener('click', () => done(null));
+      back.addEventListener('click', (e) => { if (e.target === back) done(null); });
+      back.querySelector('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const f = new FormData(e.target);
+        done({ name: String(f.get('name')).trim(), sheen: f.get('sheen') || null, paint_use: f.get('paint_use') || null,
+          location: f.get('location') || null, n: Math.max(0, parseInt(f.get('n'), 10) || 0), size: Number(f.get('size')) });
+      });
+      document.body.appendChild(back);
+      back.querySelector('[name=n]').focus();
+    });
+  }
+
+  async function addToStock(s) {
+    const v = await stockForm(s, await loadLocations());
+    if (!v || !v.name) return;
+    try {
+      const [it] = await q(sb.from('items').insert({ category: 'paint', name: v.name, sheen: v.sheen, paint_use: v.paint_use, location: v.location }).select('*'));
+      if (v.n) await rpc('paint_move', { p_code: it.code, p_dir: 'in', p_size: v.size, p_fill: 1, p_qty: v.n, p_note: 'Added (new color)' });
+      toast(`Added ${it.name} as ${it.code}${v.n ? ` with ${v.n} can${v.n === 1 ? '' : 's'}` : ''}`);
+      renderPaintSpots();
+    } catch (err) { toast(errMsg(err), true); }
+  }
+
   async function renderPaintSpots() {
     const [spots, { items, sum }] = await Promise.all([
       q(sb.from('paint_spots').select('*').order('area').order('sort').order('id')),
@@ -88,9 +134,10 @@ export function paintSpotPages(ctx) {
               <div class="ps-spot"><b>${esc(s.spot)}</b>${s.notes ? `<span class="muted">${esc(s.notes)}</span>` : ''}</div>
               <div class="ps-paint">${s.color ? `<b>${esc(s.color)}</b>` : '<span class="muted">No color saved yet</span>'}
                 <span class="muted">${[s.brand, s.base, s.sheen].filter(Boolean).map(esc).join(' · ')}</span></div>
-              <div class="ps-stock">${st ? ((sum[st.id]?.gallons || 0) > 0 ? `<a href="#/item/${st.id}" title="In stock: ${esc(st.name)}">${gal(sum[st.id].gallons)} in stock</a>` : `<a class="none" href="#/item/${st.id}" title="${esc(st.name)}">None in stock</a>`) : ''}</div>
+              <div class="ps-stock">${st ? ((sum[st.id]?.gallons || 0) > 0 ? `<a href="#/item/${st.id}" title="In stock: ${esc(st.name)}">${gal(sum[st.id].gallons)} in stock</a>` : `<a class="none" href="#/item/${st.id}" title="Open ${esc(st.name)} to add cans">None in stock · add cans</a>`) : s.color && canAddStock() ? `<button class="btn ps-addstock" data-stock="${s.id}">+ Add to stock</button>` : ''}</div>
               ${edit ? `<button class="btn ps-edit" data-edit="${s.id}">Edit</button>` : ''}</div>`;
           }).join('')}</section>`).join('') || '<p class="muted card">Nothing matches.</p>';
+      app.querySelectorAll('[data-stock]').forEach((b) => b.addEventListener('click', () => addToStock(spots.find((x) => String(x.id) === b.dataset.stock))));
       app.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => editSpot(spots.find((x) => String(x.id) === b.dataset.edit))));
     };
 

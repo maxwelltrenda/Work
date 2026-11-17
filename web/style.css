@@ -1412,13 +1412,14 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .ps-bar input { flex: 1; min-width: 200px; }
 .ps-area { margin-bottom: 14px; padding: 6px 18px; }
 .ps-area h2 { font-size: 18px; margin: 12px 0 6px; }
-.ps-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 130px 64px; gap: 6px 16px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); }
+.ps-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 170px 64px; gap: 6px 16px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); }
 .ps-area h2 + .ps-row { border-top: 0; }
 .ps-spot, .ps-paint { display: flex; flex-direction: column; min-width: 0; }
 .ps-spot .muted, .ps-paint .muted { font-size: 13px; }
 .ps-stock { text-align: right; }
 .ps-stock a { font-size: 13px; white-space: nowrap; }
 .ps-stock a.none { color: var(--warn); }
+.ps-addstock { padding: 5px 10px; font-size: 13px; white-space: nowrap; }
 .ps-edit { justify-self: end; }
 .ps-edit { padding: 6px 12px; font-size: 13px; }
 .ps-form { width: min(480px, calc(100vw - 24px)); }

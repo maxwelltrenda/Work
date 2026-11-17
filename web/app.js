@@ -855,8 +855,9 @@ const BOARDS = boardPages({
 // Recurring maintenance schedule (pm.js): Maintenance managers and admins.
 // Paint › Where it goes (paintspots.js): admins and the Maintenance manager edit.
 const PAINTSPOTS = paintSpotPages({
-  sb, q, esc, toast, askConfirm, errMsg, gal: (n) => gal(n), stockTabs: (k) => stockTabs(k),
+  sb, q, rpc, esc, toast, askConfirm, errMsg, gal: (n) => gal(n), stockTabs: (k) => stockTabs(k), loadLocations: () => loadLocations(),
   canEdit: () => isAdmin() || state.me?.role === 'maintenance',
+  canAddStock: () => canEditItem('paint'),
   loadPaint: async () => {
     const [all, cans] = await Promise.all([loadItems(), loadPaintCans()]);
     const items = all.filter((i) => i.category === 'paint' && i.active);

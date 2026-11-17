@@ -406,7 +406,11 @@ const RPC = {
   remove_category({ p_kind, p_name }) { db.categories = db.categories.filter((x) => !(x.kind === p_kind && x.name === p_name)); },
   team_add_person(a) { const m = { id: uuid(), name: a.p_name, email: a.p_email || null, code: `P-${nextId()}`, role: a.p_role || 'member', active: true }; db.team_members.push(m); return m.id; },
   team_update_person(a) { const m = db.team_members.find((x) => loose(x.id, a.p_id)); if (m && a.p_role !== undefined) { if (a.p_role === null) m.active = false; else m.role = a.p_role; } },
-  paint_move: () => null, mark_labels_printed: () => null, record_gear_checks: () => null, reserve_gear: () => null, cancel_reservation: () => null,
+  paint_move({ p_code, p_dir, p_size, p_fill, p_qty }) {
+    const it = db.items.find((i) => i.code === p_code);
+    if (it && p_dir === 'in') for (let n = 0; n < (p_qty || 1); n++) db.paint_cans.push({ id: nextId(), item_id: it.id, size: p_size, fill: p_fill, added_at: nowIso(), removed_at: null });
+    return null;
+  }, mark_labels_printed: () => null, record_gear_checks: () => null, reserve_gear: () => null, cancel_reservation: () => null,
   start_checklist_week: () => SUNDAY,
   checklist_timer({ p_id, p_run }) {
     const t = db.checklist_tasks.find((x) => loose(x.id, p_id));
