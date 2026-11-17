@@ -65,11 +65,20 @@ function openThread({ sb, toast, errMsg, esc, meId, canDeleteAll }, kind, id, ti
       if (!error) draw(data || []);
     };
     const done = () => { clearInterval(poll); document.removeEventListener('keydown', onKey, true); back.remove(); resolve(changed); };
-    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(); } };
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); const at = back.querySelector('.tn-at'); if (!at.hidden) { at.hidden = true; return; } done(); } };
     document.addEventListener('keydown', onKey, true);
     back.querySelector('.tn-x').addEventListener('click', done);
     back.addEventListener('mousedown', (e) => { if (e.target === back) done(); });
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); back.querySelector('form').requestSubmit(); } });
+    input.addEventListener('keydown', (e) => {
+      // While @ names are showing: Enter/Tab picks the highlighted name, arrows move, Esc closes.
+      const chips = [...back.querySelectorAll('.tn-at [data-at]')];
+      if (!back.querySelector('.tn-at').hidden && chips.length) {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); atPick = (atPick + (e.key === 'ArrowDown' ? 1 : -1) + chips.length) % chips.length; markAt(); return; }
+        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); fillAt(chips[atPick].dataset.at); return; }
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); back.querySelector('.tn-at').hidden = true; return; }
+      }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); back.querySelector('form').requestSubmit(); }
+    });
     // @mentions: show matching names while typing "@na…", tap one to fill it in.
     const atBox = back.querySelector('.tn-at');
     let team = [];
@@ -78,19 +87,23 @@ function openThread({ sb, toast, errMsg, esc, meId, canDeleteAll }, kind, id, ti
       team = list.map((m) => { const f = first(m.name); return list.filter((x) => first(x.name).toLowerCase() === f.toLowerCase()).length > 1 ? m.name : f; }).sort();
     });
     const atWord = () => { const v = input.value.slice(0, input.selectionStart); const m = v.match(/@([A-Za-z]*)$/); return m ? m[1] : null; };
+    let atPick = 0;
+    const markAt = () => atBox.querySelectorAll('[data-at]').forEach((b, i) => b.classList.toggle('on', i === atPick));
+    const fillAt = (name) => {
+      const pos = input.selectionStart;
+      const before = input.value.slice(0, pos).replace(/@([A-Za-z]*)$/, `@${name} `);
+      input.value = before + input.value.slice(pos);
+      input.selectionStart = input.selectionEnd = before.length;
+      atBox.hidden = true; input.focus();
+    };
     const showAt = () => {
       const w = atWord();
       const hits = w === null ? [] : team.filter((n) => n.toLowerCase().startsWith(w.toLowerCase())).slice(0, 8);
       atBox.hidden = !hits.length;
+      atPick = 0;
       atBox.innerHTML = hits.map((n) => `<button type="button" class="chip-btn" data-at="${esc(n)}">@${esc(n)}</button>`).join('');
-      atBox.querySelectorAll('[data-at]').forEach((b) => b.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        const pos = input.selectionStart;
-        const before = input.value.slice(0, pos).replace(/@([A-Za-z]*)$/, `@${b.dataset.at} `);
-        input.value = before + input.value.slice(pos);
-        input.selectionStart = input.selectionEnd = before.length;
-        atBox.hidden = true; input.focus();
-      }));
+      atBox.querySelectorAll('[data-at]').forEach((b) => b.addEventListener('mousedown', (e) => { e.preventDefault(); fillAt(b.dataset.at); }));
+      markAt();
     };
     input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = `${Math.min(input.scrollHeight, 120)}px`; showAt(); });
     input.addEventListener('click', showAt);
