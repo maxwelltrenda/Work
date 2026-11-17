@@ -1440,3 +1440,26 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .pw-item.paused .pw-dot { background: var(--warn); animation: none; }
 .pw-paused { color: var(--warn); font-weight: 600; }
 .pw-held { display: block; font-size: 13px; color: var(--body); margin-top: 2px; }
+
+/* Facilities sub-tabs: the open tab's pages, in a row under the main tabs */
+nav.subnav { order: 4; flex: 1 0 100%; display: flex; flex-wrap: nowrap; gap: 6px; margin: 0 0 0 -4px; padding: 8px 0 10px;
+  border-top: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
+nav.subnav[hidden] { display: none; }
+nav.subnav a { padding: 7px 14px; font-size: 15px; font-weight: 500; border: 0; border-radius: 999px; color: var(--body); background: transparent; }
+nav.subnav a:hover { background: var(--paper-2); color: var(--ink); }
+nav.subnav a.on { background: var(--ink); color: var(--paper); }
+nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px; }
+@media (max-width: 760px) { nav.subnav { padding: 6px 0 8px; } nav.subnav a { font-size: 14px; padding: 6px 12px; } }
+
+/* Maintenance notes: kept lines, bullets, headings */
+.pm-notes-input { font: 15px/1.5 var(--sans); min-height: 96px; resize: vertical; }
+.pm-notesbox { margin: 4px 0 2px; font-size: 14px; }
+.pm-notesbox > summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: 13px; list-style: none; }
+.pm-notesbox > summary::before { content: '▸ '; }
+.pm-notesbox[open] > summary::before { content: '▾ '; }
+.notes-fmt { margin-top: 6px; padding: 10px 14px; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; columns: 2 220px; column-gap: 28px; }
+.notes-fmt h4 { margin: 8px 0 2px; font: 700 14px var(--sans); color: var(--ink); break-after: avoid; }
+.notes-fmt h4:first-child { margin-top: 0; }
+.notes-fmt ul, .notes-fmt ol { margin: 0 0 6px; padding-left: 20px; break-inside: avoid; }
+.notes-fmt li { margin: 1px 0; }
+.notes-fmt p { margin: 4px 0; }

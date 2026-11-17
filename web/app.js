@@ -256,6 +256,19 @@ const NAV = {
     more: [['out', 'Who Has What'], ['history', 'History'], ['labels', 'Labels'], ['categories', 'Categories'], ['people', 'People']],
   },
 };
+// Facilities: a few tabs, each with its pages in a row of sub-tabs underneath.
+const NAV_GROUPS = [
+  { key: 'home', label: 'Home', icon: 'overview', pages: [['overview', 'Overview'], ['mytasks', 'My tasks'], ['gameplan', 'Weekend plan']] },
+  { key: 'work', label: 'Work', icon: 'checklist', pages: [['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['contractors', 'Contractors']] },
+  { key: 'inventory', label: 'Inventory', icon: 'items', pages: [['kiosk', 'Check In / Out'], ['items', 'Stock'], ['toollist', 'Tools'], ['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock']] },
+  { key: 'team', label: 'Team', icon: 'team', pages: [['team', 'Schedule'], ['people', 'People']] },
+  { key: 'setup', label: 'Setup', icon: 'more', pages: [['labels', 'Labels'], ['locations', 'Locations'], ['categories', 'Categories']] },
+];
+// Pages opened from inside another page belong to that page's tab.
+const NAV_PARENT = { request: 'requests', item: 'items', tool: 'toollist', notifications: 'overview' };
+const lastInGroup = (g) => { try { return sessionStorage.getItem(`nav-${g}`); } catch { return null; } };
+const rememberInGroup = (g, hash) => { try { sessionStorage.setItem(`nav-${g}`, hash); } catch { /* private mode */ } };
+
 const myRole = () => ROLES[state.me?.role] || ROLES.member;
 const canAct = () => siteRole().act;
 const pageKey = (name, arg) => (name === 'items' ? `items/${stockKind(arg)}` : name);
@@ -508,6 +521,7 @@ function renderTopbar() {
   const who = document.getElementById('who');
   if (!state.me) {
     nav.innerHTML = '';
+    const sub = document.getElementById('subnav'); if (sub) { sub.innerHTML = ''; sub.hidden = true; }
     who.innerHTML = state.session ? `<button id="signout">Sign out</button>` : '';
   } else {
     const pages = sitePages();
@@ -518,6 +532,7 @@ function renderTopbar() {
       if (k === 'items') return firstStock ? `<a href="#/${firstStock}" class="${cur.startsWith('items/') ? 'active' : ''}">${navIcon('items')}<span>${t}</span></a>` : '';
       return pages.includes(k) ? `<a href="#/${k}" class="${cur === k ? 'active' : ''}">${navIcon(k)}<span>${t}</span></a>` : '';
     };
+    if (SITE === 'facilities') { renderGroupNav(nav, pages, cur, firstStock); } else {
     const more = NAV[SITE].more.map(link).filter(Boolean);
     const others = Object.keys(SITES).filter((k) => k !== SITE && SITE_URLS?.[k] && canUseSite(k))
       .map((k) => `<a href="${esc(SITE_URLS[k])}">${esc(SITES[k].name)} ↗</a>`);
@@ -536,11 +551,36 @@ function renderTopbar() {
       if (!d.open || !matchMedia('(max-width: 1160px)').matches) { menu.style.top = ''; return; }
       menu.style.top = `${d.querySelector('summary').getBoundingClientRect().bottom + 6}px`;
     });
+    }
     const roleLabel = isOrgAdmin() ? 'Admin' : SITE === 'media' ? (MEDIA_ROLES[mediaRole()] || myRole().label) : SITE === 'events' ? (EVENTS_ROLES[state.me.events_role] || 'Events team') : myRole().label;
     who.innerHTML = `${canSeeNotifs() ? BELL : ''}${SITE === 'facilities' && !isKiosk() ? `<a class="who-name who-link" href="#/mytasks" title="My tasks">${esc(state.me.name)} · ${esc(roleLabel)}</a>` : `<span class="who-name">${esc(state.me.name)} · ${esc(roleLabel)}</span>`}<button id="signout">Sign out</button>`;
     bindBell();
   }
   document.getElementById('signout')?.addEventListener('click', signOut);
+}
+
+// Facilities top bar: group tabs, and the open group's pages as sub-tabs.
+function renderGroupNav(nav, pages, cur, firstStock) {
+  let sub = document.getElementById('subnav');
+  if (!sub) { sub = document.createElement('nav'); sub.id = 'subnav'; sub.className = 'subnav'; nav.after(sub); }
+  const hrefOf = (k) => (k === 'items' ? (firstStock ? `#/${firstStock}` : '') : pages.includes(k) ? `#/${k}` : '');
+  const groups = NAV_GROUPS.map((g) => ({ ...g, links: g.pages.map(([k, t]) => ({ k, t, href: hrefOf(k) })).filter((l) => l.href) })).filter((g) => g.links.length);
+  const curKey = cur.startsWith('items/') ? 'items' : NAV_PARENT[cur] || cur;
+  const open = groups.find((g) => g.links.some((l) => l.k === curKey));
+  if (open) rememberInGroup(open.key, location.hash);
+  nav.innerHTML = groups.map((g) => {
+    const href = (g !== open && lastInGroup(g.key)) || g.links[0].href;
+    const label = g.links.length === 1 ? g.links[0].t : g.label;
+    return `<a href="${href}" class="${g === open ? 'active' : ''}">${navIcon(g.icon)}<span>${esc(label)}</span></a>`;
+  }).join('');
+  const others = Object.keys(SITES).filter((k) => k !== SITE && SITE_URLS?.[k] && canUseSite(k))
+    .map((k) => `<a class="sub-site" href="${esc(SITE_URLS[k])}">${esc(SITES[k].name)} ↗</a>`);
+  const subLinks = open && open.links.length > 1 ? open.links.map((l) => `<a href="${l.href}" class="${l.k === curKey ? 'on' : ''}">${esc(l.t)}</a>`) : [];
+  if (open?.key === 'setup' || (!subLinks.length && open?.key === 'home')) subLinks.push(...others);
+  sub.innerHTML = subLinks.join('');
+  sub.hidden = !subLinks.length;
+  const on = sub.querySelector('a.on');
+  if (on && sub.scrollWidth > sub.clientWidth) sub.scrollLeft = on.offsetLeft - (sub.clientWidth - on.offsetWidth) / 2;
 }
 
 function renderNoAccess() {

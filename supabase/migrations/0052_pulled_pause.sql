@@ -108,3 +108,17 @@ end $$;
 
 revoke execute on function pulled_start(text, text, text, bigint), pulled_end(bigint, text), pulled_pause(bigint, boolean) from public, anon;
 grant execute on function pulled_start(text, text, text, bigint), pulled_end(bigint, text), pulled_pause(bigint, boolean) to authenticated;
+
+-- People can be put on get-ready steps too (e.g. "Order filters"), not only main tasks.
+create or replace function pm_set_assignees(p_task bigint, p_people uuid[]) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not can_use_pm() then raise exception 'Only maintenance managers and admins can change the schedule'; end if;
+  update pm_tasks
+     set assignees = coalesce(array(select distinct x from unnest(p_people) x
+                                     where x in (select id from team_members where active)), '{}')
+   where id = p_task;
+  if not found then raise exception 'No such task'; end if;
+end $$;
+revoke execute on function pm_set_assignees(bigint, uuid[]) from public, anon;
+grant execute on function pm_set_assignees(bigint, uuid[]) to authenticated;

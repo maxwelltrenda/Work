@@ -66,6 +66,39 @@ function windowText(t) {
   return `Due ${starts.map(range).join(', ')}${t.frequency === 'yearly' ? ' each year' : ''}`;
 }
 
+// Notes keep their lines: "* x" / "- x" become bullets, "1. x" numbers, and a
+// line just before a list becomes its heading. Long notes fold up on the card.
+function formatNotes(text, esc) {
+  const lines = String(text || '').replace(/\r/g, '').split('\n');
+  const out = [];
+  let list = null;
+  const close = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  lines.forEach((raw, i) => {
+    const line = raw.trim();
+    const bullet = line.match(/^[*•-]\s+(.*)$/);
+    const num = line.match(/^\d+[.)]\s+(.*)$/);
+    if (bullet || num) {
+      const kind = bullet ? 'ul' : 'ol';
+      if (list !== kind) { close(); out.push(`<${kind}>`); list = kind; }
+      out.push(`<li>${esc((bullet || num)[1])}</li>`);
+      return;
+    }
+    close();
+    if (!line) return;
+    const next = lines.slice(i + 1).find((l) => l.trim());
+    const isHead = next && /^([*•-]|\d+[.)])\s+/.test(next.trim());
+    out.push(isHead ? `<h4>${esc(line)}</h4>` : `<p>${esc(line)}</p>`);
+  });
+  close();
+  return out.join('');
+}
+const notesBlock = (notes, esc) => {
+  const t = String(notes || '').trim();
+  if (!t) return '';
+  if (!t.includes('\n') && t.length <= 90) return `<span class="pm-notes">${esc(t)}</span>`;
+  return `<details class="pm-notesbox"><summary>Notes</summary><div class="notes-fmt">${formatNotes(t, esc)}</div></details>`;
+};
+
 export function schedulePages(ctx) {
   const { sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled } = ctx;
   let contractors = [];   // the Contractors list, loaded with the page
@@ -210,12 +243,12 @@ export function schedulePages(ctx) {
         <b class="pm-name">${esc(t.name)}</b>
         <span class="pm-meta">${[parent ? `Before <b>${esc(parent.name)}</b> (starts ${dshort(addD(r.period_end, 1))})` : '', t.location ? esc(t.location) : '', dueText(r, today)].filter(Boolean).join(' · ')}</span>
         ${isDone ? `<span class="pm-meta pm-donewho">Done by ${esc(who[r.done_by] || 'someone')} · ${new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}${r.note ? ` · ${esc(r.note)}` : ''}</span>` : ''}
-        ${t.notes ? `<span class="pm-notes">${esc(t.notes)}</span>` : ''}
+        ${notesBlock(t.notes, esc)}
         ${ctLine(t)}
         ${onIt(t).length ? `<span class="pm-onit"><span class="pm-onit-tag">On it</span> ${onIt(t).map(esc).join(', ')}</span>` : ''}
         ${steps.length ? `<div class="pm-steps">${steps.map((s, i) => `<label><input type="checkbox" data-step="${r.id}" data-i="${i}" ${(r.steps_done || []).includes(i) ? 'checked' : ''}> ${esc(s)}</label>`).join('')}</div>` : ''}
       </div>
-      <div class="pm-actions">${r.status === 'open' ? `<button class="btn small" data-mark="${r.id}" data-to="skipped" title="Not needed this time">Skip</button>` : r.status === 'skipped' ? `<button class="btn small" data-mark="${r.id}" data-to="open">Undo skip</button>` : ''}</div>
+      <div class="pm-actions">${r.status === 'open' ? `<button class="btn small pm-ppl" data-pm-people="${t.id}" title="Who's on it">${onIt(t).length ? 'People' : '+ Person'}</button>` : ''}${r.status === 'open' ? `<button class="btn small" data-mark="${r.id}" data-to="skipped" title="Not needed this time">Skip</button>` : r.status === 'skipped' ? `<button class="btn small" data-mark="${r.id}" data-to="open">Undo skip</button>` : ''}</div>
     </div>`;
   }
 
@@ -242,6 +275,27 @@ export function schedulePages(ctx) {
   const LEADS = [[3, '3 days'], [7, '1 week'], [14, '2 weeks'], [21, '3 weeks'], [30, '30 days']];
   const MONTH_WIN = [['any', 'Any time', 1, null], ['w1', 'First week (1st–7th)', 1, 7], ['w2', 'First 2 weeks (1st–14th)', 1, 14], ['h2', 'Second half (15th–28th)', 15, 14]];
   const ord = (n) => `${n}${['th', 'st', 'nd', 'rd'][(n % 10 > 3 || Math.floor(n / 10) % 10 === 1) ? 0 : n % 10]}`;
+  function pickCrew(t) {
+    return new Promise((resolve) => {
+      const sel = new Set(t.assignees || []);
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Who's on it">
+        <h3>Who's on it?</h3><p class="muted">${esc(t.name)}</p>
+        <div class="wk-chips">${crew.map((m) => `<button type="button" class="chip-btn pm-person" data-person="${m.id}">${esc(m.name)}</button>`).join('') || '<span class="muted">No team members yet.</span>'}</div>
+        <div class="modal-actions"><button type="button" class="btn" data-clear>Nobody</button><button type="button" class="btn" data-cancel>Cancel</button><button type="button" class="btn primary" data-ok>Save</button></div></div>`;
+      const draw = () => back.querySelectorAll('[data-person]').forEach((b) => b.classList.toggle('on', sel.has(b.dataset.person)));
+      back.querySelectorAll('[data-person]').forEach((b) => b.addEventListener('click', () => { if (sel.has(b.dataset.person)) sel.delete(b.dataset.person); else sel.add(b.dataset.person); draw(); }));
+      const done = (v) => { back.remove(); resolve(v); };
+      back.querySelector('[data-ok]').addEventListener('click', () => done([...sel]));
+      back.querySelector('[data-clear]').addEventListener('click', () => done([]));
+      back.querySelector('[data-cancel]').addEventListener('click', () => done(null));
+      back.addEventListener('click', (e) => { if (e.target === back) done(null); });
+      draw();
+      document.body.appendChild(back);
+    });
+  }
+
   function taskModal(places, t = {}) {
     const editing = !!t.id;
     let freq = t.frequency || 'monthly';
@@ -317,7 +371,7 @@ export function schedulePages(ctx) {
         <label style="margin-top:12px"><span>Where <span class="muted">(optional)</span></span><input name="location" value="${esc(t.location || '')}" placeholder="Type a place, e.g. Main entrance, Kids wing"></label>
         <details class="pm-more" ${(t.steps || []).length || t.notes ? 'open' : ''}><summary>Steps and notes <span class="muted">(optional)</span></summary>
           <label style="margin-top:10px"><span>Steps <span class="muted">(one per line)</span></span><textarea name="steps" rows="3" placeholder="North entrance&#10;South entrance">${esc((t.steps || []).join('\n'))}</textarea></label>
-          <label style="margin-top:10px"><span>Notes <span class="muted">(sizes, part numbers, who to call)</span></span><input name="notes" value="${esc(t.notes || '')}" placeholder="20x25x1 MERV 8"></label>
+          <label style="margin-top:10px"><span>Notes <span class="muted">(sizes, part numbers, who to call · start a line with * for a bullet)</span></span><textarea name="notes" class="pm-notes-input" rows="${Math.min(14, Math.max(4, String(t.notes || '').split('\n').length + 1))}" placeholder="Laundry Room&#10;* 2 - 20x25x2">${esc(t.notes || '')}</textarea></label>
         </details>
         <div class="modal-actions">${editing ? `<button type="button" class="btn ${t.active ? 'bad' : ''} pm-left" data-active-toggle>${t.active ? 'Take off the schedule' : 'Put back on the schedule'}</button>` : ''}
           <button type="button" class="btn" data-cancel>Cancel</button>
@@ -473,6 +527,14 @@ export function schedulePages(ctx) {
       if (t && (await taskModal(await loadPlaces(sb), { ...t, preps: tasks.filter((c) => c.parent_id === t.id && c.active) }))) reload();
     }));
     pulled.bind(app, reload);
+    // Who's on it, right from the card (get-ready steps too).
+    app.querySelectorAll('[data-pm-people]').forEach((b) => b.addEventListener('click', async () => {
+      const t = tasks.find((x) => x.id === Number(b.dataset.pmPeople));
+      if (!t) return;
+      const ppl = await pickCrew(t);
+      if (!ppl) return;
+      try { await rpc('pm_set_assignees', { p_task: t.id, p_people: ppl }); toast(ppl.length ? `On ${t.name}: ${ppl.map((id) => whoAll[id]).join(', ')}` : `Nobody on ${t.name}`); reload(); } catch (err) { toast(errMsg(err), true); }
+    }));
     app.querySelectorAll('[data-mark]').forEach((b) => b.addEventListener('click', async () => {
       const to = b.dataset.to;
       if (to === 'skipped' && !(await askConfirm('Skip it this time?', { message: 'It comes back next period. It shows as Skipped in History.', ok: 'Skip' }))) return;
