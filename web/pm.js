@@ -157,14 +157,17 @@ export function schedulePages(ctx) {
     const taskBy = Object.fromEntries(tasks.map((t) => [t.id, t]));
     preps = tasks.filter((t) => t.parent_id);
     // A one-time task stays on the list until it's done, even past its due date.
-    const current = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today && (r.period_end >= today || (taskBy[r.task_id].frequency === 'once' && r.status === 'open')));
+    // Finished before this week (Tuesday) moves to Past weeks instead of staying on the list.
+    const wk0 = weekStart(today);
+    const current = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today && (r.period_end >= today || (taskBy[r.task_id].frequency === 'once' && r.status === 'open'))
+      && !(['done', 'skipped'].includes(r.status) && r.done_at && isoOf(new Date(r.done_at)) < wk0));
     allRuns = runs;
     pmNotes = view === 'now' ? await loadNotes(sb, 'maintenance', current.map((r) => r.id)) : {};
     const overdue = current.filter((r) => r.status === 'open' && r.due_on < today);
     const dueSoon = current.filter((r) => r.status === 'open' && r.due_on >= today && dayDiff(r.due_on, today) <= 7);
     const done = current.filter((r) => r.status === 'done');
     const active = tasks.filter((t) => t.active && !t.parent_id);
-    const tabs = [['now', 'This period'], ['calendar', 'Calendar'], ['tasks', `All tasks <b>${active.length}</b>`], ['history', 'History']];
+    const tabs = [['now', 'This period'], ['calendar', 'Calendar'], ['tasks', `All tasks <b>${active.length}</b>`], ['history', 'Past weeks']];
 
     app.innerHTML = `
       <div class="dept-maint">${pageHead('<span class="dept-tag">Maintenance</span>', 'Maintenance <span class="accent">checklist</span>', 'Weekly, monthly, quarterly and yearly upkeep. Each list starts over on its own when the next week, month, quarter or year begins.')}</div>
@@ -176,7 +179,7 @@ export function schedulePages(ctx) {
       ${pw ? pulled.block('maintenance', pw) : ''}
       <div class="pm-bar"><div class="seg">${tabs.map(([k, t]) => `<a href="#/schedule${k === 'now' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
         ${manage() ? '<button class="btn primary" data-pm-new>+ Add task</button>' : ''}</div>
-      <div id="pm-view">${view === 'tasks' ? taskList(tasks, locations) : view === 'calendar' ? calendarView(tasks, runs, today) : view === 'history' ? history(runs, taskBy, who, today) : nowView(current, taskBy, who, today, active)}</div>`;
+      <div id="pm-view">${view === 'tasks' ? taskList(tasks, locations) : view === 'calendar' ? calendarView(tasks, runs, today) : view === 'history' ? await pastWeeks(runs, taskBy, who, today) : nowView(current, taskBy, who, today, active)}</div>`;
 
     bind(view, tasks, current);
   }
@@ -677,6 +680,38 @@ export function schedulePages(ctx) {
   }
 
   // ---- History ------------------------------------------------------------
+  // Past weeks (Tuesday-Monday): what got done, who did it and how long it took,
+  // what was skipped or missed, and what people got pulled to.
+  async function pastWeeks(runs, taskBy, who, today) {
+    const { data: pulledRows } = await sb.from('pulled_work').select('*').eq('dept', 'maintenance').order('started_at', { ascending: false }).limit(500);
+    const pulled = pulledRows || [];
+    const wkOf = (r) => weekStart(r.done_at ? isoOf(new Date(r.done_at)) : r.period_end);
+    const fin = runs.filter((r) => taskBy[r.task_id] && (r.status !== 'open'));
+    const weeks = [...new Set([...fin.map(wkOf), ...pulled.map((p) => weekStart(p.day))])].sort().reverse();
+    if (!weeks.length) return '<p class="muted">Nothing yet. Each week, what got done shows up here.</p>';
+    const thisWk = weekStart(today);
+    const dur = (s) => { s = Math.round(s || 0); const h = Math.floor(s / 3600); const m = Math.round((s % 3600) / 60); return h ? `${h}h ${String(m).padStart(2, '0')}m` : s ? `${m}m` : ''; };
+    const label = { done: 'Done', skipped: 'Skipped', missed: 'Missed' };
+    return weeks.map((w, i) => {
+      const rs = fin.filter((r) => wkOf(r) === w).sort((a, b) => String(a.done_at || a.period_end).localeCompare(String(b.done_at || b.period_end)));
+      const ps = pulled.filter((p) => weekStart(p.day) === w);
+      const nDone = rs.filter((r) => r.status === 'done').length;
+      const time = rs.reduce((a, r) => a + (r.worked_seconds || 0), 0) + ps.reduce((a, p) => a + Math.max(0, ((p.ended_at ? new Date(p.ended_at) : new Date()) - new Date(p.started_at)) / 1000 - (p.paused_seconds || 0)), 0);
+      return `<details class="b-group"${i === 0 ? ' open' : ''}><summary><span class="b-gname">Week of ${dshort(w)} – ${dshort(addD(w, 6))}${w === thisWk ? ' <span class="pill planned">This week</span>' : ''}</span>
+          <span class="muted">${nDone} done${rs.length - nDone ? ` · ${rs.length - nDone} skipped/missed` : ''}${ps.length ? ` · ${ps.length} pulled to` : ''}${time ? ` · ${dur(time)}` : ''}</span></summary>
+        ${rs.length ? `<div class="table-wrap"><table class="b-table"><tr><th>Task</th><th>Status</th><th>Who</th><th class="num">Time</th><th>When</th><th>Note</th></tr>
+          ${rs.map((r) => { const t = taskBy[r.task_id]; const par = t.parent_id ? taskBy[t.parent_id] : null;
+            return `<tr><td>${esc(t.name)}${par ? ` <span class="muted">· before ${esc(par.name)}</span>` : ''}</td>
+              <td><span class="pill ${r.status === 'done' ? 'available' : r.status === 'missed' ? 'lost' : 'closed'}">${label[r.status] || r.status}</span></td>
+              <td>${esc(who[r.done_by] || '')}</td><td class="num">${dur(r.worked_seconds)}</td>
+              <td>${r.done_at ? new Date(r.done_at).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : ''}</td><td>${esc(r.note || '')}</td></tr>`; }).join('')}</table></div>` : ''}
+        ${ps.length ? `<h4 class="pw-h">Pulled to</h4><div class="table-wrap"><table class="b-table"><tr><th>Who</th><th>What</th><th>Where</th><th>Day</th><th class="num">Time</th></tr>
+          ${ps.map((p) => `<tr><td>${esc(who[p.member_id] || '')}</td><td>${esc(p.what)}</td><td>${esc(p.location || '')}</td><td>${new Date(`${p.day}T12:00:00`).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</td>
+            <td class="num">${dur(((p.ended_at ? new Date(p.ended_at) : new Date()) - new Date(p.started_at)) / 1000 - (p.paused_seconds || 0))}${p.ended_at ? '' : ' (still going)'}</td></tr>`).join('')}</table></div>` : ''}
+      </details>`;
+    }).join('');
+  }
+
   function history(runs, taskBy, who, today) {
     const past = runs.filter((r) => r.period_end < today || r.status !== 'open').slice(0, 300);
     if (!past.length) return '<p class="muted">Nothing yet. Finished, skipped and missed tasks show up here.</p>';

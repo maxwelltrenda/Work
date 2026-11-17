@@ -622,27 +622,41 @@ export function boardPages(ctx) {
   }
 
   async function renderTimeLog(current) {
-    const tasks = await q(sb.from('checklist_tasks').select('id, week_of, name, area, status, who, day, worked_seconds, manual_hours, done_on, timer_started_at').not('week_of', 'is', null).order('week_of', { ascending: false }).order('sort'));
+    const [tasks, pulledRows, members] = await Promise.all([
+      q(sb.from('checklist_tasks').select('id, week_of, name, area, status, who, day, worked_seconds, manual_hours, done_on, timer_started_at').not('week_of', 'is', null).order('week_of', { ascending: false }).order('sort')),
+      q(sb.from('pulled_work').select('*').eq('dept', 'custodial').order('started_at', { ascending: false }).limit(500)).catch(() => []),
+      q(sb.from('team_members').select('id, name')).catch(() => []),
+    ]);
+    const whoId = Object.fromEntries(members.map((m) => [m.id, m.name]));
+    // Pulled-to work belongs to the week (Tuesday-Monday) of its day.
+    const wkOf = (iso) => { const [y, m, d] = iso.split('-').map(Number); const dt = new Date(y, m - 1, d); const s = new Date(y, m - 1, d - ((dt.getDay() + 5) % 7)); return `${s.getFullYear()}-${String(s.getMonth() + 1).padStart(2, '0')}-${String(s.getDate()).padStart(2, '0')}`; };
+    // Put each one in the list week it falls in (the latest week starting on or before its day).
+    const listWeeks = [...new Set(tasks.map((t) => t.week_of))].sort();
+    const weekFor = (day) => listWeeks.filter((x) => x <= day).pop() || wkOf(day);
+    const pulledIn = (w) => pulledRows.filter((p) => weekFor(p.day) === w);
+    const pSecs = (p) => Math.max(0, ((p.ended_at ? new Date(p.ended_at) : new Date()) - new Date(p.started_at)) / 1000 - (p.paused_seconds || 0));
     const weeks = [...new Set(tasks.map((t) => t.week_of))];
     const people = {};
     tasks.forEach((t) => { if (!t.who || !(t.worked_seconds || t.manual_hours)) return; t.who.split(',').map((x) => x.trim()).forEach((p) => { people[p] = (people[p] || 0) + liveSecs(t) + (t.manual_hours || 0) * 3600; }); });
     app.innerHTML = `
       <p><a href="#/checklist">← Checklist</a></p>
       <header class="page-head b-simplehead"><h1>Past weeks</h1></header>
-      <p class="muted b-note">Every Sunday a fresh week starts. Anything not done becomes Missed.</p>
-      <div class="table-wrap"><table class="b-table b-narrow"><tr><th>Week of</th><th class="num">Done</th><th class="num">Missed</th><th class="num">Time logged</th><th>Completion</th></tr>
+      <p class="muted b-note">Every Tuesday a fresh week starts. Anything not done becomes Missed.</p>
+      <div class="table-wrap"><table class="b-table b-narrow"><tr><th>Week of</th><th class="num">Done</th><th class="num">Missed</th><th class="num">Pulled to</th><th class="num">Time logged</th><th>Completion</th></tr>
         ${weeks.map((w) => {
           const ts = tasks.filter((t) => t.week_of === w); const c = (s) => ts.filter((t) => t.status === s).length;
           const pct = Math.round((c('Done') / ts.length) * 100);
-          return `<tr><td><b>${dshort(w)}</b>${w === current ? ' <span class="pill planned">This week</span>' : ''}</td><td class="num">${c('Done')}</td><td class="num">${c('Missed')}</td>
-            <td class="num">${dur(ts.reduce((a, t) => a + liveSecs(t) + (t.manual_hours || 0) * 3600, 0))}</td>
+          return `<tr><td><b>${dshort(w)}</b>${w === current ? ' <span class="pill planned">This week</span>' : ''}</td><td class="num">${c('Done')}</td><td class="num">${c('Missed')}</td><td class="num">${pulledIn(w).length || ''}</td>
+            <td class="num">${dur(ts.reduce((a, t) => a + liveSecs(t) + (t.manual_hours || 0) * 3600, 0) + pulledIn(w).reduce((a, p) => a + pSecs(p), 0))}</td>
             <td><span class="b-progbar small"><i style="width:${pct}%"></i></span> ${pct}%</td></tr>`;
         }).join('')}</table></div>
       ${barList('Time logged by person, all weeks', Object.fromEntries(Object.entries(people).map(([k, v]) => [`${k} · ${dur(v)}`, Math.round(v / 60)])), 'Bars are minutes.')}
       ${weeks.map((w) => `<details class="b-group"><summary><span class="b-gname">Week of ${dshort(w)}</span><span class="muted">${tasks.filter((t) => t.week_of === w).length} tasks</span></summary>
         <div class="table-wrap"><table class="b-table"><tr><th>Task</th><th>Day</th><th>Area</th><th>Status</th><th>Who</th><th class="num">Time</th><th>Done on</th></tr>
         ${tasks.filter((t) => t.week_of === w).map((t) => `<tr><td>${esc(t.name)}</td><td>${esc(t.day || '')}</td><td>${esc(t.area || '')}</td><td><span class="b-pill s-${slug(t.status)}">${esc(t.status)}</span></td>
-          <td>${esc(t.who || '')}</td><td class="num">${liveSecs(t) || t.manual_hours ? dur(liveSecs(t) + (t.manual_hours || 0) * 3600) : ''}</td><td class="muted">${tshort(t.done_on)}</td></tr>`).join('')}</table></div></details>`).join('')}`;
+          <td>${esc(t.who || '')}</td><td class="num">${liveSecs(t) || t.manual_hours ? dur(liveSecs(t) + (t.manual_hours || 0) * 3600) : ''}</td><td class="muted">${tshort(t.done_on)}</td></tr>`).join('')}</table></div>
+        ${pulledIn(w).length ? `<h4 class="pw-h">Pulled to</h4><div class="table-wrap"><table class="b-table"><tr><th>Who</th><th>What</th><th>Where</th><th>When</th><th class="num">Time</th></tr>
+          ${pulledIn(w).map((p) => `<tr><td>${esc(whoId[p.member_id] || '')}</td><td>${esc(p.what)}</td><td>${esc(p.location || '')}</td><td class="muted">${tshort(p.started_at)}</td><td class="num">${dur(pSecs(p))}${p.ended_at ? '' : ' (still going)'}</td></tr>`).join('')}</table></div>` : ''}</details>`).join('')}`;
   }
 
   async function renderTemplate() {
@@ -658,7 +672,7 @@ export function boardPages(ctx) {
     app.innerHTML = `
       <p><a href="#/checklist">← Checklist</a></p>
       <header class="page-head b-simplehead"><h1>Repeating tasks</h1></header>
-      <p class="muted b-note">${tasks.length} tasks. They're added to the list fresh every Sunday. ${admin ? 'Tap a task to change it. You can also update this week\'s list when you save.' : 'Only admins can change them.'}</p>
+      <p class="muted b-note">${tasks.length} tasks. They're added to the list fresh every Tuesday. ${admin ? 'Tap a task to change it. You can also update this week\'s list when you save.' : 'Only admins can change them.'}</p>
       ${admin ? '<div class="b-ckadd"><button class="btn primary" data-tpnew>+ Add a repeating task</button></div>' : ''}
       ${DAYS.map((d) => {
         const items = tasks.filter((t) => (t.day || 'Detail Work') === d);

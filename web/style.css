@@ -1581,3 +1581,4 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .tn-pv-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .tn-pv-meta { font-size: 12px; color: var(--muted); }
 .tn-at .chip-btn.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.pw-h { margin: 14px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .05em; color: var(--body); }
