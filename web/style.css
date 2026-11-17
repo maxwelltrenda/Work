@@ -1466,3 +1466,4 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .pm-week { text-align: left; }
 .pm-week span { font-weight: 400; color: var(--muted); }
 .pm-week.on span { color: inherit; opacity: .85; }
+.ov-next { color: var(--muted); }

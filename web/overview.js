@@ -81,8 +81,13 @@ export function overviewPages(ctx) {
       else if (r) { tag = ['Request', 'new']; text = `<b>${esc(r.subject)}</b>${r.location ? ` · ${esc(r.location)}` : ''}`; rank = 0; }
       else if (c) { tag = ['Custodial', 'work']; text = `<b>${esc(c.name)}</b>`; rank = 0; }
       else if (tl) { tag = ['Tool', 'out']; text = `Has the <b>${esc(toolName[tl.tool_id] || 'a tool')}</b> since ${esc(new Date(tl.checked_out_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}`; rank = 0; }
-      else if (ckNext.length) { tag = ['Up next', 'todo']; text = `Custodial: <b>${esc(ckNext[0].name)}</b>${ckNext.length > 1 ? ` <span class="muted">+${ckNext.length - 1} more today</span>` : ''}`; }
-      else if (pmNext.length) { tag = ['Up next', 'todo']; text = `Maintenance: <b>${esc(taskBy[pmNext[0].task_id].name)}</b> · due ${esc(dshort(pmNext[0].due_on))}${pmNext.length > 1 ? ` <span class="muted">+${pmNext.length - 1} more</span>` : ''}`; }
+      // Not working on anything: say so, then what's next for them.
+      else if (ckNext.length || pmNext.length) {
+        tag = ['Free', 'free'];
+        const next = ckNext.length ? `Custodial: ${esc(ckNext[0].name)}${ckNext.length > 1 ? ` +${ckNext.length - 1} more` : ''}`
+          : `${esc(taskBy[pmNext[0].task_id].name)} · due ${esc(dshort(pmNext[0].due_on))}${pmNext.length > 1 ? ` +${pmNext.length - 1} more` : ''}`;
+        text = `Not on anything right now <span class="ov-next">· Next: ${next}</span>`;
+      }
       else if (h) { tag = ['Free', 'free']; text = 'Not on anything right now'; }
       else { tag = ['Off', 'free']; text = 'Not scheduled today'; rank = 4; }
       return { m, tag, text, rank, hours: h && !(offRow && !offRow.part) ? `${hm(h.start)} – ${hm(h.end)}${offRow?.part ? ` · ${offRow.part.toLowerCase()} off` : ''}` : '' };
