@@ -12,6 +12,7 @@ import { gameplanPages } from './gameplan.js?v=__V__';
 import { overviewPages } from './overview.js?v=__V__';
 import { myTaskPages } from './mytasks.js?v=__V__';
 import { mountAssistant } from './assistant.js?v=__V__';
+import { paintSpotPages } from './paintspots.js?v=__V__';
 
 // Demo mode (?demo): the Facilities app with sample data, no login, nothing
 // saved. It never connects to the real database (demo.js).
@@ -852,6 +853,16 @@ const BOARDS = boardPages({
 });
 
 // Recurring maintenance schedule (pm.js): Maintenance managers and admins.
+// Paint › Where it goes (paintspots.js): admins and the Maintenance manager edit.
+const PAINTSPOTS = paintSpotPages({
+  sb, q, esc, toast, askConfirm, errMsg, gal: (n) => gal(n), stockTabs: (k) => stockTabs(k),
+  canEdit: () => isAdmin() || state.me?.role === 'maintenance',
+  loadPaint: async () => {
+    const [all, cans] = await Promise.all([loadItems(), loadPaintCans()]);
+    const items = all.filter((i) => i.category === 'paint' && i.active);
+    return { items, sum: Object.fromEntries(items.map((i) => [i.id, paintSummary(cans.filter((c) => c.item_id === i.id))])) };
+  },
+});
 const MYTASKS = myTaskPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, me: () => state.me, isAdmin });
 const OVERVIEW = overviewPages({ sb, q, rpc, esc, me: () => state.me });
 const GAMEPLAN = gameplanPages({ rpc, esc, toast, errMsg, pageHead });
@@ -2133,9 +2144,9 @@ const itemFields = (f) => ({
   paint_use: f.get('category') === 'paint' ? f.get('paint_use') || null : null,
 });
 
-async function renderItems(category) {
+async function renderItems(category, sub) {
   const kind = stockKind(category);
-  if (kind === 'paint') return renderPaint();
+  if (kind === 'paint') return sub === 'where' ? PAINTSPOTS.renderPaintSpots() : renderPaint();
   const meta = STOCK[kind];
   const [all, locations] = await Promise.all([loadItems(), loadLocations()]);
   const items = all.filter((i) => i.category === kind);
@@ -2234,6 +2245,7 @@ async function renderPaint() {
   app.innerHTML = `
     ${stockTabs('paint')}
     ${pageHead(meta.eyebrow, meta.title, 'One entry per color. Full and used cans all count toward the color\'s gallons.')}
+    <div class="seg ps-seg"><a href="#/items/paint" class="on">Cans on hand</a><a href="#/items/paint/where">Where it goes</a></div>
     <div class="stats">
       <div class="stat"><b>${show.length}</b><span>colors</span></div>
       <div class="stat"><b>${gal(totalGal)}</b><span>on hand in total</span></div>
@@ -3491,7 +3503,7 @@ const markFullscreen = () => {
 };
 markFullscreen();
 window.addEventListener('resize', markFullscreen);
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/mytasks.js', '/assistant.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/mytasks.js', '/assistant.js', '/paintspots.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {

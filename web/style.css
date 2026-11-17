@@ -1405,3 +1405,25 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .notif-clear { background: none; border: 0; padding: 0; color: var(--muted); font: 14px var(--sans); cursor: pointer; text-decoration: underline; }
 .notif-page-tools { display: flex; justify-content: flex-end; margin-top: 16px; }
 .notif.assigned .notif-dot { background: var(--accent-soft); color: var(--accent); }
+
+/* Paint › Where it goes */
+.ps-seg { margin: 4px 0 16px; }
+.ps-bar { margin-bottom: 14px; gap: 10px; align-items: center; }
+.ps-bar input { flex: 1; min-width: 200px; }
+.ps-area { margin-bottom: 14px; padding: 6px 18px; }
+.ps-area h2 { font-size: 18px; margin: 12px 0 6px; }
+.ps-row { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(180px, 1.4fr) auto auto; gap: 6px 16px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); }
+.ps-area h2 + .ps-row { border-top: 0; }
+.ps-spot, .ps-paint { display: flex; flex-direction: column; min-width: 0; }
+.ps-spot .muted, .ps-paint .muted { font-size: 13px; }
+.ps-stock a { font-size: 13px; white-space: nowrap; }
+.ps-edit { padding: 6px 12px; font-size: 13px; }
+.ps-form { width: min(480px, calc(100vw - 24px)); }
+.ps-form label { display: block; margin-top: 10px; }
+.ps-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 640px) {
+  .ps-row { grid-template-columns: 1fr auto; }
+  .ps-paint { grid-column: 1; }
+  .ps-stock { grid-column: 1; }
+  .ps-edit { grid-column: 2; grid-row: 1 / span 3; }
+}

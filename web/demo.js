@@ -64,6 +64,15 @@ const nameOf = (id) => db.team_members.find((m) => m.id === id)?.name || 'Someon
 ].forEach(([code, name, category, location, unit, quantity, reorder_level, pack_size, subcategory]) => db.items.push({
   id: uuid(), code, name, category, location, unit, quantity, reorder_level, pack_size, subcategory, description: null, unit_cost: null, active: true, photo_path: null, created_at: ago(60 * 24 * 60),
 }));
+// Paint › Where it goes: a few sample spots.
+db.paint_spots = [
+  ['Sanctuary', 'Grey walls', 'Iron Ore', 'Behr Pro E600', 'Deep Base PR613', 'Flat'],
+  ['Sanctuary', 'Black doors', 'Limousine Leather', 'Behr Ultra | Scuff Defense', 'Deep Base 7753', 'Satin'],
+  ['Preschool Hallway', 'Tan wall', '7029 | Agreeable Gray', 'Sherwin Williams | ProMark 200', null, 'Eggshell'],
+  ['Preschool Hallway', 'Trim', 'Extra White', 'Sherwin Williams', null, 'Semi-Gloss'],
+  ['Chapel', 'White walls', 'Snowbound', 'Sherwin Williams', null, 'Eggshell'],
+  ['Family Center', 'Stage trim + face', 'Limousine Leather', 'Behr', null, 'Eggshell'],
+].map(([area, spot, color, brand, base, sheen], i) => ({ id: nextId(), area, spot, color, brand, base, sheen, notes: null, sort: i }));
 db.items.filter((i) => i.category === 'paint').forEach((i) => { db.paint_cans.push({ id: nextId(), item_id: i.id, size: 1, fill: 1, added_at: ago(9000), removed_at: null }, { id: nextId(), item_id: i.id, size: 5, fill: 0.5, added_at: ago(9000), removed_at: null }); });
 [['INV-0002', 'out', -6, 'lexi', 200], ['INV-0007', 'out', -8, 'rick', 60 * 26], ['INV-0003', 'in', 96, 'max', 60 * 50], ['INV-0010', 'out', -4, 'judah', 60 * 3]].forEach(([code, type, qty, who, min]) => {
   const it = db.items.find((x) => x.code === code);
