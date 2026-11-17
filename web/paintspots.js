@@ -88,7 +88,7 @@ export function paintSpotPages(ctx) {
               <div class="ps-spot"><b>${esc(s.spot)}</b>${s.notes ? `<span class="muted">${esc(s.notes)}</span>` : ''}</div>
               <div class="ps-paint">${s.color ? `<b>${esc(s.color)}</b>` : '<span class="muted">No color saved yet</span>'}
                 <span class="muted">${[s.brand, s.base, s.sheen].filter(Boolean).map(esc).join(' · ')}</span></div>
-              <div class="ps-stock">${st ? `<a href="#/item/${st.id}" title="In stock: ${esc(st.name)}">${gal(sum[st.id]?.gallons || 0)} in stock</a>` : ''}</div>
+              <div class="ps-stock">${st ? ((sum[st.id]?.gallons || 0) > 0 ? `<a href="#/item/${st.id}" title="In stock: ${esc(st.name)}">${gal(sum[st.id].gallons)} in stock</a>` : `<a class="none" href="#/item/${st.id}" title="${esc(st.name)}">None in stock</a>`) : ''}</div>
               ${edit ? `<button class="btn ps-edit" data-edit="${s.id}">Edit</button>` : ''}</div>`;
           }).join('')}</section>`).join('') || '<p class="muted card">Nothing matches.</p>';
       app.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => editSpot(spots.find((x) => String(x.id) === b.dataset.edit))));
