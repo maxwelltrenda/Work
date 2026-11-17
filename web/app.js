@@ -14,6 +14,7 @@ import { myTaskPages } from './mytasks.js?v=__V__';
 import { mountAssistant } from './assistant.js?v=__V__';
 import { paintSpotPages } from './paintspots.js?v=__V__';
 import { myDayPages } from './myday.js?v=__V__';
+import { loadNotes, notesList, noteButton, bindNotes } from './notes.js?v=__V__';
 
 // Demo mode (?demo): the Facilities app with sample data, no login, nothing
 // saved. It never connects to the real database (demo.js).
@@ -1833,6 +1834,33 @@ const eventFields = (f) => ({
   starts_on: f.get('starts_on') || null, ends_on: f.get('ends_on') || null, notes: f.get('notes').trim() || null,
 });
 
+// Facilities tasks shared with Events (0066): what Facilities is doing with us, read-only plus Updates.
+async function sharedWithEvents() {
+  const tasks = await q(sb.from('pm_tasks').select('*').eq('shared_events', true).eq('active', true)).catch(() => []);
+  if (!tasks.length) return { html: '', bind: () => {} };
+  const runs = await q(sb.from('pm_runs').select('*').in('task_id', tasks.map((t) => t.id)).in('status', ['open', 'missed', 'done']).order('due_on')).catch(() => []);
+  const today = new Date().toISOString().slice(0, 10);
+  const list = runs.filter((r) => r.status !== 'done' || r.due_on >= today);
+  if (!list.length) return { html: '', bind: () => {} };
+  const members = await loadMembers();
+  const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
+  const taskBy = Object.fromEntries(tasks.map((t) => [t.id, t]));
+  const notes = await loadNotes(sb, 'maintenance', list.map((r) => r.id));
+  const h12 = (v) => { const [h, m] = String(v).split(':').map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`; };
+  const html = `<h2>With Facilities <span class="muted" style="font:400 14px var(--sans)">jobs we're doing together</span></h2>
+    <div class="ev-shared">${list.map((r) => { const t = taskBy[r.task_id];
+      const when = `${fmtDay(r.due_on)}${t.once_from ? `, ${h12(t.once_from)}${t.once_to ? `–${h12(t.once_to)}` : ''}` : ''}`;
+      const ppl = (t.assignees || []).map((id) => who[id]).filter(Boolean);
+      return `<div class="card ev-job"><div class="ev-job-top"><div><b>${esc(t.name)}</b>
+          <span class="muted">${[when, t.location ? esc(t.location) : '', r.status === 'done' ? '<b style="color:var(--in)">Done ✓</b>' : r.timer_started_at ? '<b>Happening now</b>' : ''].filter(Boolean).join(' · ')}</span>
+          ${ppl.length ? `<span class="muted">On it: ${ppl.map(esc).join(', ')}</span>` : ''}</div>
+          ${noteButton('maintenance', r.id, (notes[r.id] || []).length)}</div>
+        ${t.notes ? `<p class="muted" style="white-space:pre-line;margin:8px 0 0">${esc(t.notes)}</p>` : ''}
+        ${notesList(notes[r.id], esc)}</div>`; }).join('')}</div>`;
+  const bind = (root, reload) => bindNotes(root, { sb, toast, errMsg, esc, meId: state.me?.id, canDeleteAll: isOrgAdmin(), names: Object.fromEntries(list.map((r) => [`maintenance:${r.id}`, taskBy[r.task_id].name])) }, reload);
+  return { html, bind };
+}
+
 async function renderEvents() {
   const [events, members, open, locations] = await Promise.all([
     q(sb.from('events').select('*').order('starts_on', { ascending: false, nullsFirst: true })),
@@ -1841,6 +1869,7 @@ async function renderEvents() {
     loadLocations(),
   ]);
   const crew = people(members);
+  const shared = await sharedWithEvents();
   const outBy = {};
   open.forEach((c) => (outBy[c.event_id] = (outBy[c.event_id] || 0) + 1));
   const live = events.filter((e) => e.status !== 'closed');
@@ -1851,6 +1880,7 @@ async function renderEvents() {
 
   app.innerHTML = `
     ${pageHead('Offsite', 'Events', 'Plan an offsite job, then pick it on the Check In / Out screen when loading the truck. Everything scanned goes on the event’s list.')}
+    ${shared.html}
     <details class="card" ${live.length ? '' : 'open'} ${canManageEvents() ? '' : 'hidden'}><summary><b>New event</b></summary>
       <form id="add" style="margin-top:12px">${eventForm({}, locations)}
         <h2>Crew</h2><div class="people-pick">${crew.map((m) => `<label class="chip"><input type="checkbox" name="crew" value="${m.id}"> ${esc(m.name)}</label>`).join('')}</div>
@@ -1860,6 +1890,7 @@ async function renderEvents() {
       ${rows(live) || '<tr><td colspan="6" class="muted">No open events.</td></tr>'}</table></div>
     ${closed.length ? `<h2>Closed</h2><div class="table-wrap"><table><tr><th>Code</th><th>Event</th><th>Where</th><th>When</th><th>Status</th><th class="num">${TW.list}</th></tr>${rows(closed)}</table></div>` : ''}`;
 
+  shared.bind(app, () => route());
   bindLocationSelects(app.querySelector('#add'));
   app.querySelector('#add').addEventListener('submit', async (e) => {
     e.preventDefault();

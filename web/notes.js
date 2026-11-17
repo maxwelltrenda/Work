@@ -82,8 +82,8 @@ function openThread({ sb, toast, errMsg, esc, meId, canDeleteAll }, kind, id, ti
     // @mentions: show matching names while typing "@na…", tap one to fill it in.
     const atBox = back.querySelector('.tn-at');
     let team = [];
-    sb.from('team_members').select('name, role, active').then(({ data }) => {
-      const list = (data || []).filter((m) => m.active && !['none', 'kiosk'].includes(m.role));
+    sb.from('team_members').select('*').then(({ data }) => {
+      const list = (data || []).filter((m) => m.active && (!['none', 'kiosk'].includes(m.role) || (kind === 'maintenance' && m.events_role)));
       team = list.map((m) => { const f = first(m.name); return list.filter((x) => first(x.name).toLowerCase() === f.toLowerCase()).length > 1 ? m.name : f; }).sort();
     });
     const atWord = () => { const v = input.value.slice(0, input.selectionStart); const m = v.match(/@([A-Za-z]*)$/); return m ? m[1] : null; };

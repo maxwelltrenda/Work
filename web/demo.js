@@ -31,9 +31,10 @@ const people = [
   ['marah', 'Marah', 'custodian', 'Custodial', hours(['tue', 'wed', 'thu', 'fri', 'sat'], '09:00', '17:30')],
   ['lexi', 'Lexi', 'custodian', 'Custodial', hours(MF, '09:00', '17:30')],
   ['ipad', 'Tool room iPad', 'kiosk', null, null],
+  ['erin', 'Erin', 'none', 'Events', null],
 ];
 const db = {
-  team_members: people.map(([id, name, role, team, wh], i) => ({ id, name, email: `${id}@demo.local`, code: `P-${101 + i}`, role, team, work_hours: wh, active: true, media_role: null, events_role: null, notif_seen_at: ago(60 * 24), created_at: ago(60 * 24 * 90) })),
+  team_members: people.map(([id, name, role, team, wh], i) => ({ id, name, email: `${id}@demo.local`, code: `P-${101 + i}`, role, team, work_hours: wh, active: true, media_role: null, events_role: id === 'erin' ? 'admin' : id === 'me' ? 'member' : null, notif_seen_at: ago(60 * 24), created_at: ago(60 * 24 * 90) })),
   locations: ['Tool room', 'Mechanical room', 'Janitor closet', 'Warehouse', 'Trailer'].map((name) => ({ name, active: true })),
   categories: [['tool', 'Power tools'], ['tool', 'Ladders & lifts'], ['tool', 'Hand tools'], ['tool', 'Cleaning equipment'], ['maintenance', 'Plumbing'], ['maintenance', 'Electrical'], ['maintenance', 'HVAC'], ['maintenance', 'Hardware']]
     .map(([kind, name]) => ({ kind, name, active: true })),
@@ -180,6 +181,7 @@ pm({ name: 'Test emergency and exit lights', frequency: 'monthly', due_days: 7, 
 const gt = pm({ name: 'Grease trap cleaning', frequency: 'quarterly', start_month: 1, contractor_id: 1, assignees: ['max'] });
 pm({ name: 'Book the grease trap company', frequency: 'quarterly', parent_id: gt.id, lead_days: 14 });
 pm({ name: 'Replace lobby carpet tiles', frequency: 'once', once_start: dayIso(5), once_due: dayIso(21), location: 'Grand Lobby', assignees: ['kenny'], notes: 'Tiles are in the warehouse.' });
+pm({ name: 'Stage chairs for the conference', frequency: 'once', once_due: dayIso(3), once_from: '09:00', once_to: '12:00', location: 'Sanctuary', assignees: ['rick', 'erin'], shared_events: true, notes: 'Events brings the linens. We set 400 chairs.' });
 pm({ name: 'Fix the back gate latch', frequency: 'once', once_due: dayIso(2), location: 'Back gate', assignees: ['judah'] });
 pm({ name: 'Fire extinguisher inspection', frequency: 'yearly', start_month: 1, due_days: 30, contractor_id: 2 });
 
@@ -486,6 +488,7 @@ const RPC = {
     db.pm_runs = db.pm_runs.filter((r) => !(r.task_id === t.id && r.status === 'open'));
     pmRefresh();
   },
+  pm_set_shared({ p_task, p_on }) { db.pm_tasks.find((x) => loose(x.id, p_task)).shared_events = !!p_on; },
   pm_set_contractor({ p_task, p_contractor }) { db.pm_tasks.find((x) => loose(x.id, p_task)).contractor_id = p_contractor; },
   pm_set_step_people({ p_task, p_step, p_people }) { const t = db.pm_tasks.find((x) => loose(x.id, p_task)); t.step_people = { ...(t.step_people || {}) }; if ((p_people || []).length) t.step_people[p_step] = p_people; else delete t.step_people[p_step]; },
   pm_set_assignees({ p_task, p_people }) { db.pm_tasks.find((x) => loose(x.id, p_task)).assignees = p_people || []; },

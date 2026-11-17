@@ -130,6 +130,7 @@ export function schedulePages(ctx) {
   const { sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled } = ctx;
   let contractors = [];   // the Contractors list, loaded with the page
   let crew = [];          // Facilities people who can be put on a task
+  let evCrew = [];        // Events people (for tasks shared with Events)
   let whoAll = {};        // id -> name, everyone
   const onIt = (t) => (t.assignees || []).map((id) => whoAll[id]).filter(Boolean);
   const ctBy = (id) => contractors.find((c) => c.id === id);
@@ -150,7 +151,7 @@ export function schedulePages(ctx) {
     const [tasks, runs, members, locations, pw] = await Promise.all([
       q(sb.from('pm_tasks').select('*').order('sort').order('id')),
       q(sb.from('pm_runs').select('*').order('period_start', { ascending: false }).limit(1000)),
-      q(sb.from('team_members').select('id, name, role, active')),
+      q(sb.from('team_members').select('*')),
       null,
       view === 'now' ? pulled.load('maintenance').catch(() => null) : null,
       q(sb.from('contractors').select('*').order('name')).then((x) => { contractors = x; }, () => { contractors = []; }),
@@ -158,6 +159,8 @@ export function schedulePages(ctx) {
     const who = Object.fromEntries(members.map((m) => [m.id, m.name]));
     whoAll = who;
     crew = members.filter((m) => m.active && !['kiosk', 'none'].includes(m.role)).sort((a, b) => a.name.localeCompare(b.name));
+    // Events people (Events site only): can be put on tasks shared with Events.
+    evCrew = members.filter((m) => m.active && m.events_role && ['none', 'oversight'].includes(m.role)).sort((a, b) => a.name.localeCompare(b.name));
     const taskBy = Object.fromEntries(tasks.map((t) => [t.id, t]));
     preps = tasks.filter((t) => t.parent_id);
     // A one-time task stays on the list until it's done, even past its due date.
@@ -395,7 +398,7 @@ export function schedulePages(ctx) {
     return `<div class="pm-card ${r.status}${r.timer_started_at ? ' running' : ''}${r.status === 'open' && r.due_on < today ? ' late' : ''}">
       <button class="pm-check" data-mark="${r.id}" data-to="${isDone ? 'open' : 'done'}" aria-label="${isDone ? 'Mark not done' : 'Mark done'}">${isDone ? '✓' : ''}</button>
       <div class="pm-body">
-        <b class="pm-name">${esc(t.name)}</b>
+        <b class="pm-name">${esc(t.name)}${t.shared_events || parent?.shared_events ? ' <span class="pm-ev">With Events</span>' : ''}</b>
         ${r.timer_started_at && inNames.length ? `<span class="pm-meta pm-clocked">⏱ ${inNames.map((n) => esc(n.split(' ')[0])).join(', ')} clocked in</span>` : ''}
         <span class="pm-meta">${[parent ? `Before <b>${esc(parent.name)}</b> (starts ${dshort(addD(r.period_end, 1))})` : '', t.location ? esc(t.location) : '', dueText(r, today, t)].filter(Boolean).join(' · ')}</span>
         ${isDone ? `<span class="pm-meta pm-donewho">Done by ${esc(who[r.done_by] || 'someone')} · ${new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}${r.note ? ` · ${esc(r.note)}` : ''}</span>` : ''}
@@ -474,6 +477,7 @@ export function schedulePages(ctx) {
     const todayIso = isoOf(new Date());
     let ctId = t.contractor_id || null;
     let people = new Set(t.assignees || []);
+    let shared = !!t.shared_events;
     let onceDue = t.once_due || '';
     let onceStart = t.once_start || '';
     let byCt = !!ctId;
@@ -542,6 +546,8 @@ export function schedulePages(ctx) {
         <div class="pm-ctpick" data-ctpick></div>
         <div class="wk-sect">Who's on it <span class="muted pm-opt">(optional: tap to add or remove)</span></div>
         <div class="wk-chips" data-people>${crew.map((m) => `<button type="button" class="chip-btn b-pp pm-person" data-person="${m.id}"><span class="b-av" style="background:${hue(m.name)}">${esc(initials(m.name))}</span>${esc(m.name)}</button>`).join('') || '<span class="muted">No team members yet.</span>'}</div>
+        <label class="b-tpweek pm-share"><input type="checkbox" name="shared"${t.shared_events ? ' checked' : ''}> <span><b>Partnering with Events</b> · shows on the Events site too, and Events people can be put on it</span></label>
+        <div class="wk-chips" data-evpeople>${evCrew.map((m) => `<button type="button" class="chip-btn b-pp pm-person" data-person="${m.id}"><span class="b-av" style="background:${hue(m.name)}">${esc(initials(m.name))}</span>${esc(m.name)} <span class="muted">· Events</span></button>`).join('')}</div>
         <label style="margin-top:12px"><span>Where <span class="muted">(optional)</span></span><input name="location" value="${esc(t.location || '')}" placeholder="Type a place, e.g. Main entrance, Kids wing"></label>
         <details class="pm-more" ${(t.steps || []).length || t.notes ? 'open' : ''}><summary>Steps and notes <span class="muted">(optional)</span></summary>
           <label style="margin-top:10px"><span>Steps <span class="muted">(one per line)</span></span><textarea name="steps" rows="3" placeholder="North entrance&#10;South entrance">${esc((t.steps || []).join('\n'))}</textarea></label>
@@ -603,7 +609,15 @@ export function schedulePages(ctx) {
         });
       };
       form.querySelectorAll('[data-by]').forEach((b) => b.addEventListener('click', () => { byCt = b.dataset.by === 'ct'; drawCt(); }));
-      const drawPeople = () => form.querySelectorAll('[data-person]').forEach((b) => b.classList.toggle('on', people.has(b.dataset.person)));
+      const drawPeople = () => {
+        form.querySelectorAll('[data-person]').forEach((b) => b.classList.toggle('on', people.has(b.dataset.person)));
+        $('[data-evpeople]').hidden = !shared || !evCrew.length;
+      };
+      $('[name=shared]').addEventListener('change', (e) => {
+        shared = e.target.checked;
+        if (!shared) evCrew.forEach((m) => people.delete(m.id));
+        drawPeople();
+      });
       form.querySelectorAll('[data-person]').forEach((b) => b.addEventListener('click', () => { const id = b.dataset.person; if (people.has(id)) people.delete(id); else people.add(id); drawPeople(); }));
       drawPeople();
       drawCt();
@@ -667,12 +681,13 @@ export function schedulePages(ctx) {
           const newCt = byCt ? ctId : null;
           if (newCt !== (t.contractor_id || null)) await rpc('pm_set_contractor', { p_task: t.id || id, p_contractor: newCt });
           const ppl = [...people];
+          if (shared !== !!t.shared_events) await rpc('pm_set_shared', { p_task: t.id || id, p_on: shared });
           if (ppl.sort().join() !== [...(t.assignees || [])].sort().join()) await rpc('pm_set_assignees', { p_task: t.id || id, p_people: ppl });
           if (freq !== 'once' && (editing || keep.length)) await rpc('pm_set_preps', { p_parent: t.id || id, p_preps: keep.map((c) => ({ id: c.id || null, name: c.name.trim(), lead_days: c.lead })) });
           changed = true;
           toast(editing ? 'Saved' : `Added “${name}” to the schedule`);
           if (!again) return done();
-          form.reset(); $('[name=name]').value = ''; win = 'any'; prepList = []; byCt = false; ctId = null; people = new Set(); onceDue = ''; onceStart = ''; drawPeople(); drawCt(); sync(); $('[name=name]').focus();
+          form.reset(); $('[name=name]').value = ''; win = 'any'; prepList = []; byCt = false; ctId = null; people = new Set(); shared = false; onceDue = ''; onceStart = ''; drawPeople(); drawCt(); sync(); $('[name=name]').focus();
         } catch (err) { toast(errMsg(err), true); }
       };
       // One save at a time: a double tap or Enter + click must not add the task twice.
