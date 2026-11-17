@@ -427,10 +427,27 @@ const RPC = {
   time_off_remove({ p_id }) { db.time_off = db.time_off.filter((r) => !loose(r.id, p_id)); },
   set_member_schedule({ p_member, p_team, p_hours }) { const m = db.team_members.find((x) => x.id === p_member); m.team = p_team; m.work_hours = p_hours; },
   pulled_start(a) {
-    db.pulled_work.filter((r) => r.member_id === ME && !r.ended_at).forEach((r) => { r.ended_at = nowIso(); });
-    db.pulled_work.push({ id: nextId(), dept: a.p_dept, member_id: ME, what: a.p_what, location: a.p_location || null, request_id: a.p_request || null, day: TODAY, started_at: nowIso(), ended_at: null });
+    const prev = db.pulled_work.filter((r) => r.member_id === ME && !r.ended_at);
+    const held = prev.flatMap((r) => r.paused_tasks || []);
+    prev.forEach((r) => { r.ended_at = nowIso(); r.paused_tasks = []; });
+    // Pause the custodial tasks only Skyler is on.
+    db.checklist_tasks.filter((t) => t.week_of && t.timer_started_at && String(t.who || '').trim() === 'Skyler').forEach((t) => {
+      t.worked_seconds = (t.worked_seconds || 0) + Math.round((Date.now() - new Date(t.timer_started_at)) / 1000); t.timer_started_at = null; held.push(t.id); });
+    db.pulled_work.push({ id: nextId(), dept: a.p_dept, member_id: ME, what: a.p_what, location: a.p_location || null, request_id: a.p_request || null, day: TODAY, started_at: nowIso(), ended_at: null, paused_tasks: held, paused_requests: [], paused_at: null, paused_seconds: 0 });
   },
-  pulled_end({ p_id }) { const r = db.pulled_work.find((x) => loose(x.id, p_id)); if (r) r.ended_at = nowIso(); },
+  pulled_pause({ p_id, p_pause }) {
+    const r = db.pulled_work.find((x) => loose(x.id, p_id));
+    if (!r) return;
+    if (p_pause && !r.paused_at) r.paused_at = nowIso();
+    if (!p_pause && r.paused_at) { r.paused_seconds = (r.paused_seconds || 0) + Math.round((Date.now() - new Date(r.paused_at)) / 1000); r.paused_at = null; }
+  },
+  pulled_end({ p_id }) {
+    const r = db.pulled_work.find((x) => loose(x.id, p_id));
+    if (!r) return;
+    r.ended_at = nowIso();
+    if (r.paused_at) { r.paused_seconds = (r.paused_seconds || 0) + Math.round((Date.now() - new Date(r.paused_at)) / 1000); r.paused_at = null; }
+    db.checklist_tasks.filter((t) => (r.paused_tasks || []).includes(t.id) && t.status === 'Working on it' && !t.timer_started_at).forEach((t) => { t.timer_started_at = nowIso(); });
+  },
   pm_period_start: ({ p_freq, p_day, p_month, p_dom }) => periodStart(p_freq, p_day, p_month, p_dom),
   pm_refresh: () => pmRefresh(),
   pm_save_task(a) {

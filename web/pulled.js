@@ -6,6 +6,8 @@ import { loadPlaces as placesFrom, attachPlaces } from './places.js?v=__V__';
 const pad = (n) => String(n).padStart(2, '0');
 const localDay = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
 const clock = (ts) => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+// Time on it, leaving out breaks (paused_seconds, and a pause still going).
+const worked = (r, now = Date.now()) => new Date(r.ended_at || (r.paused_at || now)).getTime() - new Date(r.started_at).getTime() - (r.paused_seconds || 0) * 1000;
 function dur(ms) {
   const m = Math.max(0, Math.round(ms / 60000));
   return m >= 60 ? `${Math.floor(m / 60)}h ${pad(m % 60)}m` : `${m}m`;
@@ -20,22 +22,35 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
       q(sb.from('pulled_work').select('*').eq('dept', dept).eq('day', localDay()).order('started_at', { ascending: false })),
       q(sb.from('team_members').select('id, name')),
     ]);
-    return { rows, who: Object.fromEntries(members.map((m) => [m.id, m.name])) };
+    // Names of what each open one paused, to show "picks back up when you're back".
+    const tIds = [...new Set(rows.filter((r) => !r.ended_at).flatMap((r) => r.paused_tasks || []))];
+    const rIds = [...new Set(rows.filter((r) => !r.ended_at).flatMap((r) => r.paused_requests || []))];
+    const [tasks, reqs] = await Promise.all([
+      tIds.length ? q(sb.from('checklist_tasks').select('id, name').in('id', tIds)) : [],
+      rIds.length ? q(sb.from('maint_requests').select('id, subject').in('id', rIds)) : [],
+    ]);
+    const held = Object.fromEntries([...tasks.map((t) => [`t${t.id}`, t.name]), ...reqs.map((x) => [`r${x.id}`, x.subject])]);
+    return { rows, held, who: Object.fromEntries(members.map((m) => [m.id, m.name])) };
   }
 
-  function block(dept, { rows, who }) {
+  function block(dept, { rows, who, held = {} }) {
     const open = rows.filter((r) => !r.ended_at);
     const ended = rows.filter((r) => r.ended_at);
     const mine = open.find((r) => r.member_id === me()?.id);
     const line = (r) => {
       const live = !r.ended_at;
       const canEnd = live && (r.member_id === me()?.id || isAdmin());
-      return `<li class="pw-item${live ? ' live' : ''}">
+      const paused = live && r.paused_at;
+      const waiting = live ? [...(r.paused_tasks || []).map((id) => held[`t${id}`]), ...(r.paused_requests || []).map((id) => held[`r${id}`])].filter(Boolean) : [];
+      return `<li class="pw-item${live ? ' live' : ''}${paused ? ' paused' : ''}">
         <span class="pw-dot" aria-hidden="true"></span>
         <div class="pw-text"><b>${esc(who[r.member_id] || 'Someone')}</b> · ${esc(r.what)}${r.location ? ` <span class="muted">· ${esc(r.location)}</span>` : ''}
-          <span class="pw-time">${live ? `since ${clock(r.started_at)} · <span data-pw-since="${new Date(r.started_at).getTime()}">${dur(Date.now() - new Date(r.started_at))}</span>`
-            : `${clock(r.started_at)}–${clock(r.ended_at)} · ${dur(new Date(r.ended_at) - new Date(r.started_at))}`}${r.note ? ` · ${esc(r.note)}` : ''}</span></div>
-        ${canEnd ? `<button class="btn small" data-pw-end="${r.id}">${r.member_id === me()?.id ? "I'm back" : 'End'}</button>` : ''}
+          <span class="pw-time">${live ? (paused ? `<b class="pw-paused">⏸ Paused since ${clock(r.paused_at)}</b> · ${dur(worked(r))} so far`
+            : `since ${clock(r.started_at)} · <span data-pw-since="${Date.now() - worked(r)}">${dur(worked(r))}</span>`)
+            : `${clock(r.started_at)}–${clock(r.ended_at)} · ${dur(worked(r))}${r.paused_seconds ? ` <span class="muted">(${dur(r.paused_seconds * 1000)} break)</span>` : ''}`}${r.note ? ` · ${esc(r.note)}` : ''}</span>
+          ${waiting.length ? `<span class="pw-held">⏸ ${waiting.map(esc).join(', ')} · picks back up when ${r.member_id === me()?.id ? "you're" : "they're"} back</span>` : ''}</div>
+        ${canEnd ? `<div class="pw-btns"><button class="btn small" data-pw-pause="${r.id}" data-on="${paused ? 0 : 1}">${paused ? '▶ Resume' : '⏸ Pause'}</button>
+          <button class="btn small" data-pw-end="${r.id}">${r.member_id === me()?.id ? "I'm back" : 'End'}</button></div>` : ''}
       </li>`;
     };
     return `<section class="pw-box ${dept === 'custodial' ? 'dept-custodial' : 'dept-maint'}">
@@ -90,10 +105,14 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
     root.querySelectorAll('[data-pw-start]').forEach((b) => b.addEventListener('click', async () => {
       const v = await ask(b.dataset.pwStart);
       if (!v) return;
-      try { await rpc('pulled_start', { p_dept: b.dataset.pwStart, p_what: v.what, p_location: v.location, p_request: v.request }); toast('Logged. Tap "I\'m back" when you\'re done.'); reload(); } catch (err) { toast(errMsg(err), true); }
+      try { await rpc('pulled_start', { p_dept: b.dataset.pwStart, p_what: v.what, p_location: v.location, p_request: v.request }); toast('Logged. What you were on is paused. Tap "I\'m back" to pick it back up.'); reload(); } catch (err) { toast(errMsg(err), true); }
     }));
     root.querySelectorAll('[data-pw-end]').forEach((b) => b.addEventListener('click', async () => {
       try { await rpc('pulled_end', { p_id: Number(b.dataset.pwEnd), p_note: null }); toast('Welcome back'); reload(); } catch (err) { toast(errMsg(err), true); }
+    }));
+    root.querySelectorAll('[data-pw-pause]').forEach((b) => b.addEventListener('click', async () => {
+      const on = b.dataset.on === '1';
+      try { await rpc('pulled_pause', { p_id: Number(b.dataset.pwPause), p_pause: on }); toast(on ? 'Paused. Tap Resume when you start again.' : 'Resumed'); reload(); } catch (err) { toast(errMsg(err), true); }
     }));
     clearInterval(tick);
     tick = setInterval(() => {

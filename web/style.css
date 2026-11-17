@@ -1436,3 +1436,7 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
   .ps-stock { grid-column: 1; }
   .ps-edit { grid-column: 2; grid-row: 1 / span 3; }
 }
+.pw-btns { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.pw-item.paused .pw-dot { background: var(--warn); animation: none; }
+.pw-paused { color: var(--warn); font-weight: 600; }
+.pw-held { display: block; font-size: 13px; color: var(--body); margin-top: 2px; }

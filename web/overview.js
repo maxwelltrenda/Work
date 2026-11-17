@@ -76,6 +76,7 @@ export function overviewPages(ctx) {
       const pmNext = pmOpen.filter((x) => (taskBy[x.task_id].assignees || []).includes(m.id));
       let tag; let text; let rank = 1;
       if (offRow && !offRow.part) { tag = ['Out', 'out']; text = `Out today · ${offRow.kind}`; rank = 3; }
+      else if (p && p.paused_at) { tag = ['On break', 'off']; text = `Paused <b>${esc(p.what)}</b> · since ${esc(new Date(p.paused_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}`; rank = 1; }
       else if (p) { tag = ['Pulled', 'work']; text = `<b>${esc(p.what)}</b>${p.location ? ` · ${esc(p.location)}` : ''} · ${since(p.started_at)}`; rank = 0; }
       else if (r) { tag = ['Request', 'new']; text = `<b>${esc(r.subject)}</b>${r.location ? ` · ${esc(r.location)}` : ''}`; rank = 0; }
       else if (c) { tag = ['Custodial', 'work']; text = `<b>${esc(c.name)}</b>`; rank = 0; }
