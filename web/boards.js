@@ -654,7 +654,7 @@ export function boardPages(ctx) {
         if (!items.length) return '';
         return `<details class="b-group" open><summary><span class="b-gname">${d}</span><span class="muted">${items.length} tasks</span></summary>
           <div class="b-tplist">${items.map((t) => `<button type="button" class="b-tprow" data-tpedit="${t.id}"${admin ? '' : ' disabled'}>
-            <span class="b-tpmain"><b>${esc(t.name)}</b><small class="muted">${[t.area, stepsOf(t).length ? `${stepsOf(t).length} steps` : '', t.who ? `Usually ${t.who}` : '', t.includes || ''].filter(Boolean).map(esc).join(' · ')}</small></span>
+            <span class="b-tpmain"><b>${esc(t.name)}</b><small class="muted">${[t.repeat === 'monthly' ? `Monthly · first ${t.day || 'week'}` : '', t.area, stepsOf(t).length ? `${stepsOf(t).length} steps` : '', t.who ? `Usually ${t.who}` : '', t.includes || ''].filter(Boolean).map(esc).join(' · ')}</small></span>
             ${admin ? '<span class="b-tpedit">Edit</span>' : ''}</button>`).join('')}</div></details>`;
       }).join('')}`;
     const reload = () => renderChecklist('template');
@@ -671,16 +671,19 @@ export function boardPages(ctx) {
     return new Promise((resolve) => {
       let day = t?.day || new Date().toLocaleDateString('en-US', { weekday: 'long' });
       let area = t?.area || 'Building';
+      let repeat = t?.repeat || 'weekly';
       const sel = new Set(String(t?.who || '').split(',').map((x) => x.trim()).filter(Boolean));
       const names = [...new Set([...ckCrew, ...sel])];
       const back = document.createElement('div');
       back.className = 'modal-back';
       back.innerHTML = `<form class="modal sheet b-ckform" role="dialog" aria-modal="true" aria-labelledby="tp-title">
         <h3 id="tp-title">${editing ? 'Edit repeating task' : 'New repeating task'}</h3>
-        <p class="muted">This task is added to the list every week.</p>
+        <p class="muted" data-tphelp></p>
         <label><span>Task</span><input name="name" required autocomplete="off" value="${esc(t?.name || '')}" placeholder="e.g. Wipe lobby glass doors" class="modal-input"></label>
         <div class="wk-sect">Which day</div>
         <div class="wk-chips">${DAYS.map((d) => `<button type="button" class="chip-btn" data-tpday="${d}">${d === 'Detail Work' ? 'Any day (detail work)' : d.slice(0, 3)}</button>`).join('')}</div>
+        <div class="wk-sect">How often</div>
+        <div class="wk-chips"><button type="button" class="chip-btn" data-tprep="weekly">Every week</button><button type="button" class="chip-btn" data-tprep="monthly" data-tprepm>Once a month</button></div>
         <div class="wk-sect">Area</div>
         <div class="wk-chips">${AREAS.map((a) => `<button type="button" class="chip-btn" data-tparea="${a}">${a}</button>`).join('')}</div>
         <div class="wk-sect">Who usually does it <span class="muted pm-opt">(optional; fills in each week)</span></div>
@@ -695,10 +698,17 @@ export function boardPages(ctx) {
       const draw = () => {
         form.querySelectorAll('[data-tpday]').forEach((b) => b.classList.toggle('on', b.dataset.tpday === (day || 'Detail Work')));
         form.querySelectorAll('[data-tparea]').forEach((b) => b.classList.toggle('on', b.dataset.tparea === area));
+        form.querySelectorAll('[data-tprep]').forEach((b) => b.classList.toggle('on', b.dataset.tprep === repeat));
+        const dname = day && day !== 'Detail Work' ? day : null;
+        form.querySelector('[data-tprepm]').textContent = dname ? `Once a month (first ${dname})` : 'Once a month (first week)';
+        form.querySelector('[data-tphelp]').textContent = repeat === 'monthly'
+          ? `This task is added to the list once a month, in the week of the first ${dname || 'week'} of the month.`
+          : 'This task is added to the list every week.';
         form.querySelectorAll('[data-tppp]').forEach((b) => b.classList.toggle('on', sel.has(b.dataset.tppp)));
       };
       form.querySelectorAll('[data-tpday]').forEach((b) => b.addEventListener('click', () => { day = b.dataset.tpday; draw(); }));
       form.querySelectorAll('[data-tparea]').forEach((b) => b.addEventListener('click', () => { area = b.dataset.tparea; draw(); }));
+      form.querySelectorAll('[data-tprep]').forEach((b) => b.addEventListener('click', () => { repeat = b.dataset.tprep; draw(); }));
       form.querySelectorAll('[data-tppp]').forEach((b) => b.addEventListener('click', () => { const n = b.dataset.tppp; if (sel.has(n)) sel.delete(n); else sel.add(n); draw(); }));
       const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
       const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(false); } };
@@ -716,15 +726,27 @@ export function boardPages(ctx) {
         if (!name) return form.querySelector('[name=name]').focus();
         const list = String(f.get('steps') || '').split('\n').map((x) => x.trim()).filter(Boolean);
         const fields = { name, day: day === 'Detail Work' ? null : day, area, includes: String(f.get('includes') || '').trim() || null, who: sel.size ? [...sel].join(', ') : null };
+        // Monthly: does it belong on this week's list? (the week of the first <day> of the month)
+        const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const inThisWeek = () => {
+          if (repeat !== 'monthly' || !week) return true;
+          const [y, m, d0] = String(week).split('-').map(Number);
+          const i = DOW.indexOf(fields.day);
+          return new Date(y, m - 1, d0 + (i < 0 ? 6 : i)).getDate() <= 7;
+        };
         try {
           // The template row and its steps.
           let id = t?.id;
-          if (editing) await q(sb.from('checklist_tasks').update(fields).eq('id', id).select('id'));
-          else [{ id }] = await q(sb.from('checklist_tasks').insert({ ...fields, week_of: null, sort: Math.max(0, ...tasks.map((x) => x.sort || 0)) + 1 }).select('id'));
+          if (editing) await q(sb.from('checklist_tasks').update({ ...fields, repeat }).eq('id', id).select('id'));
+          else [{ id }] = await q(sb.from('checklist_tasks').insert({ ...fields, repeat, week_of: null, sort: Math.max(0, ...tasks.map((x) => x.sort || 0)) + 1 }).select('id'));
           if (editing) await q(sb.from('checklist_subtasks').delete().eq('task_id', id).select('id'));
           if (list.length) await q(sb.from('checklist_subtasks').insert(list.map((n, i) => ({ task_id: id, name: n, sort: i }))).select('id'));
           // This week's copy: same fields; keep steps already checked off.
-          if (f.get('thisweek') && week) {
+          if (f.get('thisweek') && week && !inThisWeek()) {
+            // Monthly and not this week: take this week's copy off unless it's been started.
+            const [copy] = editing ? await q(sb.from('checklist_tasks').select('*').eq('template_id', id).eq('week_of', week)) : [];
+            if (copy && copy.status === 'Not started') await q(sb.from('checklist_tasks').delete().eq('id', copy.id).select('id'));
+          } else if (f.get('thisweek') && week) {
             const [copy] = editing ? await q(sb.from('checklist_tasks').select('*').eq('template_id', id).eq('week_of', week)) : [];
             if (copy) {
               await q(sb.from('checklist_tasks').update({ ...fields, who: fields.who || copy.who }).eq('id', copy.id).select('id'));
