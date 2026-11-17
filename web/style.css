@@ -1419,8 +1419,12 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .ps-stock a { font-size: 13px; white-space: nowrap; }
 .ps-edit { padding: 6px 12px; font-size: 13px; }
 .ps-form { width: min(480px, calc(100vw - 24px)); }
-.ps-form label { display: block; margin-top: 10px; }
-.ps-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ps-form label { display: flex; flex-direction: column; align-items: stretch; gap: 5px; margin-top: 12px; font-size: 14px; font-weight: 600; min-width: 0; }
+.ps-form input, .ps-form select, .ps-form textarea { width: 100%; box-sizing: border-box; margin: 0; font-weight: 400; }
+.ps-form textarea { resize: vertical; min-height: 64px; }
+.ps-two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.ps-two label { margin-top: 12px; }
+@media (max-width: 420px) { .ps-two { grid-template-columns: 1fr; gap: 0; } }
 @media (max-width: 640px) {
   .ps-row { grid-template-columns: 1fr auto; }
   .ps-paint { grid-column: 1; }
