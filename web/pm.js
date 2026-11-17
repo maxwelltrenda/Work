@@ -186,6 +186,34 @@ export function schedulePages(ctx) {
     return out;
   }
 
+  // The month at a glance: which week of the month each task lands in.
+  function rhythm(tasks) {
+    const active = tasks.filter((t) => t.active && !t.parent_id);
+    const QM = (sm) => [0, 3, 6, 9].map((k) => MON[((sm - 1 + k) % 12)]).join(' · ');
+    const months = (t) => (t.frequency === 'monthly' ? 'every month' : t.frequency === 'quarterly' ? QM(t.start_month || 1) : t.frequency === 'yearly' ? MON[(t.start_month || 1) - 1] + ' only' : '');
+    const boxes = [[], [], [], []];
+    const anyTime = [];
+    active.filter((t) => ['monthly', 'quarterly', 'yearly'].includes(t.frequency)).forEach((t) => {
+      const sd = t.start_day || 1;
+      const n = t.due_days || null;
+      if (!n || n >= 28) { anyTime.push(t); return; }
+      const wk = new Set();
+      for (let d = sd; d < sd + n && d <= 31; d += 1) wk.add(Math.min(3, Math.floor((d - 1) / 7)));
+      wk.forEach((i) => boxes[i].push(t));
+    });
+    const LBL = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+    const DAYS = ['1st – 7th', '8th – 14th', '15th – 21st', '22nd – end'];
+    const item = (t) => `<button type="button" class="rh-item" data-pm-edit="${t.id}"><b>${esc(t.name)}</b><span>${esc(months(t))}</span></button>`;
+    const weekly = active.filter((t) => t.frequency === 'weekly');
+    const biweekly = active.filter((t) => t.frequency === 'biweekly');
+    const line = (label, list) => (list.length ? `<div class="rh-line"><span>${label}</span>${list.map((t) => `<button type="button" class="rh-pill" data-pm-edit="${t.id}">${esc(t.name)}</button>`).join('')}</div>` : '');
+    return `<h2 class="pm-sect">Each month <span class="muted">where monthly, quarterly and yearly tasks fall</span></h2>
+      <div class="rh">${boxes.map((list, i) => `<div class="rh-box${list.length ? '' : ' free'}">
+          <div class="rh-head"><b>${LBL[i]}</b><span>${DAYS[i]}</span></div>
+          ${list.length ? list.map(item).join('') : '<div class="rh-free">Free</div>'}</div>`).join('')}</div>
+      <div class="rh-lines">${line('Any time in the month', anyTime)}${line('Every week', weekly)}${line('Every 2 weeks', biweekly)}</div>`;
+  }
+
   function calendarView(tasks, runs, today) {
     const WEEKS = 17;
     const start = addD(today, -new Date(`${today}T12:00:00`).getDay());
@@ -232,9 +260,11 @@ export function schedulePages(ctx) {
           <span class="cal-load ${fixed.length ? (fixed.length >= 3 ? 'busy' : '') : 'free'}">${fixed.length ? `${fixed.length} due` : 'Open'}</span></div>
         <div class="cal-items">${fixed.map(chip).join('')}${flex.length ? `<div class="cal-flex">${flex.map(chip).join('')}</div>` : ''}${!here.length ? '<span class="muted cal-none">Nothing scheduled</span>' : ''}</div></div>`);
     }
-    return `<div class="cal-help card"><b>How to read this</b><span>Each row is a week, with the tasks due in it. <b class="cal-load free">Open</b> weeks have nothing due, so they're a good spot for a new task. Tasks that can be done any time in a month or longer are listed once under the month. Tap a task to change it.</span>
+    return `${rhythm(tasks)}
+      <details class="cal-more"><summary>See the next 4 months week by week</summary>
+      <div class="cal-help card"><b>How to read this</b><span>Each row is a week, with the tasks due in it. <b class="cal-load free">Open</b> weeks have nothing due, so they're a good spot for a new task. Tasks that can be done any time in a month or longer are listed once under the month. Tap a task to change it.</span>
         <div class="cal-legend">${[['f-week', 'Weekly'], ['f-2wk', 'Every 2 weeks'], ['f-month', 'Monthly'], ['f-quarter', 'Quarterly'], ['f-year', 'Yearly'], ['f-once', 'One time']].map(([c, l]) => `<span class="cal-chip fixed ${c}">${l}</span>`).join('')}</div></div>
-      <div class="cal">${rows.join('')}</div>`;
+      <div class="cal">${rows.join('')}</div></details>`;
   }
 
   // ---- This period -------------------------------------------------------

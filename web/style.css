@@ -1496,3 +1496,20 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .cal-none { font-size: 13px; }
 @media (max-width: 640px) { .cal-week { grid-template-columns: 1fr; gap: 6px; } .cal-when { flex-direction: row; align-items: center; gap: 8px; flex-wrap: wrap; } .cal-load { margin-top: 0; } }
 .cal-anytime { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); margin: -2px 0 4px; }
+
+/* Maintenance › Calendar › Each month */
+.rh { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.rh-box { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+.rh-box.free { background: #f3faf5; border-color: #cfe7d7; }
+.rh-head { display: flex; flex-direction: column; margin-bottom: 4px; }
+.rh-head b { font: 800 17px/1.1 var(--serif); text-transform: uppercase; letter-spacing: .03em; color: var(--ink); }
+.rh-head span { font-size: 13px; color: var(--muted); }
+.rh-free { margin: auto 0; font-size: 20px; font-weight: 700; color: var(--in); text-align: center; }
+.rh-item { display: flex; flex-direction: column; align-items: flex-start; text-align: left; background: var(--paper-2); border: 0; border-radius: 8px; padding: 7px 9px; cursor: pointer; font: 14px/1.3 var(--sans); color: var(--ink); }
+.rh-item span { font-size: 12px; color: var(--muted); }
+.rh-lines { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 18px; }
+.rh-line { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 14px; }
+.rh-line > span { color: var(--muted); min-width: 160px; }
+.rh-pill { border: 1px solid var(--line-strong); background: var(--card); border-radius: 999px; padding: 4px 11px; font: 13px var(--sans); cursor: pointer; color: var(--ink); }
+.cal-more > summary { cursor: pointer; font-weight: 600; color: var(--accent); margin: 8px 0 12px; }
+@media (max-width: 760px) { .rh { grid-template-columns: repeat(2, minmax(0, 1fr)); } .rh-line > span { min-width: 0; width: 100%; } }
