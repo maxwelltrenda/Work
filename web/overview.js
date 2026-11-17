@@ -11,7 +11,7 @@ const dshort = (iso) => { const [, m, d] = String(iso).slice(0, 10).split('-').m
 const hm = (t) => { const [h, m] = String(t).split(':').map(Number); return `${h % 12 || 12}${m ? `:${pad(m)}` : ''} ${h < 12 ? 'AM' : 'PM'}`; };
 
 export function overviewPages(ctx) {
-  const { sb, q, rpc, esc, me } = ctx;
+  const { sb, q, rpc, esc, me, pulled: pulledKit, canPull, pullDept } = ctx;
   const app = document.getElementById('app');
   const safe = (p, fallback) => p.catch(() => fallback);
 
@@ -106,9 +106,11 @@ export function overviewPages(ctx) {
     const lines = (arr, empty) => (arr.length ? `<ul class="ov-list">${arr.map((x) => `<li>${x}</li>`).join('')}</ul>` : `<p class="ov-empty">${empty}</p>`);
     const greet = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
 
+    const pw = pulledKit && canPull?.() ? await pulledKit.load(pullDept()).catch(() => null) : null;
     app.innerHTML = `
       <header class="page-head"><div class="eyebrow">Facilities</div><h1>${greet}, <span class="accent">${esc(first(me()?.name))}</span>.</h1>
         <p class="lede">All your departments today: ${esc(new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' }))}.</p></header>
+      ${pw ? pulledKit.block(pullDept(), pw) : ''}
       <section class="ov-where"><div class="ov-where-head"><h2>Where people are</h2><a href="#/team">Team schedule ›</a></div>
         <div class="ov-people">${where.map(({ m, tag, text, hours }) => `<div class="ov-person${tag[0] === 'Out' || tag[0] === 'Off' ? ' away' : ''}">
           <span class="ov-av" style="background:${hue(m.name)}">${esc(m.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase())}</span>
@@ -131,6 +133,7 @@ export function overviewPages(ctx) {
             ...low.slice(0, 3).map((i) => `<span class="ov-pill late">Low</span> ${esc(i.name)} <span class="muted">· ${i.quantity} left</span>`)], 'All tools in, nothing low.'))}
         ${card('#/gameplan', 'This weekend', 'ov-wx', wx ? wxCard(wx, plan) : `<p class="ov-empty">${plan ? 'Plan posted.' : 'No plan yet.'}</p>`)}
       </div>`;
+    if (pw) pulledKit.bind(app, renderOverview);
   }
 
   return { renderOverview };

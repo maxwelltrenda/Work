@@ -908,9 +908,12 @@ const PAINTSPOTS = paintSpotPages({
   },
 });
 // My day (myday.js): each person's home: clocked in now, ready to do, up for grabs.
-const MYDAY = myDayPages({ sb, q, rpc, esc, toast, errMsg, askConfirm, isAdmin, me: () => state.me });
+// "I got pulled to something" on everyone's home page too (who can log it: the Facilities team).
+const canPull = () => ['admin', 'fac_admin', 'member', 'maintenance', 'custodian'].includes(state.me?.role);
+const pullDept = () => (state.me?.role === 'custodian' ? 'custodial' : 'maintenance');
+const MYDAY = myDayPages({ sb, q, rpc, esc, toast, errMsg, askConfirm, isAdmin, me: () => state.me, pulled: PULLED, canPull, pullDept });
 const MYTASKS = myTaskPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, me: () => state.me, isAdmin });
-const OVERVIEW = overviewPages({ sb, q, rpc, esc, me: () => state.me });
+const OVERVIEW = overviewPages({ sb, q, rpc, esc, me: () => state.me, pulled: PULLED, canPull, pullDept });
 const GAMEPLAN = gameplanPages({ rpc, esc, toast, errMsg, pageHead });
 const CONTRACTORS = contractorPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, canEdit: () => isAdmin() });
 // Facilities & Maintenance members see the schedule and check things off; admins and the Maintenance manager also add and change tasks.

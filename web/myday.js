@@ -23,7 +23,7 @@ const slot = (t) => `${h12(t.once_from)}${t.once_to ? `–${h12(t.once_to)}` : '
 const names = (who) => String(who || '').split(',').map((x) => x.trim()).filter(Boolean);
 
 export function myDayPages(ctx) {
-  const { sb, q, rpc, esc, toast, errMsg, me, askConfirm, isAdmin } = ctx;
+  const { sb, q, rpc, esc, toast, errMsg, me, askConfirm, isAdmin, pulled: pulledKit, canPull, pullDept } = ctx;
   const app = document.getElementById('app');
   let tick = null;
   const safe = (p, fb) => Promise.resolve(p).catch(() => fb);
@@ -94,7 +94,8 @@ export function myDayPages(ctx) {
       meta: [p.location ? esc(p.location) : '', p.paused_at ? `paused since ${clock(p.paused_at)}` : `since ${clock(p.started_at)}`].filter(Boolean).join(' · '),
       actions: `<button class="btn small" data-md-pause="${p.id}" data-on="${p.paused_at ? 0 : 1}">${p.paused_at ? '▶ Resume' : '⏸ Pause'}</button><button class="btn small primary" data-md-back="${p.id}">I'm back</button>` });
 
-    const nowRows = [...pulled.map(pulledRow), ...nowCk.map((t) => ckRow(t, true)), ...nowPm.map((r) => pmRow(r, true)), ...nowReq.map((r) => reqRow(r, true))];
+    const pw = pulledKit && canPull?.() ? await pulledKit.load(pullDept()).catch(() => null) : null;
+    const nowRows = [...(pw ? [] : pulled.map(pulledRow)), ...nowCk.map((t) => ckRow(t, true)), ...nowPm.map((r) => pmRow(r, true)), ...nowReq.map((r) => reqRow(r, true))];
     const readyRows = [...ckToday.map((t) => ckRow(t, false)), ...pmReady.map((r) => pmRow(r, false)), ...reqMine.map((r) => reqRow(r, false)), ...todoNow.map(todoRow)];
     const laterRows = [...ckLater.map((t) => ckRow(t, false)), ...todoLater.map(todoRow)];
     const grabRows = [...grabCk.map((t) => ckRow(t, false)), ...grabPm.map((r) => pmRow(r, false))];
@@ -106,6 +107,7 @@ export function myDayPages(ctx) {
       <header class="page-head"><div class="eyebrow">My day</div>
         <h1>${hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'}, <span class="accent">${esc(myName.split(' ')[0])}</span>.</h1>
         <p class="lede">${todayName}, ${dshort(today)}. Your work, ready to go.</p></header>
+      ${pw ? pulledKit.block(pullDept(), pw) : ''}
       ${sect('Clocked in now', '', nowRows, "You're not clocked in on anything. Tap ▶ Start on a task below.", nowRows.length ? 'md-now' : '')}
       ${sect('Ready to do', 'yours for today', readyRows, 'Nothing assigned to you for today.')}
       ${laterRows.length ? sect('Later this week', '', laterRows, '') : ''}
@@ -127,6 +129,7 @@ export function myDayPages(ctx) {
     app.querySelectorAll('[data-md-pm]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pm_timer', { p_run: Number(b.dataset.mdPm), p_run_on: b.dataset.run === '1' }))));
     app.querySelectorAll('[data-md-pmdone]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pm_mark', { p_run: Number(b.dataset.mdPmdone), p_status: 'done', p_note: null }), 'Done ✓')));
     app.querySelectorAll('[data-md-todo]').forEach((b) => b.addEventListener('click', () => act(() => q(sb.from('personal_tasks').update({ done_at: new Date().toISOString() }).eq('id', b.dataset.mdTodo).select('id')), 'Done ✓')));
+    if (pw) pulledKit.bind(app, renderMyDay);
     app.querySelectorAll('[data-md-back]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pulled_end', { p_id: Number(b.dataset.mdBack), p_note: null }), 'Welcome back')));
     app.querySelectorAll('[data-md-pause]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pulled_pause', { p_id: Number(b.dataset.mdPause), p_pause: b.dataset.on === '1' }))));
 
