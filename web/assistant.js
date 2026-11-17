@@ -10,7 +10,7 @@ const KEY = 'mc-ask-chat';
 const load = () => { try { return JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch { return []; } };
 const save = (msgs) => { try { sessionStorage.setItem(KEY, JSON.stringify(msgs.slice(-30))); } catch { /* private mode */ } };
 
-const CAN_PM = ['admin', 'fac_admin', 'maintenance'];
+const CAN_PM = ['admin', 'fac_admin', 'maintenance', 'member'];
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const OUTSIDE = /outside|trash|lawn|parking|exterior|sidewalk|grounds|dumpster|landscap/i;
 const STOP = new Set(['the', 'a', 'an', 'my', 'to', 'of', 'and', 'in', 'at', 'on', 'with', 'for', 'is', 'are', 'all', 'room', 'check', 'task', 'please']);
@@ -289,13 +289,20 @@ export function mountAssistant({ sb, esc, me, onChange }) {
     }
 
     // start / pause / skip / done: custodial tasks, or maintenance for done/skip.
-    const pool = ['done', 'skip'].includes(cmd.kind) ? [...work.tasks, ...work.runs] : work.tasks;
+    const pool = [...work.tasks, ...work.runs];
     for (const part of pieces(cmd.target, pool)) {
       const hit = best(part, pool, openFirst);
       if (hit.choices) { out.lines.push(`Which "${part}"?`); out.choices.push(...hit.choices.map((t) => ({ label: t.name, say: `${verb[cmd.kind]} ${t.name}` }))); continue; }
       if (!hit.item) { out.lines.push(`I couldn't find "${part}" on this week's list.`); continue; }
       const t = hit.item;
       if (t.pm) {
+        // Maintenance: start / pause its timer, or check it off.
+        if (cmd.kind === 'start' || cmd.kind === 'pause') {
+          if (cmd.kind === 'pause' && !t.timer_started_at) { out.lines.push(`${t.name} isn't running.`); continue; }
+          await must(sb.rpc('pm_timer', { p_run: t.id, p_run_on: cmd.kind === 'start' }));
+          out.actions.push(`${cmd.kind === 'start' ? 'Started' : 'Paused'}: ${t.name}`);
+          continue;
+        }
         await must(sb.rpc('pm_mark', { p_run: t.id, p_status: cmd.kind === 'done' ? 'done' : 'skipped', p_note: null }));
         out.actions.push(`${cmd.kind === 'done' ? 'Done' : 'Skipped'}: ${t.name}`);
         continue;

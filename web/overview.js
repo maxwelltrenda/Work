@@ -71,6 +71,8 @@ export function overviewPages(ctx) {
       // On a request right now = its timer is running and they're on it.
       const r = working.find((x) => x.timer_started_at && (x.experts || []).some((e) => has(e, m.name)));
       const c = ckNow.find((x) => has(x.who, m.name));
+      // A maintenance round with its timer running that they're on.
+      const pmRun = runs.find((x) => x.timer_started_at && (taskBy[x.task_id]?.assignees || []).includes(m.id));
       const tl = outs.find((x) => x.borrower_id === m.id);
       // Not on anything yet: what's next for them today.
       const ckNext = ckToday.filter((x) => !['Done', 'Skipped', 'Missed'].includes(x.status) && !ckNow.includes(x) && has(x.who, m.name));
@@ -80,6 +82,7 @@ export function overviewPages(ctx) {
       else if (p && p.paused_at) { tag = ['On break', 'off']; text = `Paused <b>${esc(p.what)}</b> · since ${esc(new Date(p.paused_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}`; rank = 1; }
       else if (p) { tag = ['Pulled', 'work']; text = `<b>${esc(p.what)}</b>${p.location ? ` · ${esc(p.location)}` : ''} · ${since(p.started_at)}`; rank = 0; }
       else if (r) { tag = ['Request', 'new']; text = `<b>${esc(r.subject)}</b>${r.location ? ` · ${esc(r.location)}` : ''}`; rank = 0; }
+      else if (pmRun) { tag = ['Maintenance', 'work']; text = `<b>${esc(taskBy[pmRun.task_id].name)}</b>${taskBy[pmRun.task_id].location ? ` · ${esc(taskBy[pmRun.task_id].location)}` : ''}`; rank = 0; }
       else if (c) { tag = ['Custodial', 'work']; text = `<b>${esc(c.name)}</b>`; rank = 0; }
       else if (tl) { tag = ['Tool', 'out']; text = `Has the <b>${esc(toolName[tl.tool_id] || 'a tool')}</b> since ${esc(new Date(tl.checked_out_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}`; rank = 0; }
       // Not working on anything: say so, then what's next for them.

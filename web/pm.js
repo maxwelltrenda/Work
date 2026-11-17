@@ -104,8 +104,22 @@ const notesBlock = (notes, esc) => {
   return `<details class="pm-notesbox"><summary>Notes</summary><div class="notes-fmt">${formatNotes(t, esc)}</div></details>`;
 };
 
+// People and timing, drawn the same way as on the Custodial list.
+const PALETTE = ['#11404b', '#2d6a62', '#6a4cf0', '#a8752a', '#b04437', '#2f5d8a', '#3f7a5a', '#8a6630', '#5a5fa8', '#6b6b6b'];
+const hue = (s) => PALETTE[[...String(s)].reduce((a, c) => a + c.charCodeAt(0), 0) % PALETTE.length];
+const initials = (n) => String(n).split(/[\s.]+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+function tdur(sec) {
+  sec = Math.max(0, Math.round(sec || 0));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+  if (h) return `${h}h ${String(m).padStart(2, '0')}m`;
+  if (m) return `${m}m`;
+  return sec ? `${sec}s` : '0m';
+}
+const liveSecs = (r) => (r.worked_seconds || 0) + (r.timer_started_at ? (Date.now() - new Date(r.timer_started_at)) / 1000 : 0);
+
 export function schedulePages(ctx) {
   const manage = () => (ctx.canManage ? ctx.canManage() : true);
+  let pmTick = null;
   const { sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled } = ctx;
   let contractors = [];   // the Contractors list, loaded with the page
   let crew = [];          // Facilities people who can be put on a task
@@ -352,7 +366,17 @@ export function schedulePages(ctx) {
   function runCard(r, t, who, today, parent = null) {
     const isDone = r.status === 'done';
     const steps = t.steps || [];
-    return `<div class="pm-card ${r.status}${r.status === 'open' && r.due_on < today ? ' late' : ''}">
+    const live = r.status === 'open' || r.status === 'missed';
+    const names = onIt(t);
+    const avs = names.length ? `<span class="b-avs">${names.slice(0, 3).map((n) => `<span class="b-av" style="background:${hue(n)}" title="${esc(n)}">${esc(initials(n))}</span>`).join('')}${names.length > 3 ? `<span class="b-av more">+${names.length - 3}</span>` : ''}</span>` : '';
+    const whoBtn = manage() && live
+      ? `<button class="b-who${names.length ? '' : ' empty'}" data-pm-people="${t.id}" title="${names.length ? esc(names.join(', ')) : 'Add people'}">${avs || '<span class="b-whoadd">+ Person</span>'}</button>`
+      : avs ? `<span class="b-who" title="${esc(names.join(', '))}">${avs}</span>` : '';
+    const time = r.timer_started_at
+      ? `<span class="b-time num"><span class="b-live" data-pm-live data-base="${r.worked_seconds || 0}" data-since="${new Date(r.timer_started_at).getTime()}">${tdur(liveSecs(r))}</span></span>`
+      : r.worked_seconds ? `<span class="b-time num"><span>${tdur(r.worked_seconds)}</span></span>` : '';
+    const timerBtn = live ? `<button class="btn small${r.timer_started_at ? ' b-running' : ''}" data-pm-timer="${r.id}" data-run="${r.timer_started_at ? 0 : 1}">${r.timer_started_at ? '■ Stop' : '▶ Start'}</button>` : '';
+    return `<div class="pm-card ${r.status}${r.timer_started_at ? ' running' : ''}${r.status === 'open' && r.due_on < today ? ' late' : ''}">
       <button class="pm-check" data-mark="${r.id}" data-to="${isDone ? 'open' : 'done'}" aria-label="${isDone ? 'Mark not done' : 'Mark done'}">${isDone ? '✓' : ''}</button>
       <div class="pm-body">
         <b class="pm-name">${esc(t.name)}</b>
@@ -360,10 +384,9 @@ export function schedulePages(ctx) {
         ${isDone ? `<span class="pm-meta pm-donewho">Done by ${esc(who[r.done_by] || 'someone')} · ${new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}${r.note ? ` · ${esc(r.note)}` : ''}</span>` : ''}
         ${notesBlock(t.notes, esc)}
         ${ctLine(t)}
-        ${onIt(t).length ? `<span class="pm-onit"><span class="pm-onit-tag">On it</span> ${onIt(t).map(esc).join(', ')}</span>` : ''}
         ${steps.length ? `<div class="pm-steps">${steps.map((s, i) => `<label><input type="checkbox" data-step="${r.id}" data-i="${i}" ${(r.steps_done || []).includes(i) ? 'checked' : ''}> ${esc(s)}</label>`).join('')}</div>` : ''}
       </div>
-      <div class="pm-actions">${r.status === 'open' && manage() ? `<button class="btn small pm-ppl" data-pm-people="${t.id}" title="Who's on it">${onIt(t).length ? 'People' : '+ Person'}</button>` : ''}${r.status === 'open' ? `<button class="btn small" data-mark="${r.id}" data-to="skipped" title="Not needed this time">Skip</button>` : r.status === 'skipped' ? `<button class="btn small" data-mark="${r.id}" data-to="open">Undo skip</button>` : ''}</div>
+      <div class="pm-actions">${whoBtn}${time}${timerBtn}${r.status === 'open' ? `<button class="btn small" data-mark="${r.id}" data-to="skipped" title="Not needed this time">Skip</button>` : r.status === 'skipped' ? `<button class="btn small" data-mark="${r.id}" data-to="open">Undo skip</button>` : ''}</div>
     </div>`;
   }
 
@@ -661,6 +684,15 @@ export function schedulePages(ctx) {
       if (t && (await taskModal(await loadPlaces(sb), { ...t, preps: tasks.filter((c) => c.parent_id === t.id && c.active) }))) reload();
     }));
     pulled.bind(app, reload);
+    app.querySelectorAll('[data-pm-timer]').forEach((b) => b.addEventListener('click', async () => {
+      try { await rpc('pm_timer', { p_run: Number(b.dataset.pmTimer), p_run_on: b.dataset.run === '1' }); reload(); } catch (err) { toast(errMsg(err), true); }
+    }));
+    clearInterval(pmTick);
+    if (app.querySelector('[data-pm-live]')) pmTick = setInterval(() => {
+      const els = app.querySelectorAll('[data-pm-live]');
+      if (!els.length) { clearInterval(pmTick); return; }
+      els.forEach((el) => { el.textContent = tdur(Number(el.dataset.base) + (Date.now() - Number(el.dataset.since)) / 1000); });
+    }, 1000);
     // Who's on it, right from the card (get-ready steps too).
     app.querySelectorAll('[data-pm-people]').forEach((b) => b.addEventListener('click', async () => {
       const t = tasks.find((x) => x.id === Number(b.dataset.pmPeople));
