@@ -42,7 +42,8 @@ export function myDayPages(ctx) {
       week ? safe(q(sb.from('checklist_tasks').select('*').eq('week_of', week).eq('archived', false).order('sort')), []) : [],
       safe(q(sb.from('pm_runs').select('*').in('status', ['open', 'missed'])), []),
       safe(q(sb.from('pm_tasks').select('*')), []),
-      [],
+      // "When you're free": optional things with no date (personal_tasks without a due date).
+      safe(q(sb.from('personal_tasks').select('*').eq('member_id', person.id).is('done_at', null).is('due_on', null).order('created_at')), []),
       safe(q(sb.from('pulled_work').select('*').eq('member_id', person.id).is('ended_at', null)), []),
       safe(q(sb.from('maint_requests').select('*').neq('board_group', 'solved')), []),
     ]);
@@ -111,7 +112,9 @@ export function myDayPages(ctx) {
       ${sect('Clocked in now', '', nowRows, "You're not clocked in on anything. Tap ▶ Start on a task below.", nowRows.length ? 'md-now' : '')}
       ${sect('Ready to do', 'yours for today', readyRows, 'Nothing assigned to you for today.')}
       ${laterRows.length ? sect('Later this week', '', laterRows, '') : ''}
-      ${grabRows.length ? sect('Up for grabs', 'nobody on these yet · starting one puts you on it', grabRows, '') : ''}`;
+      ${grabRows.length ? sect('Up for grabs', 'nobody on these yet · starting one puts you on it', grabRows, '') : ''}
+      ${todos.length ? sect("When you're free", 'optional · no due date', todos.map((t) => row({ tag: 'Optional', cls: 'todo', title: esc(t.title), meta: t.notes ? esc(t.notes) : '',
+        actions: `<button class="btn small" data-md-todo="${t.id}">✓ Done</button>` })), '') : ''}`;
 
     bindNotes(app, { sb, toast, errMsg, esc, meId: person.id, canDeleteAll: isAdmin?.(), names: { ...Object.fromEntries(ck.map((t) => [`custodial:${t.id}`, t.name])), ...Object.fromEntries(pmCurrent.map((r) => [`maintenance:${r.id}`, taskBy[r.task_id]?.name || ''])) } }, renderMyDay);
     const act = async (fn, msg) => { try { await fn(); if (msg) toast(msg); renderMyDay(); } catch (err) { toast(errMsg(err), true); } };

@@ -101,6 +101,7 @@ const tool = (code) => db.tools.find((t) => t.code === code);
 tool('TL-0012').repair_qty = 1; tool('TL-0012').status = 'repair';
 // Personal alerts and My tasks for Skyler: work someone else gave them.
 db.personal_tasks = [
+  { id: nextId(), member_id: ME, title: 'Build stock carts', notes: null, due_on: null, done_at: null, created_by: 'Skyler', created_at: ago(60 * 3) },
   { id: nextId(), member_id: ME, title: 'Walk the gym with the event team', notes: 'Look at chairs and the stage for Sunday', due_on: addDays(TODAY, 1), done_at: null, created_by: 'Max', created_at: ago(60 * 5) },
   { id: nextId(), member_id: ME, title: 'Approve the AC filter order', notes: null, due_on: addDays(TODAY, 3), done_at: null, created_by: 'Skyler', created_at: ago(60 * 26) },
   { id: nextId(), member_id: ME, title: 'Send contractor list to finance', notes: null, due_on: null, done_at: ago(60 * 30), created_by: 'Skyler', created_at: ago(60 * 50) },
