@@ -47,6 +47,12 @@ const initials = (n) => String(n).replace(/@.*/, '').split(/[\s.]+/).filter(Bool
 const shortName = (n) => String(n || '').replace(/@.*/, '').replace(/\./g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 // Monthly Custodial tasks: which week of the month (the 1st..4th <day>, or the last one). Mirrors checklist_month_week (0064).
+const hm12 = (v) => { if (!v) return ''; const [h, m] = String(v).split(':').map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`; };
+const slotOf = (t) => (t && t.once_from ? `${hm12(t.once_from)}${t.once_to ? `–${hm12(t.once_to)}` : ''}` : '');
+const TIMES = Array.from({ length: 33 }, (_, i) => { const mins = 6 * 60 + i * 30; return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`; });
+const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const dayNameOf = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { weekday: 'long' }); };
+const addIso = (iso, n) => { const [y, m, d] = iso.split('-').map(Number); return isoDay(new Date(y, m - 1, d + n)); };
 const MONTH_WEEKS = [[1, '1st'], [2, '2nd'], [3, '3rd'], [4, '4th'], [5, 'Last']];
 const ordOf = (n) => (MONTH_WEEKS.find(([k]) => k === (n || 1)) || MONTH_WEEKS[0])[1];
 function monthHit(week, day, n) {
@@ -461,7 +467,10 @@ export function boardPages(ctx) {
       view === 'week' ? pulled.load('custodial').catch(() => null) : null,
       q(sb.from('team_members').select('name, role, active')).catch(() => []),
     ]).then((r) => { ckCrew = (r[3] || []).filter((m) => m.active && !['kiosk', 'none'].includes(m.role)).map((m) => m.name).sort(); return r; });
-    const nRepeat = await q(sb.from('checklist_tasks').select('id').is('week_of', null)).then((x) => x.length, () => 0);
+    const tpl = await q(sb.from('checklist_tasks').select('id, name, repeat, once_on, once_from, once_to, who').is('week_of', null)).catch(() => []);
+    const nRepeat = tpl.filter((t) => t.repeat !== 'once').length;
+    // One-time tasks waiting for a later week.
+    const comingUp = tpl.filter((t) => t.repeat === 'once' && t.once_on && t.once_on > addIso(week, 6)).sort((a, b) => a.once_on.localeCompare(b.once_on));
     const byTask = {};
     subs.forEach((s) => { (byTask[s.task_id] = byTask[s.task_id] || []).push(s); });
     ckNotes = view === 'week' ? await loadNotes(sb, 'custodial', tasks.map((t) => t.id)) : {};
@@ -493,7 +502,9 @@ export function boardPages(ctx) {
         const isToday = d === todayName;
         return `<details class="b-group b-day${isToday ? ' today' : ''}"${isToday ? ' open' : ''}><summary><span class="b-gname">${isToday ? `Today · ${d}` : d}</span><span class="muted">${left ? `${left} to do` : 'all done ✓'}</span></summary>
           <div class="b-tasks">${items.map((t) => checkTask(t, byTask[t.id] || [])).join('')}</div></details>`;
-      }).join('') : ''}</div>
+      }).join('') + (comingUp.length ? `<details class="b-group"><summary><span class="b-gname">Coming up</span><span class="muted">one-time tasks for later weeks</span></summary>
+          <div class="b-tplist">${comingUp.map((t) => `<div class="b-tprow"><span class="b-tpmain"><b>${esc(t.name)}</b><small class="muted">${[`${dayNameOf(t.once_on)}, ${dshort(t.once_on)}`, slotOf(t), t.who ? esc(t.who) : ''].filter(Boolean).join(' · ')}</small></span>
+            ${isAdmin() ? `<button type="button" class="btn small" data-ckdrop="${t.id}">Remove</button>` : ''}</div>`).join('')}</div></details>` : '') : ''}</div>
 `;
     app.querySelector('[data-ck-add]')?.addEventListener('click', async () => {
       if (await addTask(week, todayName, tasks, view === 'template' ? 'weekly' : 'once')) renderChecklist(view);
@@ -502,6 +513,11 @@ export function boardPages(ctx) {
     if (view === 'log') return renderTimeLog(week, body);
     if (view === 'template') return renderTemplate(body);
     const rerender = () => renderChecklist('week');
+    app.querySelectorAll('[data-ckdrop]').forEach((b) => b.addEventListener('click', async () => {
+      if (!(await askConfirm('Remove this one-time task?', { ok: 'Remove', danger: true }))) return;
+      try { await q(sb.from('checklist_tasks').delete().eq('id', b.dataset.ckdrop).select('id')); toast('Removed'); } catch (err) { toast(errMsg(err), true); }
+      rerender();
+    }));
     pulled.bind(app, rerender);
     bindNotes(app, { sb, toast, errMsg, esc, meId: me()?.id, canDeleteAll: isAdmin(), names: Object.fromEntries(tasks.map((t) => [`custodial:${t.id}`, t.name])) }, rerender);
     app.querySelectorAll('[data-tick]').forEach((b) => b.addEventListener('click', async () => {
@@ -569,7 +585,9 @@ export function boardPages(ctx) {
       let freq = isAdmin() ? startFreq : 'once';
       let mweek = 1;
       const sel = new Set();
-      const FREQ = [['once', 'Just this week'], ['weekly', 'Every week'], ['monthly', 'Once a month']];
+      const FREQ = [['once', 'One time'], ['weekly', 'Every week'], ['monthly', 'Once a month']];
+      const todayIso = isoDay(new Date());
+      let onceOn = todayIso;
       const back = document.createElement('div');
       back.className = 'modal-back';
       back.innerHTML = `<form class="modal sheet b-ckform" role="dialog" aria-modal="true" aria-labelledby="ck-add-title">
@@ -577,8 +595,12 @@ export function boardPages(ctx) {
         <label><span>What needs doing?</span><input name="name" required autocomplete="off" placeholder="e.g. Deep clean the green room" class="modal-input"></label>
         ${isAdmin() ? `<div class="wk-sect">How often</div>
         <div class="wk-chips">${FREQ.map(([k, l]) => `<button type="button" class="chip-btn big" data-ckfreq="${k}">${l}</button>`).join('')}</div>` : ''}
-        <div class="wk-sect">Which day</div>
-        <div class="wk-chips">${DAYS.filter((d) => d !== 'Detail Work').map((d) => `<button type="button" class="chip-btn" data-ckday="${d}">${d.slice(0, 3)}${d === todayName ? ' (today)' : ''}</button>`).join('')}</div>
+        <div data-ckonce><div class="wk-sect">When</div>
+          <div class="pm-once"><label><span>Day</span><input type="date" name="once_on" value="${todayIso}" min="${todayIso}"></label><span></span></div>
+          <div class="pm-once"><label><span>From <span class="muted">(optional time)</span></span><select name="once_from"><option value="">Any time that day</option>${TIMES.map((v) => `<option value="${v}">${hm12(v)}</option>`).join('')}</select></label>
+          <label><span>To</span><select name="once_to"><option value="">—</option>${TIMES.map((v) => `<option value="${v}">${hm12(v)}</option>`).join('')}</select></label></div></div>
+        <div data-ckdays><div class="wk-sect">Which day</div>
+        <div class="wk-chips">${DAYS.filter((d) => d !== 'Detail Work').map((d) => `<button type="button" class="chip-btn" data-ckday="${d}">${d.slice(0, 3)}${d === todayName ? ' (today)' : ''}</button>`).join('')}</div></div>
         <div data-ckmw><div class="wk-sect">Which week of the month</div>
         <div class="wk-chips">${MONTH_WEEKS.map(([k]) => `<button type="button" class="chip-btn" data-ckmweek="${k}"></button>`).join('')}</div></div>
         <p class="pm-preview" data-ckhelp></p>
@@ -595,13 +617,19 @@ export function boardPages(ctx) {
         form.querySelectorAll('[data-ckfreq]').forEach((b) => b.classList.toggle('on', b.dataset.ckfreq === freq));
         form.querySelectorAll('[data-ckday]').forEach((b) => b.classList.toggle('on', b.dataset.ckday === day));
         form.querySelectorAll('[data-ckpp]').forEach((b) => b.classList.toggle('on', sel.has(b.dataset.ckpp)));
-        form.querySelector('[data-ckhelp]').textContent = freq === 'once' ? `On this week's list on ${day}. It won't come back next week.`
+        form.querySelector('[data-ckonce]').hidden = freq !== 'once';
+        form.querySelector('[data-ckdays]').hidden = freq === 'once';
+        const slot = slotOf({ once_from: form.querySelector('[name=once_from]').value, once_to: form.querySelector('[name=once_to]').value });
+        form.querySelector('[data-ckhelp]').textContent = freq === 'once' ? (onceOn ? `One time · ${dayNameOf(onceOn)}, ${dshort(onceOn)}${slot ? `, ${slot}` : ''}${addIso(week, 6) < onceOn ? ' · shows up on that week\'s list' : ''}` : 'Pick the day')
           : freq === 'weekly' ? `On the list every ${day}, starting this week.` : `On the list once a month, in the week of the ${ordOf(mweek).toLowerCase()} ${day} of the month.`;
         form.querySelector('[data-ckmw]').hidden = freq !== 'monthly';
         form.querySelectorAll('[data-ckmweek]').forEach((b) => { const k = Number(b.dataset.ckmweek); b.textContent = `${ordOf(k)} ${day.slice(0, 3)}`; b.classList.toggle('on', k === mweek); });
       };
       form.querySelectorAll('[data-ckfreq]').forEach((b) => b.addEventListener('click', () => { freq = b.dataset.ckfreq; draw(); }));
       form.querySelectorAll('[data-ckmweek]').forEach((b) => b.addEventListener('click', () => { mweek = Number(b.dataset.ckmweek); draw(); }));
+      form.querySelector('[name=once_on]').addEventListener('change', (e) => { onceOn = e.target.value; draw(); });
+      form.querySelector('[name=once_from]').addEventListener('change', () => { const a = form.querySelector('[name=once_from]').value; const z = form.querySelector('[name=once_to]'); if (a && (!z.value || z.value <= a)) z.value = TIMES[Math.min(TIMES.length - 1, TIMES.indexOf(a) + 2)]; draw(); });
+      form.querySelector('[name=once_to]').addEventListener('change', () => draw());
       form.querySelectorAll('[data-ckday]').forEach((b) => b.addEventListener('click', () => { day = b.dataset.ckday; draw(); }));
       form.querySelectorAll('[data-ckpp]').forEach((b) => b.addEventListener('click', () => { const n = b.dataset.ckpp; if (sel.has(n)) sel.delete(n); else sel.add(n); draw(); }));
       const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
@@ -620,6 +648,24 @@ export function boardPages(ctx) {
         const who = sel.size ? [...sel].join(', ') : null;
         const includes = String(f.get('includes') || '').trim() || null;
         const sort = Math.max(0, ...tasks.map((t) => t.sort || 0)) + 1;
+        if (freq === 'once') {
+          if (!onceOn || onceOn < todayIso) { toast('Pick today or a later day', true); return; }
+          const oFrom = form.querySelector('[name=once_from]').value || null;
+          const oTo = oFrom ? (form.querySelector('[name=once_to]').value || null) : null;
+          if (oFrom && oTo && oTo <= oFrom) { toast('The end time has to be after the start time', true); return; }
+          const d = dayNameOf(onceOn);
+          const fields = { name, day: d, area: 'Building', status: 'Not started', who, includes, sort, once_on: onceOn, once_from: oFrom, once_to: oTo };
+          const later = onceOn > addIso(week, 6);
+          saving = true;
+          try {
+            // This week: straight onto the list. A later week: waits, and lands on that week's list.
+            const [row] = await q(sb.from('checklist_tasks').insert(later ? { ...fields, repeat: 'once', week_of: null } : { ...fields, week_of: week }).select('id'));
+            if (steps.length) await q(sb.from('checklist_subtasks').insert(steps.map((n, i) => ({ task_id: row.id, name: n, sort: i }))).select('id'));
+            toast(`Added for ${d}, ${dshort(onceOn)}${later ? '. It shows up that week.' : ''}`);
+            done(true);
+          } catch (err) { saving = false; toast(errMsg(err), true); }
+          return;
+        }
         // Monthly: only on this week's list if this is the week of the first <day> of the month (weeks start Tuesday).
         const thisWeek = freq !== 'monthly' || monthHit(week, day, mweek);
         saving = true;
@@ -655,7 +701,7 @@ export function boardPages(ctx) {
       <div class="b-taskrow">
         <button class="b-tick${isDone ? ' on' : ''}" data-tick="${t.id}" data-done="${isDone ? 1 : 0}" aria-label="${isDone ? 'Mark not done' : 'Mark done'}: ${esc(t.name)}"${ed ? '' : ' disabled'}>✓</button>
         <div class="b-taskname"><b>${esc(t.name)}</b>
-          <small>${[t.timer_started_at && (t.clocked || []).length ? `⏱ ${(t.clocked || []).map((n) => String(n).split(' ')[0]).join(', ')} clocked in` : '', t.status === 'Skipped' ? 'Skipped' : t.status === 'Missed' ? 'Missed' : '', isDone && t.done_on ? `Done ${tshort(t.done_on)}` : '', !isDone ? t.includes : '']
+          <small>${[t.timer_started_at && (t.clocked || []).length ? `⏱ ${(t.clocked || []).map((n) => String(n).split(' ')[0]).join(', ')} clocked in` : '', t.status === 'Skipped' ? 'Skipped' : t.status === 'Missed' ? 'Missed' : '', isDone && t.done_on ? `Done ${tshort(t.done_on)}` : '', !isDone && t.once_from ? `⏰ ${slotOf(t)}` : '', !isDone ? t.includes : '']
             .filter(Boolean).map(esc).join(' · ')}</small></div>
         <span class="b-acts">${ed ? `<button class="b-who${whoList(t).length ? '' : ' empty'}" data-ckwho="${t.id}" title="${whoList(t).length ? esc(whoList(t).join(', ')) : 'Add people'}">${whoList(t).length ? avatars(whoList(t), 3) : '<span class="b-whoadd">+ Person</span>'}</button>`
           : whoList(t).length ? `<span class="b-who">${avatars(whoList(t), 3)}</span>` : ''}
@@ -709,7 +755,7 @@ export function boardPages(ctx) {
 
   async function renderTemplate(target = app) {
     const [tasks, subs, week, members] = await Promise.all([
-      q(sb.from('checklist_tasks').select('*').is('week_of', null).order('sort').order('id')),
+      q(sb.from('checklist_tasks').select('*').is('week_of', null).neq('repeat', 'once').order('sort').order('id')),
       q(sb.from('checklist_subtasks').select('*, checklist_tasks!inner(week_of)').is('checklist_tasks.week_of', null).order('sort').order('id')),
       rpc('start_checklist_week', {}).catch(() => null),
       q(sb.from('team_members').select('name, role, active')).catch(() => []),
