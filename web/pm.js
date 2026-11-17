@@ -117,9 +117,12 @@ function tdur(sec) {
 }
 const liveSecs = (r) => (r.worked_seconds || 0) + (r.timer_started_at ? (Date.now() - new Date(r.timer_started_at)) / 1000 : 0);
 
+import { loadNotes, notesList, noteButton, bindNotes } from './notes.js?v=__V__';
+
 export function schedulePages(ctx) {
   const manage = () => (ctx.canManage ? ctx.canManage() : true);
   let pmTick = null;
+  let pmNotes = {};   // notes on this period's rounds, by run id
   const { sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled } = ctx;
   let contractors = [];   // the Contractors list, loaded with the page
   let crew = [];          // Facilities people who can be put on a task
@@ -156,6 +159,7 @@ export function schedulePages(ctx) {
     // A one-time task stays on the list until it's done, even past its due date.
     const current = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today && (r.period_end >= today || (taskBy[r.task_id].frequency === 'once' && r.status === 'open')));
     allRuns = runs;
+    pmNotes = view === 'now' ? await loadNotes(sb, 'maintenance', current.map((r) => r.id)) : {};
     const overdue = current.filter((r) => r.status === 'open' && r.due_on < today);
     const dueSoon = current.filter((r) => r.status === 'open' && r.due_on >= today && dayDiff(r.due_on, today) <= 7);
     const done = current.filter((r) => r.status === 'done');
@@ -384,9 +388,10 @@ export function schedulePages(ctx) {
         ${isDone ? `<span class="pm-meta pm-donewho">Done by ${esc(who[r.done_by] || 'someone')} · ${new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}${r.note ? ` · ${esc(r.note)}` : ''}</span>` : ''}
         ${notesBlock(t.notes, esc)}
         ${ctLine(t)}
+        ${notesList(pmNotes[r.id], esc, ctx.me?.()?.id, ctx.isAdmin?.())}
         ${steps.length ? `<div class="pm-steps">${steps.map((s, i) => `<label><input type="checkbox" data-step="${r.id}" data-i="${i}" ${(r.steps_done || []).includes(i) ? 'checked' : ''}> ${esc(s)}</label>`).join('')}</div>` : ''}
       </div>
-      <div class="pm-actions">${whoBtn}${time}${timerBtn}${r.status === 'open' ? `<button class="btn small" data-mark="${r.id}" data-to="skipped" title="Not needed this time">Skip</button>` : r.status === 'skipped' ? `<button class="btn small" data-mark="${r.id}" data-to="open">Undo skip</button>` : ''}</div>
+      <div class="pm-actions">${whoBtn}${time}${live || (pmNotes[r.id] || []).length ? noteButton('maintenance', r.id, (pmNotes[r.id] || []).length) : ''}${timerBtn}${r.status === 'open' ? `<button class="btn small" data-mark="${r.id}" data-to="skipped" title="Not needed this time">Skip</button>` : r.status === 'skipped' ? `<button class="btn small" data-mark="${r.id}" data-to="open">Undo skip</button>` : ''}</div>
     </div>`;
   }
 
@@ -684,6 +689,7 @@ export function schedulePages(ctx) {
       if (t && (await taskModal(await loadPlaces(sb), { ...t, preps: tasks.filter((c) => c.parent_id === t.id && c.active) }))) reload();
     }));
     pulled.bind(app, reload);
+    bindNotes(app, { sb, toast, errMsg, askConfirm, names: Object.fromEntries(current.map((r) => [`maintenance:${r.id}`, tasks.find((x) => x.id === r.task_id)?.name || ''])) }, reload);
     app.querySelectorAll('[data-pm-timer]').forEach((b) => b.addEventListener('click', async () => {
       try { await rpc('pm_timer', { p_run: Number(b.dataset.pmTimer), p_run_on: b.dataset.run === '1' }); reload(); } catch (err) { toast(errMsg(err), true); }
     }));

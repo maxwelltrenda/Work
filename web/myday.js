@@ -2,6 +2,8 @@
 // that's theirs and ready to do (Custodial, Maintenance, requests, to-dos),
 // and open work nobody has taken yet. Start / Stop / Done right from here.
 
+import { loadNotes, notesList, noteButton, bindNotes } from './notes.js?v=__V__';
+
 const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const WEEK = ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday'];   // Facilities week
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -19,7 +21,7 @@ const live = (base, since) => `<span class="md-live" data-md-base="${base || 0}"
 const names = (who) => String(who || '').split(',').map((x) => x.trim()).filter(Boolean);
 
 export function myDayPages(ctx) {
-  const { sb, q, rpc, esc, toast, errMsg, me } = ctx;
+  const { sb, q, rpc, esc, toast, errMsg, me, askConfirm, isAdmin } = ctx;
   const app = document.getElementById('app');
   let tick = null;
   const safe = (p, fb) => Promise.resolve(p).catch(() => fb);
@@ -65,14 +67,17 @@ export function myDayPages(ctx) {
     const grabCk = ck.filter((t) => open(t) && !names(t.who).length && t.day === todayName);
     const grabPm = pmCurrent.filter((r) => !(taskBy[r.task_id]?.assignees || []).length && !r.timer_started_at && r.due_on <= addDays(today, 7));
 
-    const row = ({ tag, cls, title, meta, actions }) => `<div class="md-row"><span class="md-tag ${cls}">${tag}</span>
-      <div class="md-body"><b>${title}</b>${meta ? `<span>${meta}</span>` : ''}</div><div class="md-act">${actions || ''}</div></div>`;
+    const [ckN, pmN] = await Promise.all([loadNotes(sb, 'custodial', ck.map((t) => t.id)), loadNotes(sb, 'maintenance', pmCurrent.map((r) => r.id))]);
+    const row = ({ tag, cls, title, meta, actions, notes = '' }) => `<div class="md-row"><span class="md-tag ${cls}">${tag}</span>
+      <div class="md-body"><b>${title}</b>${meta ? `<span>${meta}</span>` : ''}${notes}</div><div class="md-act">${actions || ''}</div></div>`;
     const ckRow = (t, running) => row({ tag: 'Custodial', cls: 'cust', title: esc(t.name),
       meta: [running ? `${live(t.worked_seconds, t.timer_started_at)} · since ${clock(t.timer_started_at)}` : t.worked_seconds ? `${dur(t.worked_seconds)} so far` : '', t.day && t.day !== todayName ? t.day : '', names(t.who).length > 1 ? `with ${names(t.who).filter((n) => n.toLowerCase() !== lc).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
-      actions: `<button class="btn small${running ? ' b-running' : ''}" data-md-ck="${t.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-ckdone="${t.id}">✓ Done</button>` });
+      notes: notesList(ckN[t.id], esc, person.id, isAdmin?.()),
+      actions: `${noteButton('custodial', t.id, (ckN[t.id] || []).length)}<button class="btn small${running ? ' b-running' : ''}" data-md-ck="${t.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-ckdone="${t.id}">✓ Done</button>` });
     const pmRow = (r, running) => { const t = taskBy[r.task_id]; return row({ tag: t.parent_id ? 'Get ready' : 'Maintenance', cls: 'maint', title: esc(t.name),
       meta: [running ? `${live(r.worked_seconds, r.timer_started_at)} · since ${clock(r.timer_started_at)}` : r.worked_seconds ? `${dur(r.worked_seconds)} so far` : '', t.location ? esc(t.location) : '', r.due_on ? `${r.due_on < today ? '<b class="md-late">Late</b> · was due' : 'due'} ${dshort(r.due_on)}` : '', (t.steps || []).length ? `${(r.steps_done || []).length}/${t.steps.length} steps` : ''].filter(Boolean).join(' · '),
-      actions: `<button class="btn small${running ? ' b-running' : ''}" data-md-pm="${r.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-pmdone="${r.id}">✓ Done</button>` }); };
+      notes: notesList(pmN[r.id], esc, person.id, isAdmin?.()),
+      actions: `${noteButton('maintenance', r.id, (pmN[r.id] || []).length)}<button class="btn small${running ? ' b-running' : ''}" data-md-pm="${r.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-pmdone="${r.id}">✓ Done</button>` }); };
     const reqRow = (r, running) => row({ tag: 'Request', cls: 'req', title: `<a href="#/request/${r.id}">${esc(r.subject)}</a>`,
       meta: [running ? live(r.worked_seconds, r.timer_started_at) : '', r.location ? esc(r.location) : '', r.status].filter(Boolean).join(' · ') });
     const todoRow = (t) => row({ tag: 'To-do', cls: 'todo', title: esc(t.title),
@@ -99,6 +104,7 @@ export function myDayPages(ctx) {
       ${laterRows.length ? sect('Later this week', '', laterRows, '') : ''}
       ${grabRows.length ? sect('Up for grabs', 'nobody on these yet · starting one puts you on it', grabRows, '') : ''}`;
 
+    bindNotes(app, { sb, toast, errMsg, askConfirm, names: { ...Object.fromEntries(ck.map((t) => [`custodial:${t.id}`, t.name])), ...Object.fromEntries(pmCurrent.map((r) => [`maintenance:${r.id}`, taskBy[r.task_id]?.name || ''])) } }, renderMyDay);
     const act = async (fn, msg) => { try { await fn(); if (msg) toast(msg); renderMyDay(); } catch (err) { toast(errMsg(err), true); } };
     app.querySelectorAll('[data-md-ck]').forEach((b) => b.addEventListener('click', () => act(async () => {
       const t = ck.find((x) => String(x.id) === b.dataset.mdCk);

@@ -907,13 +907,13 @@ const PAINTSPOTS = paintSpotPages({
   },
 });
 // My day (myday.js): each person's home: clocked in now, ready to do, up for grabs.
-const MYDAY = myDayPages({ sb, q, rpc, esc, toast, errMsg, me: () => state.me });
+const MYDAY = myDayPages({ sb, q, rpc, esc, toast, errMsg, askConfirm, isAdmin, me: () => state.me });
 const MYTASKS = myTaskPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, me: () => state.me, isAdmin });
 const OVERVIEW = overviewPages({ sb, q, rpc, esc, me: () => state.me });
 const GAMEPLAN = gameplanPages({ rpc, esc, toast, errMsg, pageHead });
 const CONTRACTORS = contractorPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, canEdit: () => isAdmin() });
 // Facilities & Maintenance members see the schedule and check things off; admins and the Maintenance manager also add and change tasks.
-const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled: PULLED, contractors: CONTRACTORS, isAdmin, canManage: () => isAdmin() || state.me?.role === 'maintenance' });
+const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled: PULLED, contractors: CONTRACTORS, isAdmin, me: () => state.me, canManage: () => isAdmin() || state.me?.role === 'maintenance' });
 
 // Team schedule: days off and vacation, on every site (team.js).
 // Facilities only: admins (full and Facilities admins) set people's team, hours and anyone's time off.
@@ -3549,7 +3549,7 @@ const markFullscreen = () => {
 };
 markFullscreen();
 window.addEventListener('resize', markFullscreen);
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/mytasks.js', '/assistant.js', '/paintspots.js', '/myday.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/mytasks.js', '/assistant.js', '/paintspots.js', '/myday.js', '/notes.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {

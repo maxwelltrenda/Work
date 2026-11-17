@@ -8,6 +8,8 @@ export const REQ_GROUPS = [
   ['new', 'New ticket'], ['in_progress', 'In Progress'], ['pending_reply', 'Pending Reply'],
   ['executive', 'Executive Requests'], ['solved', 'Ticket solved - user notified'],
 ];
+import { loadNotes, notesList, noteButton, bindNotes } from './notes.js?v=__V__';
+
 const SUB_STATUSES = ['Working on it', 'Done', 'Stuck'];
 const CHECK_STATUSES = ['Not started', 'Working on it', 'Done', 'Skipped', 'Missed'];
 // The Facilities week runs Tuesday to Monday.
@@ -48,6 +50,7 @@ export function boardPages(ctx) {
   const { sb, q, rpc, esc, toast, askText, askConfirm, errMsg, pageHead, route, canEdit, isAdmin, me, pulled } = ctx;
   const app = document.getElementById('app');
   let tick = null;
+  let ckNotes = {};   // notes on this week's tasks, by task id
   const startTick = () => {
     clearInterval(tick);
     tick = setInterval(() => {
@@ -450,6 +453,7 @@ export function boardPages(ctx) {
     ]).then((r) => { ckCrew = (r[3] || []).filter((m) => m.active && !['kiosk', 'none'].includes(m.role)).map((m) => m.name).sort(); return r; });
     const byTask = {};
     subs.forEach((s) => { (byTask[s.task_id] = byTask[s.task_id] || []).push(s); });
+    ckNotes = await loadNotes(sb, 'custodial', tasks.map((t) => t.id));
     const done = tasks.filter((t) => t.status === 'Done').length;
     const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
@@ -478,6 +482,7 @@ export function boardPages(ctx) {
 
     const rerender = () => renderChecklist('week');
     pulled.bind(app, rerender);
+    bindNotes(app, { sb, toast, errMsg, askConfirm, names: Object.fromEntries(tasks.map((t) => [`custodial:${t.id}`, t.name])) }, rerender);
     app.querySelector('[data-ck-add]')?.addEventListener('click', async () => {
       if (await addWeekTask(week, todayName, tasks)) rerender();
     });
@@ -604,8 +609,10 @@ export function boardPages(ctx) {
         ${ed ? `<button class="b-who${whoList(t).length ? '' : ' empty'}" data-ckwho="${t.id}" title="${whoList(t).length ? esc(whoList(t).join(', ')) : 'Add people'}">${whoList(t).length ? avatars(whoList(t), 3) : '<span class="b-whoadd">+ Person</span>'}</button>`
           : whoList(t).length ? `<span class="b-who">${avatars(whoList(t), 3)}</span>` : ''}
         ${t.timer_started_at || t.worked_seconds ? `<span class="b-time num">${liveSpan(t)}</span>` : ''}
+        ${ed ? noteButton('custodial', t.id, (ckNotes[t.id] || []).length) : ''}
         ${ed && !closed ? `<button class="btn small${t.timer_started_at ? ' b-running' : ''}" data-cktimer="${t.id}" data-run="${t.timer_started_at ? 0 : 1}">${t.timer_started_at ? '■ Stop' : '▶ Start'}</button>` : ''}
       </div>
+      ${(ckNotes[t.id] || []).length ? `<div class="b-notes">${notesList(ckNotes[t.id], esc, me()?.id, isAdmin())}</div>` : ''}
       ${subs.length && !closed ? `<details class="b-subs"><summary>${subs.length} steps <span class="b-subcount">${nDone}/${subs.length}</span></summary>
         ${subs.map((s) => `<label class="${s.done ? 'done' : ''}"><input type="checkbox" data-cksub="${s.id}"${s.done ? ' checked' : ''}${ed ? '' : ' disabled'}><span>${esc(s.name)}</span></label>`).join('')}
         ${ed ? `<button class="b-skip" data-skip="${t.id}">Skip this week</button>` : ''}</details>`

@@ -270,6 +270,7 @@ function onUpdate(table, row, patch) {
   }
 }
 const DEFAULTS = {
+  task_notes: () => ({ id: nextId(), member_id: ME, author: 'Skyler', created_at: new Date().toISOString() }),
   items: () => ({ id: uuid(), code: `INV-${String(nextId()).padStart(4, '0')}`, quantity: 0, reorder_level: 0, pack_size: 1, unit: 'ea', category: 'facilities', active: true }),
   tools: () => ({ id: uuid(), code: `TL-${String(nextId()).padStart(4, '0')}`, status: 'available', quantity: 1, repair_qty: 0, site: 'facilities', active: true }),
   maint_requests: () => ({ id: nextId(), status: 'New', board_group: 'new', experts: [], needs: {}, worked_seconds: 0, extra: {}, created_by_name: 'Skyler' }),
