@@ -3566,6 +3566,10 @@ async function checkForUpdate() {
     if (v === loadedVersion) return;
     const k = state.kiosk;
     if (isKiosk() && !k.person && !k.pendingItem && !k.picker && !document.querySelector('.modal-back')) return location.reload();
+    // Anyone else: update on its own when nothing is open or being typed, so phones don't run old code.
+    const typing = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    const drafts = [...document.querySelectorAll('#app input:not([type=checkbox]):not([type=radio]), #app textarea')].some((x) => x.value && x.defaultValue !== x.value);
+    if (!isKiosk() && !document.querySelector('.modal-back') && !typing && !drafts) return location.reload();
     const bar = document.createElement('button');
     bar.id = 'update-bar';
     bar.className = 'update-bar no-print';
