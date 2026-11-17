@@ -64,6 +64,9 @@ export function overviewPages(ctx) {
     const hue = (n) => ['#11404b', '#2f5d8a', '#8a6630', '#3c418f', '#9b2763', '#a3470f', '#2d6a62', '#6a4cf0'][[...String(n)].reduce((a, c) => a + c.charCodeAt(0), 0) % 8];
     const has = (list, name) => String(list || '').split(',').map((x) => x.trim().toLowerCase()).some((x) => x && (x === name.toLowerCase() || x === first(name).toLowerCase()));
     const since = (iso) => { const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${pad(m % 60)}m`; };
+    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+    const toMin = (t) => { const [a, b] = String(t || '').split(':').map(Number); return a * 60 + (b || 0); };
+    const offClock = (h) => (!h.start || !h.end ? '' : nowMin >= toMin(h.end) ? `Off the clock · done at ${hm(h.end)}` : nowMin < toMin(h.start) ? `Off the clock · starts at ${hm(h.start)}` : '');
     const where = crew.map((m) => {
       const h = (m.work_hours || {})[key];
       const offRow = off.find((o) => o.member_id === m.id);
@@ -87,6 +90,8 @@ export function overviewPages(ctx) {
       else if (c) { tag = ['Custodial', 'work']; text = `<b>${esc(c.name)}</b>`; rank = 0; }
       else if (tl) { tag = ['Tool', 'out']; text = `Has the <b>${esc(toolName[tl.tool_id] || 'a tool')}</b> since ${esc(new Date(tl.checked_out_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}`; rank = 0; }
       // Not working on anything: say so, then what's next for them.
+      // Outside their hours today (and not on anything): off the clock.
+      else if (h && offClock(h)) { tag = ['Off', 'free']; text = offClock(h); rank = 4; }
       else if (ckNext.length || pmNext.length) {
         tag = ['Free', 'free'];
         const next = ckNext.length ? `Custodial: ${esc(ckNext[0].name)}${ckNext.length > 1 ? ` +${ckNext.length - 1} more` : ''}`
