@@ -1606,3 +1606,4 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .ev-job-top > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .pm-prep .pm-prep-from, .pm-prep .dd:has(.pm-prep-from) { grid-column: 1 / -1; }
 @media (max-width: 560px) { .pm-prep .pm-prep-from, .pm-prep .dd:has(.pm-prep-from) { grid-column: 1 / -1; } }
+.pm-steps label:has(input:checked) { color: var(--muted); text-decoration: line-through; }
