@@ -612,8 +612,17 @@ export function schedulePages(ctx) {
           form.reset(); $('[name=name]').value = ''; win = 'any'; prepList = []; byCt = false; ctId = null; people = new Set(); onceDue = ''; onceStart = ''; drawPeople(); drawCt(); sync(); $('[name=name]').focus();
         } catch (err) { toast(errMsg(err), true); }
       };
-      $('[data-again]')?.addEventListener('click', () => save(true));
-      form.addEventListener('submit', (e) => { e.preventDefault(); save(false); });
+      // One save at a time: a double tap or Enter + click must not add the task twice.
+      let saving = false;
+      const saveOnce = async (again) => {
+        if (saving) return;
+        saving = true;
+        const btns = form.querySelectorAll('.modal-actions button');
+        btns.forEach((b) => { b.disabled = true; });
+        try { await save(again); } finally { saving = false; btns.forEach((b) => { b.disabled = false; }); }
+      };
+      $('[data-again]')?.addEventListener('click', () => saveOnce(true));
+      form.addEventListener('submit', (e) => { e.preventDefault(); saveOnce(false); });
       document.body.appendChild(back);
       attachPlaces($('[name=location]'), places);
       if (!editing) $('[name=name]').focus();
