@@ -46,7 +46,7 @@ export function overviewPages(ctx) {
     const ckToday = ck.filter((t) => (t.day || '') === todayName);
     const ckDone = ckToday.filter((t) => t.status === 'Done').length;
     const ckWeekDone = ck.filter((t) => t.status === 'Done').length;
-    const ckNow = ck.filter((t) => t.timer_started_at || t.status === 'Working on it');
+    const ckNow = ck.filter((t) => t.status === 'Working on it');
     // Maintenance
     const taskBy = Object.fromEntries(tasks.map((t) => [t.id, t]));
     const cur = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today && (r.period_end >= today || (taskBy[r.task_id].frequency === 'once' && r.status === 'open')));
@@ -68,7 +68,8 @@ export function overviewPages(ctx) {
       const h = (m.work_hours || {})[key];
       const offRow = off.find((o) => o.member_id === m.id);
       const p = pulled.find((x) => x.member_id === m.id);
-      const r = working.find((x) => (x.experts || []).some((e) => has(e, m.name)));
+      // On a request right now = its timer is running and they're on it.
+      const r = working.find((x) => x.timer_started_at && (x.experts || []).some((e) => has(e, m.name)));
       const c = ckNow.find((x) => has(x.who, m.name));
       const tl = outs.find((x) => x.borrower_id === m.id);
       // Not on anything yet: what's next for them today.
