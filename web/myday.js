@@ -18,6 +18,8 @@ function dur(sec) {
   return m ? `${m}m` : `${sec}s`;
 }
 const live = (base, since) => `<span class="md-live" data-md-base="${base || 0}" data-md-since="${new Date(since).getTime()}">${dur((base || 0) + (Date.now() - new Date(since)) / 1000)}</span>`;
+const h12 = (v) => { const [h, m] = String(v).split(':').map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`; };
+const slot = (t) => `${h12(t.once_from)}${t.once_to ? `–${h12(t.once_to)}` : ''}`;
 const names = (who) => String(who || '').split(',').map((x) => x.trim()).filter(Boolean);
 
 export function myDayPages(ctx) {
@@ -80,7 +82,7 @@ export function myDayPages(ctx) {
       notes: notesList(ckN[t.id], esc, person.id, isAdmin?.()),
       actions: `${noteButton('custodial', t.id, (ckN[t.id] || []).length)}<button class="btn small${running ? ' b-running' : ''}" data-md-ck="${t.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-ckdone="${t.id}">✓ Done</button>` });
     const pmRow = (r, running) => { const t = taskBy[r.task_id]; return row({ tag: t.parent_id ? 'Get ready' : 'Maintenance', cls: 'maint', title: esc(t.name),
-      meta: [running ? `${live(r.worked_seconds, r.timer_started_at)} · since ${clock(r.timer_started_at)}` : r.timer_started_at && (r.clocked || []).length ? `<b>${(r.clocked || []).map((id) => esc(String(whoName[id] || 'Someone').split(' ')[0])).join(', ')} clocked in</b>` : r.worked_seconds ? `${dur(r.worked_seconds)} so far` : '', t.location ? esc(t.location) : '', r.due_on ? `${r.due_on < today ? '<b class="md-late">Late</b> · was due' : 'due'} ${dshort(r.due_on)}` : '', (t.steps || []).length ? `${(r.steps_done || []).length}/${t.steps.length} steps` : '', myStepsOf(t).length ? `<b>Your steps:</b> ${myStepsOf(t).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
+      meta: [running ? `${live(r.worked_seconds, r.timer_started_at)} · since ${clock(r.timer_started_at)}` : r.timer_started_at && (r.clocked || []).length ? `<b>${(r.clocked || []).map((id) => esc(String(whoName[id] || 'Someone').split(' ')[0])).join(', ')} clocked in</b>` : r.worked_seconds ? `${dur(r.worked_seconds)} so far` : '', t.location ? esc(t.location) : '', t.frequency === 'once' && t.once_from ? `<b>${r.due_on === today ? 'Today' : dshort(r.due_on)}, ${slot(t)}</b>` : r.due_on ? `${r.due_on < today ? '<b class="md-late">Late</b> · was due' : 'due'} ${dshort(r.due_on)}` : '', (t.steps || []).length ? `${(r.steps_done || []).length}/${t.steps.length} steps` : '', myStepsOf(t).length ? `<b>Your steps:</b> ${myStepsOf(t).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
       notes: notesList(pmN[r.id], esc, person.id, isAdmin?.()),
       actions: `${noteButton('maintenance', r.id, (pmN[r.id] || []).length)}<button class="btn small${running ? ' b-running' : ''}" data-md-pm="${r.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-pmdone="${r.id}">✓ Done</button>` }); };
     const reqRow = (r, running) => row({ tag: 'Request', cls: 'req', title: `<a href="#/request/${r.id}">${esc(r.subject)}</a>`,

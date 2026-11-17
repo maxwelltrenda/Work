@@ -46,8 +46,12 @@ function periodLabel(freq, start, end) {
 // When a task is due, in plain words, from how often, its start month / day and window.
 // e.g. quarterly, starts Dec 1, 14 days -> "Due Dec 1–14, Mar 1–14, Jun 1–14, Sep 1–14"
 const STEP = { monthly: 1, quarterly: 3, yearly: 12 };
+// "09:00:00" -> "9 AM", "12:30" -> "12:30 PM"
+const hm12 = (v) => { if (!v) return ''; const [h, m] = String(v).split(':').map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`; };
+const slotText = (t) => (t && t.once_from ? `${hm12(t.once_from)}${t.once_to ? `–${hm12(t.once_to)}` : ''}` : '');
+const TIMES = Array.from({ length: 33 }, (_, i) => { const mins = 6 * 60 + i * 30; return `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`; });
 function windowText(t) {
-  if (t.frequency === 'once') return t.once_due ? `One time · due ${dshort(t.once_due)}${t.once_start ? ` · shows up ${dshort(t.once_start)}` : ''}` : 'One time · pick the date it is due';
+  if (t.frequency === 'once') return t.once_due ? `One time · ${slotText(t) ? `${dshort(t.once_due)}, ${slotText(t)}` : `due ${dshort(t.once_due)}`}${t.once_start ? ` · shows up ${dshort(t.once_start)}` : ''}` : 'One time · pick the date it is due';
   const n = t.due_days;
   if (t.frequency === 'biweekly') {
     if (!n || n >= 14) return 'Any time in the 2 weeks';
@@ -356,8 +360,9 @@ export function schedulePages(ctx) {
     }).join('') + comingUp(waiting, today);
   }
 
-  function dueText(r, today) {
+  function dueText(r, today, t = null) {
     if (r.status === 'done') return '';
+    if (t && t.frequency === 'once' && t.once_from && r.status !== 'skipped') return `<span class="pm-due${r.due_on <= today ? ' soon' : ''}">${r.due_on === today ? 'Today' : dshort(r.due_on)}, ${slotText(t)}</span>`;
     if (r.status === 'skipped') return '<span class="pm-due">Skipped this time</span>';
     if (r.due_on < today) return `<span class="pm-due late">Overdue · was due ${dshort(r.due_on)}</span>`;
     if (r.due_on === today) return '<span class="pm-due soon">Due today</span>';
@@ -392,7 +397,7 @@ export function schedulePages(ctx) {
       <div class="pm-body">
         <b class="pm-name">${esc(t.name)}</b>
         ${r.timer_started_at && inNames.length ? `<span class="pm-meta pm-clocked">⏱ ${inNames.map((n) => esc(n.split(' ')[0])).join(', ')} clocked in</span>` : ''}
-        <span class="pm-meta">${[parent ? `Before <b>${esc(parent.name)}</b> (starts ${dshort(addD(r.period_end, 1))})` : '', t.location ? esc(t.location) : '', dueText(r, today)].filter(Boolean).join(' · ')}</span>
+        <span class="pm-meta">${[parent ? `Before <b>${esc(parent.name)}</b> (starts ${dshort(addD(r.period_end, 1))})` : '', t.location ? esc(t.location) : '', dueText(r, today, t)].filter(Boolean).join(' · ')}</span>
         ${isDone ? `<span class="pm-meta pm-donewho">Done by ${esc(who[r.done_by] || 'someone')} · ${new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}${r.note ? ` · ${esc(r.note)}` : ''}</span>` : ''}
         ${notesBlock(t.notes, esc)}
         ${parent && parent.notes ? `<div class="pm-parentnotes"><span class="muted">Notes from ${esc(parent.name)}:</span>${notesBlock(parent.notes, esc)}</div>` : ''}
@@ -522,6 +527,8 @@ export function schedulePages(ctx) {
         <div data-for="once"><div class="wk-sect">When</div>
           <div class="pm-once"><label><span>Due by</span><input type="date" name="once_due" value="${esc(onceDue)}"></label>
           <label><span>Put it on the list on <span class="muted">(optional)</span></span><input type="date" name="once_start" value="${esc(onceStart)}"></label></div>
+          <div class="pm-once"><label><span>From <span class="muted">(optional time)</span></span><select name="once_from"><option value="">Any time that day</option>${TIMES.map((v) => `<option value="${v}" ${String(t.once_from || '').slice(0, 5) === v ? 'selected' : ''}>${hm12(v)}</option>`).join('')}</select></label>
+          <label><span>To</span><select name="once_to"><option value="">—</option>${TIMES.map((v) => `<option value="${v}" ${String(t.once_to || '').slice(0, 5) === v ? 'selected' : ''}>${hm12(v)}</option>`).join('')}</select></label></div>
           <p class="muted pm-once-hint">Leave the second date empty to put it on the list now. It stays on the list until it's done.</p></div>
         <div data-notonce><div class="wk-sect" data-when-title></div>
         <div class="wk-chips" data-wins></div>
@@ -560,7 +567,7 @@ export function schedulePages(ctx) {
         $('[data-wins]').querySelectorAll('[data-win]').forEach((b) => b.addEventListener('click', () => { win = b.dataset.win; drawWins(); preview(); }));
       };
       const preview = () => {
-        if (freq === 'once') { $('[data-pm-preview]').textContent = windowText({ frequency: 'once', once_due: onceDue, once_start: onceStart }); return; }
+        if (freq === 'once') { $('[data-pm-preview]').textContent = windowText({ frequency: 'once', once_due: onceDue, once_start: onceStart, once_from: $('[name=once_from]').value, once_to: $('[name=once_to]').value }); return; }
         const { sd, n } = params();
         let txt = windowText({ frequency: freq, due_days: n, start_month: month, start_day: sd });
         if (win === 'custom' && freq !== 'weekly' && to && parseInt(to, 10) < (parseInt(from, 10) || 1)) txt = 'The end day has to be after the start day.';
@@ -614,6 +621,8 @@ export function schedulePages(ctx) {
       form.querySelectorAll('[data-parity]').forEach((b) => b.addEventListener('click', () => { parity = Number(b.dataset.parity); sync(); }));
       $('[name=once_due]').addEventListener('change', (e) => { onceDue = e.target.value; preview(); });
       $('[name=once_start]').addEventListener('change', (e) => { onceStart = e.target.value; preview(); });
+      $('[name=once_from]').addEventListener('change', () => { const a = $('[name=once_from]').value; const z = $('[name=once_to]'); if (a && (!z.value || z.value <= a)) z.value = TIMES[Math.min(TIMES.length - 1, TIMES.indexOf(a) + 2)]; preview(); });
+      $('[name=once_to]').addEventListener('change', () => preview());
       $('[data-prep-add]').addEventListener('click', () => { prepList.push({ name: '', lead: 7 }); drawPreps(); $(`[data-pn="${prepList.length - 1}"]`).focus(); });
       form.querySelectorAll('[data-freq]').forEach((b) => b.addEventListener('click', () => {
         if (freq === b.dataset.freq) return;
@@ -639,6 +648,9 @@ export function schedulePages(ctx) {
         if (!name) { $('[name=name]').focus(); toast('Say what needs doing', true); return; }
         if (freq === 'once' && !onceDue) { toast('Pick the date it is due', true); return; }
         if (freq === 'once' && onceStart && onceStart > onceDue) { toast('The list date has to be on or before the due date', true); return; }
+        const oFrom = $('[name=once_from]').value || null;
+        const oTo = oFrom ? ($('[name=once_to]').value || null) : null;
+        if (freq === 'once' && oFrom && oTo && oTo <= oFrom) { toast('The end time has to be after the start time', true); return; }
         const { sd, n } = freq === 'once' ? { sd: null, n: null } : params();
         if (win === 'custom' && freq !== 'weekly' && to && parseInt(to, 10) < (parseInt(from, 10) || 1)) { toast('The end day has to be after the start day', true); return; }
         const f = new FormData(form);
@@ -650,6 +662,7 @@ export function schedulePages(ctx) {
             ...(anchorsReady ? { p_start_month: ['quarterly', 'yearly'].includes(freq) ? month : null, p_start_day: ['weekly', 'once'].includes(freq) ? null : sd } : {}),
           });
           if (freq === 'once' && (onceDue !== (t.once_due || '') || onceStart !== (t.once_start || '') || t.frequency !== 'once')) await rpc('pm_set_once', { p_task: t.id || id, p_start: onceStart || null, p_due: onceDue });
+          if (freq === 'once' && ((oFrom || '') !== String(t.once_from || '').slice(0, 5) || (oTo || '') !== String(t.once_to || '').slice(0, 5))) await rpc('pm_set_once_time', { p_task: t.id || id, p_from: oFrom, p_to: oTo });
           const keep = prepList.filter((c) => c.name.trim());
           const newCt = byCt ? ctId : null;
           if (newCt !== (t.contractor_id || null)) await rpc('pm_set_contractor', { p_task: t.id || id, p_contractor: newCt });

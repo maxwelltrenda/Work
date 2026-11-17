@@ -476,6 +476,10 @@ const RPC = {
     db.pm_runs = db.pm_runs.filter((r) => !(db.pm_tasks.find((c) => c.id === r.task_id)?.parent_id === p_parent && r.status === 'open'));
     pmRefresh();
   },
+  pm_set_once_time({ p_task, p_from, p_to }) {
+    const t = db.pm_tasks.find((x) => loose(x.id, p_task));
+    Object.assign(t, { once_from: p_from || null, once_to: p_from ? p_to || null : null });
+  },
   pm_set_once({ p_task, p_start, p_due }) {
     const t = db.pm_tasks.find((x) => loose(x.id, p_task));
     Object.assign(t, { frequency: 'once', once_start: p_start || null, once_due: p_due, due_days: null, start_month: null, start_day: null });

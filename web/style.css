@@ -1274,7 +1274,7 @@ button.pm-card.upcoming:hover { border-color: var(--line-strong); background: va
 .notif.done .notif-dot { background: var(--in-soft); color: var(--in); }
 .b-ckadd { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 18px; font-size: 13px; }
 .b-ckform { display: flex; flex-direction: column; }
-.b-ckform .chip-btn.b-pp { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; }
+.b-ckform .chip-btn.b-pp, .pm-new .chip-btn.b-pp { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px 4px 4px; }
 .b-ckform .b-av { width: 24px; height: 24px; font-size: 10px; }
 .b-tplist { display: grid; gap: 6px; padding: 4px 0 8px; }
 .b-tprow { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font: inherit; color: inherit; cursor: pointer; }
@@ -1597,3 +1597,4 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .pw-mini-t { white-space: nowrap; font-size: 13px; }
 .pw-mini .tn-btn { padding: 4px 8px; font-size: 12px; }
 @media (max-width: 640px) { .pw-mini li { flex-wrap: wrap; } .pw-mini li > span:first-child { flex-basis: 100%; } }
+.pm-once + .pm-once { margin-top: 10px; }
