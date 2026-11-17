@@ -10,7 +10,7 @@ const TODAY = isoOf(new Date());
 const nowIso = () => new Date().toISOString();
 const ago = (min) => new Date(Date.now() - min * 60000).toISOString();
 const dayIso = (n) => addDays(TODAY, n);
-const SUNDAY = addDays(TODAY, -new Date().getDay());
+const SUNDAY = addDays(TODAY, -((new Date().getDay() + 5) % 7));   // week start: Tuesday
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const TODAY_NAME = DAYS[new Date().getDay()];
 let seq = 1000;
@@ -194,10 +194,10 @@ const STEP_M = { monthly: 1, quarterly: 3, yearly: 12 };
 function periodStart(freq, iso, sm, sd) {
   const [y, m, d] = iso.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
-  if (freq === 'weekly') return addDays(iso, -dt.getDay());
+  if (freq === 'weekly') return addDays(iso, -((dt.getDay() + 5) % 7));
   if (freq === 'biweekly') {
-    const sun = addDays(iso, -dt.getDay());
-    const weeks = Math.round((new Date(...sun.split('-').map((v, i) => (i === 1 ? v - 1 : +v))) - new Date(2026, 0, 4)) / 6048e5);
+    const sun = addDays(iso, -((dt.getDay() + 5) % 7));
+    const weeks = Math.round((new Date(...sun.split('-').map((v, i) => (i === 1 ? v - 1 : +v))) - new Date(2026, 0, 6)) / 6048e5);
     return addDays(sun, -7 * ((((weeks - ((sd || 1) - 1)) % 2) + 2) % 2));
   }
   const day = sd || 1;

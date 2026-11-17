@@ -16,15 +16,19 @@ const dshort = (d) => { const [, m, dd] = parts(d); return `${MON[m - 1]} ${dd}`
 const DAYN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const isoOf = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
 const addD = (iso, n) => { const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number); return isoOf(new Date(y, m - 1, d + n)); };
-// Every-2-weeks rounds start on Sundays; start_day 1 = the fortnight lined up
-// with Sun Jan 4 2026, 2 = the other week (same rule as the database).
+// The Facilities week runs Tuesday to Monday (same rule as the database).
+const weekStart = (iso) => { const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number); const dt = new Date(y, m - 1, d); return isoOf(new Date(y, m - 1, d - ((dt.getDay() + 5) % 7))); };
+// Every-2-weeks rounds start on Tuesdays; start_day 1 = the fortnight lined up
+// with Tue Jan 6 2026, 2 = the other week.
 const fortnightStart = (iso, parity = 1) => {
-  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
-  const sun = new Date(y, m - 1, d - new Date(y, m - 1, d).getDay());
-  const weeks = Math.round((sun - new Date(2026, 0, 4)) / 6048e5);
+  const [y, m, d] = weekStart(iso).split('-').map(Number);
+  const tue = new Date(y, m - 1, d);
+  const weeks = Math.round((tue - new Date(2026, 0, 6)) / 6048e5);
   const k = (((weeks - (parity - 1)) % 2) + 2) % 2;
-  return isoOf(new Date(sun.getFullYear(), sun.getMonth(), sun.getDate() - 7 * k));
+  return isoOf(new Date(y, m - 1, d - 7 * k));
 };
+// Day n of a Tuesday week (1 = Tuesday ... 7 = Monday).
+const weekDayName = (n) => DAYN[(n + 1) % 7];
 const dayDiff = (a, b) => Math.round((new Date(`${a}T12:00:00`) - new Date(`${b}T12:00:00`)) / 864e5);
 
 function periodLabel(freq, start, end) {
@@ -48,9 +52,9 @@ function windowText(t) {
   if (t.frequency === 'biweekly') {
     if (!n || n >= 14) return 'Any time in the 2 weeks';
     if (n === 7) return 'Done that week (every other week)';
-    return `Due by ${n <= 7 ? '' : 'the second '}${DAYN[(n - 1) % 7]} that week (every other week)`;
+    return `Due by ${n <= 7 ? '' : 'the second '}${weekDayName(((n - 1) % 7) + 1)} that week (every other week)`;
   }
-  if (t.frequency === 'weekly') return n ? (n >= 7 ? 'Any time in the week' : `Due by ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][n - 1]} each week`) : 'Any time in the week';
+  if (t.frequency === 'weekly') return n ? (n >= 7 ? 'Any time in the week' : `Due by ${weekDayName(n)} each week`) : 'Any time in the week';
   const sd = t.start_day || 1;
   const sm = t.start_month || 1;
   const starts = t.frequency === 'monthly' ? [null] : t.frequency === 'quarterly' ? [0, 3, 6, 9].map((k) => ((sm - 1 + k) % 12) + 1) : [sm];
@@ -216,7 +220,7 @@ export function schedulePages(ctx) {
 
   function calendarView(tasks, runs, today) {
     const WEEKS = 17;
-    const start = addD(today, -new Date(`${today}T12:00:00`).getDay());
+    const start = weekStart(today);
     const end = addD(start, WEEKS * 7 - 1);
     const active = tasks.filter((t) => t.active && !t.parent_id);
     const byId = Object.fromEntries(tasks.map((t) => [t.id, t]));
@@ -274,7 +278,7 @@ export function schedulePages(ctx) {
     const [y, m, d] = parts(today);
     const iso = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
     const after = (dt) => iso(dt) > today;
-    if (t.frequency === 'weekly') { const dt = new Date(y, m - 1, d); dt.setDate(dt.getDate() + 7 - dt.getDay()); return iso(dt); }
+    if (t.frequency === 'weekly') return addD(weekStart(today), 7);
     if (t.frequency === 'biweekly') return addD(fortnightStart(today, t.start_day || 1), 14);
     const sd = t.start_day || 1;
     for (let k = 0; k <= 24; k += 1) {
@@ -380,9 +384,10 @@ export function schedulePages(ctx) {
   // Asks it the way people think about it: how often, which month(s), and
   // when in that month it should get done. That is stored as a start day and
   // a number of days (start_day / due_days), which the database schedules from.
-  const WEEK_WIN = [['any', 'Any day that week', null], ['mon', 'By Monday', 2], ['wed', 'By Wednesday', 4], ['fri', 'By Friday', 6]];
+  // Weeks run Tuesday-Monday: day 1 = Tuesday.
+  const WEEK_WIN = [['any', 'Any day that week', null], ['wed', 'By Wednesday', 2], ['fri', 'By Friday', 4], ['sat', 'By Saturday', 5], ['sun', 'By Sunday', 6]];
   // Every 2 weeks: you pick the week it's done in; it shows up that week.
-  const BIWEEK_WIN = [['w1', 'Any day that week', 7], ['fri1', 'By Friday that week', 6], ['any', 'Any time in the 2 weeks', null]];
+  const BIWEEK_WIN = [['w1', 'Any day that week', 7], ['fri1', 'By Friday that week', 4], ['any', 'Any time in the 2 weeks', null]];
   const LEADS = [[3, '3 days'], [7, '1 week'], [14, '2 weeks'], [21, '3 weeks'], [30, '30 days']];
   const MONTH_WIN = [['any', 'Any time', 1, null], ['w1', 'First week (1st–7th)', 1, 7], ['w2', 'First 2 weeks (1st–14th)', 1, 14], ['h2', 'Second half (15th–28th)', 15, 14]];
   const ord = (n) => `${n}${['th', 'st', 'nd', 'rd'][(n % 10 > 3 || Math.floor(n / 10) % 10 === 1) ? 0 : n % 10]}`;
@@ -463,7 +468,7 @@ export function schedulePages(ctx) {
           <div class="wk-chips">${MON.map((mn, i) => `<button type="button" class="chip-btn" data-month="${i + 1}">${mn}</button>`).join('')}</div></div>` : ''}
         <div data-for="biweekly"><div class="wk-sect">Which week to do it</div>
           <div class="wk-chips">${[1, 2].sort((x, y) => (fortnightStart(todayIso, y) > fortnightStart(todayIso, x) ? 1 : -1)).map((pp) => {
-            const thisSun = addD(todayIso, -new Date(`${todayIso}T12:00:00`).getDay());
+            const thisSun = weekStart(todayIso);
             const s0 = fortnightStart(todayIso, pp);
             const first = s0 === thisSun ? thisSun : addD(s0, 14);
             const label = first === thisSun ? 'This week' : 'Next week';
@@ -504,7 +509,7 @@ export function schedulePages(ctx) {
         $('[data-wins]').innerHTML = [...winChoices(), ['custom', freq === 'weekly' ? 'Other' : 'Pick the days']].map(([k, l]) => `<button type="button" class="chip-btn${win === k ? ' on' : ''}" data-win="${k}">${l}</button>`).join('');
         $('[data-custom-row]').innerHTML = win !== 'custom' ? ''
           : freq === 'biweekly' ? `<label class="pm-day">Within the first <input name="to" type="number" min="1" max="14" value="${esc(to)}"> days <span class="muted">(starting Sunday)</span></label>`
-          : freq === 'weekly' ? `<label class="pm-day">Within the first <input name="to" type="number" min="1" max="7" value="${esc(to)}"> days of the week <span class="muted">(weeks start Sunday)</span></label>`
+          : freq === 'weekly' ? `<label class="pm-day">Within the first <input name="to" type="number" min="1" max="7" value="${esc(to)}"> days of the week <span class="muted">(weeks start Tuesday)</span></label>`
             : `<label class="pm-day">From the <input name="from" type="number" min="1" max="28" value="${esc(from)}"> to the <input name="to" type="number" min="1" max="31" value="${esc(to)}" placeholder="any"> <span class="muted">of the month</span></label>`;
         $('[data-custom-row]').querySelectorAll('input').forEach((i) => i.addEventListener('input', () => { if (i.name === 'from') from = i.value; else to = i.value; preview(); }));
         $('[data-wins]').querySelectorAll('[data-win]').forEach((b) => b.addEventListener('click', () => { win = b.dataset.win; drawWins(); preview(); }));

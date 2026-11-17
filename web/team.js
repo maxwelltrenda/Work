@@ -37,7 +37,8 @@ export function teamPages(ctx) {
     const last = iso(new Date(firstD.getFullYear(), firstD.getMonth() + 1, 0));
     const gridEnd = addDays(last, 6 - fromIso(last).getDay());
     const listEnd = addDays(today, 90);
-    const weekStart = addDays(today, -fromIso(today).getDay() + weekOffset * 7);
+    // The Facilities week runs Tuesday to Monday.
+    const weekStart = addDays(today, -((fromIso(today).getDay() + 5) % 7) + weekOffset * 7);
     const weekDays = [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(weekStart, i));
     const from = [gridStart, today, weekStart].sort()[0];
     const to = [gridEnd, listEnd, weekDays[6]].sort()[2];

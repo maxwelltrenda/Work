@@ -10,7 +10,8 @@ export const REQ_GROUPS = [
 ];
 const SUB_STATUSES = ['Working on it', 'Done', 'Stuck'];
 const CHECK_STATUSES = ['Not started', 'Working on it', 'Done', 'Skipped', 'Missed'];
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Detail Work'];
+// The Facilities week runs Tuesday to Monday.
+const DAYS = ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Detail Work'];
 const AREAS = ['Building', 'Offices', 'Sign-off'];
 const SUPPORT_TEAMS = ['Maintenance', 'Custodial/Cleaning', 'Warehouse (Old Foodbank Area)', 'Operational Support (Storage, Furniture, Ops Team Project)'];
 const PRIORITIES = ['Emergency (<1 hour)', 'Priority (<3 business days)', 'Specific Due Date needed'];
@@ -452,7 +453,9 @@ export function boardPages(ctx) {
     const done = tasks.filter((t) => t.status === 'Done').length;
     const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
-    const order = [todayName, ...DAYS.filter((d) => d !== todayName)];
+    // Today first, then the rest of the week, then the days already past.
+    const ti = DAYS.indexOf(todayName);
+    const order = [...DAYS.slice(ti, 7), ...DAYS.slice(0, ti), 'Detail Work'];
 
     app.innerHTML = `
       <header class="page-head b-simplehead dept-custodial"><div><div class="eyebrow dept-tag">Custodial</div><h1>Custodial <span class="accent">checklist</span></h1></div></header>
@@ -732,7 +735,7 @@ export function boardPages(ctx) {
           if (repeat !== 'monthly' || !week) return true;
           const [y, m, d0] = String(week).split('-').map(Number);
           const i = DOW.indexOf(fields.day);
-          return new Date(y, m - 1, d0 + (i < 0 ? 6 : i)).getDate() <= 7;
+          return new Date(y, m - 1, d0 + (i < 0 ? 4 : (i + 5) % 7)).getDate() <= 7;   // weeks start Tuesday
         };
         try {
           // The template row and its steps.
