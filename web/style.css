@@ -1516,3 +1516,25 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 /* Maintenance cards: people and timer like Custodial */
 .pm-actions { align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .pm-card.running { border-color: var(--accent); }
+
+/* My day */
+.md-sect { margin-bottom: 22px; }
+.md-sect h2 { margin-bottom: 8px; }
+.md-list { padding: 4px 16px; }
+.md-row { display: grid; grid-template-columns: 100px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); }
+.md-row:first-child { border-top: 0; }
+.md-tag { justify-self: start; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 999px; background: var(--paper-2); color: var(--body); }
+.md-tag.cust { background: #e2ebf4; color: #2f5d8a; }
+.md-tag.maint { background: #fbe9dc; color: #a2440f; }
+.md-tag.req { background: var(--accent-soft); color: var(--accent); }
+.md-tag.todo { background: #ece9e3; color: var(--ink); }
+.md-tag.pulled { background: var(--warn-soft); color: var(--warn); }
+.md-body { display: flex; flex-direction: column; min-width: 0; }
+.md-body span { font-size: 13px; color: var(--muted); }
+.md-act { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.md-live { font-weight: 700; color: var(--in); font-variant-numeric: tabular-nums; }
+.md-late { color: var(--bad); }
+.md-now .md-list { border-color: var(--in); box-shadow: 0 0 0 1px var(--in) inset; }
+.md-empty { margin: 0 0 6px; }
+@media (max-width: 640px) { .md-row { grid-template-columns: minmax(0, 1fr) auto; } .md-tag { grid-column: 1 / -1; } }
+.md-sect h2 .muted { font: 400 14px var(--sans); text-transform: none; letter-spacing: 0; margin-left: 6px; }

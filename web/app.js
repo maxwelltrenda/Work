@@ -13,6 +13,7 @@ import { overviewPages } from './overview.js?v=__V__';
 import { myTaskPages } from './mytasks.js?v=__V__';
 import { mountAssistant } from './assistant.js?v=__V__';
 import { paintSpotPages } from './paintspots.js?v=__V__';
+import { myDayPages } from './myday.js?v=__V__';
 
 // Demo mode (?demo): the Facilities app with sample data, no login, nothing
 // saved. It never connects to the real database (demo.js).
@@ -130,13 +131,13 @@ const ROLES = {
     scanStock: ['facilities', 'maintenance', 'paint', 'events'], scanTools: true,
     pages: ['kiosk', 'out', 'events', 'event'] },
   // Team roles scan their own area from their own login (phone camera or scanner).
-  member: { label: 'Facilities & Maintenance', act: false, home: 'kiosk', stock: ['facilities', 'maintenance', 'paint'], tools: true,
+  member: { label: 'Facilities & Maintenance', act: false, home: 'myday', stock: ['facilities', 'maintenance', 'paint'], tools: true,
     scanStock: ['facilities', 'maintenance', 'paint'], scanTools: true,
     pages: ['kiosk', 'requests', 'request', 'checklist', 'schedule', 'items/facilities', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
-  maintenance: { label: 'Maintenance manager', act: false, home: 'schedule', stock: ['maintenance', 'paint'], tools: true,
+  maintenance: { label: 'Maintenance manager', act: false, home: 'myday', stock: ['maintenance', 'paint'], tools: true,
     scanStock: ['maintenance', 'paint'], scanTools: true,
     pages: ['kiosk', 'requests', 'request', 'checklist', 'schedule', 'contractors', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
-  custodian: { label: 'Custodian manager', act: false, home: 'checklist', stock: ['facilities'], tools: false,
+  custodian: { label: 'Custodian manager', act: false, home: 'myday', stock: ['facilities'], tools: false,
     scanStock: ['facilities'], scanTools: false,
     pages: ['kiosk', 'checklist', 'requests', 'request', 'items/facilities', 'history', 'item'] },
   oversight: { label: 'Oversight', act: false, home: 'out', stock: ['facilities', 'maintenance', 'paint', 'events'], tools: true,
@@ -218,7 +219,7 @@ function sitePages() {
     return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history',
       ...(mr === 'lead' ? ['labels', 'categories', 'people', 'notifications'] : [])];
   }
-  return [...myRole().pages.filter((p) => p !== 'events' && p !== 'items/events'), ...(canSeeNotifs() ? ['notifications'] : []), ...(isKiosk() ? [] : ['team', 'mytasks'])];
+  return [...myRole().pages.filter((p) => p !== 'events' && p !== 'items/events'), ...(canSeeNotifs() ? ['notifications'] : []), ...(isKiosk() ? [] : ['myday', 'team', 'mytasks'])];
 }
 const siteHome = () => (SITE === 'events' ? (siteRole().scanTools ? 'kiosk' : 'events') : SITE === 'media' ? (mediaRole() ? 'kiosk' : 'toollist') : myRole().home);
 
@@ -258,7 +259,7 @@ const NAV = {
 };
 // Facilities: a few tabs, each with its pages in a row of sub-tabs underneath.
 const NAV_GROUPS = [
-  { key: 'home', label: 'Home', icon: 'overview', pages: [['overview', 'Overview'], ['mytasks', 'My tasks'], ['gameplan', 'Weekend plan']] },
+  { key: 'home', label: 'Home', icon: 'overview', pages: [['myday', 'My day'], ['overview', 'Overview'], ['mytasks', 'My tasks'], ['gameplan', 'Weekend plan']] },
   { key: 'work', label: 'Work', icon: 'checklist', pages: [['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['contractors', 'Contractors']] },
   { key: 'inventory', label: 'Inventory', icon: 'items', pages: [['kiosk', 'Check In / Out'], ['items', 'Stock'], ['toollist', 'Tools'], ['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock']] },
   { key: 'team', label: 'Team', icon: 'team', pages: [['team', 'Schedule'], ['people', 'People']] },
@@ -880,6 +881,7 @@ const routes = {
   gameplan: () => GAMEPLAN.renderGameplan(),
   overview: () => OVERVIEW.renderOverview(),
   mytasks: (id) => MYTASKS.renderMyTasks(id || null),
+  myday: () => MYDAY.renderMyDay(),
 };
 
 // Maintenance Requests and the Weekly Checklist (boards.js). Editing: admin and
@@ -904,6 +906,8 @@ const PAINTSPOTS = paintSpotPages({
     return { items, sum: Object.fromEntries(items.map((i) => [i.id, paintSummary(cans.filter((c) => c.item_id === i.id))])) };
   },
 });
+// My day (myday.js): each person's home: clocked in now, ready to do, up for grabs.
+const MYDAY = myDayPages({ sb, q, rpc, esc, toast, errMsg, me: () => state.me });
 const MYTASKS = myTaskPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, me: () => state.me, isAdmin });
 const OVERVIEW = overviewPages({ sb, q, rpc, esc, me: () => state.me });
 const GAMEPLAN = gameplanPages({ rpc, esc, toast, errMsg, pageHead });
@@ -3545,7 +3549,7 @@ const markFullscreen = () => {
 };
 markFullscreen();
 window.addEventListener('resize', markFullscreen);
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/mytasks.js', '/assistant.js', '/paintspots.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/mytasks.js', '/assistant.js', '/paintspots.js', '/myday.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {
