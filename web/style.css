@@ -1604,3 +1604,5 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .ev-job { padding: 14px 16px; border-left: 5px solid #2d6a62; }
 .ev-job-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .ev-job-top > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pm-prep .pm-prep-from, .pm-prep .dd:has(.pm-prep-from) { grid-column: 1 / -1; }
+@media (max-width: 560px) { .pm-prep .pm-prep-from, .pm-prep .dd:has(.pm-prep-from) { grid-column: 1 / -1; } }

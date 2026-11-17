@@ -477,7 +477,7 @@ const RPC = {
     (p_preps || []).forEach((e) => {
       let c = e.id && db.pm_tasks.find((x) => loose(x.id, e.id) && x.parent_id === p_parent);
       if (!c) c = pm({ parent_id: p_parent, active_since: TODAY });
-      Object.assign(c, { name: e.name, lead_days: e.lead_days, frequency: db.pm_tasks.find((x) => x.id === p_parent).frequency, active: true });
+      Object.assign(c, { name: e.name, lead_days: e.lead_days, contractor_id: e.vendor_id || null, frequency: db.pm_tasks.find((x) => x.id === p_parent).frequency, active: true });
       keep.push(c.id);
     });
     db.pm_tasks.filter((c) => c.parent_id === p_parent && !keep.includes(c.id)).forEach((c) => { c.active = false; });

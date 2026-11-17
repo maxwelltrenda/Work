@@ -376,7 +376,7 @@ export function schedulePages(ctx) {
   // "Done by a contractor" line with tap-to-call / email.
   const ctLine = (t) => {
     const c = ctBy(t.contractor_id);
-    return c ? `<span class="pm-ct"><span class="pm-ct-tag">Contractor</span> <b>${esc(c.name)}</b>${contractorContact(c, esc) ? ` · ${contractorContact(c, esc)}` : ''}</span>` : '';
+    return c ? `<span class="pm-ct"><span class="pm-ct-tag">${t.parent_id ? 'Get it from' : 'Contractor'}</span> <b>${esc(c.name)}</b>${contractorContact(c, esc) ? ` · ${contractorContact(c, esc)}` : ''}</span>` : '';
   };
   function runCard(r, t, who, today, parent = null) {
     const isDone = r.status === 'done';
@@ -425,7 +425,7 @@ export function schedulePages(ctx) {
     const active = top.filter((t) => t.active);
     const archived = top.filter((t) => !t.active);
     const LEAD = (n) => (n % 7 === 0 ? `${n / 7} week${n === 7 ? '' : 's'}` : `${n} day${n === 1 ? '' : 's'}`);
-    const prepLine = (t) => { const ps = tasks.filter((c) => c.parent_id === t.id && c.active); return ps.length ? `<span class="muted pm-prepline">Get ready: ${ps.map((c) => `${esc(c.name)} · ${LEAD(c.lead_days)} before`).join(' · ')}</span>` : ''; };
+    const prepLine = (t) => { const ps = tasks.filter((c) => c.parent_id === t.id && c.active); return ps.length ? `<span class="muted pm-prepline">Get ready: ${ps.map((c) => `${esc(c.name)} · ${LEAD(c.lead_days)} before${ctBy(c.contractor_id) ? ` · from ${esc(ctBy(c.contractor_id).name)}` : ''}`).join(' · ')}</span>` : ''; };
     const rows = (list) => `<div class="pm-tasks">${list.map((t) => `<button type="button" class="pm-task-row${t.active ? '' : ' off'}" data-pm-edit="${t.id}">
         <b>${esc(t.name)}</b><span class="muted">${FREQ_LABEL[t.frequency]} · ${windowText(t)}${t.location ? ` · ${esc(t.location)}` : ''}${ctBy(t.contractor_id) ? ` · Contractor: ${esc(ctBy(t.contractor_id).name)}` : ''}${onIt(t).length ? ` · On it: ${onIt(t).map(esc).join(', ')}` : ''}</span>${prepLine(t)}<span class="pm-edit">Edit</span></button>`).join('')}</div>`;
     return `${top.length ? '' : '<div class="card pm-empty"><b>No tasks yet.</b><p class="muted">Use <b>+ Add task</b> above to add your first recurring job.</p></div>'}
@@ -473,7 +473,7 @@ export function schedulePages(ctx) {
     let from = 1;
     let to = '';
     let parity = 1;   // every 2 weeks: which Sunday it starts on (1 or 2)
-    let prepList = (t.preps || []).map((c) => ({ id: c.id, name: c.name, lead: c.lead_days || 7 }));
+    let prepList = (t.preps || []).map((c) => ({ id: c.id, name: c.name, lead: c.lead_days || 7, vendor: c.contractor_id || null }));
     const todayIso = isoOf(new Date());
     let ctId = t.contractor_id || null;
     let people = new Set(t.assignees || []);
@@ -588,9 +588,18 @@ export function schedulePages(ctx) {
             <input data-pn="${i}" value="${esc(c.name)}" placeholder="e.g. Order filters" aria-label="Get-ready step">
             <select data-pl="${i}" aria-label="How long before">${[...LEADS, ...(LEADS.some(([v]) => v === c.lead) ? [] : [[c.lead, `${c.lead} days`]])].map(([v, l]) => `<option value="${v}" ${v === c.lead ? 'selected' : ''}>${l} before</option>`).join('')}</select>
             <button type="button" class="pm-prep-x" data-pr="${i}" aria-label="Remove">×</button>
+            <select class="pm-prep-from" data-pv="${i}" aria-label="Where we get it"><option value="">Where we get it (optional)</option>${contractors.filter((x) => x.active || x.id === c.vendor).map((x) => `<option value="${x.id}" ${x.id === c.vendor ? 'selected' : ''}>From: ${esc(x.name)}${x.trade ? ` · ${esc(x.trade)}` : ''}</option>`).join('')}${ctx.isAdmin?.() ? '<option value="new">+ New place…</option>' : ''}</select>
             ${st ? `<span class="muted pm-prep-when">Next: ${dshort(addD(st, -c.lead))} – ${dshort(addD(st, -1))}, before the ${dshort(st)} round</span>` : ''}</div>`).join('');
         $('[data-preps]').querySelectorAll('[data-pn]').forEach((x) => x.addEventListener('input', () => { prepList[x.dataset.pn].name = x.value; }));
         $('[data-preps]').querySelectorAll('[data-pl]').forEach((x) => x.addEventListener('change', () => { prepList[x.dataset.pl].lead = Number(x.value); drawPreps(); }));
+        $('[data-preps]').querySelectorAll('[data-pv]').forEach((x) => x.addEventListener('change', async () => {
+          if (x.value === 'new') {
+            const row = await ctx.contractors.editContractor({});
+            if (row) { contractors = [...contractors, row].sort((a, b) => a.name.localeCompare(b.name)); prepList[x.dataset.pv].vendor = row.id; }
+            drawPreps(); return;
+          }
+          prepList[x.dataset.pv].vendor = Number(x.value) || null;
+        }));
         $('[data-preps]').querySelectorAll('[data-pr]').forEach((x) => x.addEventListener('click', () => { prepList.splice(Number(x.dataset.pr), 1); drawPreps(); }));
       };
       const drawCt = () => {
@@ -683,7 +692,7 @@ export function schedulePages(ctx) {
           const ppl = [...people];
           if (shared !== !!t.shared_events) await rpc('pm_set_shared', { p_task: t.id || id, p_on: shared });
           if (ppl.sort().join() !== [...(t.assignees || [])].sort().join()) await rpc('pm_set_assignees', { p_task: t.id || id, p_people: ppl });
-          if (freq !== 'once' && (editing || keep.length)) await rpc('pm_set_preps', { p_parent: t.id || id, p_preps: keep.map((c) => ({ id: c.id || null, name: c.name.trim(), lead_days: c.lead })) });
+          if (freq !== 'once' && (editing || keep.length)) await rpc('pm_set_preps', { p_parent: t.id || id, p_preps: keep.map((c) => ({ id: c.id || null, name: c.name.trim(), lead_days: c.lead, vendor_id: c.vendor || null })) });
           changed = true;
           toast(editing ? 'Saved' : `Added “${name}” to the schedule`);
           if (!again) return done();
