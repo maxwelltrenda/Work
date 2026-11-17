@@ -141,7 +141,7 @@ export function schedulePages(ctx) {
     const dueSoon = current.filter((r) => r.status === 'open' && r.due_on >= today && dayDiff(r.due_on, today) <= 7);
     const done = current.filter((r) => r.status === 'done');
     const active = tasks.filter((t) => t.active && !t.parent_id);
-    const tabs = [['now', 'This period'], ['tasks', `All tasks <b>${active.length}</b>`], ['history', 'History']];
+    const tabs = [['now', 'This period'], ['calendar', 'Calendar'], ['tasks', `All tasks <b>${active.length}</b>`], ['history', 'History']];
 
     app.innerHTML = `
       <div class="dept-maint">${pageHead('<span class="dept-tag">Maintenance</span>', 'Maintenance <span class="accent">checklist</span>', 'Weekly, monthly, quarterly and yearly upkeep. Each list starts over on its own when the next week, month, quarter or year begins.')}</div>
@@ -153,9 +153,88 @@ export function schedulePages(ctx) {
       ${pw ? pulled.block('maintenance', pw) : ''}
       <div class="pm-bar"><div class="seg">${tabs.map(([k, t]) => `<a href="#/schedule${k === 'now' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
         <button class="btn primary" data-pm-new>+ Add task</button></div>
-      <div id="pm-view">${view === 'tasks' ? taskList(tasks, locations) : view === 'history' ? history(runs, taskBy, who, today) : nowView(current, taskBy, who, today, active)}</div>`;
+      <div id="pm-view">${view === 'tasks' ? taskList(tasks, locations) : view === 'calendar' ? calendarView(tasks, runs, today) : view === 'history' ? history(runs, taskBy, who, today) : nowView(current, taskBy, who, today, active)}</div>`;
 
     bind(view, tasks, current);
+  }
+
+  // ---- Calendar: every task placed in the weeks it's due -------------------
+  // So you can see which weeks are busy and which are open before adding one.
+  function windowsOf(t, from, to) {
+    const out = [];
+    const n = t.due_days || null;
+    if (t.frequency === 'once') { if (t.once_due) out.push([t.once_start && t.once_start < t.once_due ? t.once_start : t.once_due, t.once_due]); return out; }
+    if (t.frequency === 'weekly') {
+      for (let s = from; s <= to; s = addD(s, 7)) out.push([s, addD(s, Math.min(n || 7, 7) - 1)]);
+      return out;
+    }
+    if (t.frequency === 'biweekly') {
+      for (let s = fortnightStart(from, t.start_day || 1); s <= to; s = addD(s, 14)) out.push([s, addD(s, Math.min(n || 14, 14) - 1)]);
+      return out;
+    }
+    const sd = t.start_day || 1;
+    const [y, m] = parts(from);
+    for (let k = -12; k <= 8; k += 1) {
+      const dt = new Date(y, m - 1 + k, 1);
+      const mm = dt.getMonth() + 1;
+      const ok = t.frequency === 'monthly' || (t.frequency === 'quarterly' && (mm - 1) % 3 === ((t.start_month || 1) - 1) % 3) || (t.frequency === 'yearly' && mm === (t.start_month || 1));
+      if (!ok) continue;
+      const a = isoOf(new Date(dt.getFullYear(), dt.getMonth(), sd));
+      const b = n ? addD(a, n - 1) : isoOf(new Date(dt.getFullYear(), dt.getMonth() + STEP[t.frequency], sd - 1));
+      if (b >= from && a <= to) out.push([a, b]);
+    }
+    return out;
+  }
+
+  function calendarView(tasks, runs, today) {
+    const WEEKS = 17;
+    const start = addD(today, -new Date(`${today}T12:00:00`).getDay());
+    const end = addD(start, WEEKS * 7 - 1);
+    const active = tasks.filter((t) => t.active && !t.parent_id);
+    const byId = Object.fromEntries(tasks.map((t) => [t.id, t]));
+    const items = [];
+    active.forEach((t) => windowsOf(t, start, end).forEach(([a, b]) => {
+      const done = runs.some((r) => r.task_id === t.id && r.status === 'done' && r.period_start <= b && r.period_end >= a);
+      items.push({ t, a, b, kind: dayDiff(b, a) < 14 ? 'fixed' : 'flex', done });
+      if (t.frequency !== 'once') tasks.filter((c) => c.parent_id === t.id && c.active && c.lead_days)
+        .forEach((c) => items.push({ t: c, parent: t, a: addD(a, -c.lead_days), b: addD(a, -1), kind: 'prep', done: runs.some((r) => r.task_id === c.id && r.status === 'done' && r.period_end === addD(a, -1)) }));
+    }));
+    const FCLS = { once: 'f-once', weekly: 'f-week', biweekly: 'f-2wk', monthly: 'f-month', quarterly: 'f-quarter', yearly: 'f-year' };
+    const chip = (x) => {
+      const t = x.t;
+      const freq = x.parent ? x.parent.frequency : t.frequency;
+      const range = dayDiff(x.b, x.a) < 7 ? '' : ` <span class="cal-rng">${dshort(x.a)}–${dshort(x.b)}</span>`;
+      return `<button type="button" class="cal-chip ${x.kind} ${FCLS[freq] || ''}${x.done ? ' done' : ''}" data-pm-edit="${(x.parent || t).id}" title="${esc(FREQ_LABEL[freq] || '')}${x.kind === 'prep' ? ` · get ready for ${esc(x.parent.name)}` : ''}">
+        ${x.kind === 'prep' ? '<span class="cal-k">Get ready</span> ' : ''}${esc(t.name)}${x.kind === 'fixed' ? ` <span class="cal-rng">by ${esc(DAYN[new Date(`${x.b}T12:00:00`).getDay()].slice(0, 3))} ${dshort(x.b)}</span>` : range}</button>`;
+    };
+    let lastMonth = '';
+    const rows = [];
+    for (let w = 0; w < WEEKS; w += 1) {
+      const ws = addD(start, w * 7);
+      const we = addD(ws, 6);
+      const here = items.filter((x) => x.a <= we && x.b >= ws);
+      const fixed = here.filter((x) => x.kind !== 'flex');
+      const flex = [];
+      const mid = addD(ws, 3);
+      const mon = MON[parts(mid)[1] - 1];
+      if (mon !== lastMonth) {
+        // Tasks that can be done any time in a long stretch: once per month, not in every week.
+        const [yy, mm] = parts(mid);
+        const ms = isoOf(new Date(yy, mm - 1, 1));
+        const me = isoOf(new Date(yy, mm, 0));
+        const seen = new Set();
+        const longOnes = items.filter((x) => x.kind === 'flex' && x.a <= me && x.b >= ms && !seen.has(x.t.id) && seen.add(x.t.id));
+        rows.push(`<div class="cal-month">${mon} ${yy}</div>${longOnes.length ? `<div class="cal-anytime"><span>Any time in a longer stretch:</span>${longOnes.map(chip).join('')}</div>` : ''}`);
+        lastMonth = mon;
+      }
+      rows.push(`<div class="cal-week${w === 0 ? ' now' : ''}${fixed.length ? '' : ' open'}">
+        <div class="cal-when"><b>${dshort(ws)} – ${dshort(we)}</b>${w < 2 ? `<span>${w === 0 ? 'This week' : 'Next week'}</span>` : ''}
+          <span class="cal-load ${fixed.length ? (fixed.length >= 3 ? 'busy' : '') : 'free'}">${fixed.length ? `${fixed.length} due` : 'Open'}</span></div>
+        <div class="cal-items">${fixed.map(chip).join('')}${flex.length ? `<div class="cal-flex">${flex.map(chip).join('')}</div>` : ''}${!here.length ? '<span class="muted cal-none">Nothing scheduled</span>' : ''}</div></div>`);
+    }
+    return `<div class="cal-help card"><b>How to read this</b><span>Each row is a week, with the tasks due in it. <b class="cal-load free">Open</b> weeks have nothing due, so they're a good spot for a new task. Tasks that can be done any time in a month or longer are listed once under the month. Tap a task to change it.</span>
+        <div class="cal-legend">${[['f-week', 'Weekly'], ['f-2wk', 'Every 2 weeks'], ['f-month', 'Monthly'], ['f-quarter', 'Quarterly'], ['f-year', 'Yearly'], ['f-once', 'One time']].map(([c, l]) => `<span class="cal-chip fixed ${c}">${l}</span>`).join('')}</div></div>
+      <div class="cal">${rows.join('')}</div>`;
   }
 
   // ---- This period -------------------------------------------------------
