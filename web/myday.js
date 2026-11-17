@@ -45,21 +45,25 @@ export function myDayPages(ctx) {
       safe(q(sb.from('maint_requests').select('*').neq('board_group', 'solved')), []),
     ]);
     const taskBy = Object.fromEntries(pmTasks.map((t) => [t.id, t]));
+    const whoName = Object.fromEntries((await safe(q(sb.from('team_members').select('id, name')), [])).map((m) => [m.id, m.name]));
     const myStepsOf = (t) => Object.entries(t?.step_people || {}).filter(([, ids]) => (ids || []).includes(person.id)).map(([s]) => s);
     const pmMine = (r) => (taskBy[r.task_id]?.assignees || []).includes(person.id) || myStepsOf(taskBy[r.task_id]).length > 0;
     const pmCurrent = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today);
 
     // ---- clocked in now
-    const nowCk = ck.filter((t) => t.timer_started_at && onMe(t.who));
-    const nowPm = pmCurrent.filter((r) => r.timer_started_at && pmMine(r));
+    // Clocked in = I pressed Start (not just: I'm on the task).
+    const meIn = (t) => (t.clocked || []).some((n) => String(n).toLowerCase() === lc);
+    const meInPm = (r) => (r.clocked || []).includes(person.id);
+    const nowCk = ck.filter((t) => t.timer_started_at && meIn(t));
+    const nowPm = pmCurrent.filter((r) => r.timer_started_at && meInPm(r));
     const nowReq = reqs.filter((r) => r.timer_started_at && (r.experts || []).some((e) => e.toLowerCase() === lc));
 
     // ---- mine, ready to do
     const open = (t) => !['Done', 'Skipped', 'Missed'].includes(t.status);
-    const ckMine = ck.filter((t) => open(t) && onMe(t.who) && !t.timer_started_at);
+    const ckMine = ck.filter((t) => open(t) && onMe(t.who) && !meIn(t));
     const ckToday = ckMine.filter((t) => t.day === todayName);
     const ckLater = ckMine.filter((t) => t.day !== todayName).sort((a, b) => WEEK.indexOf(a.day) - WEEK.indexOf(b.day));
-    const pmReady = pmCurrent.filter((r) => pmMine(r) && !r.timer_started_at).sort((a, b) => String(a.due_on).localeCompare(String(b.due_on)));
+    const pmReady = pmCurrent.filter((r) => pmMine(r) && !meInPm(r)).sort((a, b) => String(a.due_on).localeCompare(String(b.due_on)));
     const reqMine = reqs.filter((r) => !r.timer_started_at && (r.experts || []).some((e) => e.toLowerCase() === lc));
     const todoNow = todos.filter((t) => !t.due_on || t.due_on <= today).sort((a, b) => String(a.due_on || '9').localeCompare(String(b.due_on || '9')));
     const todoLater = todos.filter((t) => t.due_on && t.due_on > today).sort((a, b) => a.due_on.localeCompare(b.due_on));
@@ -72,11 +76,11 @@ export function myDayPages(ctx) {
     const row = ({ tag, cls, title, meta, actions, notes = '' }) => `<div class="md-row"><span class="md-tag ${cls}">${tag}</span>
       <div class="md-body"><b>${title}</b>${meta ? `<span>${meta}</span>` : ''}${notes}</div><div class="md-act">${actions || ''}</div></div>`;
     const ckRow = (t, running) => row({ tag: 'Custodial', cls: 'cust', title: esc(t.name),
-      meta: [running ? `${live(t.worked_seconds, t.timer_started_at)} · since ${clock(t.timer_started_at)}` : t.worked_seconds ? `${dur(t.worked_seconds)} so far` : '', t.day && t.day !== todayName ? t.day : '', names(t.who).length > 1 ? `with ${names(t.who).filter((n) => n.toLowerCase() !== lc).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
+      meta: [running ? `${live(t.worked_seconds, t.timer_started_at)} · since ${clock(t.timer_started_at)}` : t.timer_started_at && (t.clocked || []).length ? `<b>${(t.clocked || []).map((n) => esc(String(n).split(' ')[0])).join(', ')} clocked in</b>` : t.worked_seconds ? `${dur(t.worked_seconds)} so far` : '', t.day && t.day !== todayName ? t.day : '', names(t.who).length > 1 ? `with ${names(t.who).filter((n) => n.toLowerCase() !== lc).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
       notes: notesList(ckN[t.id], esc, person.id, isAdmin?.()),
       actions: `${noteButton('custodial', t.id, (ckN[t.id] || []).length)}<button class="btn small${running ? ' b-running' : ''}" data-md-ck="${t.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-ckdone="${t.id}">✓ Done</button>` });
     const pmRow = (r, running) => { const t = taskBy[r.task_id]; return row({ tag: t.parent_id ? 'Get ready' : 'Maintenance', cls: 'maint', title: esc(t.name),
-      meta: [running ? `${live(r.worked_seconds, r.timer_started_at)} · since ${clock(r.timer_started_at)}` : r.worked_seconds ? `${dur(r.worked_seconds)} so far` : '', t.location ? esc(t.location) : '', r.due_on ? `${r.due_on < today ? '<b class="md-late">Late</b> · was due' : 'due'} ${dshort(r.due_on)}` : '', (t.steps || []).length ? `${(r.steps_done || []).length}/${t.steps.length} steps` : '', myStepsOf(t).length ? `<b>Your steps:</b> ${myStepsOf(t).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
+      meta: [running ? `${live(r.worked_seconds, r.timer_started_at)} · since ${clock(r.timer_started_at)}` : r.timer_started_at && (r.clocked || []).length ? `<b>${(r.clocked || []).map((id) => esc(String(whoName[id] || 'Someone').split(' ')[0])).join(', ')} clocked in</b>` : r.worked_seconds ? `${dur(r.worked_seconds)} so far` : '', t.location ? esc(t.location) : '', r.due_on ? `${r.due_on < today ? '<b class="md-late">Late</b> · was due' : 'due'} ${dshort(r.due_on)}` : '', (t.steps || []).length ? `${(r.steps_done || []).length}/${t.steps.length} steps` : '', myStepsOf(t).length ? `<b>Your steps:</b> ${myStepsOf(t).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
       notes: notesList(pmN[r.id], esc, person.id, isAdmin?.()),
       actions: `${noteButton('maintenance', r.id, (pmN[r.id] || []).length)}<button class="btn small${running ? ' b-running' : ''}" data-md-pm="${r.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-pmdone="${r.id}">✓ Done</button>` }); };
     const reqRow = (r, running) => row({ tag: 'Request', cls: 'req', title: `<a href="#/request/${r.id}">${esc(r.subject)}</a>`,

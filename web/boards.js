@@ -604,13 +604,14 @@ export function boardPages(ctx) {
       <div class="b-taskrow">
         <button class="b-tick${isDone ? ' on' : ''}" data-tick="${t.id}" data-done="${isDone ? 1 : 0}" aria-label="${isDone ? 'Mark not done' : 'Mark done'}: ${esc(t.name)}"${ed ? '' : ' disabled'}>✓</button>
         <div class="b-taskname"><b>${esc(t.name)}</b>
-          <small>${[t.status === 'Skipped' ? 'Skipped' : t.status === 'Missed' ? 'Missed' : '', isDone && t.done_on ? `Done ${tshort(t.done_on)}` : '', !isDone ? t.includes : '']
+          <small>${[t.timer_started_at && (t.clocked || []).length ? `⏱ ${(t.clocked || []).map((n) => String(n).split(' ')[0]).join(', ')} clocked in` : '', t.status === 'Skipped' ? 'Skipped' : t.status === 'Missed' ? 'Missed' : '', isDone && t.done_on ? `Done ${tshort(t.done_on)}` : '', !isDone ? t.includes : '']
             .filter(Boolean).map(esc).join(' · ')}</small></div>
         ${ed ? `<button class="b-who${whoList(t).length ? '' : ' empty'}" data-ckwho="${t.id}" title="${whoList(t).length ? esc(whoList(t).join(', ')) : 'Add people'}">${whoList(t).length ? avatars(whoList(t), 3) : '<span class="b-whoadd">+ Person</span>'}</button>`
           : whoList(t).length ? `<span class="b-who">${avatars(whoList(t), 3)}</span>` : ''}
         ${t.timer_started_at || t.worked_seconds ? `<span class="b-time num">${liveSpan(t)}</span>` : ''}
         ${ed ? noteButton('custodial', t.id, (ckNotes[t.id] || []).length) : ''}
-        ${ed && !closed ? `<button class="btn small${t.timer_started_at ? ' b-running' : ''}" data-cktimer="${t.id}" data-run="${t.timer_started_at ? 0 : 1}">${t.timer_started_at ? '■ Stop' : '▶ Start'}</button>` : ''}
+        ${ed && !closed ? (() => { const mine = (t.clocked || []).some((n) => String(n).toLowerCase() === String(me()?.name || '').toLowerCase());
+          return `<button class="btn small${mine ? ' b-running' : ''}" data-cktimer="${t.id}" data-run="${mine ? 0 : 1}" title="${mine ? 'Clock out' : t.timer_started_at ? 'Clock in too' : 'Clock in'}">${mine ? '■ Stop' : t.timer_started_at ? '▶ Join' : '▶ Start'}</button>`; })() : ''}
       </div>
       ${(ckNotes[t.id] || []).length ? `<div class="b-notes">${notesList(ckNotes[t.id], esc, me()?.id, isAdmin())}</div>` : ''}
       ${subs.length && !closed ? `<details class="b-subs"><summary>${subs.length} steps <span class="b-subcount">${nDone}/${subs.length}</span></summary>

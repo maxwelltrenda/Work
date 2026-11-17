@@ -70,9 +70,10 @@ export function overviewPages(ctx) {
       const p = pulled.find((x) => x.member_id === m.id);
       // On a request right now = its timer is running and they're on it.
       const r = working.find((x) => x.timer_started_at && (x.experts || []).some((e) => has(e, m.name)));
-      const c = ckNow.find((x) => has(x.who, m.name));
+      // Busy = clocked in on it (pressed Start), not just named on it.
+      const c = ckNow.find((x) => (x.clocked || []).length ? (x.clocked || []).some((n) => has(n, m.name)) : has(x.who, m.name));
       // A maintenance round with its timer running that they're on.
-      const pmRun = runs.find((x) => x.timer_started_at && (taskBy[x.task_id]?.assignees || []).includes(m.id));
+      const pmRun = runs.find((x) => x.timer_started_at && (x.clocked || []).includes(m.id));
       const tl = outs.find((x) => x.borrower_id === m.id);
       // Not on anything yet: what's next for them today.
       const ckNext = ckToday.filter((x) => !['Done', 'Skipped', 'Missed'].includes(x.status) && !ckNow.includes(x) && has(x.who, m.name));

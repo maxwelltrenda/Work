@@ -162,7 +162,7 @@ CK.forEach(([name, area, includes, steps], i) => {
   const done = i === 1 || i === 3 || i === 5;
   db.checklist_tasks.push({ id, week_of: SUNDAY, template_id: tpl, archived: false, name, area, status: done ? 'Done' : i === 4 ? 'Working on it' : 'Not started',
     who: done ? ['Lexi', 'Marah', 'Lexi'][[1, 3, 5].indexOf(i)] : i === 4 ? 'Lexi' : null, day: dayFor(i), includes, worked_seconds: done ? 1500 : 0,
-    timer_started_at: i === 4 ? ago(25) : null, done_on: done ? ago(120) : null, sort: i });
+    timer_started_at: i === 4 ? ago(25) : null, clocked: i === 4 ? ['Lexi'] : [], done_on: done ? ago(120) : null, sort: i });
   steps.forEach((s, k) => db.checklist_subtasks.push({ id: nextId(), task_id: id, name: s, done: done, sort: k }));
 });
 
@@ -415,8 +415,9 @@ const RPC = {
   start_checklist_week: () => SUNDAY,
   checklist_timer({ p_id, p_run }) {
     const t = db.checklist_tasks.find((x) => loose(x.id, p_id));
-    if (p_run) { t.timer_started_at = t.timer_started_at || nowIso(); if (t.status === 'Not started') t.status = 'Working on it'; const who = String(t.who || '').split(',').map((x) => x.trim()).filter(Boolean); if (!who.includes('Skyler')) t.who = [...who, 'Skyler'].join(', '); }
-    else if (t.timer_started_at) { t.worked_seconds += Math.round((Date.now() - new Date(t.timer_started_at)) / 1000); t.timer_started_at = null; }
+    t.clocked = t.clocked || [];
+    if (p_run) { t.timer_started_at = t.timer_started_at || nowIso(); if (t.status === 'Not started') t.status = 'Working on it'; if (!t.clocked.includes('Skyler')) t.clocked.push('Skyler'); const who = String(t.who || '').split(',').map((x) => x.trim()).filter(Boolean); if (!who.includes('Skyler')) t.who = [...who, 'Skyler'].join(', '); }
+    else { t.clocked = t.clocked.filter((n) => n !== 'Skyler'); if (!t.clocked.length && t.timer_started_at) { t.worked_seconds += Math.round((Date.now() - new Date(t.timer_started_at)) / 1000); t.timer_started_at = null; } }
   },
   maint_timer({ p_id, p_run }) {
     const r = db.maint_requests.find((x) => loose(x.id, p_id));
@@ -488,6 +489,9 @@ const RPC = {
   pm_timer({ p_run, p_run_on }) {
     const r = db.pm_runs.find((x) => loose(x.id, p_run));
     if (!r) return;
+    r.clocked = r.clocked || [];
+    if (p_run_on && !r.clocked.includes(ME)) r.clocked.push(ME);
+    if (!p_run_on) { r.clocked = r.clocked.filter((x) => x !== ME); if (r.clocked.length) return; }
     if (p_run_on && !r.timer_started_at) {
       r.timer_started_at = nowIso();
       const t = db.pm_tasks.find((x) => x.id === r.task_id);

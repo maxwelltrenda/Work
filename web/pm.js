@@ -379,11 +379,16 @@ export function schedulePages(ctx) {
     const time = r.timer_started_at
       ? `<span class="b-time num"><span class="b-live" data-pm-live data-base="${r.worked_seconds || 0}" data-since="${new Date(r.timer_started_at).getTime()}">${tdur(liveSecs(r))}</span></span>`
       : r.worked_seconds ? `<span class="b-time num"><span>${tdur(r.worked_seconds)}</span></span>` : '';
-    const timerBtn = live ? `<button class="btn small${r.timer_started_at ? ' b-running' : ''}" data-pm-timer="${r.id}" data-run="${r.timer_started_at ? 0 : 1}">${r.timer_started_at ? '■ Stop' : '▶ Start'}</button>` : '';
+    // Each person clocks in themselves: Stop only for me if I'm clocked in; Join if others are.
+    const meId = ctx.me?.()?.id;
+    const mineIn = (r.clocked || []).includes(meId);
+    const inNames = (r.clocked || []).map((id) => whoAll[id]).filter(Boolean);
+    const timerBtn = live ? `<button class="btn small${mineIn ? ' b-running' : ''}" data-pm-timer="${r.id}" data-run="${mineIn ? 0 : 1}" title="${mineIn ? 'Clock out' : r.timer_started_at ? 'Clock in too' : 'Clock in'}">${mineIn ? '■ Stop' : r.timer_started_at ? '▶ Join' : '▶ Start'}</button>` : '';
     return `<div class="pm-card ${r.status}${r.timer_started_at ? ' running' : ''}${r.status === 'open' && r.due_on < today ? ' late' : ''}">
       <button class="pm-check" data-mark="${r.id}" data-to="${isDone ? 'open' : 'done'}" aria-label="${isDone ? 'Mark not done' : 'Mark done'}">${isDone ? '✓' : ''}</button>
       <div class="pm-body">
         <b class="pm-name">${esc(t.name)}</b>
+        ${r.timer_started_at && inNames.length ? `<span class="pm-meta pm-clocked">⏱ ${inNames.map((n) => esc(n.split(' ')[0])).join(', ')} clocked in</span>` : ''}
         <span class="pm-meta">${[parent ? `Before <b>${esc(parent.name)}</b> (starts ${dshort(addD(r.period_end, 1))})` : '', t.location ? esc(t.location) : '', dueText(r, today)].filter(Boolean).join(' · ')}</span>
         ${isDone ? `<span class="pm-meta pm-donewho">Done by ${esc(who[r.done_by] || 'someone')} · ${new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}${r.note ? ` · ${esc(r.note)}` : ''}</span>` : ''}
         ${notesBlock(t.notes, esc)}

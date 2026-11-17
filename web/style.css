@@ -1553,3 +1553,4 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .pm-step:hover .pm-stepwho.empty, .pm-stepwho.empty:focus { opacity: 1; }
 @media (hover: none) { .pm-stepwho.empty { opacity: .7; } }
 .pm-stepwho .b-av { width: 22px; height: 22px; font-size: 10px; }
+.pm-clocked { color: var(--in); font-weight: 600; }
