@@ -806,9 +806,9 @@ h2 { font-size: 24px; }
 .b-task { padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .b-task:last-child { border-bottom: 0; }
 .b-taskrow { display: flex; align-items: center; gap: 14px; }
-.b-tick { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--card); color: transparent; font-size: 20px; font-weight: 800; cursor: pointer; display: grid; place-items: center; }
+.b-tick { flex: none; width: 40px; height: 40px; border-radius: 10px; border: 2px solid var(--line-strong); background: var(--card); color: transparent; font-size: 20px; font-weight: 800; cursor: pointer; display: grid; place-items: center; }
 .b-tick:hover { border-color: #22693f; color: #b9d6c2; }
-.b-tick.on { background: #22693f; border-color: #22693f; color: #fff; }
+.b-tick.on { background: var(--in); border-color: var(--in); color: #fff; }
 .b-tick:disabled { cursor: default; }
 .b-taskname { flex: 1; min-width: 0; }
 .b-taskname b { font-weight: 600; font-size: 16px; }
@@ -1578,3 +1578,13 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .tn-pv-meta { font-size: 12px; color: var(--muted); }
 .tn-at .chip-btn.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .pw-h { margin: 14px 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .05em; color: var(--body); }
+
+.b-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+@media (max-width: 640px) {
+  .b-acts { flex-basis: 100%; padding-left: 54px; justify-content: flex-start; }
+  .b-taskrow .b-acts .btn.small, .b-taskrow .b-acts .b-time { margin-left: 0; }
+  .pm-card { grid-template-columns: 40px 1fr; }
+  .pm-actions { grid-column: 2; justify-content: flex-start; }
+  .pw-item { grid-template-columns: 12px 1fr; }
+  .pw-btns { grid-column: 2; justify-content: flex-start; }
+}

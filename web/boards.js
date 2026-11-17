@@ -443,49 +443,55 @@ export function boardPages(ctx) {
   // Today's tasks first. Tap the circle when it's done. That's it.
   async function renderChecklist(view = 'week') {
     const week = await rpc('start_checklist_week', {});
-    if (view === 'log') return renderTimeLog(week);
-    if (view === 'template') return renderTemplate();
     const [tasks, subs, pw] = await Promise.all([
       q(sb.from('checklist_tasks').select('*').eq('week_of', week).order('sort').order('id')),
-      q(sb.from('checklist_subtasks').select('*, checklist_tasks!inner(week_of)').eq('checklist_tasks.week_of', week).order('sort').order('id')),
-      pulled.load('custodial').catch(() => null),
+      view === 'week' ? q(sb.from('checklist_subtasks').select('*, checklist_tasks!inner(week_of)').eq('checklist_tasks.week_of', week).order('sort').order('id')) : [],
+      view === 'week' ? pulled.load('custodial').catch(() => null) : null,
       q(sb.from('team_members').select('name, role, active')).catch(() => []),
     ]).then((r) => { ckCrew = (r[3] || []).filter((m) => m.active && !['kiosk', 'none'].includes(m.role)).map((m) => m.name).sort(); return r; });
+    const nRepeat = await q(sb.from('checklist_tasks').select('id').is('week_of', null)).then((x) => x.length, () => 0);
     const byTask = {};
     subs.forEach((s) => { (byTask[s.task_id] = byTask[s.task_id] || []).push(s); });
-    ckNotes = await loadNotes(sb, 'custodial', tasks.map((t) => t.id));
+    ckNotes = view === 'week' ? await loadNotes(sb, 'custodial', tasks.map((t) => t.id)) : {};
     const done = tasks.filter((t) => t.status === 'Done').length;
     const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-    const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+    const open = (t) => !['Done', 'Skipped', 'Missed'].includes(t.status);
+    const leftToday = tasks.filter((t) => t.day === todayName && open(t)).length;
+    const leftWeek = tasks.filter(open).length;
     // Today first, then the rest of the week, then the days already past.
     const ti = DAYS.indexOf(todayName);
     const order = [...DAYS.slice(ti, 7), ...DAYS.slice(0, ti), 'Detail Work'];
+    const tabs = [['week', 'This week'], ['template', `Repeating tasks <b>${nRepeat}</b>`], ['log', 'Past weeks']];
 
+    // Same frame as the Maintenance page: heading, numbers, pulled-to, tabs + Add task.
     app.innerHTML = `
-      <header class="page-head b-simplehead dept-custodial"><div><div class="eyebrow dept-tag">Custodial</div><h1>Custodial <span class="accent">checklist</span></h1></div></header>
-      <div class="b-progress"><div class="b-progbar"><i style="width:${pct}%"></i></div><span><b>${done} of ${tasks.length}</b> done this week</span></div>
-      ${pw && canEdit() ? pulled.block('custodial', pw) : ''}
-      <div class="page-tools">
-        ${canEdit() ? '<button class="btn" data-ck-add title="A one-off job, only on this week\'s list">+ Add a task this week</button>' : ''}
-        <a class="btn" href="#/checklist/template" title="The tasks added every week">↻ Repeating tasks</a>
-        <a class="btn" href="#/checklist/log" title="Earlier weeks and time spent">🕘 Past weeks &amp; time log</a>
+      <div class="dept-custodial">${pageHead('<span class="dept-tag">Custodial</span>', 'Custodial <span class="accent">checklist</span>', 'Daily cleaning by day of the week. A fresh list starts every Tuesday, and anything not done becomes Missed.')}</div>
+      <div class="stats">
+        <div class="stat"><b>${leftToday}</b><span>to do today</span></div>
+        <div class="stat"><b>${leftWeek}</b><span>left this week</span></div>
+        <div class="stat"><b>${done} of ${tasks.length}</b><span>done this week</span></div>
       </div>
-      ${order.map((d) => {
+      ${pw && canEdit() ? pulled.block('custodial', pw) : ''}
+      <div class="pm-bar"><div class="seg">${tabs.map(([k, t]) => `<a href="#/checklist${k === 'week' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
+        ${canEdit() ? '<button class="btn primary" data-ck-add>+ Add task</button>' : ''}</div>
+      <div id="pm-view">${view === 'week' ? order.map((d) => {
         const items = tasks.filter((t) => (t.day || 'Detail Work') === d);
         if (!items.length) return '';
         const left = items.filter((t) => !['Done', 'Skipped'].includes(t.status)).length;
         const isToday = d === todayName;
         return `<details class="b-group b-day${isToday ? ' today' : ''}"${isToday ? ' open' : ''}><summary><span class="b-gname">${isToday ? `Today · ${d}` : d}</span><span class="muted">${left ? `${left} to do` : 'all done ✓'}</span></summary>
           <div class="b-tasks">${items.map((t) => checkTask(t, byTask[t.id] || [])).join('')}</div></details>`;
-      }).join('')}
+      }).join('') : ''}</div>
 `;
-
+    app.querySelector('[data-ck-add]')?.addEventListener('click', async () => {
+      if (await addTask(week, todayName, tasks, view === 'template' ? 'weekly' : 'once')) renderChecklist(view);
+    });
+    const body = app.querySelector('#pm-view');
+    if (view === 'log') return renderTimeLog(week, body);
+    if (view === 'template') return renderTemplate(body);
     const rerender = () => renderChecklist('week');
     pulled.bind(app, rerender);
     bindNotes(app, { sb, toast, errMsg, esc, meId: me()?.id, canDeleteAll: isAdmin(), names: Object.fromEntries(tasks.map((t) => [`custodial:${t.id}`, t.name])) }, rerender);
-    app.querySelector('[data-ck-add]')?.addEventListener('click', async () => {
-      if (await addWeekTask(week, todayName, tasks)) rerender();
-    });
     app.querySelectorAll('[data-tick]').forEach((b) => b.addEventListener('click', async () => {
       const next = b.dataset.done === '1' ? 'Not started' : 'Done';
       b.closest('.b-task').classList.toggle('st-done', next === 'Done');
@@ -544,28 +550,40 @@ export function boardPages(ctx) {
   }
 
   // A task for this week only (not on the weekly template).
-  function addWeekTask(week, todayName, tasks) {
+  // "+ Add task": one form, like Maintenance's. Just this week, every week, or once a month.
+  function addTask(week, todayName, tasks, startFreq = 'once') {
     return new Promise((resolve) => {
       let day = todayName;
+      let freq = isAdmin() ? startFreq : 'once';
       const sel = new Set();
+      const FREQ = [['once', 'Just this week'], ['weekly', 'Every week'], ['monthly', 'Once a month']];
       const back = document.createElement('div');
       back.className = 'modal-back';
       back.innerHTML = `<form class="modal sheet b-ckform" role="dialog" aria-modal="true" aria-labelledby="ck-add-title">
-        <h3 id="ck-add-title">Add a task this week</h3>
-        <p class="muted">Only on this week's list. It won't come back next week.</p>
+        <h3 id="ck-add-title">New custodial task</h3>
         <label><span>What needs doing?</span><input name="name" required autocomplete="off" placeholder="e.g. Deep clean the green room" class="modal-input"></label>
+        ${isAdmin() ? `<div class="wk-sect">How often</div>
+        <div class="wk-chips">${FREQ.map(([k, l]) => `<button type="button" class="chip-btn big" data-ckfreq="${k}">${l}</button>`).join('')}</div>` : ''}
         <div class="wk-sect">Which day</div>
         <div class="wk-chips">${DAYS.filter((d) => d !== 'Detail Work').map((d) => `<button type="button" class="chip-btn" data-ckday="${d}">${d.slice(0, 3)}${d === todayName ? ' (today)' : ''}</button>`).join('')}</div>
-        <div class="wk-sect">Who's on it <span class="muted pm-opt">(optional)</span></div>
+        <p class="pm-preview" data-ckhelp></p>
+        <div class="wk-sect">Who's on it <span class="muted pm-opt">(optional: tap to add or remove)</span></div>
         <div class="wk-chips">${ckCrew.map((n) => `<button type="button" class="chip-btn b-pp" data-ckpp="${esc(n)}"><span class="b-av" style="background:${hue(n)}">${esc(initials(n))}</span>${esc(n)}</button>`).join('') || '<span class="muted">No team members yet.</span>'}</div>
-        <label style="margin-top:12px"><span>Steps <span class="muted">(optional, one per line)</span></span><textarea name="steps" rows="3" placeholder="Vacuum&#10;Wipe tables&#10;Trash"></textarea></label>
-        <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">Add to this week</button></div>
+        <details class="pm-more"><summary>Steps and notes <span class="muted">(optional)</span></summary>
+          <label style="margin-top:10px"><span>Steps <span class="muted">(one per line)</span></span><textarea name="steps" rows="3" placeholder="Vacuum&#10;Wipe tables&#10;Trash"></textarea></label>
+          <label style="margin-top:10px"><span>Note <span class="muted">(shows under the name)</span></span><input name="includes" placeholder="e.g. Also do the Family Center office"></label>
+        </details>
+        <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">Add task</button></div>
       </form>`;
       const form = back.querySelector('form');
       const draw = () => {
+        form.querySelectorAll('[data-ckfreq]').forEach((b) => b.classList.toggle('on', b.dataset.ckfreq === freq));
         form.querySelectorAll('[data-ckday]').forEach((b) => b.classList.toggle('on', b.dataset.ckday === day));
         form.querySelectorAll('[data-ckpp]').forEach((b) => b.classList.toggle('on', sel.has(b.dataset.ckpp)));
+        form.querySelector('[data-ckhelp]').textContent = freq === 'once' ? `On this week's list on ${day}. It won't come back next week.`
+          : freq === 'weekly' ? `On the list every ${day}, starting this week.` : `On the list once a month, in the week of the first ${day}.`;
       };
+      form.querySelectorAll('[data-ckfreq]').forEach((b) => b.addEventListener('click', () => { freq = b.dataset.ckfreq; draw(); }));
       form.querySelectorAll('[data-ckday]').forEach((b) => b.addEventListener('click', () => { day = b.dataset.ckday; draw(); }));
       form.querySelectorAll('[data-ckpp]').forEach((b) => b.addEventListener('click', () => { const n = b.dataset.ckpp; if (sel.has(n)) sel.delete(n); else sel.add(n); draw(); }));
       const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
@@ -573,21 +591,38 @@ export function boardPages(ctx) {
       document.addEventListener('keydown', onKey, true);
       back.addEventListener('mousedown', (e) => { if (e.target === back) done(false); });
       form.querySelector('[data-cancel]').addEventListener('click', () => done(false));
+      let saving = false;
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (saving) return;
         const f = new FormData(form);
         const name = String(f.get('name') || '').trim();
         if (!name) return form.querySelector('[name=name]').focus();
         const steps = String(f.get('steps') || '').split('\n').map((x) => x.trim()).filter(Boolean);
+        const who = sel.size ? [...sel].join(', ') : null;
+        const includes = String(f.get('includes') || '').trim() || null;
+        const sort = Math.max(0, ...tasks.map((t) => t.sort || 0)) + 1;
+        // Monthly: only on this week's list if this is the week of the first <day> of the month (weeks start Tuesday).
+        const [y, m, d0] = String(week).split('-').map(Number);
+        const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const thisWeek = freq !== 'monthly' || new Date(y, m - 1, d0 + ((DOW.indexOf(day) + 5) % 7)).getDate() <= 7;
+        saving = true;
         try {
-          const [row] = await q(sb.from('checklist_tasks').insert({
-            week_of: week, name, day, area: 'Building', status: 'Not started', includes: 'This week only',
-            who: sel.size ? [...sel].join(', ') : null, sort: Math.max(0, ...tasks.map((t) => t.sort || 0)) + 1,
-          }).select('id'));
-          if (steps.length) await q(sb.from('checklist_subtasks').insert(steps.map((s, i) => ({ task_id: row.id, name: s, sort: i }))).select('id'));
-          toast(`Added for ${day}`);
+          let templateId = null;
+          if (freq !== 'once') {
+            [{ id: templateId }] = await q(sb.from('checklist_tasks').insert({ name, day, area: 'Building', who, includes, repeat: freq, week_of: null, sort }).select('id'));
+            if (steps.length) await q(sb.from('checklist_subtasks').insert(steps.map((n, i) => ({ task_id: templateId, name: n, sort: i }))).select('id'));
+          }
+          if (thisWeek) {
+            const [row] = await q(sb.from('checklist_tasks').insert({
+              week_of: week, name, day, area: 'Building', status: 'Not started', includes: freq === 'once' ? (includes || 'This week only') : includes,
+              who, sort, template_id: templateId,
+            }).select('id'));
+            if (steps.length) await q(sb.from('checklist_subtasks').insert(steps.map((n, i) => ({ task_id: row.id, name: n, sort: i }))).select('id'));
+          }
+          toast(freq === 'once' ? `Added for ${day}` : freq === 'weekly' ? `Added: every ${day}` : `Added: once a month${thisWeek ? ', starting this week' : ''}`);
           done(true);
-        } catch (err) { toast(errMsg(err), true); }
+        } catch (err) { saving = false; toast(errMsg(err), true); }
       });
       draw();
       document.body.appendChild(back);
@@ -606,22 +641,21 @@ export function boardPages(ctx) {
         <div class="b-taskname"><b>${esc(t.name)}</b>
           <small>${[t.timer_started_at && (t.clocked || []).length ? `⏱ ${(t.clocked || []).map((n) => String(n).split(' ')[0]).join(', ')} clocked in` : '', t.status === 'Skipped' ? 'Skipped' : t.status === 'Missed' ? 'Missed' : '', isDone && t.done_on ? `Done ${tshort(t.done_on)}` : '', !isDone ? t.includes : '']
             .filter(Boolean).map(esc).join(' · ')}</small></div>
-        ${ed ? `<button class="b-who${whoList(t).length ? '' : ' empty'}" data-ckwho="${t.id}" title="${whoList(t).length ? esc(whoList(t).join(', ')) : 'Add people'}">${whoList(t).length ? avatars(whoList(t), 3) : '<span class="b-whoadd">+ Person</span>'}</button>`
+        <span class="b-acts">${ed ? `<button class="b-who${whoList(t).length ? '' : ' empty'}" data-ckwho="${t.id}" title="${whoList(t).length ? esc(whoList(t).join(', ')) : 'Add people'}">${whoList(t).length ? avatars(whoList(t), 3) : '<span class="b-whoadd">+ Person</span>'}</button>`
           : whoList(t).length ? `<span class="b-who">${avatars(whoList(t), 3)}</span>` : ''}
         ${t.timer_started_at || t.worked_seconds ? `<span class="b-time num">${liveSpan(t)}</span>` : ''}
         ${ed ? noteButton('custodial', t.id, (ckNotes[t.id] || []).length) : ''}
         ${ed && !closed ? (() => { const mine = (t.clocked || []).some((n) => String(n).toLowerCase() === String(me()?.name || '').toLowerCase());
           return `<button class="btn small${mine ? ' b-running' : ''}" data-cktimer="${t.id}" data-run="${mine ? 0 : 1}" title="${mine ? 'Clock out' : t.timer_started_at ? 'Clock in too' : 'Clock in'}">${mine ? '■ Stop' : t.timer_started_at ? '▶ Join' : '▶ Start'}</button>`; })() : ''}
+        ${ed && !closed ? `<button class="btn small" data-skip="${t.id}" title="Skip this week">Skip</button>` : ''}</span>
       </div>
       ${(ckNotes[t.id] || []).length ? `<div class="b-notes">${notesList(ckNotes[t.id], esc, me()?.id, isAdmin())}</div>` : ''}
       ${subs.length && !closed ? `<details class="b-subs"><summary>${subs.length} steps <span class="b-subcount">${nDone}/${subs.length}</span></summary>
-        ${subs.map((s) => `<label class="${s.done ? 'done' : ''}"><input type="checkbox" data-cksub="${s.id}"${s.done ? ' checked' : ''}${ed ? '' : ' disabled'}><span>${esc(s.name)}</span></label>`).join('')}
-        ${ed ? `<button class="b-skip" data-skip="${t.id}">Skip this week</button>` : ''}</details>`
-        : ed && !closed ? `<button class="b-skip solo" data-skip="${t.id}">Skip this week</button>` : ''}
+        ${subs.map((s) => `<label class="${s.done ? 'done' : ''}"><input type="checkbox" data-cksub="${s.id}"${s.done ? ' checked' : ''}${ed ? '' : ' disabled'}><span>${esc(s.name)}</span></label>`).join('')}</details>` : ''}
     </div>`;
   }
 
-  async function renderTimeLog(current) {
+  async function renderTimeLog(current, target = app) {
     const [tasks, pulledRows, members] = await Promise.all([
       q(sb.from('checklist_tasks').select('id, week_of, name, area, status, who, day, worked_seconds, manual_hours, done_on, timer_started_at').not('week_of', 'is', null).order('week_of', { ascending: false }).order('sort')),
       q(sb.from('pulled_work').select('*').eq('dept', 'custodial').order('started_at', { ascending: false }).limit(500)).catch(() => []),
@@ -638,10 +672,7 @@ export function boardPages(ctx) {
     const weeks = [...new Set(tasks.map((t) => t.week_of))];
     const people = {};
     tasks.forEach((t) => { if (!t.who || !(t.worked_seconds || t.manual_hours)) return; t.who.split(',').map((x) => x.trim()).forEach((p) => { people[p] = (people[p] || 0) + liveSecs(t) + (t.manual_hours || 0) * 3600; }); });
-    app.innerHTML = `
-      <p><a href="#/checklist">← Checklist</a></p>
-      <header class="page-head b-simplehead"><h1>Past weeks</h1></header>
-      <p class="muted b-note">Every Tuesday a fresh week starts. Anything not done becomes Missed.</p>
+    target.innerHTML = `
       <div class="table-wrap"><table class="b-table b-narrow"><tr><th>Week of</th><th class="num">Done</th><th class="num">Missed</th><th class="num">Pulled to</th><th class="num">Time logged</th><th>Completion</th></tr>
         ${weeks.map((w) => {
           const ts = tasks.filter((t) => t.week_of === w); const c = (s) => ts.filter((t) => t.status === s).length;
@@ -659,7 +690,7 @@ export function boardPages(ctx) {
           ${pulledIn(w).map((p) => `<tr><td>${esc(whoId[p.member_id] || '')}</td><td>${esc(p.what)}</td><td>${esc(p.location || '')}</td><td class="muted">${tshort(p.started_at)}</td><td class="num">${dur(pSecs(p))}${p.ended_at ? '' : ' (still going)'}</td></tr>`).join('')}</table></div>` : ''}</details>`).join('')}`;
   }
 
-  async function renderTemplate() {
+  async function renderTemplate(target = app) {
     const [tasks, subs, week, members] = await Promise.all([
       q(sb.from('checklist_tasks').select('*').is('week_of', null).order('sort').order('id')),
       q(sb.from('checklist_subtasks').select('*, checklist_tasks!inner(week_of)').is('checklist_tasks.week_of', null).order('sort').order('id')),
@@ -669,11 +700,8 @@ export function boardPages(ctx) {
     ckCrew = members.filter((m) => m.active && !['kiosk', 'none'].includes(m.role)).map((m) => m.name).sort();
     const admin = isAdmin();
     const stepsOf = (t) => subs.filter((x) => x.task_id === t.id);
-    app.innerHTML = `
-      <p><a href="#/checklist">← Checklist</a></p>
-      <header class="page-head b-simplehead"><h1>Repeating tasks</h1></header>
-      <p class="muted b-note">${tasks.length} tasks. They're added to the list fresh every Tuesday. ${admin ? 'Tap a task to change it. You can also update this week\'s list when you save.' : 'Only admins can change them.'}</p>
-      ${admin ? '<div class="b-ckadd"><button class="btn primary" data-tpnew>+ Add a repeating task</button></div>' : ''}
+    target.innerHTML = `
+      <p class="muted b-note">These are added to the list fresh every Tuesday. ${admin ? 'Tap a task to change it.' : 'Only admins can change them.'}</p>
       ${DAYS.map((d) => {
         const items = tasks.filter((t) => (t.day || 'Detail Work') === d);
         if (!items.length) return '';
@@ -683,7 +711,6 @@ export function boardPages(ctx) {
             ${admin ? '<span class="b-tpedit">Edit</span>' : ''}</button>`).join('')}</div></details>`;
       }).join('')}`;
     const reload = () => renderChecklist('template');
-    app.querySelector('[data-tpnew]')?.addEventListener('click', async () => { if (await editTemplateTask(null, [], week, tasks)) reload(); });
     app.querySelectorAll('[data-tpedit]').forEach((b) => b.addEventListener('click', async () => {
       const t = tasks.find((x) => x.id === Number(b.dataset.tpedit));
       if (await editTemplateTask(t, stepsOf(t), week, tasks)) reload();

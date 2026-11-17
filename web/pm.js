@@ -443,7 +443,7 @@ export function schedulePages(ctx) {
       back.className = 'modal-back';
       back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Who's on it">
         <h3>Who's on it?</h3><p class="muted">${esc(t.name)}</p>
-        <div class="wk-chips">${crew.map((m) => `<button type="button" class="chip-btn pm-person" data-person="${m.id}">${esc(m.name)}</button>`).join('') || '<span class="muted">No team members yet.</span>'}</div>
+        <div class="wk-chips">${crew.map((m) => `<button type="button" class="chip-btn b-pp pm-person" data-person="${m.id}"><span class="b-av" style="background:${hue(m.name)}">${esc(initials(m.name))}</span>${esc(m.name)}</button>`).join('') || '<span class="muted">No team members yet.</span>'}</div>
         <div class="modal-actions"><button type="button" class="btn" data-clear>Nobody</button><button type="button" class="btn" data-cancel>Cancel</button><button type="button" class="btn primary" data-ok>Save</button></div></div>`;
       const draw = () => back.querySelectorAll('[data-person]').forEach((b) => b.classList.toggle('on', sel.has(b.dataset.person)));
       back.querySelectorAll('[data-person]').forEach((b) => b.addEventListener('click', () => { if (sel.has(b.dataset.person)) sel.delete(b.dataset.person); else sel.add(b.dataset.person); draw(); }));
@@ -534,7 +534,7 @@ export function schedulePages(ctx) {
         <div class="wk-chips"><button type="button" class="chip-btn" data-by="team">Our team</button><button type="button" class="chip-btn" data-by="ct">A contractor we hire</button></div>
         <div class="pm-ctpick" data-ctpick></div>
         <div class="wk-sect">Who's on it <span class="muted pm-opt">(optional: tap to add or remove)</span></div>
-        <div class="wk-chips" data-people>${crew.map((m) => `<button type="button" class="chip-btn pm-person" data-person="${m.id}">${esc(m.name)}</button>`).join('') || '<span class="muted">No team members yet.</span>'}</div>
+        <div class="wk-chips" data-people>${crew.map((m) => `<button type="button" class="chip-btn b-pp pm-person" data-person="${m.id}"><span class="b-av" style="background:${hue(m.name)}">${esc(initials(m.name))}</span>${esc(m.name)}</button>`).join('') || '<span class="muted">No team members yet.</span>'}</div>
         <label style="margin-top:12px"><span>Where <span class="muted">(optional)</span></span><input name="location" value="${esc(t.location || '')}" placeholder="Type a place, e.g. Main entrance, Kids wing"></label>
         <details class="pm-more" ${(t.steps || []).length || t.notes ? 'open' : ''}><summary>Steps and notes <span class="muted">(optional)</span></summary>
           <label style="margin-top:10px"><span>Steps <span class="muted">(one per line)</span></span><textarea name="steps" rows="3" placeholder="North entrance&#10;South entrance">${esc((t.steps || []).join('\n'))}</textarea></label>
