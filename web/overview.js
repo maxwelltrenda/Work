@@ -134,6 +134,25 @@ export function overviewPages(ctx) {
         ${card('#/gameplan', 'This weekend', 'ov-wx', wx ? wxCard(wx, plan) : `<p class="ov-empty">${plan ? 'Plan posted.' : 'No plan yet.'}</p>`)}
       </div>`;
     if (pw) pulledKit.bind(app, renderOverview);
+    autoRefresh();
+  }
+
+  // Keep it current on its own: every minute while it's on screen (and right
+  // away when the screen comes back), unless a pop-up is open or someone is typing.
+  let timer = null;
+  let busy = false;
+  const onOverview = () => /^#\/overview\b/.test(location.hash) || (location.hash === '' && app.querySelector('.ov-where'));
+  const quiet = () => !document.querySelector('.modal-back') && !(document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName));
+  async function refresh() {
+    if (busy || !onOverview() || !app.querySelector('.ov-where') || document.visibilityState !== 'visible' || !quiet()) return;
+    busy = true;
+    const y = window.scrollY;
+    try { await renderOverview(); window.scrollTo(0, y); } catch { /* try again next time */ } finally { busy = false; }
+  }
+  function autoRefresh() {
+    if (timer) return;
+    timer = setInterval(refresh, 60000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refresh(); });
   }
 
   return { renderOverview };

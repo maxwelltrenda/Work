@@ -261,7 +261,7 @@ const NAV = {
 // Facilities: a few tabs, each with its pages in a row of sub-tabs underneath.
 const NAV_GROUPS = [
   { key: 'home', label: 'Home', icon: 'overview', pages: [['myday', 'My day'], ['overview', 'Overview'], ['mytasks', 'My tasks'], ['gameplan', 'Weekend plan']] },
-  { key: 'work', label: 'Work', icon: 'checklist', pages: [['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['contractors', 'Contractors']] },
+  { key: 'work', label: 'Work', icon: 'checklist', pages: [['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['requests', 'Requests'], ['contractors', 'Contractors']] },
   { key: 'inventory', label: 'Inventory', icon: 'items', pages: [['kiosk', 'Check In / Out'], ['items', 'Stock'], ['toollist', 'Tools'], ['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock']] },
   { key: 'team', label: 'Team', icon: 'team', pages: [['team', 'Schedule'], ['people', 'People']] },
   { key: 'setup', label: 'Setup', icon: 'more', pages: [['labels', 'Labels'], ['locations', 'Locations'], ['categories', 'Categories']] },
