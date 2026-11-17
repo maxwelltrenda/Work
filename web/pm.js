@@ -47,7 +47,8 @@ function windowText(t) {
   const n = t.due_days;
   if (t.frequency === 'biweekly') {
     if (!n || n >= 14) return 'Any time in the 2 weeks';
-    return `Due by ${n <= 7 ? 'the first' : 'the second'} ${DAYN[(n - 1) % 7]} of each 2 weeks`;
+    if (n === 7) return 'Done that week (every other week)';
+    return `Due by ${n <= 7 ? '' : 'the second '}${DAYN[(n - 1) % 7]} that week (every other week)`;
   }
   if (t.frequency === 'weekly') return n ? (n >= 7 ? 'Any time in the week' : `Due by ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][n - 1]} each week`) : 'Any time in the week';
   const sd = t.start_day || 1;
@@ -271,7 +272,8 @@ export function schedulePages(ctx) {
   // when in that month it should get done. That is stored as a start day and
   // a number of days (start_day / due_days), which the database schedules from.
   const WEEK_WIN = [['any', 'Any day that week', null], ['mon', 'By Monday', 2], ['wed', 'By Wednesday', 4], ['fri', 'By Friday', 6]];
-  const BIWEEK_WIN = [['any', 'Any time in the 2 weeks', null], ['fri1', 'By the first Friday', 6], ['w1', 'In the first week', 7], ['fri2', 'By the second Friday', 13]];
+  // Every 2 weeks: you pick the week it's done in; it shows up that week.
+  const BIWEEK_WIN = [['w1', 'Any day that week', 7], ['fri1', 'By Friday that week', 6], ['any', 'Any time in the 2 weeks', null]];
   const LEADS = [[3, '3 days'], [7, '1 week'], [14, '2 weeks'], [21, '3 weeks'], [30, '30 days']];
   const MONTH_WIN = [['any', 'Any time', 1, null], ['w1', 'First week (1st–7th)', 1, 7], ['w2', 'First 2 weeks (1st–14th)', 1, 14], ['h2', 'Second half (15th–28th)', 15, 14]];
   const ord = (n) => `${n}${['th', 'st', 'nd', 'rd'][(n % 10 > 3 || Math.floor(n / 10) % 10 === 1) ? 0 : n % 10]}`;
@@ -350,8 +352,14 @@ export function schedulePages(ctx) {
           <div class="wk-chips">${CYCLES.map(([m, l]) => `<button type="button" class="chip-btn" data-month="${m}">${l}</button>`).join('')}</div></div>
         <div data-for="yearly"><div class="wk-sect">Which month</div>
           <div class="wk-chips">${MON.map((mn, i) => `<button type="button" class="chip-btn" data-month="${i + 1}">${mn}</button>`).join('')}</div></div>` : ''}
-        <div data-for="biweekly"><div class="wk-sect">Which weeks</div>
-          <div class="wk-chips">${[1, 2].map((pp) => { const a = addD(fortnightStart(todayIso, pp), 14); return `<button type="button" class="chip-btn" data-parity="${pp}">Next starts Sun ${dshort(a)}, then ${dshort(addD(a, 14))}…</button>`; }).join('')}</div></div>
+        <div data-for="biweekly"><div class="wk-sect">Which week to do it</div>
+          <div class="wk-chips">${[1, 2].sort((x, y) => (fortnightStart(todayIso, y) > fortnightStart(todayIso, x) ? 1 : -1)).map((pp) => {
+            const thisSun = addD(todayIso, -new Date(`${todayIso}T12:00:00`).getDay());
+            const s0 = fortnightStart(todayIso, pp);
+            const first = s0 === thisSun ? thisSun : addD(s0, 14);
+            const label = first === thisSun ? 'This week' : 'Next week';
+            return `<button type="button" class="chip-btn pm-week" data-parity="${pp}"><b>${label}</b> <span>${dshort(first)}–${dshort(addD(first, 6))}, then every other week (${dshort(addD(first, 14))}, ${dshort(addD(first, 28))}…)</span></button>`;
+          }).join('')}</div></div>
         <div data-for="once"><div class="wk-sect">When</div>
           <div class="pm-once"><label><span>Due by</span><input type="date" name="once_due" value="${esc(onceDue)}"></label>
           <label><span>Put it on the list on <span class="muted">(optional)</span></span><input type="date" name="once_start" value="${esc(onceStart)}"></label></div>
@@ -451,7 +459,7 @@ export function schedulePages(ctx) {
       form.querySelectorAll('[data-freq]').forEach((b) => b.addEventListener('click', () => {
         if (freq === b.dataset.freq) return;
         freq = b.dataset.freq;
-        if (!winChoices().some(([k]) => k === win) && win !== 'custom') win = 'any';
+        if (!winChoices().some(([k]) => k === win) && win !== 'custom') win = freq === 'biweekly' ? 'w1' : 'any';
         if (freq === 'weekly' && win === 'custom') to = '';
         sync();
       }));

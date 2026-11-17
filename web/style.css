@@ -1463,3 +1463,6 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .notes-fmt ul, .notes-fmt ol { margin: 0 0 6px; padding-left: 20px; break-inside: avoid; }
 .notes-fmt li { margin: 1px 0; }
 .notes-fmt p { margin: 4px 0; }
+.pm-week { text-align: left; }
+.pm-week span { font-weight: 400; color: var(--muted); }
+.pm-week.on span { color: inherit; opacity: .85; }
