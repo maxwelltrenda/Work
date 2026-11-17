@@ -105,6 +105,7 @@ const notesBlock = (notes, esc) => {
 };
 
 export function schedulePages(ctx) {
+  const manage = () => (ctx.canManage ? ctx.canManage() : true);
   const { sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled } = ctx;
   let contractors = [];   // the Contractors list, loaded with the page
   let crew = [];          // Facilities people who can be put on a task
@@ -156,7 +157,7 @@ export function schedulePages(ctx) {
       </div>
       ${pw ? pulled.block('maintenance', pw) : ''}
       <div class="pm-bar"><div class="seg">${tabs.map(([k, t]) => `<a href="#/schedule${k === 'now' ? '' : `/${k}`}" class="${view === k ? 'on' : ''}">${t}</a>`).join('')}</div>
-        <button class="btn primary" data-pm-new>+ Add task</button></div>
+        ${manage() ? '<button class="btn primary" data-pm-new>+ Add task</button>' : ''}</div>
       <div id="pm-view">${view === 'tasks' ? taskList(tasks, locations) : view === 'calendar' ? calendarView(tasks, runs, today) : view === 'history' ? history(runs, taskBy, who, today) : nowView(current, taskBy, who, today, active)}</div>`;
 
     bind(view, tasks, current);
@@ -362,7 +363,7 @@ export function schedulePages(ctx) {
         ${onIt(t).length ? `<span class="pm-onit"><span class="pm-onit-tag">On it</span> ${onIt(t).map(esc).join(', ')}</span>` : ''}
         ${steps.length ? `<div class="pm-steps">${steps.map((s, i) => `<label><input type="checkbox" data-step="${r.id}" data-i="${i}" ${(r.steps_done || []).includes(i) ? 'checked' : ''}> ${esc(s)}</label>`).join('')}</div>` : ''}
       </div>
-      <div class="pm-actions">${r.status === 'open' ? `<button class="btn small pm-ppl" data-pm-people="${t.id}" title="Who's on it">${onIt(t).length ? 'People' : '+ Person'}</button>` : ''}${r.status === 'open' ? `<button class="btn small" data-mark="${r.id}" data-to="skipped" title="Not needed this time">Skip</button>` : r.status === 'skipped' ? `<button class="btn small" data-mark="${r.id}" data-to="open">Undo skip</button>` : ''}</div>
+      <div class="pm-actions">${r.status === 'open' && manage() ? `<button class="btn small pm-ppl" data-pm-people="${t.id}" title="Who's on it">${onIt(t).length ? 'People' : '+ Person'}</button>` : ''}${r.status === 'open' ? `<button class="btn small" data-mark="${r.id}" data-to="skipped" title="Not needed this time">Skip</button>` : r.status === 'skipped' ? `<button class="btn small" data-mark="${r.id}" data-to="open">Undo skip</button>` : ''}</div>
     </div>`;
   }
 
@@ -650,10 +651,12 @@ export function schedulePages(ctx) {
   function bind(view, tasks, current) {
     const reload = () => renderSchedule(view);
     app.querySelectorAll('[data-pm-new]').forEach((b) => b.addEventListener('click', async () => {
+      if (!manage()) return toast('Only admins and the Maintenance manager can add tasks');
       const added = await taskModal(await loadPlaces(sb), {});
       if (added) reload();
     }));
     app.querySelectorAll('[data-pm-edit]').forEach((b) => b.addEventListener('click', async () => {
+      if (!manage()) return toast('Only admins and the Maintenance manager can change tasks');
       const t = tasks.find((x) => x.id === Number(b.dataset.pmEdit));
       if (t && (await taskModal(await loadPlaces(sb), { ...t, preps: tasks.filter((c) => c.parent_id === t.id && c.active) }))) reload();
     }));

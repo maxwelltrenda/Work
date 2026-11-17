@@ -132,7 +132,7 @@ const ROLES = {
   // Team roles scan their own area from their own login (phone camera or scanner).
   member: { label: 'Facilities & Maintenance', act: false, home: 'kiosk', stock: ['facilities', 'maintenance', 'paint'], tools: true,
     scanStock: ['facilities', 'maintenance', 'paint'], scanTools: true,
-    pages: ['kiosk', 'requests', 'request', 'checklist', 'items/facilities', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
+    pages: ['kiosk', 'requests', 'request', 'checklist', 'schedule', 'items/facilities', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
   maintenance: { label: 'Maintenance manager', act: false, home: 'schedule', stock: ['maintenance', 'paint'], tools: true,
     scanStock: ['maintenance', 'paint'], scanTools: true,
     pages: ['kiosk', 'requests', 'request', 'checklist', 'schedule', 'contractors', 'items/maintenance', 'items/paint', 'toollist', 'out', 'history', 'item', 'tool'] },
@@ -908,7 +908,8 @@ const MYTASKS = myTaskPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, m
 const OVERVIEW = overviewPages({ sb, q, rpc, esc, me: () => state.me });
 const GAMEPLAN = gameplanPages({ rpc, esc, toast, errMsg, pageHead });
 const CONTRACTORS = contractorPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, canEdit: () => isAdmin() });
-const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled: PULLED, contractors: CONTRACTORS, isAdmin });
+// Facilities & Maintenance members see the schedule and check things off; admins and the Maintenance manager also add and change tasks.
+const SCHEDULE = schedulePages({ sb, q, rpc, esc, toast, askConfirm, errMsg, pageHead, pulled: PULLED, contractors: CONTRACTORS, isAdmin, canManage: () => isAdmin() || state.me?.role === 'maintenance' });
 
 // Team schedule: days off and vacation, on every site (team.js).
 // Facilities only: admins (full and Facilities admins) set people's team, hours and anyone's time off.
