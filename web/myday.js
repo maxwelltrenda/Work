@@ -42,7 +42,7 @@ export function myDayPages(ctx) {
       week ? safe(q(sb.from('checklist_tasks').select('*').eq('week_of', week).eq('archived', false).order('sort')), []) : [],
       safe(q(sb.from('pm_runs').select('*').in('status', ['open', 'missed'])), []),
       safe(q(sb.from('pm_tasks').select('*')), []),
-      safe(q(sb.from('personal_tasks').select('*').eq('member_id', person.id).is('done_at', null)), []),
+      [],
       safe(q(sb.from('pulled_work').select('*').eq('member_id', person.id).is('ended_at', null)), []),
       safe(q(sb.from('maint_requests').select('*').neq('board_group', 'solved')), []),
     ]);
@@ -96,8 +96,8 @@ export function myDayPages(ctx) {
 
     const pw = pulledKit && canPull?.() ? await pulledKit.load(pullDept()).catch(() => null) : null;
     const nowRows = [...(pw ? [] : pulled.map(pulledRow)), ...nowCk.map((t) => ckRow(t, true)), ...nowPm.map((r) => pmRow(r, true)), ...nowReq.map((r) => reqRow(r, true))];
-    const readyRows = [...ckToday.map((t) => ckRow(t, false)), ...pmReady.map((r) => pmRow(r, false)), ...reqMine.map((r) => reqRow(r, false)), ...todoNow.map(todoRow)];
-    const laterRows = [...ckLater.map((t) => ckRow(t, false)), ...todoLater.map(todoRow)];
+    const readyRows = [...ckToday.map((t) => ckRow(t, false)), ...pmReady.map((r) => pmRow(r, false)), ...reqMine.map((r) => reqRow(r, false))];
+    const laterRows = [...ckLater.map((t) => ckRow(t, false))];
     const grabRows = [...grabCk.map((t) => ckRow(t, false)), ...grabPm.map((r) => pmRow(r, false))];
     const hour = new Date().getHours();
     const sect = (title, sub, rows, empty, cls = '') => `<section class="md-sect ${cls}"><h2>${title} ${sub ? `<span class="muted">${sub}</span>` : ''}</h2>

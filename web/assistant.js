@@ -23,7 +23,6 @@ const HELP = `I understand short sentences like:
 • "Add sanctuary chair check to Saturday"
 • "Pulled to prep event in the family center" · "Back"
 • "What's left" · "What's left inside" · "What's left today"
-• "Remind me to create stock carts"
 • "Request: lobby sink is leaking"`;
 
 // ---------------------------------------------------------------- matching
@@ -89,7 +88,6 @@ export function parseClause(raw) {
   if (/^(?:i'?m\s+)?back (?:from|after) (?:lunch|break)|^resume(?: (?:that|it|this))?$|^(?:lunch|break) (?:is )?(?:over|done)$/i.test(low)) return { kind: 'breakend' };
   if (/^(?:(?:going|went|at|on|taking|take)\s+(?:to\s+)?)?(?:a\s+)?(lunch|break)\b|^pause (?:that|it|this|pulled)$/i.test(low)) return { kind: 'breakstart' };
   if (/^(i'?m\s+)?back\b|^done with (that|it|this)$|^(finished|done) (with )?(that|it)$/i.test(low)) return { kind: 'back' };
-  if ((m = s.match(/^(?:remind me to|reminder:?|to-?do:?|add to my (?:list|tasks?):?|my tasks?:)\s+(.+)$/i))) return { kind: 'todo', title: m[1].trim().replace(/^./, (c) => c.toUpperCase()) };
   if ((m = s.match(/^(?:new\s+)?request:?\s+(.+)$/i))) return { kind: 'request', subject: m[1].trim().replace(/^./, (c) => c.toUpperCase()) };
   // "Add "Sanctuary chair check" to Saturday list" / "add task mop lobby for today"
   if ((m = s.match(/^add\s+(?:a\s+)?(?:new\s+)?(?:task\s*:?\s*)?["“']?(.+?)["”']?\s+(?:to|on|for)\s+(?:the\s+|this\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday|today|detail work|week)(?:'?s)?(?:\s+(?:list|checklist|tasks?))?$/i))) {
@@ -243,12 +241,6 @@ export function mountAssistant({ sb, esc, me, onChange }) {
       if (!work.pulled.length) { out.lines.push("You weren't pulled to anything."); return out; }
       for (const p of work.pulled) await must(sb.rpc('pulled_end', { p_id: p.id, p_note: null }));
       out.actions.push(`Back from ${work.pulled.map((p) => p.what).join(', ')}`);
-      return out;
-    }
-
-    if (cmd.kind === 'todo') {
-      await must(sb.from('personal_tasks').insert({ member_id: person.id, title: cmd.title }).select('id'));
-      out.actions.push(`Added to My tasks: ${cmd.title}`);
       return out;
     }
 

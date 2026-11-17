@@ -107,7 +107,7 @@ db.personal_tasks = [
 ];
 db.notifications.push(
   { id: nextId(), created_at: ago(25), site: 'facilities', kind: 'assigned', member_id: ME, title: 'Max put you on Sanctuary reset', body: `Custodial · ${TODAY_NAME}`, link: '#/checklist' },
-  { id: nextId(), created_at: ago(60 * 5), site: 'facilities', kind: 'assigned', member_id: ME, title: 'New task from Max: Walk the gym with the event team', body: `Due ${addDays(TODAY, 1).slice(5).replace('-', '/')}`, link: '#/mytasks' },
+  { id: nextId(), created_at: ago(60 * 5), site: 'facilities', kind: 'assigned', member_id: ME, title: 'New task from Max: Walk the gym with the event team', body: `Due ${addDays(TODAY, 1).slice(5).replace('-', '/')}`, link: '#/myday' },
 );
 
 // Maintenance requests (sample)

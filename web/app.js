@@ -10,7 +10,6 @@ import { teamPages } from './team.js?v=__V__';
 import { contractorPages } from './contractors.js?v=__V__';
 import { gameplanPages } from './gameplan.js?v=__V__';
 import { overviewPages } from './overview.js?v=__V__';
-import { myTaskPages } from './mytasks.js?v=__V__';
 import { mountAssistant } from './assistant.js?v=__V__';
 import { paintSpotPages } from './paintspots.js?v=__V__';
 import { myDayPages } from './myday.js?v=__V__';
@@ -37,7 +36,6 @@ const DEMO_GUIDE = [
   ['items', 'Stock', 'What is on the shelves and what is running low.'],
   ['toollist', 'Tools', 'Every tool, where it is, and who has it.'],
   ['team', 'Team', 'Who works when and who is off.'],
-  ['mytasks', 'My tasks', 'Your own to-do list. Admins can add to anyone’s list.'],
   ['notifications', 'Alerts', 'The bell at the top. Shows when someone gives you work, and what got done.'],
   ['checklist', 'Quick update', 'The button in the corner. Type “Chapel done” or “Start windows” and the list updates.'],
   ['gameplan', 'Weekend plan', 'The weekend weather and our plan for each day.'],
@@ -220,7 +218,7 @@ function sitePages() {
     return [...(mr ? ['kiosk'] : []), 'toollist', 'tool', 'reservations', 'out', 'history',
       ...(mr === 'lead' ? ['labels', 'categories', 'people', 'notifications'] : [])];
   }
-  return [...myRole().pages.filter((p) => p !== 'events' && p !== 'items/events'), ...(canSeeNotifs() ? ['notifications'] : []), ...(isKiosk() ? [] : ['myday', 'team', 'mytasks'])];
+  return [...myRole().pages.filter((p) => p !== 'events' && p !== 'items/events'), ...(canSeeNotifs() ? ['notifications'] : []), ...(isKiosk() ? [] : ['myday', 'team'])];
 }
 const siteHome = () => (SITE === 'events' ? (siteRole().scanTools ? 'kiosk' : 'events') : SITE === 'media' ? (mediaRole() ? 'kiosk' : 'toollist') : myRole().home);
 
@@ -238,14 +236,13 @@ const NAV_ICON_PATHS = {
   events: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   reservations: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/>',
   out: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
-  mytasks: '<rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 9l1.5 1.5L12 8M8 15l1.5 1.5L12 14M14.5 9.5H17M14.5 15.5H17"/>',
   more: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
 };
 const navIcon = (k) => `<svg class="nav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${NAV_ICON_PATHS[k] || NAV_ICON_PATHS.items}</svg>`;
 
 const NAV = {
   facilities: {
-    main: [['overview', 'Overview'], ['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools'], ['team', 'Team'], ['mytasks', 'My tasks']],
+    main: [['overview', 'Overview'], ['kiosk', 'Check In / Out'], ['requests', 'Requests'], ['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['items', 'Stock'], ['toollist', 'Tools'], ['team', 'Team']],
     more: [['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock'], ['labels', 'Labels'],
       ['people', 'People'], ['locations', 'Locations'], ['contractors', 'Contractors'], ['gameplan', 'Weekend plan'], ['categories', 'Categories']],
   },
@@ -260,7 +257,7 @@ const NAV = {
 };
 // Facilities: a few tabs, each with its pages in a row of sub-tabs underneath.
 const NAV_GROUPS = [
-  { key: 'home', label: 'Home', icon: 'overview', pages: [['myday', 'My day'], ['overview', 'Overview'], ['mytasks', 'My tasks'], ['gameplan', 'Weekend plan']] },
+  { key: 'home', label: 'Home', icon: 'overview', pages: [['myday', 'My day'], ['overview', 'Overview'], ['gameplan', 'Weekend plan']] },
   { key: 'work', label: 'Work', icon: 'checklist', pages: [['checklist', 'Custodial'], ['schedule', 'Maintenance'], ['requests', 'Requests'], ['contractors', 'Contractors']] },
   { key: 'inventory', label: 'Inventory', icon: 'items', pages: [['kiosk', 'Check In / Out'], ['items', 'Stock'], ['toollist', 'Tools'], ['out', 'Who Has What'], ['history', 'History'], ['stock', 'Scan Stock']] },
   { key: 'team', label: 'Team', icon: 'team', pages: [['team', 'Schedule'], ['people', 'People']] },
@@ -555,7 +552,7 @@ function renderTopbar() {
     });
     }
     const roleLabel = isOrgAdmin() ? 'Admin' : SITE === 'media' ? (MEDIA_ROLES[mediaRole()] || myRole().label) : SITE === 'events' ? (EVENTS_ROLES[state.me.events_role] || 'Events team') : myRole().label;
-    who.innerHTML = `${canSeeNotifs() ? BELL : ''}${SITE === 'facilities' && !isKiosk() ? `<a class="who-name who-link" href="#/mytasks" title="My tasks">${esc(state.me.name)} · ${esc(roleLabel)}</a>` : `<span class="who-name">${esc(state.me.name)} · ${esc(roleLabel)}</span>`}<button id="signout">Sign out</button>`;
+    who.innerHTML = `${canSeeNotifs() ? BELL : ''}${SITE === 'facilities' && !isKiosk() ? `<a class="who-name who-link" href="#/myday" title="My day">${esc(state.me.name)} · ${esc(roleLabel)}</a>` : `<span class="who-name">${esc(state.me.name)} · ${esc(roleLabel)}</span>`}<button id="signout">Sign out</button>`;
     bindBell();
   }
   document.getElementById('signout')?.addEventListener('click', signOut);
@@ -791,7 +788,7 @@ async function renderNotifications() {
   const seenAt = state.me.notif_seen_at;
   const list = state.notifs.list;
   app.innerHTML = `
-    ${pageHead('Alerts', '<span class="accent">Alerts</span>', isAdmin() ? `Work given to you, tool sign-outs and returns, low stock, and Maintenance and Custodial tasks checked off${isOrgAdmin() ? ', on every site' : ''}. Newest first.` : 'When someone puts you on a task or gives you a request or to-do. Newest first.')}
+    ${pageHead('Alerts', '<span class="accent">Alerts</span>', isAdmin() ? `Work given to you, tool sign-outs and returns, low stock, and Maintenance and Custodial tasks checked off${isOrgAdmin() ? ', on every site' : ''}. Newest first.` : 'When someone puts you on a task, gives you a request, or @mentions you. Newest first.')}
     <div class="card" id="push-box"></div>
     ${list.length ? '<div class="notif-page-tools"><button type="button" class="btn" id="notif-clear">Clear all</button></div>' : ''}
     <div class="card" style="margin-top:16px">${list.length ? `<ul class="notif-list">${list.map((n) => notifRow(n, seenAt)).join('')}</ul>`
@@ -881,7 +878,6 @@ const routes = {
   contractors: () => CONTRACTORS.renderContractors(),
   gameplan: () => GAMEPLAN.renderGameplan(),
   overview: () => OVERVIEW.renderOverview(),
-  mytasks: (id) => MYTASKS.renderMyTasks(id || null),
   myday: () => MYDAY.renderMyDay(),
 };
 
@@ -912,7 +908,6 @@ const PAINTSPOTS = paintSpotPages({
 const canPull = () => ['admin', 'fac_admin', 'member', 'maintenance', 'custodian'].includes(state.me?.role);
 const pullDept = () => (state.me?.role === 'custodian' ? 'custodial' : 'maintenance');
 const MYDAY = myDayPages({ sb, q, rpc, esc, toast, errMsg, askConfirm, isAdmin, me: () => state.me, pulled: PULLED, canPull, pullDept });
-const MYTASKS = myTaskPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, me: () => state.me, isAdmin });
 const OVERVIEW = overviewPages({ sb, q, rpc, esc, me: () => state.me, pulled: PULLED, canPull, pullDept });
 const GAMEPLAN = gameplanPages({ rpc, esc, toast, errMsg, pageHead });
 const CONTRACTORS = contractorPages({ sb, q, esc, toast, askConfirm, errMsg, pageHead, canEdit: () => isAdmin() });
@@ -3583,7 +3578,7 @@ const markFullscreen = () => {
 };
 markFullscreen();
 window.addEventListener('resize', markFullscreen);
-const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/mytasks.js', '/assistant.js', '/paintspots.js', '/myday.js', '/notes.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
+const UPDATE_FILES = ['/app.js', '/boards.js', '/pm.js', '/pulled.js', '/places.js', '/contractors.js', '/gameplan.js', '/overview.js', '/assistant.js', '/paintspots.js', '/myday.js', '/notes.js', '/weather.js', '/team.js', '/datepick.js', '/select.js', '/style.css'];
 let loadedVersion = null;
 let lastUpdateCheck = 0;
 async function liveVersion() {
