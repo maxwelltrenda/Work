@@ -440,6 +440,11 @@ const RPC = {
       t.worked_seconds = (t.worked_seconds || 0) + Math.round((Date.now() - new Date(t.timer_started_at)) / 1000); t.timer_started_at = null; held.push(t.id); });
     db.pulled_work.push({ id: nextId(), dept: a.p_dept, member_id: ME, what: a.p_what, location: a.p_location || null, request_id: a.p_request || null, day: TODAY, started_at: nowIso(), ended_at: null, paused_tasks: held, paused_requests: [], paused_at: null, paused_seconds: 0 });
   },
+  free_task_start({ p_task }) {
+    const t = db.personal_tasks.find((x) => loose(x.id, p_task));
+    RPC.pulled_start({ p_dept: 'maintenance', p_what: t.title });
+    const r = db.pulled_work[db.pulled_work.length - 1]; r.personal_task_id = t.id; return r.id;
+  },
   pulled_pause({ p_id, p_pause }) {
     const r = db.pulled_work.find((x) => loose(x.id, p_id));
     if (!r) return;

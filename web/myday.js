@@ -28,6 +28,48 @@ export function myDayPages(ctx) {
   let tick = null;
   const safe = (p, fb) => Promise.resolve(p).catch(() => fb);
 
+  // Admins: put an optional "when you're free" item on someone's list (they get an alert).
+  function addFree(people, meId) {
+    return new Promise((resolve) => {
+      const sel = new Set();
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML = `<form class="modal sheet b-ckform" role="dialog" aria-modal="true" aria-label="Add for when they're free">
+        <h3>For when they're free</h3>
+        <p class="muted">Optional. No due date; it waits at the bottom of their My day until they mark it done.</p>
+        <label><span>What is it?</span><input name="title" required autocomplete="off" placeholder="e.g. Build stock carts" class="modal-input"></label>
+        <div class="wk-sect">Whose list <span class="muted pm-opt">(tap one or more)</span></div>
+        <div class="wk-chips">${people.map((m) => `<button type="button" class="chip-btn" data-fp="${m.id}">${esc(m.name)}</button>`).join('')}</div>
+        <label style="margin-top:12px"><span>Note <span class="muted">(optional)</span></span><input name="notes" autocomplete="off"></label>
+        <div class="modal-actions"><button type="button" class="btn" data-cancel>Cancel</button><button class="btn primary">Add</button></div></form>`;
+      const form = back.querySelector('form');
+      const draw = () => form.querySelectorAll('[data-fp]').forEach((b) => b.classList.toggle('on', sel.has(b.dataset.fp)));
+      form.querySelectorAll('[data-fp]').forEach((b) => b.addEventListener('click', () => { if (sel.has(b.dataset.fp)) sel.delete(b.dataset.fp); else sel.add(b.dataset.fp); draw(); }));
+      const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
+      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(false); } };
+      document.addEventListener('keydown', onKey, true);
+      back.addEventListener('mousedown', (e) => { if (e.target === back) done(false); });
+      form.querySelector('[data-cancel]').addEventListener('click', () => done(false));
+      let saving = false;
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (saving) return;
+        const title = form.title.value.trim();
+        if (!title) return form.title.focus();
+        if (!sel.size) { toast('Pick whose list', true); return; }
+        saving = true;
+        try {
+          await q(sb.from('personal_tasks').insert([...sel].map((id) => ({ member_id: id, title, notes: form.notes.value.trim() || null }))).select('id'));
+          toast(sel.size === 1 && sel.has(meId) ? 'Added to your list' : 'Added. They got an alert.');
+          done(true);
+        } catch (err) { saving = false; toast(errMsg(err), true); }
+      });
+      draw();
+      document.body.appendChild(back);
+      form.title.focus();
+    });
+  }
+
   async function renderMyDay() {
     const person = me();
     const myName = person.name;
@@ -48,7 +90,12 @@ export function myDayPages(ctx) {
       safe(q(sb.from('maint_requests').select('*').neq('board_group', 'solved')), []),
     ]);
     const taskBy = Object.fromEntries(pmTasks.map((t) => [t.id, t]));
-    const whoName = Object.fromEntries((await safe(q(sb.from('team_members').select('id, name')), [])).map((m) => [m.id, m.name]));
+    const team = await safe(q(sb.from('team_members').select('id, name, role, active')), []);
+    // Time on "when you're free" items (logged as Pulled to work, 0068).
+    const freeLog = todos.length ? await safe(q(sb.from('pulled_work').select('id, personal_task_id, started_at, ended_at, paused_at, paused_seconds').in('personal_task_id', todos.map((t) => t.id))), []) : [];
+    const freeSecs = (id) => freeLog.filter((p) => p.personal_task_id === id).reduce((a, p) => a + Math.max(0, (new Date(p.ended_at || p.paused_at || Date.now()) - new Date(p.started_at)) / 1000 - (p.paused_seconds || 0)), 0);
+    const freeRun = (id) => freeLog.find((p) => p.personal_task_id === id && !p.ended_at);
+    const whoName = Object.fromEntries(team.map((m) => [m.id, m.name]));
     const myStepsOf = (t) => Object.entries(t?.step_people || {}).filter(([, ids]) => (ids || []).includes(person.id)).map(([s]) => s);
     const pmMine = (r) => (taskBy[r.task_id]?.assignees || []).includes(person.id) || myStepsOf(taskBy[r.task_id]).length > 0;
     const pmCurrent = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today);
@@ -113,8 +160,10 @@ export function myDayPages(ctx) {
       ${sect('Ready to do', 'yours for today', readyRows, 'Nothing assigned to you for today.')}
       ${laterRows.length ? sect('Later this week', '', laterRows, '') : ''}
       ${grabRows.length ? sect('Up for grabs', 'nobody on these yet · starting one puts you on it', grabRows, '') : ''}
-      ${todos.length ? sect("When you're free", 'optional · no due date', todos.map((t) => row({ tag: 'Optional', cls: 'todo', title: esc(t.title), meta: t.notes ? esc(t.notes) : '',
-        actions: `<button class="btn small" data-md-todo="${t.id}">✓ Done</button>` })), '') : ''}`;
+      ${todos.length || isAdmin?.() ? sect(`When you're free${isAdmin?.() ? ' <button type="button" class="btn small md-free-add" data-md-free>+ Add for someone</button>' : ''}`, 'optional · no due date', todos.map((t) => { const run = freeRun(t.id); const secs = freeSecs(t.id);
+        return row({ tag: 'Optional', cls: 'todo', title: esc(t.title),
+          meta: [run ? `<b>⏱ Timing</b> · since ${clock(run.started_at)}` : secs >= 60 ? `${dur(secs)} so far` : '', t.notes ? esc(t.notes) : '', t.created_by && t.created_by !== myName ? `from ${esc(String(t.created_by).split(' ')[0])}` : ''].filter(Boolean).join(' · '),
+          actions: `${run ? `<button class="btn small b-running" data-md-back="${run.id}">■ Stop</button>` : `<button class="btn small" data-md-free-start="${t.id}">▶ Start</button>`}<button class="btn small" data-md-todo="${t.id}" data-run="${run ? run.id : ''}">✓ Done</button>` }); }), 'Nothing here. Add something for anyone to do when they have time.') : ''}`;
 
     bindNotes(app, { sb, toast, errMsg, esc, meId: person.id, canDeleteAll: isAdmin?.(), names: { ...Object.fromEntries(ck.map((t) => [`custodial:${t.id}`, t.name])), ...Object.fromEntries(pmCurrent.map((r) => [`maintenance:${r.id}`, taskBy[r.task_id]?.name || ''])) } }, renderMyDay);
     const act = async (fn, msg) => { try { await fn(); if (msg) toast(msg); renderMyDay(); } catch (err) { toast(errMsg(err), true); } };
@@ -131,7 +180,14 @@ export function myDayPages(ctx) {
     }, 'Done ✓')));
     app.querySelectorAll('[data-md-pm]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pm_timer', { p_run: Number(b.dataset.mdPm), p_run_on: b.dataset.run === '1' }))));
     app.querySelectorAll('[data-md-pmdone]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pm_mark', { p_run: Number(b.dataset.mdPmdone), p_status: 'done', p_note: null }), 'Done ✓')));
-    app.querySelectorAll('[data-md-todo]').forEach((b) => b.addEventListener('click', () => act(() => q(sb.from('personal_tasks').update({ done_at: new Date().toISOString() }).eq('id', b.dataset.mdTodo).select('id')), 'Done ✓')));
+    app.querySelector('[data-md-free]')?.addEventListener('click', async () => {
+      if (await addFree(team.filter((m) => m.active && !['none', 'kiosk'].includes(m.role)).sort((a, b) => a.name.localeCompare(b.name)), person.id)) renderMyDay();
+    });
+    app.querySelectorAll('[data-md-todo]').forEach((b) => b.addEventListener('click', () => act(async () => {
+      if (b.dataset.run) await rpc('pulled_end', { p_id: Number(b.dataset.run), p_note: null });
+      return q(sb.from('personal_tasks').update({ done_at: new Date().toISOString() }).eq('id', b.dataset.mdTodo).select('id'));
+    }, 'Done ✓')));
+    app.querySelectorAll('[data-md-free-start]').forEach((b) => b.addEventListener('click', () => act(() => rpc('free_task_start', { p_task: Number(b.dataset.mdFreeStart) }), 'Timing it. What you were on is paused.')));
     if (pw) pulledKit.bind(app, renderMyDay);
     app.querySelectorAll('[data-md-back]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pulled_end', { p_id: Number(b.dataset.mdBack), p_note: null }), 'Welcome back')));
     app.querySelectorAll('[data-md-pause]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pulled_pause', { p_id: Number(b.dataset.mdPause), p_pause: b.dataset.on === '1' }))));
