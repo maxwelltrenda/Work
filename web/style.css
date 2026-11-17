@@ -1547,3 +1547,9 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .tn-input { width: 100%; box-sizing: border-box; font: 15px/1.5 var(--sans); padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; margin-top: 8px; resize: vertical; }
 .tn-btn { white-space: nowrap; }
 .b-notes { padding: 0 12px 4px 54px; }
+.pm-step { display: flex; align-items: center; gap: 8px; }
+.pm-stepwho { flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0; border-radius: 999px; background: transparent; border: 0; cursor: pointer; color: var(--muted); font: 600 14px var(--sans); }
+.pm-stepwho.empty { border: 1px dashed var(--line-strong); opacity: 0; transition: opacity .15s; }
+.pm-step:hover .pm-stepwho.empty, .pm-stepwho.empty:focus { opacity: 1; }
+@media (hover: none) { .pm-stepwho.empty { opacity: .7; } }
+.pm-stepwho .b-av { width: 22px; height: 22px; font-size: 10px; }

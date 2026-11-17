@@ -482,6 +482,7 @@ const RPC = {
     pmRefresh();
   },
   pm_set_contractor({ p_task, p_contractor }) { db.pm_tasks.find((x) => loose(x.id, p_task)).contractor_id = p_contractor; },
+  pm_set_step_people({ p_task, p_step, p_people }) { const t = db.pm_tasks.find((x) => loose(x.id, p_task)); t.step_people = { ...(t.step_people || {}) }; if ((p_people || []).length) t.step_people[p_step] = p_people; else delete t.step_people[p_step]; },
   pm_set_assignees({ p_task, p_people }) { db.pm_tasks.find((x) => loose(x.id, p_task)).assignees = p_people || []; },
   pm_set_active({ p_id, p_active }) { const t = db.pm_tasks.find((x) => loose(x.id, p_id)); t.active = p_active; if (p_active) t.active_since = TODAY; else db.pm_runs = db.pm_runs.filter((r) => !(r.task_id === t.id && r.status === 'open')); pmRefresh(); },
   pm_timer({ p_run, p_run_on }) {

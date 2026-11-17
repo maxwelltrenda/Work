@@ -45,7 +45,8 @@ export function myDayPages(ctx) {
       safe(q(sb.from('maint_requests').select('*').neq('board_group', 'solved')), []),
     ]);
     const taskBy = Object.fromEntries(pmTasks.map((t) => [t.id, t]));
-    const pmMine = (r) => (taskBy[r.task_id]?.assignees || []).includes(person.id);
+    const myStepsOf = (t) => Object.entries(t?.step_people || {}).filter(([, ids]) => (ids || []).includes(person.id)).map(([s]) => s);
+    const pmMine = (r) => (taskBy[r.task_id]?.assignees || []).includes(person.id) || myStepsOf(taskBy[r.task_id]).length > 0;
     const pmCurrent = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today);
 
     // ---- clocked in now
@@ -75,7 +76,7 @@ export function myDayPages(ctx) {
       notes: notesList(ckN[t.id], esc, person.id, isAdmin?.()),
       actions: `${noteButton('custodial', t.id, (ckN[t.id] || []).length)}<button class="btn small${running ? ' b-running' : ''}" data-md-ck="${t.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-ckdone="${t.id}">✓ Done</button>` });
     const pmRow = (r, running) => { const t = taskBy[r.task_id]; return row({ tag: t.parent_id ? 'Get ready' : 'Maintenance', cls: 'maint', title: esc(t.name),
-      meta: [running ? `${live(r.worked_seconds, r.timer_started_at)} · since ${clock(r.timer_started_at)}` : r.worked_seconds ? `${dur(r.worked_seconds)} so far` : '', t.location ? esc(t.location) : '', r.due_on ? `${r.due_on < today ? '<b class="md-late">Late</b> · was due' : 'due'} ${dshort(r.due_on)}` : '', (t.steps || []).length ? `${(r.steps_done || []).length}/${t.steps.length} steps` : ''].filter(Boolean).join(' · '),
+      meta: [running ? `${live(r.worked_seconds, r.timer_started_at)} · since ${clock(r.timer_started_at)}` : r.worked_seconds ? `${dur(r.worked_seconds)} so far` : '', t.location ? esc(t.location) : '', r.due_on ? `${r.due_on < today ? '<b class="md-late">Late</b> · was due' : 'due'} ${dshort(r.due_on)}` : '', (t.steps || []).length ? `${(r.steps_done || []).length}/${t.steps.length} steps` : '', myStepsOf(t).length ? `<b>Your steps:</b> ${myStepsOf(t).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
       notes: notesList(pmN[r.id], esc, person.id, isAdmin?.()),
       actions: `${noteButton('maintenance', r.id, (pmN[r.id] || []).length)}<button class="btn small${running ? ' b-running' : ''}" data-md-pm="${r.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-pmdone="${r.id}">✓ Done</button>` }); };
     const reqRow = (r, running) => row({ tag: 'Request', cls: 'req', title: `<a href="#/request/${r.id}">${esc(r.subject)}</a>`,

@@ -389,7 +389,14 @@ export function schedulePages(ctx) {
         ${notesBlock(t.notes, esc)}
         ${ctLine(t)}
         ${notesList(pmNotes[r.id], esc, ctx.me?.()?.id, ctx.isAdmin?.())}
-        ${steps.length ? `<div class="pm-steps">${steps.map((s, i) => `<label><input type="checkbox" data-step="${r.id}" data-i="${i}" ${(r.steps_done || []).includes(i) ? 'checked' : ''}> ${esc(s)}</label>`).join('')}</div>` : ''}
+        ${steps.length ? `<div class="pm-steps">${steps.map((s, i) => {
+          // Optional people on each step.
+          const sp = ((t.step_people || {})[s] || []).map((id) => whoAll[id]).filter(Boolean);
+          const spAv = sp.map((n) => `<span class="b-av" style="background:${hue(n)}" title="${esc(n)}">${esc(initials(n))}</span>`).join('');
+          return `<div class="pm-step"><label><input type="checkbox" data-step="${r.id}" data-i="${i}" ${(r.steps_done || []).includes(i) ? 'checked' : ''}> ${esc(s)}</label>
+            ${manage() && live ? `<button type="button" class="pm-stepwho${sp.length ? '' : ' empty'}" data-step-who="${t.id}" data-step-i="${i}" title="${sp.length ? esc(sp.join(', ')) : 'Who does this step? (optional)'}">${sp.length ? `<span class="b-avs">${spAv}</span>` : '+'}</button>`
+              : sp.length ? `<span class="b-avs pm-stepwho" title="${esc(sp.join(', '))}">${spAv}</span>` : ''}</div>`;
+        }).join('')}</div>` : ''}
       </div>
       <div class="pm-actions">${whoBtn}${time}${live || (pmNotes[r.id] || []).length ? noteButton('maintenance', r.id, (pmNotes[r.id] || []).length) : ''}${timerBtn}${r.status === 'open' ? `<button class="btn small" data-mark="${r.id}" data-to="skipped" title="Not needed this time">Skip</button>` : r.status === 'skipped' ? `<button class="btn small" data-mark="${r.id}" data-to="open">Undo skip</button>` : ''}</div>
     </div>`;
@@ -699,6 +706,15 @@ export function schedulePages(ctx) {
       if (!els.length) { clearInterval(pmTick); return; }
       els.forEach((el) => { el.textContent = tdur(Number(el.dataset.base) + (Date.now() - Number(el.dataset.since)) / 1000); });
     }, 1000);
+    // Who does a step (optional).
+    app.querySelectorAll('[data-step-who]').forEach((b) => b.addEventListener('click', async () => {
+      const t = tasks.find((x) => x.id === Number(b.dataset.stepWho));
+      const step = (t?.steps || [])[Number(b.dataset.stepI)];
+      if (!step) return;
+      const ppl = await pickCrew({ name: `${step} · ${t.name}`, assignees: (t.step_people || {})[step] || [] });
+      if (!ppl) return;
+      try { await rpc('pm_set_step_people', { p_task: t.id, p_step: step, p_people: ppl }); toast(ppl.length ? `${step}: ${ppl.map((id) => whoAll[id]).join(', ')}` : `Nobody on ${step}`); reload(); } catch (err) { toast(errMsg(err), true); }
+    }));
     // Who's on it, right from the card (get-ready steps too).
     app.querySelectorAll('[data-pm-people]').forEach((b) => b.addEventListener('click', async () => {
       const t = tasks.find((x) => x.id === Number(b.dataset.pmPeople));
