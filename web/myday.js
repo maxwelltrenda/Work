@@ -109,7 +109,7 @@ export function myDayPages(ctx) {
       ${laterRows.length ? sect('Later this week', '', laterRows, '') : ''}
       ${grabRows.length ? sect('Up for grabs', 'nobody on these yet · starting one puts you on it', grabRows, '') : ''}`;
 
-    bindNotes(app, { sb, toast, errMsg, askConfirm, names: { ...Object.fromEntries(ck.map((t) => [`custodial:${t.id}`, t.name])), ...Object.fromEntries(pmCurrent.map((r) => [`maintenance:${r.id}`, taskBy[r.task_id]?.name || ''])) } }, renderMyDay);
+    bindNotes(app, { sb, toast, errMsg, esc, meId: person.id, canDeleteAll: isAdmin?.(), names: { ...Object.fromEntries(ck.map((t) => [`custodial:${t.id}`, t.name])), ...Object.fromEntries(pmCurrent.map((r) => [`maintenance:${r.id}`, taskBy[r.task_id]?.name || ''])) } }, renderMyDay);
     const act = async (fn, msg) => { try { await fn(); if (msg) toast(msg); renderMyDay(); } catch (err) { toast(errMsg(err), true); } };
     app.querySelectorAll('[data-md-ck]').forEach((b) => b.addEventListener('click', () => act(async () => {
       const t = ck.find((x) => String(x.id) === b.dataset.mdCk);

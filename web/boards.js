@@ -482,7 +482,7 @@ export function boardPages(ctx) {
 
     const rerender = () => renderChecklist('week');
     pulled.bind(app, rerender);
-    bindNotes(app, { sb, toast, errMsg, askConfirm, names: Object.fromEntries(tasks.map((t) => [`custodial:${t.id}`, t.name])) }, rerender);
+    bindNotes(app, { sb, toast, errMsg, esc, meId: me()?.id, canDeleteAll: isAdmin(), names: Object.fromEntries(tasks.map((t) => [`custodial:${t.id}`, t.name])) }, rerender);
     app.querySelector('[data-ck-add]')?.addEventListener('click', async () => {
       if (await addWeekTask(week, todayName, tasks)) rerender();
     });

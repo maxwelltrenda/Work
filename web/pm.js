@@ -702,7 +702,7 @@ export function schedulePages(ctx) {
       if (t && (await taskModal(await loadPlaces(sb), { ...t, preps: tasks.filter((c) => c.parent_id === t.id && c.active) }))) reload();
     }));
     pulled.bind(app, reload);
-    bindNotes(app, { sb, toast, errMsg, askConfirm, names: Object.fromEntries(current.map((r) => [`maintenance:${r.id}`, tasks.find((x) => x.id === r.task_id)?.name || ''])) }, reload);
+    bindNotes(app, { sb, toast, errMsg, esc, meId: ctx.me?.()?.id, canDeleteAll: ctx.isAdmin?.(), names: Object.fromEntries(current.map((r) => [`maintenance:${r.id}`, tasks.find((x) => x.id === r.task_id)?.name || ''])) }, reload);
     app.querySelectorAll('[data-pm-timer]').forEach((b) => b.addEventListener('click', async () => {
       try { await rpc('pm_timer', { p_run: Number(b.dataset.pmTimer), p_run_on: b.dataset.run === '1' }); reload(); } catch (err) { toast(errMsg(err), true); }
     }));
