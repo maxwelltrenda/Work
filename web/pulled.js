@@ -1,7 +1,7 @@
 import { loadPlaces as placesFrom, attachPlaces } from './places.js?v=__V__';
 import { loadNotes, notesList, noteButton, bindNotes } from './notes.js?v=__V__';
 // "I got pulled to something": shared by the custodial Checklist and the
-// Maintenance schedule. Shows today's unplanned work for that department (who,
+// Maintenance schedule: one shared list of today's unplanned work for everyone (who,
 // what, where, how long) and the button to log it. See 0030_pulled_work.sql.
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -21,7 +21,7 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
 
   async function load(dept) {
     const [rows, members] = await Promise.all([
-      q(sb.from('pulled_work').select('*').eq('dept', dept).eq('day', localDay()).order('started_at', { ascending: false })),
+      q(sb.from('pulled_work').select('*').eq('day', localDay()).order('started_at', { ascending: false })),
       q(sb.from('team_members').select('id, name')),
     ]);
     // Names of what each open one paused, to show "picks back up when you're back".
@@ -59,9 +59,9 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
           <button class="btn small" data-pw-end="${r.id}">${r.member_id === me()?.id ? "I'm back" : 'End'}</button></div>` : ''}
       </li>`;
     };
-    return `<section class="pw-box ${dept === 'custodial' ? 'dept-custodial' : 'dept-maint'}">
+    return `<section class="pw-box">
       <div class="pw-head"><div><b>Pulled to today</b><span class="muted">${open.length ? `${open.length} away from the plan right now` : 'Work that wasn\'t on the plan'}</span></div>
-        <button class="btn ${mine ? '' : 'primary'}" data-pw-start="${dept}">↪ ${mine ? 'Pulled to something else' : 'I got pulled to something'}</button></div>
+        <button class="btn primary" data-pw-start="${dept}">↪ ${mine ? 'Pulled to something else' : 'I got pulled to something'}</button></div>
       ${rows.length ? `<ul class="pw-list">${[...open, ...ended].map(line).join('')}</ul>` : '<p class="muted pw-empty">Nobody has been pulled off the plan today.</p>'}
     </section>`;
   }

@@ -927,10 +927,6 @@ nav a[href="#/schedule"].active { border-bottom-color: var(--dept-maint); }
 .dept-maint .accent, .dept-maint .dept-tag { color: var(--dept-maint); }
 .dept-custodial .eyebrow, .dept-maint .eyebrow { border-bottom-color: currentColor; }
 .dept-maint .eyebrow { color: var(--dept-maint); }
-.pw-box.dept-custodial { border-left: 5px solid var(--dept-custodial); }
-.pw-box.dept-maint { border-left: 5px solid var(--dept-maint); }
-.pw-box.dept-custodial .btn.primary { background: var(--dept-custodial); border-color: var(--dept-custodial); }
-.pw-box.dept-maint .btn.primary { background: var(--dept-maint); border-color: var(--dept-maint); }
 
 /* ---------- Team schedule ---------- */
 .to-today { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
