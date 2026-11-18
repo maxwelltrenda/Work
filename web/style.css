@@ -1607,3 +1607,9 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .pm-prep .pm-prep-from, .pm-prep .dd:has(.pm-prep-from) { grid-column: 1 / -1; }
 @media (max-width: 560px) { .pm-prep .pm-prep-from, .pm-prep .dd:has(.pm-prep-from) { grid-column: 1 / -1; } }
 .pm-steps label:has(input:checked) { color: var(--muted); text-decoration: line-through; }
+.pm-freq { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--paper-2); color: var(--muted); font: 600 12px var(--sans); vertical-align: middle; }
+.pm-sect.late { color: var(--bad); }
+.pm-later > summary { list-style: none; cursor: pointer; }
+.pm-later > summary::-webkit-details-marker { display: none; }
+.pm-later > summary .pm-sect::before { content: '▸ '; color: var(--muted); }
+.pm-later[open] > summary .pm-sect::before { content: '▾ '; }

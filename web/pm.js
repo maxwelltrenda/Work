@@ -353,14 +353,24 @@ export function schedulePages(ctx) {
       return `<div class="card pm-empty"><b>Nothing on the schedule yet.</b><p class="muted">Add each recurring job once: what it is, how often, and how long the team has to get it done. It then comes up on its own every week, month, quarter or year.</p>
         <div class="row" style="margin-top:14px"><button class="btn primary" data-pm-new>+ Add your first task</button></div></div>`;
     }
-    return prepHtml + FREQS.map(([f, label]) => {
-      const rs = current.filter((r) => taskBy[r.task_id].frequency === f && !taskBy[r.task_id].parent_id)
-        .sort((a, b) => (b.status === 'open') - (a.status === 'open') || a.due_on.localeCompare(b.due_on) || taskBy[a.task_id].sort - taskBy[b.task_id].sort);
-      if (!rs.length) return '';
-      const left = rs.filter((r) => r.status === 'open').length;
-      return `<h2 class="pm-sect">${label} <span class="muted">${f === 'once' ? '' : `${periodLabel(f, rs[0].period_start, rs[0].period_end)} · `}${left ? `${left} to do` : 'all done'}</span></h2>
-        <div class="pm-list">${rs.map((r) => runCard(r, taskBy[r.task_id], who, today)).join('')}</div>`;
-    }).join('') + comingUp(waiting, today);
+    // Grouped by WHEN it's due (not how often it repeats): late, today, this
+    // week (to Monday), later. Each card says how often it comes back.
+    const wkEnd = addD(weekStart(today), 6);
+    const all = current.slice().sort((x, y) => x.due_on.localeCompare(y.due_on) || (taskBy[x.task_id].once_from || '').localeCompare(taskBy[y.task_id].once_from || '') || taskBy[x.task_id].sort - taskBy[y.task_id].sort);
+    const open = all.filter((r) => r.status === 'open' || r.status === 'missed');
+    const card = (r) => { const t = taskBy[r.task_id]; return runCard(r, t, who, today, t.parent_id ? taskBy[t.parent_id] : null); };
+    const group = (title, sub, list, cls = '') => (list.length ? `<h2 class="pm-sect ${cls}">${title} <span class="muted">${sub}</span></h2><div class="pm-list">${list.map(card).join('')}</div>` : '');
+    const late = open.filter((r) => r.due_on < today);
+    const now = open.filter((r) => r.due_on === today);
+    const week = open.filter((r) => r.due_on > today && r.due_on <= wkEnd);
+    const later = open.filter((r) => r.due_on > wkEnd);
+    const done = all.filter((r) => r.status === 'done' || r.status === 'skipped');
+    return group('Late', `${late.length} past due`, late, 'late')
+      + group('Today', `${now.length} to do`, now)
+      + group('This week', `by Monday ${dshort(wkEnd)} · ${week.length} to do`, week)
+      + (now.length + week.length + late.length ? '' : '<div class="card pm-empty"><b>Nothing due this week.</b></div>')
+      + (later.length || waiting.length ? `<details class="pm-later"><summary><h2 class="pm-sect">Later <span class="muted">${later.length + waiting.length} after this week</span></h2></summary>${later.length ? `<div class="pm-list">${later.map(card).join('')}</div>` : ''}${comingUp(waiting, today).replace(/<h2 class="pm-sect">[\s\S]*?<\/h2>/, '')}</details>` : '')
+      + (done.length ? `<details class="pm-later"><summary><h2 class="pm-sect">Done <span class="muted">${done.length} this period</span></h2></summary><div class="pm-list">${done.map(card).join('')}</div></details>` : '');
   }
 
   function dueText(r, today, t = null) {
@@ -398,7 +408,7 @@ export function schedulePages(ctx) {
     return `<div class="pm-card ${r.status}${r.timer_started_at ? ' running' : ''}${r.status === 'open' && r.due_on < today ? ' late' : ''}">
       <button class="pm-check" data-mark="${r.id}" data-to="${isDone ? 'open' : 'done'}" aria-label="${isDone ? 'Mark not done' : 'Mark done'}">${isDone ? '✓' : ''}</button>
       <div class="pm-body">
-        <b class="pm-name">${esc(t.name)}${t.shared_events || parent?.shared_events ? ' <span class="pm-ev">With Events</span>' : ''}</b>
+        <b class="pm-name">${esc(t.name)}${t.shared_events || parent?.shared_events ? ' <span class="pm-ev">With Events</span>' : ''} <span class="pm-freq">${parent ? 'Get ready' : t.frequency === 'weekly' ? 'Every week' : FREQ_LABEL[t.frequency]}</span></b>
         ${r.timer_started_at && inNames.length ? `<span class="pm-meta pm-clocked">⏱ ${inNames.map((n) => esc(n.split(' ')[0])).join(', ')} clocked in</span>` : ''}
         <span class="pm-meta">${[parent ? `Before <b>${esc(parent.name)}</b> (starts ${dshort(addD(r.period_end, 1))})` : '', t.location ? esc(t.location) : '', dueText(r, today, t)].filter(Boolean).join(' · ')}</span>
         ${isDone ? `<span class="pm-meta pm-donewho">Done by ${esc(who[r.done_by] || 'someone')} · ${new Date(r.done_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}${r.note ? ` · ${esc(r.note)}` : ''}</span>` : ''}
