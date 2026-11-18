@@ -28,18 +28,21 @@ if (DEMO) {
 }
 // A short guide to the tabs, shown the first time the demo opens.
 const DEMO_GUIDE = [
-  ['overview', 'Overview', 'The start page. Every department on one screen.'],
-  ['kiosk', 'Check In / Out', 'Scan a tool to take it or bring it back. Scan stock to take it off the shelf.'],
+  ['myday', 'My day', 'Each person\'s home: what they\'re clocked in on, what\'s for today, this week and later, plus things to do when they\'re free.'],
+  ['overview', 'Overview', 'Every department on one screen, and where each person is right now. Refreshes on its own.'],
+  ['checklist', 'Custodial', 'The cleaning list for each day. Start a timer, check it off, add one-time or repeating tasks.'],
+  ['schedule', 'Maintenance', 'Recurring and scheduled jobs, sorted by when they\'re due. Set days, get-ready steps and where we buy parts.'],
+  ['checklist', 'Pulled to', '"I got pulled to something" pauses what you were on and logs the unplanned work.'],
+  ['schedule/history', 'Past weeks', 'What got done each week, pulled-to work, and each person\'s time.'],
   ['requests', 'Requests', 'All work requests. Move each one from New to Done.'],
-  ['checklist', 'Custodial', 'The cleaning list for each day. Tap the circle when a room is done.'],
-  ['schedule', 'Maintenance', 'Jobs that repeat, like AC filters and lawn care. They show up on their own.'],
-  ['items', 'Stock', 'What is on the shelves and what is running low.'],
+  ['kiosk', 'Check In / Out', 'Scan a tool to take it or bring it back. Scan stock to take it off the shelf.'],
+  ['items', 'Stock', 'What is on the shelves, paint by color, and what is running low.'],
   ['toollist', 'Tools', 'Every tool, where it is, and who has it.'],
   ['team', 'Team', 'Who works when and who is off.'],
-  ['notifications', 'Alerts', 'The bell at the top. Shows when someone gives you work, and what got done.'],
+  ['notifications', 'Alerts', 'The bell at the top. Shows when someone puts you on work or @mentions you in an update.'],
   ['checklist', 'Quick update', 'The button in the corner. Type “Chapel done” or “Start windows” and the list updates.'],
   ['gameplan', 'Weekend plan', 'The weekend weather and our plan for each day.'],
-  ['contractors', 'Contractors', 'Companies we hire, and who to call.'],
+  ['contractors', 'Contractors', 'Companies we hire or buy from, and who to call.'],
 ];
 function openDemoGuide() {
   const back = document.createElement('div');
