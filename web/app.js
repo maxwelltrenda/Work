@@ -21,6 +21,8 @@ const DEMO = /[?&]demo\b/.test(location.search);
 // A password-reset link: read it before the client signs in from the link and
 // clears the address, so we show "Choose a new password" instead of the app.
 let RECOVERY = /type=recovery/.test(location.hash) || /[?&]reset=1\b/.test(location.search);
+// An email link that was already used or has expired comes back with an error.
+const LINK_ERROR = /error_code=otp_expired|error=access_denied/.test(location.hash + location.search);
 const sb = DEMO ? (await import('./demo.js?v=__V__')).demoClient() : createClient(SUPABASE_URL, SUPABASE_KEY);
 if (DEMO) {
   document.documentElement.classList.add('is-demo');
@@ -600,6 +602,11 @@ function renderNoAccess() {
 }
 
 function renderLogin(mode = 'signin', note = '') {
+  if (LINK_ERROR && !note && mode === 'signin') {
+    mode = 'forgot';
+    note = 'That email link was already used or has expired (each link works once). Enter your email to get a new one.';
+    history.replaceState(null, '', location.pathname);
+  }
   const titles = { signin: 'Sign in', signup: 'Create your account', forgot: 'Reset password' };
   app.innerHTML = `
     <div class="auth">
