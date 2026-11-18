@@ -1016,6 +1016,11 @@ async function renderStock() {
       return show('info', `Mode: ${m === 'adjust' ? 'SET COUNT' : `SCAN ${m.toUpperCase()}`}`);
     }
     if (upper === CMD.DONE) { qty.value = 1; note.value = ''; return show('info', 'Cleared.'); }
+    // Typed just a number (1-999) in the scan box: that's the quantity for the next scan.
+    if (/^\d{1,3}$/.test(code) && !active.some((i) => String(i.code) === code)) {
+      qty.value = code;
+      return show('info', `Quantity set to <b>${esc(code)}</b>. Now scan or pick the item.`);
+    }
 
     const n = parseInt(qty.value, 10);
     try {
@@ -1027,6 +1032,9 @@ async function renderStock() {
       state.stockLog.unshift({ type: state.stockMode, text: `${verb} · ${it.name} → ${it.quantity} left`, time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) });
       state.stockLog = state.stockLog.slice(0, 50);
       paintLog();
+      // Keep the "pick the item" list's counts current.
+      const opt = [...app.querySelectorAll('#pick option')].find((o) => o.value === it.code);
+      if (opt) opt.textContent = `${it.name} (${it.quantity} on hand)`;
       qty.value = 1;
       note.value = '';
       beep(true);
