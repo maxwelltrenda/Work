@@ -2,6 +2,7 @@
 // that's theirs and ready to do (Custodial, Maintenance, requests, to-dos),
 // and open work nobody has taken yet. Start / Stop / Done right from here.
 
+import { runDates, whenOf } from './pm.js?v=__V__';
 import { loadNotes, notesList, noteButton, bindNotes } from './notes.js?v=__V__';
 
 const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -113,14 +114,20 @@ export function myDayPages(ctx) {
     const ckMine = ck.filter((t) => open(t) && onMe(t.who) && !meIn(t));
     const ckToday = ckMine.filter((t) => t.day === todayName);
     const ckLater = ckMine.filter((t) => t.day !== todayName).sort((a, b) => WEEK.indexOf(a.day) - WEEK.indexOf(b.day));
-    const pmReady = pmCurrent.filter((r) => pmMine(r) && !meInPm(r)).sort((a, b) => String(a.due_on).localeCompare(String(b.due_on)));
+    // Maintenance by WHEN: today (due, late, or one of its set days), this week (to Monday), later.
+    const wkEnd = (() => { const d = new Date(); d.setDate(d.getDate() - ((d.getDay() + 5) % 7) + 6); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+    const at = (r) => whenOf(r, taskBy[r.task_id], today);
+    const pmReady = pmCurrent.filter((r) => pmMine(r) && !meInPm(r) && ['open', 'missed'].includes(r.status)).sort((a, b) => String(at(a)).localeCompare(String(at(b))));
+    const pmToday = pmReady.filter((r) => r.due_on < today || at(r) <= today);
+    const pmWeek = pmReady.filter((r) => !pmToday.includes(r) && at(r) <= wkEnd);
+    const pmLater = pmReady.filter((r) => !pmToday.includes(r) && at(r) > wkEnd);
     const reqMine = reqs.filter((r) => !r.timer_started_at && (r.experts || []).some((e) => e.toLowerCase() === lc));
     const todoNow = todos.filter((t) => !t.due_on || t.due_on <= today).sort((a, b) => String(a.due_on || '9').localeCompare(String(b.due_on || '9')));
     const todoLater = todos.filter((t) => t.due_on && t.due_on > today).sort((a, b) => a.due_on.localeCompare(b.due_on));
 
     // ---- up for grabs (nobody on it)
     const grabCk = ck.filter((t) => open(t) && !names(t.who).length && t.day === todayName);
-    const grabPm = pmCurrent.filter((r) => !(taskBy[r.task_id]?.assignees || []).length && !r.timer_started_at && r.due_on <= addDays(today, 7));
+    const grabPm = pmCurrent.filter((r) => ['open', 'missed'].includes(r.status) && !(taskBy[r.task_id]?.assignees || []).length && !r.timer_started_at && (r.due_on < today || at(r) <= today));
 
     const [ckN, pmN] = await Promise.all([loadNotes(sb, 'custodial', ck.map((t) => t.id)), loadNotes(sb, 'maintenance', pmCurrent.map((r) => r.id))]);
     const row = ({ tag, cls, title, meta, actions, notes = '' }) => `<div class="md-row"><span class="md-tag ${cls}">${tag}</span>
@@ -129,8 +136,9 @@ export function myDayPages(ctx) {
       meta: [running ? `${live(t.worked_seconds, t.timer_started_at)} · since ${clock(t.timer_started_at)}` : t.timer_started_at && (t.clocked || []).length ? `<b>${(t.clocked || []).map((n) => esc(String(n).split(' ')[0])).join(', ')} clocked in</b>` : t.worked_seconds ? `${dur(t.worked_seconds)} so far` : '', t.day && t.day !== todayName ? t.day : '', names(t.who).length > 1 ? `with ${names(t.who).filter((n) => n.toLowerCase() !== lc).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
       notes: notesList(ckN[t.id], esc, person.id, isAdmin?.()),
       actions: `${noteButton('custodial', t.id, (ckN[t.id] || []).length)}<button class="btn small${running ? ' b-running' : ''}" data-md-ck="${t.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-ckdone="${t.id}">✓ Done</button>` });
-    const pmRow = (r, running) => { const t = taskBy[r.task_id]; return row({ tag: t.parent_id ? 'Get ready' : 'Maintenance', cls: 'maint', title: esc(t.name),
-      meta: [running ? `${live(r.worked_seconds, r.timer_started_at)} · since ${clock(r.timer_started_at)}` : r.timer_started_at && (r.clocked || []).length ? `<b>${(r.clocked || []).map((id) => esc(String(whoName[id] || 'Someone').split(' ')[0])).join(', ')} clocked in</b>` : r.worked_seconds ? `${dur(r.worked_seconds)} so far` : '', t.location ? esc(t.location) : '', t.frequency === 'once' && t.once_from ? `<b>${r.due_on === today ? 'Today' : dshort(r.due_on)}, ${slot(t)}</b>` : r.due_on ? `${r.due_on < today ? '<b class="md-late">Late</b> · was due' : 'due'} ${dshort(r.due_on)}` : '', (t.steps || []).length ? `${(r.steps_done || []).length}/${t.steps.length} steps` : '', myStepsOf(t).length ? `<b>Your steps:</b> ${myStepsOf(t).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
+    const OFTEN = { once: 'One time', weekly: 'Every week', biweekly: 'Every 2 weeks', monthly: 'Monthly', quarterly: 'Quarterly', yearly: 'Yearly' };
+    const pmRow = (r, running) => { const t = taskBy[r.task_id]; return row({ tag: t.parent_id ? 'Get ready' : 'Maintenance', cls: 'maint', title: `${esc(t.name)} <span class="pm-freq">${t.parent_id ? 'Get ready' : OFTEN[t.frequency] || ''}</span>`,
+      meta: [running ? `${live(r.worked_seconds, r.timer_started_at)} · since ${clock(r.timer_started_at)}` : r.timer_started_at && (r.clocked || []).length ? `<b>${(r.clocked || []).map((id) => esc(String(whoName[id] || 'Someone').split(' ')[0])).join(', ')} clocked in</b>` : r.worked_seconds ? `${dur(r.worked_seconds)} so far` : '', t.location ? esc(t.location) : '', t.frequency === 'once' && t.once_from ? `<b>${r.due_on === today ? 'Today' : dshort(r.due_on)}, ${slot(t)}</b>` : runDates(r, t) ? `<b>${runDates(r, t).map((x) => (x === today ? 'Today' : `${DOW[new Date(`${x}T12:00`).getDay()].slice(0, 3)} ${dshort(x)}`)).join(' & ')}</b>` : r.due_on ? `${r.due_on < today ? '<b class="md-late">Late</b> · was due' : 'due'} ${dshort(r.due_on)}` : '', (t.steps || []).length ? `${(r.steps_done || []).length}/${t.steps.length} steps` : '', myStepsOf(t).length ? `<b>Your steps:</b> ${myStepsOf(t).map(esc).join(', ')}` : ''].filter(Boolean).join(' · '),
       notes: notesList(pmN[r.id], esc, person.id, isAdmin?.()),
       actions: `${noteButton('maintenance', r.id, (pmN[r.id] || []).length)}<button class="btn small${running ? ' b-running' : ''}" data-md-pm="${r.id}" data-run="${running ? 0 : 1}">${running ? '■ Stop' : '▶ Start'}</button><button class="btn small" data-md-pmdone="${r.id}">✓ Done</button>` }); };
     const reqRow = (r, running) => row({ tag: 'Request', cls: 'req', title: `<a href="#/request/${r.id}">${esc(r.subject)}</a>`,
@@ -144,8 +152,9 @@ export function myDayPages(ctx) {
 
     const pw = pulledKit && canPull?.() ? await pulledKit.load(pullDept()).catch(() => null) : null;
     const nowRows = [...(pw ? [] : pulled.map(pulledRow)), ...nowCk.map((t) => ckRow(t, true)), ...nowPm.map((r) => pmRow(r, true)), ...nowReq.map((r) => reqRow(r, true))];
-    const readyRows = [...ckToday.map((t) => ckRow(t, false)), ...pmReady.map((r) => pmRow(r, false)), ...reqMine.map((r) => reqRow(r, false))];
-    const laterRows = [...ckLater.map((t) => ckRow(t, false))];
+    const readyRows = [...ckToday.map((t) => ckRow(t, false)), ...pmToday.map((r) => pmRow(r, false)), ...reqMine.map((r) => reqRow(r, false))];
+    const laterRows = [...pmWeek.map((r) => pmRow(r, false)), ...ckLater.map((t) => ckRow(t, false))];
+    const afterRows = pmLater.map((r) => pmRow(r, false));
     const grabRows = [...grabCk.map((t) => ckRow(t, false)), ...grabPm.map((r) => pmRow(r, false))];
     const hour = new Date().getHours();
     const sect = (title, sub, rows, empty, cls = '') => `<section class="md-sect ${cls}"><h2>${title} ${sub ? `<span class="muted">${sub}</span>` : ''}</h2>
@@ -157,8 +166,9 @@ export function myDayPages(ctx) {
         <p class="lede">${todayName}, ${dshort(today)}. Your work, ready to go.</p></header>
       ${pw ? pulledKit.block(pullDept(), pw) : ''}
       ${sect('Clocked in now', '', nowRows, "You're not clocked in on anything. Tap ▶ Start on a task below.", nowRows.length ? 'md-now' : '')}
-      ${sect('Ready to do', 'yours for today', readyRows, 'Nothing assigned to you for today.')}
-      ${laterRows.length ? sect('Later this week', '', laterRows, '') : ''}
+      ${sect('Today', 'yours to do today', readyRows, 'Nothing assigned to you for today.')}
+      ${laterRows.length ? sect('This week', `by Monday`, laterRows, '') : ''}
+      ${afterRows.length ? `<details class="md-later"><summary>${sect('Later', `${afterRows.length} after this week · tap to see`, [], '')}</summary><div class="md-list card">${afterRows.join('')}</div></details>` : ''}
       ${grabRows.length ? sect('Up for grabs', 'nobody on these yet · starting one puts you on it', grabRows, '') : ''}
       ${todos.length || isAdmin?.() ? sect(`When you're free${isAdmin?.() ? ' <button type="button" class="btn small md-free-add" data-md-free>+ Add for someone</button>' : ''}`, 'optional · no due date', todos.map((t) => { const run = freeRun(t.id); const secs = freeSecs(t.id);
         return row({ tag: 'Optional', cls: 'todo', title: esc(t.title),

@@ -46,6 +46,20 @@ function periodLabel(freq, start, end) {
 // When a task is due, in plain words, from how often, its start month / day and window.
 // e.g. quarterly, starts Dec 1, 14 days -> "Due Dec 1–14, Mar 1–14, Jun 1–14, Sep 1–14"
 const STEP = { monthly: 1, quarterly: 3, yearly: 12 };
+// Set days (0070): the round's own days if it was moved, else the task's usual days.
+const WEEK_ORDER = ['Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday'];
+const DOW_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const runDays = (r, t) => (r.work_days ?? t.work_days ?? []);
+// The dates of those days in the round (first one on/after it starts).
+export function runDates(r, t) {
+  const days = runDays(r, t);
+  if (!days.length) return null;
+  const [y, m, d] = String(r.period_start).split('-').map(Number);
+  return days.map((name) => { const want = DOW_NAMES.indexOf(name); for (let i = 0; i < 14; i += 1) { const dt = new Date(y, m - 1, d + i); if (dt.getDay() === want) return isoOf(dt); } return null; })
+    .filter(Boolean).sort();
+}
+// The date that decides where a round shows: its next set day, or when it's due.
+export const whenOf = (r, t, today) => { const ds = runDates(r, t); return ds ? (ds.find((x) => x >= today) || r.due_on) : r.due_on; };
 // "09:00:00" -> "9 AM", "12:30" -> "12:30 PM"
 const hm12 = (v) => { if (!v) return ''; const [h, m] = String(v).split(':').map(Number); return `${h % 12 || 12}${m ? `:${String(m).padStart(2, '0')}` : ''} ${h < 12 ? 'AM' : 'PM'}`; };
 const slotText = (t) => (t && t.once_from ? `${hm12(t.once_from)}${t.once_to ? `–${hm12(t.once_to)}` : ''}` : '');
@@ -360,10 +374,11 @@ export function schedulePages(ctx) {
     const open = all.filter((r) => r.status === 'open' || r.status === 'missed');
     const card = (r) => { const t = taskBy[r.task_id]; return runCard(r, t, who, today, t.parent_id ? taskBy[t.parent_id] : null); };
     const group = (title, sub, list, cls = '') => (list.length ? `<h2 class="pm-sect ${cls}">${title} <span class="muted">${sub}</span></h2><div class="pm-list">${list.map(card).join('')}</div>` : '');
+    const at = (r) => whenOf(r, taskBy[r.task_id], today);
     const late = open.filter((r) => r.due_on < today);
-    const now = open.filter((r) => r.due_on === today);
-    const week = open.filter((r) => r.due_on > today && r.due_on <= wkEnd);
-    const later = open.filter((r) => r.due_on > wkEnd);
+    const now = open.filter((r) => r.due_on >= today && at(r) <= today);
+    const week = open.filter((r) => r.due_on >= today && at(r) > today && at(r) <= wkEnd);
+    const later = open.filter((r) => r.due_on >= today && at(r) > wkEnd);
     const done = all.filter((r) => r.status === 'done' || r.status === 'skipped');
     return group('Late', `${late.length} past due`, late, 'late')
       + group('Today', `${now.length} to do`, now)
@@ -375,6 +390,11 @@ export function schedulePages(ctx) {
 
   function dueText(r, today, t = null) {
     if (r.status === 'done') return '';
+    const ds = t && r.status !== 'skipped' ? runDates(r, t) : null;
+    if (ds) {
+      const lbl = ds.map((x) => (x === today ? 'Today' : `${DOW_NAMES[new Date(`${x}T12:00`).getDay()].slice(0, 3)} ${dshort(x)}`)).join(' & ');
+      return `<span class="pm-due${ds.includes(today) || ds[0] <= addD(today, 1) ? ' soon' : ''}">${lbl}${r.work_days ? ' <span class="muted">(moved this time)</span>' : ''}</span>${manage() && (r.status === 'open' || r.status === 'missed') ? ` <button type="button" class="dp-link pm-movedays" data-pm-rundays="${r.id}">Change days</button>` : ''}`;
+    }
     if (t && t.frequency === 'once' && t.once_from && r.status !== 'skipped') return `<span class="pm-due${r.due_on <= today ? ' soon' : ''}">${r.due_on === today ? 'Today' : dshort(r.due_on)}, ${slotText(t)}</span>`;
     if (r.status === 'skipped') return '<span class="pm-due">Skipped this time</span>';
     if (r.due_on < today) return `<span class="pm-due late">Overdue · was due ${dshort(r.due_on)}</span>`;
@@ -437,7 +457,7 @@ export function schedulePages(ctx) {
     const LEAD = (n) => (n % 7 === 0 ? `${n / 7} week${n === 7 ? '' : 's'}` : `${n} day${n === 1 ? '' : 's'}`);
     const prepLine = (t) => { const ps = tasks.filter((c) => c.parent_id === t.id && c.active); return ps.length ? `<span class="muted pm-prepline">Get ready: ${ps.map((c) => `${esc(c.name)} · ${LEAD(c.lead_days)} before${ctBy(c.contractor_id) ? ` · from ${esc(ctBy(c.contractor_id).name)}` : ''}`).join(' · ')}</span>` : ''; };
     const rows = (list) => `<div class="pm-tasks">${list.map((t) => `<button type="button" class="pm-task-row${t.active ? '' : ' off'}" data-pm-edit="${t.id}">
-        <b>${esc(t.name)}</b><span class="muted">${FREQ_LABEL[t.frequency]} · ${windowText(t)}${t.location ? ` · ${esc(t.location)}` : ''}${ctBy(t.contractor_id) ? ` · Contractor: ${esc(ctBy(t.contractor_id).name)}` : ''}${onIt(t).length ? ` · On it: ${onIt(t).map(esc).join(', ')}` : ''}</span>${prepLine(t)}<span class="pm-edit">Edit</span></button>`).join('')}</div>`;
+        <b>${esc(t.name)}</b><span class="muted">${FREQ_LABEL[t.frequency]} · ${windowText(t)}${(t.work_days || []).length ? ` · on ${t.work_days.map((d) => d.slice(0, 3)).join(' & ')}` : ''}${t.location ? ` · ${esc(t.location)}` : ''}${ctBy(t.contractor_id) ? ` · Contractor: ${esc(ctBy(t.contractor_id).name)}` : ''}${onIt(t).length ? ` · On it: ${onIt(t).map(esc).join(', ')}` : ''}</span>${prepLine(t)}<span class="pm-edit">Edit</span></button>`).join('')}</div>`;
     return `${top.length ? '' : '<div class="card pm-empty"><b>No tasks yet.</b><p class="muted">Use <b>+ Add task</b> above to add your first recurring job.</p></div>'}
       ${FREQS.map(([f, label]) => { const list = active.filter((t) => t.frequency === f); return list.length ? `<h2 class="pm-sect">${label} <span class="muted">${list.length}</span></h2>${rows(list)}` : ''; }).join('')}
       ${archived.length ? `<h2 class="pm-sect">Off the schedule <span class="muted">${archived.length}</span></h2>${rows(archived)}` : ''}`;
@@ -454,6 +474,33 @@ export function schedulePages(ctx) {
   const LEADS = [[3, '3 days'], [7, '1 week'], [14, '2 weeks'], [21, '3 weeks'], [30, '30 days']];
   const MONTH_WIN = [['any', 'Any time', 1, null], ['w1', 'First week (1st–7th)', 1, 7], ['w2', 'First 2 weeks (1st–14th)', 1, 14], ['h2', 'Second half (15th–28th)', 15, 14]];
   const ord = (n) => `${n}${['th', 'st', 'nd', 'rd'][(n % 10 > 3 || Math.floor(n / 10) % 10 === 1) ? 0 : n % 10]}`;
+  // Days for just this round. Resolves with the days, null (back to usual) or undefined (cancel).
+  function pickRunDays(r, t) {
+    return new Promise((resolve) => {
+      const sel = new Set(runDays(r, t));
+      const [y, m, d] = String(r.period_start).split('-').map(Number);
+      const dateOf = (name) => { for (let i = 0; i < 14; i += 1) { const dt = new Date(y, m - 1, d + i); if (DOW_NAMES[dt.getDay()] === name) return dshort(isoOf(dt)); } return ''; };
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-label="Change days">
+        <h3>Change days · just this time</h3>
+        <p class="muted">${esc(t.name)}. ${t.work_days?.length ? `Usually ${t.work_days.map((x) => x.slice(0, 3)).join(' & ')}.` : ''} Next round goes back to the usual days.</p>
+        <div class="wk-chips">${WEEK_ORDER.map((x) => `<button type="button" class="chip-btn" data-rd="${x}">${x.slice(0, 3)} ${dateOf(x)}</button>`).join('')}</div>
+        <div class="modal-actions">${r.work_days ? '<button type="button" class="btn pm-left" data-usual>Back to usual</button>' : ''}<button type="button" class="btn" data-cancel>Cancel</button><button type="button" class="btn primary" data-ok>Save</button></div></div>`;
+      const draw = () => back.querySelectorAll('[data-rd]').forEach((x) => x.classList.toggle('on', sel.has(x.dataset.rd)));
+      back.querySelectorAll('[data-rd]').forEach((x) => x.addEventListener('click', () => { if (sel.has(x.dataset.rd)) sel.delete(x.dataset.rd); else sel.add(x.dataset.rd); draw(); }));
+      const done = (v) => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(v); };
+      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); done(undefined); } };
+      document.addEventListener('keydown', onKey, true);
+      back.addEventListener('mousedown', (e) => { if (e.target === back) done(undefined); });
+      back.querySelector('[data-cancel]').addEventListener('click', () => done(undefined));
+      back.querySelector('[data-usual]')?.addEventListener('click', () => done(null));
+      back.querySelector('[data-ok]').addEventListener('click', () => { if (!sel.size) { toast('Pick at least one day', true); return; } done(WEEK_ORDER.filter((x) => sel.has(x))); });
+      draw();
+      document.body.appendChild(back);
+    });
+  }
+
   function pickCrew(t) {
     return new Promise((resolve) => {
       const sel = new Set(t.assignees || []);
@@ -488,6 +535,7 @@ export function schedulePages(ctx) {
     let ctId = t.contractor_id || null;
     let people = new Set(t.assignees || []);
     let shared = !!t.shared_events;
+    let wdays = new Set(t.work_days || []);
     let onceDue = t.once_due || '';
     let onceStart = t.once_start || '';
     let byCt = !!ctId;
@@ -547,6 +595,8 @@ export function schedulePages(ctx) {
         <div data-notonce><div class="wk-sect" data-when-title></div>
         <div class="wk-chips" data-wins></div>
         <div class="pm-custom" data-custom-row></div></div>
+        <div data-workdays><div class="wk-sect">On set days <span class="muted pm-opt">(optional: tap the days it happens, like Thu &amp; Fri)</span></div>
+        <div class="wk-chips">${WEEK_ORDER.map((d) => `<button type="button" class="chip-btn" data-wd="${d}">${d.slice(0, 3)}</button>`).join('')}</div></div>
         <p class="pm-preview" data-pm-preview></p>
         <div data-notonce><div class="wk-sect">Get ready first <span class="muted pm-opt">(optional: ordering parts, booking a vendor…)</span></div>
         <div class="pm-preps" data-preps></div>
@@ -645,6 +695,8 @@ export function schedulePages(ctx) {
         form.querySelectorAll('[data-freq]').forEach((b) => b.classList.toggle('on', b.dataset.freq === freq));
         form.querySelectorAll('[data-for]').forEach((el) => { el.hidden = el.dataset.for !== freq; });
         form.querySelectorAll('[data-notonce]').forEach((el) => { el.hidden = freq === 'once'; });
+        $('[data-workdays]').hidden = !['weekly', 'biweekly'].includes(freq);
+        form.querySelectorAll('[data-wd]').forEach((b) => b.classList.toggle('on', wdays.has(b.dataset.wd)));
         form.querySelectorAll('[data-month]').forEach((b) => {
           const m = Number(b.dataset.month);
           b.classList.toggle('on', freq === 'quarterly' ? (m - 1) % 3 === (month - 1) % 3 : m === month);
@@ -665,6 +717,7 @@ export function schedulePages(ctx) {
         sync();
       }));
       form.querySelectorAll('[data-month]').forEach((b) => b.addEventListener('click', () => { month = Number(b.dataset.month); sync(); }));
+      form.querySelectorAll('[data-wd]').forEach((b) => b.addEventListener('click', () => { if (wdays.has(b.dataset.wd)) wdays.delete(b.dataset.wd); else wdays.add(b.dataset.wd); sync(); }));
       sync();
       const done = () => { document.removeEventListener('keydown', onKey, true); back.remove(); resolve(changed); };
       const onKey = (e) => { if (e.key === 'Escape' && !document.querySelector('.dd-menu, .dp-pop')) { e.preventDefault(); done(); } };
@@ -695,6 +748,8 @@ export function schedulePages(ctx) {
             ...(anchorsReady ? { p_start_month: ['quarterly', 'yearly'].includes(freq) ? month : null, p_start_day: ['weekly', 'once'].includes(freq) ? null : sd } : {}),
           });
           if (freq === 'once' && (onceDue !== (t.once_due || '') || onceStart !== (t.once_start || '') || t.frequency !== 'once')) await rpc('pm_set_once', { p_task: t.id || id, p_start: onceStart || null, p_due: onceDue });
+          const wd = ['weekly', 'biweekly'].includes(freq) ? WEEK_ORDER.filter((d) => wdays.has(d)) : [];
+          if (wd.join() !== (t.work_days || []).join()) await rpc('pm_set_work_days', { p_task: t.id || id, p_days: wd });
           if (freq === 'once' && ((oFrom || '') !== String(t.once_from || '').slice(0, 5) || (oTo || '') !== String(t.once_to || '').slice(0, 5))) await rpc('pm_set_once_time', { p_task: t.id || id, p_from: oFrom, p_to: oTo });
           const keep = prepList.filter((c) => c.name.trim());
           const newCt = byCt ? ctId : null;
@@ -706,7 +761,7 @@ export function schedulePages(ctx) {
           changed = true;
           toast(editing ? 'Saved' : `Added “${name}” to the schedule`);
           if (!again) return done();
-          form.reset(); $('[name=name]').value = ''; win = 'any'; prepList = []; byCt = false; ctId = null; people = new Set(); shared = false; onceDue = ''; onceStart = ''; drawPeople(); drawCt(); sync(); $('[name=name]').focus();
+          form.reset(); $('[name=name]').value = ''; win = 'any'; prepList = []; byCt = false; ctId = null; people = new Set(); shared = false; wdays = new Set(); onceDue = ''; onceStart = ''; drawPeople(); drawCt(); sync(); $('[name=name]').focus();
         } catch (err) { toast(errMsg(err), true); }
       };
       // One save at a time: a double tap or Enter + click must not add the task twice.
@@ -802,6 +857,15 @@ export function schedulePages(ctx) {
       const ppl = await pickCrew({ name: `${step} · ${t.name}`, assignees: (t.step_people || {})[step] || [] });
       if (!ppl) return;
       try { await rpc('pm_set_step_people', { p_task: t.id, p_step: step, p_people: ppl }); toast(ppl.length ? `${step}: ${ppl.map((id) => whoAll[id]).join(', ')}` : `Nobody on ${step}`); reload(); } catch (err) { toast(errMsg(err), true); }
+    }));
+    // Move one round to other days (just this time).
+    app.querySelectorAll('[data-pm-rundays]').forEach((b) => b.addEventListener('click', async () => {
+      const r = allRuns.find((x) => x.id === Number(b.dataset.pmRundays));
+      const t = r && tasks.find((x) => x.id === r.task_id);
+      if (!t) return;
+      const pick = await pickRunDays(r, t);
+      if (pick === undefined) return;
+      try { await rpc('pm_set_run_days', { p_run: r.id, p_days: pick }); toast(pick ? `This time: ${pick.map((d) => d.slice(0, 3)).join(' & ')}` : 'Back to the usual days'); reload(); } catch (err) { toast(errMsg(err), true); }
     }));
     // Who's on it, right from the card (get-ready steps too).
     app.querySelectorAll('[data-pm-people]').forEach((b) => b.addEventListener('click', async () => {

@@ -1613,3 +1613,8 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .pm-later > summary::-webkit-details-marker { display: none; }
 .pm-later > summary .pm-sect::before { content: '▸ '; color: var(--muted); }
 .pm-later[open] > summary .pm-sect::before { content: '▾ '; }
+.md-later > summary { list-style: none; cursor: pointer; }
+.md-later > summary::-webkit-details-marker { display: none; }
+.md-later > summary .md-empty { display: none; }
+.md-later > summary h2::before { content: "▸ "; color: var(--muted); }
+.md-later[open] > summary h2::before { content: "▾ "; }

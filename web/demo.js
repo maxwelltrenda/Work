@@ -177,7 +177,7 @@ db.contractors.push(
 const ac = pm({ name: 'Change AC filters', frequency: 'quarterly', start_month: 3, due_days: 14, location: 'All buildings', notes: '20x25x1 MERV 8', steps: ['North building units', 'South building units'], assignees: ['rick'] });
 pm({ name: 'Order filters', frequency: 'quarterly', parent_id: ac.id, lead_days: 7 });
 pm({ name: 'Pressure wash entrances', frequency: 'monthly', due_days: 14, location: 'Entrances', steps: ['Northwest entrance', 'Northeast entrance', 'South entrance'], assignees: ['aaron'] });
-pm({ name: 'Lawn care', frequency: 'biweekly', start_day: 1, steps: ['Mow', 'Weed-eat', 'Edge', 'Blow parking lot'], assignees: ['aaron'] });
+pm({ work_days: ['Thursday', 'Friday'], name: 'Lawn care', frequency: 'biweekly', start_day: 1, steps: ['Mow', 'Weed-eat', 'Edge', 'Blow parking lot'], assignees: ['aaron'] });
 pm({ name: 'Test emergency and exit lights', frequency: 'monthly', due_days: 7, assignees: ['judah'] });
 const gt = pm({ name: 'Grease trap cleaning', frequency: 'quarterly', start_month: 1, contractor_id: 1, assignees: ['max'] });
 pm({ name: 'Book the grease trap company', frequency: 'quarterly', parent_id: gt.id, lead_days: 14 });
@@ -494,6 +494,8 @@ const RPC = {
     db.pm_runs = db.pm_runs.filter((r) => !(r.task_id === t.id && r.status === 'open'));
     pmRefresh();
   },
+  pm_set_work_days({ p_task, p_days }) { db.pm_tasks.find((x) => loose(x.id, p_task)).work_days = p_days || []; },
+  pm_set_run_days({ p_run, p_days }) { db.pm_runs.find((x) => loose(x.id, p_run)).work_days = p_days; },
   pm_set_shared({ p_task, p_on }) { db.pm_tasks.find((x) => loose(x.id, p_task)).shared_events = !!p_on; },
   pm_set_contractor({ p_task, p_contractor }) { db.pm_tasks.find((x) => loose(x.id, p_task)).contractor_id = p_contractor; },
   pm_set_step_people({ p_task, p_step, p_people }) { const t = db.pm_tasks.find((x) => loose(x.id, p_task)); t.step_people = { ...(t.step_people || {}) }; if ((p_people || []).length) t.step_people[p_step] = p_people; else delete t.step_people[p_step]; },
