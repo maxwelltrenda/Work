@@ -105,7 +105,12 @@ export function overviewPages(ctx) {
     }).sort((a, b) => a.rank - b.rank || a.m.name.localeCompare(b.m.name));
 
     // Tools and stock
-    const low = items.filter((i) => i.reorder_level > 0 && i.quantity <= i.reorder_level);
+    // Paint counts gallons in its cans (like the Paint page), not the item's quantity.
+    const cans = items.some((i) => i.category === 'paint') ? await safe(q(sb.from('paint_cans').select('item_id, size, fill').is('removed_at', null)), []) : [];
+    const gal = {};
+    cans.forEach((c) => { gal[c.item_id] = (gal[c.item_id] || 0) + Number(c.size) * Number(c.fill); });
+    const onHand = (i) => (i.category === 'paint' ? gal[i.id] || 0 : i.quantity);
+    const low = items.filter((i) => i.reorder_level > 0 && onHand(i) <= i.reorder_level);
 
     const card = (href, title, dept, body) => `<a class="ov-card ${dept}" href="${href}"><div class="ov-head"><h3>${title}</h3><span class="ov-go">Open ›</span></div>${body}</a>`;
     const nums = (list) => `<div class="ov-nums">${list.map(([n, l, cls = '']) => `<div class="${cls}"><b>${n}</b><span>${l}</span></div>`).join('')}</div>`;
@@ -136,7 +141,7 @@ export function overviewPages(ctx) {
             ...pulled.map((p) => `<span class="ov-pill work">Pulled</span> ${esc(first(who[p.member_id]))} · ${esc(p.what)}`)], working_today.length ? `On today: ${working_today.map((m) => esc(first(m.name))).join(', ')}` : 'No hours set for today.'))}
         ${card('#/out', 'Tools & stock', 'ov-tools', nums([[outs.length, 'tools out'], [low.length, 'low on stock', low.length ? 'hot' : '']])
           + lines([...outs.slice(0, 3).map((c) => `<span class="ov-pill out">Out</span> ${esc(toolName[c.tool_id] || 'A tool')} <span class="muted">· ${esc(first(who[c.borrower_id]))}</span>`),
-            ...low.slice(0, 3).map((i) => `<span class="ov-pill late">Low</span> ${esc(i.name)} <span class="muted">· ${i.quantity} left</span>`)], 'All tools in, nothing low.'))}
+            ...low.slice(0, 3).map((i) => `<span class="ov-pill late">Low</span> ${esc(i.name)} <span class="muted">· ${i.category === 'paint' ? `${Math.round(onHand(i) * 100) / 100} gal` : i.quantity} left</span>`)], 'All tools in, nothing low.'))}
         ${card('#/gameplan', 'This weekend', 'ov-wx', wx ? wxCard(wx, plan) : `<p class="ov-empty">${plan ? 'Plan posted.' : 'No plan yet.'}</p>`)}
       </div>`;
     if (pw) pulledKit.bind(app, renderOverview);
