@@ -18,6 +18,9 @@ import { loadNotes, notesList, noteButton, bindNotes } from './notes.js?v=__V__'
 // Demo mode (?demo): the Facilities app with sample data, no login, nothing
 // saved. It never connects to the real database (demo.js).
 const DEMO = /[?&]demo\b/.test(location.search);
+// A password-reset link: read it before the client signs in from the link and
+// clears the address, so we show "Choose a new password" instead of the app.
+let RECOVERY = /type=recovery/.test(location.hash) || /[?&]reset=1\b/.test(location.search);
 const sb = DEMO ? (await import('./demo.js?v=__V__')).demoClient() : createClient(SUPABASE_URL, SUPABASE_KEY);
 if (DEMO) {
   document.documentElement.classList.add('is-demo');
@@ -436,7 +439,7 @@ sb.auth.onAuthStateChange((event, session) => {
   // Supabase runs this callback while holding its auth lock, so calling back
   // into sb.auth here (as boot() does) would deadlock. Defer to the next tick.
   setTimeout(() => {
-    if (event === 'PASSWORD_RECOVERY') return renderSetPassword();
+    if (event === 'PASSWORD_RECOVERY') { RECOVERY = true; return renderSetPassword(); }
     if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
       const changed = (session?.user?.id || null) !== (state.session?.user?.id || null);
       state.session = session;
@@ -497,6 +500,7 @@ async function bootInner() {
   state.me = null;
   renderTopbar();
   if (!state.session) return renderLogin();
+  if (RECOVERY) return renderSetPassword();
 
   try {
     const email = state.session.user.email.toLowerCase();
@@ -630,7 +634,7 @@ function renderLogin(mode = 'signin', note = '') {
         if (error) throw error;
         if (!data.session) return renderLogin('signin', 'Check your email for a confirmation link, then sign in.');
       } else {
-        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/?reset=1` });
         if (error) throw error;
         return renderLogin('signin', 'If that email has an account, a reset link is on its way.');
       }
@@ -651,7 +655,8 @@ function renderSetPassword() {
     const { error } = await sb.auth.updateUser({ password: new FormData(e.target).get('password') });
     if (error) return toast(errMsg(error), true);
     toast('Password updated');
-    location.hash = '#/kiosk';
+    RECOVERY = false;
+    history.replaceState(null, '', location.pathname);
     boot();
   });
 }
@@ -1067,7 +1072,9 @@ async function renderStock() {
 // ---------------------------------------------------------------------------
 
 const KIOSK_IDLE_MS = 90000;
-const people = (members) => members.filter((m) => m.active && m.role !== 'kiosk');
+// People who can sign things out on this site (Joey, Media only, isn't on the Facilities list).
+const people = (members) => members.filter((m) => m.active && m.role !== 'kiosk'
+  && (m.role !== 'none' || (SITE === 'events' && m.events_role) || (SITE === 'media' && m.media_role)));
 const openEvents = async () => q(sb.from('events').select('*').neq('status', 'closed').order('starts_on', { ascending: true, nullsFirst: false }));
 
 async function renderKiosk() {
