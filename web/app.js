@@ -641,7 +641,7 @@ function renderLogin(mode = 'signin', note = '') {
         if (error) throw error;
         if (!data.session) return renderLogin('signin', 'Check your email for a confirmation link, then sign in.');
       } else {
-        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/?reset=1` });
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin });
         if (error) throw error;
         return renderLogin('signin', 'If that email has an account, a reset link is on its way.');
       }
