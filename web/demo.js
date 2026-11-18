@@ -38,7 +38,7 @@ const db = {
   locations: ['Tool room', 'Mechanical room', 'Janitor closet', 'Warehouse', 'Trailer'].map((name) => ({ name, active: true })),
   categories: [['tool', 'Power tools'], ['tool', 'Ladders & lifts'], ['tool', 'Hand tools'], ['tool', 'Cleaning equipment'], ['maintenance', 'Plumbing'], ['maintenance', 'Electrical'], ['maintenance', 'HVAC'], ['maintenance', 'Hardware']]
     .map(([kind, name]) => ({ kind, name, active: true })),
-  items: [], item_transactions: [], paint_cans: [], tools: [], tool_checkouts: [], notifications: [],
+  work_sessions: [], items: [], item_transactions: [], paint_cans: [], tools: [], tool_checkouts: [], notifications: [],
   maint_requests: [], maint_subtasks: [], maint_updates: [], maint_time: [],
   checklist_tasks: [], checklist_subtasks: [], checklist_time: [],
   pm_tasks: [], pm_runs: [], pulled_work: [], time_off: [], contractors: [], weekend_gameplan: [],

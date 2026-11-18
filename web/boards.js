@@ -732,8 +732,14 @@ export function boardPages(ctx) {
     const pulledIn = (w) => pulledRows.filter((p) => weekFor(p.day) === w);
     const pSecs = (p) => Math.max(0, ((p.ended_at ? new Date(p.ended_at) : new Date()) - new Date(p.started_at)) / 1000 - (p.paused_seconds || 0));
     const weeks = [...new Set(tasks.map((t) => t.week_of))];
+    // Each person's own time (0071 sessions); older tasks without sessions fall back to "who".
+    const sess = await q(sb.from('work_sessions').select('*').eq('kind', 'custodial').in('task_id', tasks.map((t) => t.id))).catch(() => []);
+    const sSecs = (x) => Math.max(0, ((x.ended_at ? new Date(x.ended_at) : new Date()) - new Date(x.started_at)) / 1000);
+    const hasSess = new Set(sess.map((x) => x.task_id));
     const people = {};
-    tasks.forEach((t) => { if (!t.who || !(t.worked_seconds || t.manual_hours)) return; t.who.split(',').map((x) => x.trim()).forEach((p) => { people[p] = (people[p] || 0) + liveSecs(t) + (t.manual_hours || 0) * 3600; }); });
+    sess.forEach((x) => { const n = whoId[x.member_id] || 'Someone'; people[n] = (people[n] || 0) + sSecs(x); });
+    tasks.forEach((t) => { if (hasSess.has(t.id) || !t.who || !(t.worked_seconds || t.manual_hours)) return; t.who.split(',').map((x) => x.trim()).forEach((p) => { people[p] = (people[p] || 0) + liveSecs(t) + (t.manual_hours || 0) * 3600; }); });
+    pulledRows.forEach((p) => { const n = whoId[p.member_id] || 'Someone'; people[n] = (people[n] || 0) + pSecs(p); });
     target.innerHTML = `
       <div class="table-wrap"><table class="b-table b-narrow"><tr><th>Week of</th><th class="num">Done</th><th class="num">Missed</th><th class="num">Pulled to</th><th class="num">Time logged</th><th>Completion</th></tr>
         ${weeks.map((w) => {
@@ -743,14 +749,14 @@ export function boardPages(ctx) {
             <td class="num">${dur(ts.reduce((a, t) => a + liveSecs(t) + (t.manual_hours || 0) * 3600, 0) + pulledIn(w).reduce((a, p) => a + pSecs(p), 0))}</td>
             <td><span class="b-progbar small"><i style="width:${pct}%"></i></span> ${pct}%</td></tr>`;
         }).join('')}</table></div>
-      ${barList('Time logged by person, all weeks', Object.fromEntries(Object.entries(people).map(([k, v]) => [`${k} · ${dur(v)}`, Math.round(v / 60)])), 'Bars are minutes.')}
+      ${barList('Time by person, all weeks (tasks + pulled to)', Object.fromEntries(Object.entries(people).map(([k, v]) => [`${k} · ${dur(v)}`, Math.round(v / 60)])), 'Bars are minutes.')}
       ${weeks.map((w, wi) => `<details class="b-group"${wi === 0 ? " open" : ""}><summary><span class="b-gname">Week of ${dshort(w)}</span><span class="muted">${tasks.filter((t) => t.week_of === w).length} tasks${pulledIn(w).length ? ` · ${pulledIn(w).length} pulled to` : ""}</span></summary>
         ${pulledIn(w).length ? `<h4 class="pw-h">Pulled to</h4><div class="table-wrap"><table class="b-table"><tr><th>Who</th><th>What</th><th>Where</th><th>When</th><th class="num">Time</th></tr>
           ${pulledIn(w).map((p) => `<tr><td>${esc(whoId[p.member_id] || '')}</td><td>${esc(p.what)}</td><td>${esc(p.location || '')}</td><td class="muted">${tshort(p.started_at)}</td><td class="num">${dur(pSecs(p))}${p.ended_at ? '' : ' (still going)'}</td></tr>`).join('')}</table></div>` : ''}
         <h4 class="pw-h">Tasks</h4>
         <div class="table-wrap"><table class="b-table"><tr><th>Task</th><th>Day</th><th>Area</th><th>Status</th><th>Who</th><th class="num">Time</th><th>Done on</th></tr>
         ${tasks.filter((t) => t.week_of === w).map((t) => `<tr><td>${esc(t.name)}</td><td>${esc(t.day || '')}</td><td>${esc(t.area || '')}</td><td><span class="b-pill s-${slug(t.status)}">${esc(t.status)}</span></td>
-          <td>${esc(t.who || '')}</td><td class="num">${liveSecs(t) || t.manual_hours ? dur(liveSecs(t) + (t.manual_hours || 0) * 3600) : ''}</td><td class="muted">${tshort(t.done_on)}</td></tr>`).join('')}</table></div></details>`).join('')}`;
+          <td>${esc(t.who || '')}</td><td class="num">${liveSecs(t) || t.manual_hours ? dur(liveSecs(t) + (t.manual_hours || 0) * 3600) : ''}${(() => { const by = {}; sess.filter((x) => x.task_id === t.id).forEach((x) => { by[x.member_id] = (by[x.member_id] || 0) + sSecs(x); }); const parts = Object.entries(by).filter(([, v]) => v >= 60); return parts.length ? `<br><small class="muted">${parts.map(([id, v]) => `${esc(String(whoId[id] || '').split(' ')[0])} ${dur(v)}`).join(', ')}</small>` : ''; })()}</td><td class="muted">${tshort(t.done_on)}</td></tr>`).join('')}</table></div></details>`).join('')}`;
   }
 
   async function renderTemplate(target = app) {

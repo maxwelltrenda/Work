@@ -789,6 +789,11 @@ export function schedulePages(ctx) {
     const pulled = pulledRows || [];
     const wkOf = (r) => weekStart(r.done_at ? isoOf(new Date(r.done_at)) : r.period_end);
     const fin = runs.filter((r) => taskBy[r.task_id] && (r.status !== 'open'));
+    // Each person's own time (0071): per round, and per person for the week.
+    const { data: sessRows } = fin.length ? await sb.from('work_sessions').select('*').eq('kind', 'maintenance').in('task_id', fin.map((r) => r.id)) : { data: [] };
+    const sess = sessRows || [];
+    const sSecs = (x) => Math.max(0, ((x.ended_at ? new Date(x.ended_at) : new Date()) - new Date(x.started_at)) / 1000);
+    const perPerson = (list) => { const by = {}; list.forEach((x) => { by[x.member_id] = (by[x.member_id] || 0) + sSecs(x); }); return by; };
     const weeks = [...new Set([...fin.map(wkOf), ...pulled.map((p) => weekStart(p.day))])].sort().reverse();
     if (!weeks.length) return '<p class="muted">Nothing yet. Each week, what got done shows up here.</p>';
     const thisWk = weekStart(today);
@@ -798,14 +803,18 @@ export function schedulePages(ctx) {
       const rs = fin.filter((r) => wkOf(r) === w).sort((a, b) => String(a.done_at || a.period_end).localeCompare(String(b.done_at || b.period_end)));
       const ps = pulled.filter((p) => weekStart(p.day) === w);
       const nDone = rs.filter((r) => r.status === 'done').length;
+      const weekBy = perPerson(sess.filter((x) => rs.some((r) => r.id === x.task_id)));
+      ps.forEach((p) => { weekBy[p.member_id] = (weekBy[p.member_id] || 0) + Math.max(0, ((p.ended_at ? new Date(p.ended_at) : new Date()) - new Date(p.started_at)) / 1000 - (p.paused_seconds || 0)); });
+      const byLine = Object.entries(weekBy).filter(([, v]) => v >= 60).sort((a, b) => b[1] - a[1]).map(([id, v]) => `${esc(String(who[id] || 'Someone').split(' ')[0])} ${dur(v)}`).join(' · ');
       const time = rs.reduce((a, r) => a + (r.worked_seconds || 0), 0) + ps.reduce((a, p) => a + Math.max(0, ((p.ended_at ? new Date(p.ended_at) : new Date()) - new Date(p.started_at)) / 1000 - (p.paused_seconds || 0)), 0);
       return `<details class="b-group"${i === 0 ? ' open' : ''}><summary><span class="b-gname">Week of ${dshort(w)} – ${dshort(addD(w, 6))}${w === thisWk ? ' <span class="pill planned">This week</span>' : ''}</span>
           <span class="muted">${nDone} done${rs.length - nDone ? ` · ${rs.length - nDone} skipped/missed` : ''}${ps.length ? ` · ${ps.length} pulled to` : ''}${time ? ` · ${dur(time)}` : ''}</span></summary>
+        ${byLine ? `<p class="pw-by"><b>By person:</b> ${byLine}</p>` : ''}
         ${rs.length ? `<div class="table-wrap"><table class="b-table"><tr><th>Task</th><th>Status</th><th>Who</th><th class="num">Time</th><th>When</th><th>Note</th></tr>
           ${rs.map((r) => { const t = taskBy[r.task_id]; const par = t.parent_id ? taskBy[t.parent_id] : null;
             return `<tr><td>${esc(t.name)}${par ? ` <span class="muted">· before ${esc(par.name)}</span>` : ''}</td>
               <td><span class="pill ${r.status === 'done' ? 'available' : r.status === 'missed' ? 'lost' : 'closed'}">${label[r.status] || r.status}</span></td>
-              <td>${esc(who[r.done_by] || '')}</td><td class="num">${dur(r.worked_seconds)}</td>
+              <td>${esc(who[r.done_by] || '')}</td><td class="num">${dur(r.worked_seconds)}${(() => { const by = perPerson(sess.filter((x) => x.task_id === r.id)); const parts = Object.entries(by).filter(([, v]) => v >= 60); return parts.length ? `<br><small class="muted">${parts.map(([id, v]) => `${esc(String(who[id] || '').split(' ')[0])} ${dur(v)}`).join(', ')}</small>` : ''; })()}</td>
               <td>${r.done_at ? new Date(r.done_at).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : ''}</td><td>${esc(r.note || '')}</td></tr>`; }).join('')}</table></div>` : ''}
         ${ps.length ? `<h4 class="pw-h">Pulled to</h4><div class="table-wrap"><table class="b-table"><tr><th>Who</th><th>What</th><th>Where</th><th>Day</th><th class="num">Time</th></tr>
           ${ps.map((p) => `<tr><td>${esc(who[p.member_id] || '')}</td><td>${esc(p.what)}</td><td>${esc(p.location || '')}</td><td>${new Date(`${p.day}T12:00:00`).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</td>

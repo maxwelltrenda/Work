@@ -1618,3 +1618,4 @@ nav.subnav a.sub-site { margin-left: auto; color: var(--muted); font-size: 14px;
 .md-later > summary .md-empty { display: none; }
 .md-later > summary h2::before { content: "▸ "; color: var(--muted); }
 .md-later[open] > summary h2::before { content: "▾ "; }
+.pw-by { margin: 8px 0 10px; font-size: 14px; }
