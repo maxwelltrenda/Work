@@ -176,13 +176,13 @@ db.contractors.push(
   { id: 3, name: 'Example Elevator Service', trade: 'Elevator', contact: null, phone: '(817) 555-0110', email: null, website: null, notes: 'After-hours line on the sticker in the cab.', active: true });
 const ac = pm({ name: 'Change AC filters', frequency: 'quarterly', start_month: 3, due_days: 14, location: 'All buildings', notes: '20x25x1 MERV 8', steps: ['North building units', 'South building units'], assignees: ['rick'] });
 pm({ name: 'Order filters', frequency: 'quarterly', parent_id: ac.id, lead_days: 7 });
-pm({ name: 'Pressure wash entrances', frequency: 'monthly', due_days: 14, location: 'Entrances', steps: ['Northwest entrance', 'Northeast entrance', 'South entrance'], assignees: ['aaron'] });
+pm({ name: 'Pressure wash entrances', frequency: 'monthly', due_days: 14, location: 'Entrances', steps: ['Northwest entrance', 'Northeast entrance', 'South entrance'], assignees: ['aaron', 'me'] });
 pm({ work_days: ['Thursday', 'Friday'], name: 'Lawn care', frequency: 'biweekly', start_day: 1, steps: ['Mow', 'Weed-eat', 'Edge', 'Blow parking lot'], assignees: ['aaron'] });
 pm({ name: 'Test emergency and exit lights', frequency: 'monthly', due_days: 7, assignees: ['judah'] });
 const gt = pm({ name: 'Grease trap cleaning', frequency: 'quarterly', start_month: 1, contractor_id: 1, assignees: ['max'] });
 pm({ name: 'Book the grease trap company', frequency: 'quarterly', parent_id: gt.id, lead_days: 14 });
 pm({ name: 'Replace lobby carpet tiles', frequency: 'once', once_start: dayIso(5), once_due: dayIso(21), location: 'Grand Lobby', assignees: ['kenny'], notes: 'Tiles are in the warehouse.' });
-pm({ name: 'Stage chairs for the conference', frequency: 'once', once_due: dayIso(3), once_from: '09:00', once_to: '12:00', location: 'Sanctuary', assignees: ['rick', 'erin'], shared_events: true, notes: 'Events brings the linens. We set 400 chairs.' });
+pm({ name: 'Stage chairs for the conference', frequency: 'once', once_due: dayIso(3), once_from: '09:00', once_to: '12:00', location: 'Sanctuary', assignees: ['rick', 'erin', 'me'], shared_events: true, notes: 'Events brings the linens. We set 400 chairs.' });
 pm({ name: 'Fix the back gate latch', frequency: 'once', once_due: dayIso(2), location: 'Back gate', assignees: ['judah'] });
 pm({ name: 'Fire extinguisher inspection', frequency: 'yearly', start_month: 1, due_days: 30, contractor_id: 2 });
 
