@@ -22,7 +22,7 @@ export function overviewPages(ctx) {
     await safe(rpc('pm_refresh'), null);
     const [reqs, ck, runs, tasks, members, off, outs, items, pulled, plan, wx, tools] = await Promise.all([
       safe(q(sb.from('maint_requests').select('id, subject, status, board_group, location, due_date, created_at, experts').neq('board_group', 'solved').order('created_at', { ascending: false })), []),
-      week ? safe(q(sb.from('checklist_tasks').select('id, name, status, day, who, timer_started_at').eq('week_of', week)), []) : [],
+      week ? safe(q(sb.from('checklist_tasks').select('id, name, status, day, who, timer_started_at, clocked').eq('week_of', week)), []) : [],
       safe(q(sb.from('pm_runs').select('*').order('due_on')), []),
       safe(q(sb.from('pm_tasks').select('id, name, frequency, active, parent_id, assignees')), []),
       safe(q(sb.from('team_members').select('id, name, role, active, team, work_hours')), []),
@@ -46,7 +46,8 @@ export function overviewPages(ctx) {
     const ckToday = ck.filter((t) => (t.day || '') === todayName);
     const ckDone = ckToday.filter((t) => t.status === 'Done').length;
     const ckWeekDone = ck.filter((t) => t.status === 'Done').length;
-    const ckNow = ck.filter((t) => t.status === 'Working on it');
+    // Happening now = someone is clocked in (timer running), not just marked Working on it.
+    const ckNow = ck.filter((t) => t.timer_started_at && (t.clocked || []).length);
     // Maintenance
     const taskBy = Object.fromEntries(tasks.map((t) => [t.id, t]));
     const cur = runs.filter((r) => taskBy[r.task_id]?.active && r.period_start <= today && (r.period_end >= today || (taskBy[r.task_id].frequency === 'once' && r.status === 'open')));
@@ -74,7 +75,7 @@ export function overviewPages(ctx) {
       // On a request right now = its timer is running and they're on it.
       const r = working.find((x) => x.timer_started_at && (x.experts || []).some((e) => has(e, m.name)));
       // Busy = clocked in on it (pressed Start), not just named on it.
-      const c = ckNow.find((x) => (x.clocked || []).length ? (x.clocked || []).some((n) => has(n, m.name)) : has(x.who, m.name));
+      const c = ckNow.find((x) => (x.clocked || []).some((n) => has(n, m.name)));
       // A maintenance round with its timer running that they're on.
       const pmRun = runs.find((x) => x.timer_started_at && (x.clocked || []).includes(m.id));
       const tl = outs.find((x) => x.borrower_id === m.id);
