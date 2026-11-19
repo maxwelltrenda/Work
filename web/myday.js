@@ -127,6 +127,8 @@ export function myDayPages(ctx) {
 
     // ---- up for grabs (nobody on it)
     const grabCk = ck.filter((t) => open(t) && !names(t.who).length && t.day === todayName);
+    // Custodians see the whole day's Custodial list, not only what they're on.
+    const teamCk = person.role === 'custodian' ? ck.filter((t) => open(t) && t.day === todayName && names(t.who).length && !onMe(t.who) && !meIn(t)) : [];
     const grabPm = pmCurrent.filter((r) => ['open', 'missed'].includes(r.status) && !(taskBy[r.task_id]?.assignees || []).length && !r.timer_started_at && (r.due_on < today || at(r) <= today));
 
     const [ckN, pmN] = await Promise.all([loadNotes(sb, 'custodial', ck.map((t) => t.id)), loadNotes(sb, 'maintenance', pmCurrent.map((r) => r.id))]);
@@ -170,6 +172,7 @@ export function myDayPages(ctx) {
       ${laterRows.length ? sect('This week', `by Monday`, laterRows, '') : ''}
       ${afterRows.length ? `<details class="md-later"><summary>${sect('Later', `${afterRows.length} after this week · tap to see`, [], '')}</summary><div class="md-list card">${afterRows.join('')}</div></details>` : ''}
       ${grabRows.length ? sect('Up for grabs', 'nobody on these yet · starting one puts you on it', grabRows, '') : ''}
+      ${teamCk.length ? sect("Rest of today's Custodial list", 'others are on these · tap ▶ Start to join', teamCk.map((t) => ckRow(t, false)), '') : ''}
       ${todos.length || isAdmin?.() ? sect(`When you're free${isAdmin?.() ? ' <button type="button" class="btn small md-free-add" data-md-free>+ Add for someone</button>' : ''}`, 'optional · no due date', todos.map((t) => { const run = freeRun(t.id); const secs = freeSecs(t.id);
         return row({ tag: 'Optional', cls: 'todo', title: esc(t.title),
           meta: [run ? `<b>⏱ Timing</b> · since ${clock(run.started_at)}` : secs >= 60 ? `${dur(secs)} so far` : '', t.notes ? esc(t.notes) : '', t.created_by && t.created_by !== myName ? `from ${esc(String(t.created_by).split(' ')[0])}` : ''].filter(Boolean).join(' · '),

@@ -22,7 +22,8 @@ const WK = { start: '07:00', end: '15:30' };
 const hours = (days, s, e) => Object.fromEntries(days.map((d) => [d, { start: s, end: e }]));
 const MF = ['mon', 'tue', 'wed', 'thu', 'fri'];
 const people = [
-  ['me', 'Skyler', 'fac_admin', 'Leadership', null],
+  // ?as=custodian (etc.) shows the demo as that role.
+  ['me', 'Skyler', (typeof location !== 'undefined' && new URLSearchParams(location.search).get('as')) || 'fac_admin', 'Leadership', null],
   ['max', 'Max', 'fac_admin', 'Maintenance', hours(MF, '07:00', '15:30')],
   ['rick', 'Rick', 'maintenance', 'Maintenance', hours(MF, '07:00', '15:30')],
   ['kenny', 'Kenny', 'maintenance', 'Maintenance', hours(MF, '08:00', '16:30')],
