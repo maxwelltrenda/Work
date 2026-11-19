@@ -537,6 +537,10 @@ export function boardPages(ctx) {
       try { await q(sb.from('checklist_tasks').update({ status: 'Skipped' }).eq('id', b.dataset.skip).select('id')); toast('Skipped this week'); } catch (err) { toast(errMsg(err), true); }
       rerender();
     }));
+    app.querySelectorAll('[data-unskip]').forEach((b) => b.addEventListener('click', async () => {
+      try { await q(sb.from('checklist_tasks').update({ status: 'Not started' }).eq('id', b.dataset.unskip).select('id')); toast('Back on the list'); } catch (err) { toast(errMsg(err), true); }
+      rerender();
+    }));
     app.querySelectorAll('[data-cktimer]').forEach((b) => b.addEventListener('click', async () => {
       try { await rpc('checklist_timer', { p_id: Number(b.dataset.cktimer), p_run: b.dataset.run === '1' }); } catch (err) { toast(errMsg(err), true); }
       rerender();
@@ -709,7 +713,8 @@ export function boardPages(ctx) {
         ${ed ? noteButton('custodial', t.id, (ckNotes[t.id] || []).length) : ''}
         ${ed && !closed ? (() => { const mine = (t.clocked || []).some((n) => String(n).toLowerCase() === String(me()?.name || '').toLowerCase());
           return `<button class="btn small${mine ? ' b-running' : ''}" data-cktimer="${t.id}" data-run="${mine ? 0 : 1}" title="${mine ? 'Clock out' : t.timer_started_at ? 'Clock in too' : 'Clock in'}">${mine ? '■ Stop' : t.timer_started_at ? '▶ Join' : '▶ Start'}</button>`; })() : ''}
-        ${ed && !closed ? `<button class="btn small" data-skip="${t.id}" title="Skip this week">Skip</button>` : ''}</span>
+        ${ed && !closed ? `<button class="btn small" data-skip="${t.id}" title="Skip this week">Skip</button>` : ''}
+        ${ed && t.status === 'Skipped' ? `<button class="btn small" data-unskip="${t.id}" title="Put it back on the list">Undo skip</button>` : ''}</span>
       </div>
       ${(ckNotes[t.id] || []).length ? `<div class="b-notes">${notesList(ckNotes[t.id], esc, me()?.id, isAdmin())}</div>` : ''}
       ${subs.length && !closed ? `<details class="b-subs"><summary>${subs.length} steps <span class="b-subcount">${nDone}/${subs.length}</span></summary>
