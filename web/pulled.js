@@ -55,20 +55,20 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
             : `since ${r.day !== localDay() ? `${new Date(r.started_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}, ` : ''}${clock(r.started_at)} · <span data-pw-since="${Date.now() - worked(r)}">${dur(worked(r))}</span>`)
             : `${clock(r.started_at)}–${clock(r.ended_at)} · ${dur(worked(r))}${r.paused_seconds ? ` <span class="muted">(${dur(r.paused_seconds * 1000)} break)</span>` : ''}`}${r.note ? ` · ${esc(r.note)}` : ''}</span>
           ${notesList(notes[r.id], esc)}
-          ${waiting.length ? `<span class="pw-held">⏸ ${waiting.map(esc).join(', ')} · picks back up when ${r.member_id === me()?.id ? "you're" : "they're"} back</span>` : ''}</div>
+          ${waiting.length ? `<span class="pw-held">⏸ ${waiting.map(esc).join(', ')} · picks back up when ${r.member_id === me()?.id ? "you're" : "they're"} done</span>` : ''}</div>
         ${!canEnd ? `<div class="pw-btns">${noteButton('pulled', r.id, (notes[r.id] || []).length)}</div>` : ''}
         ${canEnd ? `<div class="pw-btns">${noteButton('pulled', r.id, (notes[r.id] || []).length)}<button class="btn small" data-pw-pause="${r.id}" data-on="${paused ? 0 : 1}">${paused ? '▶ Resume' : '⏸ Pause'}</button>
-          <button class="btn small" data-pw-end="${r.id}">${r.member_id === me()?.id ? "I'm back" : 'End'}</button></div>` : ''}
+          <button class="btn small" data-pw-end="${r.id}">${r.member_id === me()?.id ? '✓ Done' : 'End'}</button></div>` : ''}
       </li>`;
     };
     return `<section class="pw-box">
-      <div class="pw-head"><div><b>Pulled to today</b><span class="muted">${open.length ? `${open.length} away from the plan right now` : 'Work that wasn\'t on the plan'}</span></div>
-        <button class="btn primary" data-pw-start="${dept}">↪ ${mine ? 'Pulled to something else' : 'I got pulled to something'}</button></div>
+      <div class="pw-head"><div><b>Quick tasks today</b><span class="muted">${open.length ? `${open.length} going right now` : 'Unplanned work, timed as you go'}</span></div>
+        <button class="btn primary" data-pw-start="${dept}">+ ${mine ? 'Another quick task' : 'Quick task'}</button></div>
       ${open.length ? `<ul class="pw-list">${open.map(line).join('')}</ul>` : ''}
       ${ended.length ? `<details class="pw-done"><summary>${ended.length} finished today · ${dur(ended.reduce((a, r) => a + worked(r), 0))}</summary>
         <ul class="pw-mini">${ended.map((r) => `<li><span><b>${esc((who[r.member_id] || 'Someone').split(' ')[0])}</b> · ${esc(r.what)}${r.location ? ` <span class="muted">· ${esc(r.location)}</span>` : ''}</span>
           <span class="muted pw-mini-t">${clock(r.started_at)}–${clock(r.ended_at)} · ${dur(worked(r))}</span>${noteButton('pulled', r.id, (notes[r.id] || []).length)}</li>`).join('')}</ul></details>` : ''}
-      ${rows.length ? '' : '<p class="muted pw-empty">Nobody has been pulled off the plan today.</p>'}
+      ${rows.length ? '' : '<p class="muted pw-empty">No quick tasks today.</p>'}
     </section>`;
   }
 
@@ -82,7 +82,7 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
       const back = document.createElement('div');
       back.className = 'modal-back';
       back.innerHTML = `<form class="modal pw-modal" role="dialog" aria-modal="true" aria-labelledby="pw-title">
-        <h3 id="pw-title">What did you get pulled to?</h3>
+        <h3 id="pw-title">What's the quick task?</h3>
         <p class="muted">It goes on today's list under your name with a running clock, so the team can see where you are.</p>
         ${reqs.length ? `<label>Is it a request? <span class="muted">(optional)</span><select name="request"><option value="">No, something else</option>${reqs.map((r) => `<option value="${r.id}" data-subject="${esc(r.subject)}" data-loc="${esc(r.location || '')}">${esc(r.subject)}${r.location ? ` · ${esc(r.location)}` : ''}</option>`).join('')}</select></label>` : ''}
         <label>What <input name="what" required autocomplete="off" placeholder="${dept === 'custodial' ? 'Cleaning up a spill in the lobby' : 'Helping set up chairs for a funeral'}"></label>
@@ -118,10 +118,10 @@ export function pulledKit({ sb, q, rpc, esc, toast, errMsg, me, isAdmin }) {
     root.querySelectorAll('[data-pw-start]').forEach((b) => b.addEventListener('click', async () => {
       const v = await ask(b.dataset.pwStart);
       if (!v) return;
-      try { await rpc('pulled_start', { p_dept: b.dataset.pwStart, p_what: v.what, p_location: v.location, p_request: v.request }); toast('Logged. What you were on is paused. Tap "I\'m back" to pick it back up.'); reload(); } catch (err) { toast(errMsg(err), true); }
+      try { await rpc('pulled_start', { p_dept: b.dataset.pwStart, p_what: v.what, p_location: v.location, p_request: v.request }); toast('Quick task started. What you were on is paused until you tap Done.'); reload(); } catch (err) { toast(errMsg(err), true); }
     }));
     root.querySelectorAll('[data-pw-end]').forEach((b) => b.addEventListener('click', async () => {
-      try { await rpc('pulled_end', { p_id: Number(b.dataset.pwEnd), p_note: null }); toast('Welcome back'); reload(); } catch (err) { toast(errMsg(err), true); }
+      try { await rpc('pulled_end', { p_id: Number(b.dataset.pwEnd), p_note: null }); toast('Quick task done'); reload(); } catch (err) { toast(errMsg(err), true); }
     }));
     root.querySelectorAll('[data-pw-pause]').forEach((b) => b.addEventListener('click', async () => {
       const on = b.dataset.on === '1';

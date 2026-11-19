@@ -21,7 +21,7 @@ const HELP = `I understand short sentences like:
 • "Pause windows" · "Skip floors"
 • "Add me to laundry" · "Add Cass to windows"
 • "Add sanctuary chair check to Saturday"
-• "Pulled to prep event in the family center" · "Back"
+• "Quick task: prep event in the family center" · "Done with quick task"
 • "What's left" · "What's left inside" · "What's left today"
 • "Request: lobby sink is leaking"`;
 
@@ -78,7 +78,8 @@ export function parseClause(raw) {
     const r = m[1] || '';
     return { kind: 'left', scope: /inside|in ?door/.test(r) ? 'inside' : /outside|out ?door/.test(r) ? 'outside' : /today/.test(r) ? 'today' : 'all' };
   }
-  if ((m = s.match(/^(?:i\s*)?(?:got\s+|been\s+|was\s+|am\s+|i'?m\s+)?pulled\s+(?:away\s+|off\s+)?(?:to|into|for|onto|over to)\s+(.+)$/i))) {
+  if ((m = s.match(/^(?:i\s*)?(?:got\s+|been\s+|was\s+|am\s+|i'?m\s+)?pulled\s+(?:away\s+|off\s+)?(?:to|into|for|onto|over to)\s+(.+)$/i))
+      || (m = s.match(/^(?:start\s+(?:a\s+)?)?quick\s*task[:\s-]+(.+)$/i))) {
     let what = m[1].trim();
     let where = null;
     const at = what.match(/^(.+?)\s+(?:in|at)\s+(?:the\s+)?(.+)$/i);
@@ -87,7 +88,7 @@ export function parseClause(raw) {
   }
   if (/^(?:i'?m\s+)?back (?:from|after) (?:lunch|break)|^resume(?: (?:that|it|this))?$|^(?:lunch|break) (?:is )?(?:over|done)$/i.test(low)) return { kind: 'breakend' };
   if (/^(?:(?:going|went|at|on|taking|take)\s+(?:to\s+)?)?(?:a\s+)?(lunch|break)\b|^pause (?:that|it|this|pulled)$/i.test(low)) return { kind: 'breakstart' };
-  if (/^(i'?m\s+)?back\b|^done with (that|it|this)$|^(finished|done) (with )?(that|it)$/i.test(low)) return { kind: 'back' };
+  if (/^(i'?m\s+)?back\b|^done with (that|it|this|(?:the |my )?quick ?task)$|^quick ?task (?:is )?done$|^(finished|done) (with )?(that|it)$/i.test(low)) return { kind: 'back' };
   if ((m = s.match(/^(?:new\s+)?request:?\s+(.+)$/i))) return { kind: 'request', subject: m[1].trim().replace(/^./, (c) => c.toUpperCase()) };
   // "Add "Sanctuary chair check" to Saturday list" / "add task mop lobby for today"
   if ((m = s.match(/^add\s+(?:a\s+)?(?:new\s+)?(?:task\s*:?\s*)?["“']?(.+?)["”']?\s+(?:to|on|for)\s+(?:the\s+|this\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday|today|detail work|week)(?:'?s)?(?:\s+(?:list|checklist|tasks?))?$/i))) {
@@ -223,13 +224,13 @@ export function mountAssistant({ sb, esc, me, onChange }) {
 
     if (cmd.kind === 'pulled') {
       await must(sb.rpc('pulled_start', { p_dept: person.role === 'maintenance' ? 'maintenance' : 'custodial', p_what: cmd.what, p_location: cmd.where }));
-      out.actions.push(`Pulled to ${cmd.what}${cmd.where ? ` · ${cmd.where}` : ''}`);
+      out.actions.push(`Quick task: ${cmd.what}${cmd.where ? ` · ${cmd.where}` : ''}`);
       return out;
     }
 
     if (cmd.kind === 'breakstart' || cmd.kind === 'breakend') {
       const p = work.pulled[0];
-      if (!p) { out.lines.push(cmd.kind === 'breakstart' ? "You're not pulled to anything right now. To pause a checklist task, type: Pause windows" : "You weren't on a break."); return out; }
+      if (!p) { out.lines.push(cmd.kind === 'breakstart' ? "You're not on a quick task right now. To pause a checklist task, type: Pause windows" : "You weren't on a break."); return out; }
       if (cmd.kind === 'breakstart' && p.paused_at) { out.lines.push(`${p.what} is already paused.`); return out; }
       if (cmd.kind === 'breakend' && !p.paused_at) { out.lines.push(`${p.what} isn't paused.`); return out; }
       await must(sb.rpc('pulled_pause', { p_id: p.id, p_pause: cmd.kind === 'breakstart' }));
@@ -238,7 +239,7 @@ export function mountAssistant({ sb, esc, me, onChange }) {
     }
 
     if (cmd.kind === 'back') {
-      if (!work.pulled.length) { out.lines.push("You weren't pulled to anything."); return out; }
+      if (!work.pulled.length) { out.lines.push("You weren't on a quick task."); return out; }
       for (const p of work.pulled) await must(sb.rpc('pulled_end', { p_id: p.id, p_note: null }));
       out.actions.push(`Back from ${work.pulled.map((p) => p.what).join(', ')}`);
       return out;

@@ -808,7 +808,7 @@ export function schedulePages(ctx) {
       const byLine = Object.entries(weekBy).filter(([, v]) => v >= 60).sort((a, b) => b[1] - a[1]).map(([id, v]) => `${esc(String(who[id] || 'Someone').split(' ')[0])} ${dur(v)}`).join(' · ');
       const time = rs.reduce((a, r) => a + (r.worked_seconds || 0), 0) + ps.reduce((a, p) => a + Math.max(0, ((p.ended_at ? new Date(p.ended_at) : new Date()) - new Date(p.started_at)) / 1000 - (p.paused_seconds || 0)), 0);
       return `<details class="b-group"${i === 0 ? ' open' : ''}><summary><span class="b-gname">Week of ${dshort(w)} – ${dshort(addD(w, 6))}${w === thisWk ? ' <span class="pill planned">This week</span>' : ''}</span>
-          <span class="muted">${nDone} done${rs.length - nDone ? ` · ${rs.length - nDone} skipped/missed` : ''}${ps.length ? ` · ${ps.length} pulled to` : ''}${time ? ` · ${dur(time)}` : ''}</span></summary>
+          <span class="muted">${nDone} done${rs.length - nDone ? ` · ${rs.length - nDone} skipped/missed` : ''}${ps.length ? ` · ${ps.length} quick task${ps.length === 1 ? '' : 's'}` : ''}${time ? ` · ${dur(time)}` : ''}</span></summary>
         ${byLine ? `<p class="pw-by"><b>By person:</b> ${byLine}</p>` : ''}
         ${rs.length ? `<div class="table-wrap"><table class="b-table"><tr><th>Task</th><th>Status</th><th>Who</th><th class="num">Time</th><th>When</th><th>Note</th></tr>
           ${rs.map((r) => { const t = taskBy[r.task_id]; const par = t.parent_id ? taskBy[t.parent_id] : null;
@@ -816,7 +816,7 @@ export function schedulePages(ctx) {
               <td><span class="pill ${r.status === 'done' ? 'available' : r.status === 'missed' ? 'lost' : 'closed'}">${label[r.status] || r.status}</span></td>
               <td>${esc(who[r.done_by] || '')}</td><td class="num">${dur(r.worked_seconds)}${(() => { const by = perPerson(sess.filter((x) => x.task_id === r.id)); const parts = Object.entries(by).filter(([, v]) => v >= 60); return parts.length ? `<br><small class="muted">${parts.map(([id, v]) => `${esc(String(who[id] || '').split(' ')[0])} ${dur(v)}`).join(', ')}</small>` : ''; })()}</td>
               <td>${r.done_at ? new Date(r.done_at).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }) : ''}</td><td>${esc(r.note || '')}</td></tr>`; }).join('')}</table></div>` : ''}
-        ${ps.length ? `<h4 class="pw-h">Pulled to</h4><div class="table-wrap"><table class="b-table"><tr><th>Who</th><th>What</th><th>Where</th><th>Day</th><th class="num">Time</th></tr>
+        ${ps.length ? `<h4 class="pw-h">Quick tasks</h4><div class="table-wrap"><table class="b-table"><tr><th>Who</th><th>What</th><th>Where</th><th>Day</th><th class="num">Time</th></tr>
           ${ps.map((p) => `<tr><td>${esc(who[p.member_id] || '')}</td><td>${esc(p.what)}</td><td>${esc(p.location || '')}</td><td>${new Date(`${p.day}T12:00:00`).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}</td>
             <td class="num">${dur(((p.ended_at ? new Date(p.ended_at) : new Date()) - new Date(p.started_at)) / 1000 - (p.paused_seconds || 0))}${p.ended_at ? '' : ' (still going)'}</td></tr>`).join('')}</table></div>` : ''}
       </details>`;

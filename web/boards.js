@@ -741,7 +741,7 @@ export function boardPages(ctx) {
     tasks.forEach((t) => { if (hasSess.has(t.id) || !t.who || !(t.worked_seconds || t.manual_hours)) return; t.who.split(',').map((x) => x.trim()).forEach((p) => { people[p] = (people[p] || 0) + liveSecs(t) + (t.manual_hours || 0) * 3600; }); });
     pulledRows.forEach((p) => { const n = whoId[p.member_id] || 'Someone'; people[n] = (people[n] || 0) + pSecs(p); });
     target.innerHTML = `
-      <div class="table-wrap"><table class="b-table b-narrow"><tr><th>Week of</th><th class="num">Done</th><th class="num">Missed</th><th class="num">Pulled to</th><th class="num">Time logged</th><th>Completion</th></tr>
+      <div class="table-wrap"><table class="b-table b-narrow"><tr><th>Week of</th><th class="num">Done</th><th class="num">Missed</th><th class="num">Quick tasks</th><th class="num">Time logged</th><th>Completion</th></tr>
         ${weeks.map((w) => {
           const ts = tasks.filter((t) => t.week_of === w); const c = (s) => ts.filter((t) => t.status === s).length;
           const pct = Math.round((c('Done') / ts.length) * 100);
@@ -749,9 +749,9 @@ export function boardPages(ctx) {
             <td class="num">${dur(ts.reduce((a, t) => a + liveSecs(t) + (t.manual_hours || 0) * 3600, 0) + pulledIn(w).reduce((a, p) => a + pSecs(p), 0))}</td>
             <td><span class="b-progbar small"><i style="width:${pct}%"></i></span> ${pct}%</td></tr>`;
         }).join('')}</table></div>
-      ${barList('Time by person, all weeks (tasks + pulled to)', Object.fromEntries(Object.entries(people).map(([k, v]) => [`${k} · ${dur(v)}`, Math.round(v / 60)])), 'Bars are minutes.')}
-      ${weeks.map((w, wi) => `<details class="b-group"${wi === 0 ? " open" : ""}><summary><span class="b-gname">Week of ${dshort(w)}</span><span class="muted">${tasks.filter((t) => t.week_of === w).length} tasks${pulledIn(w).length ? ` · ${pulledIn(w).length} pulled to` : ""}</span></summary>
-        ${pulledIn(w).length ? `<h4 class="pw-h">Pulled to</h4><div class="table-wrap"><table class="b-table"><tr><th>Who</th><th>What</th><th>Where</th><th>When</th><th class="num">Time</th></tr>
+      ${barList('Time by person, all weeks (tasks + quick tasks)', Object.fromEntries(Object.entries(people).map(([k, v]) => [`${k} · ${dur(v)}`, Math.round(v / 60)])), 'Bars are minutes.')}
+      ${weeks.map((w, wi) => `<details class="b-group"${wi === 0 ? " open" : ""}><summary><span class="b-gname">Week of ${dshort(w)}</span><span class="muted">${tasks.filter((t) => t.week_of === w).length} tasks${pulledIn(w).length ? ` · ${pulledIn(w).length} quick tasks` : ""}</span></summary>
+        ${pulledIn(w).length ? `<h4 class="pw-h">Quick tasks</h4><div class="table-wrap"><table class="b-table"><tr><th>Who</th><th>What</th><th>Where</th><th>When</th><th class="num">Time</th></tr>
           ${pulledIn(w).map((p) => `<tr><td>${esc(whoId[p.member_id] || '')}</td><td>${esc(p.what)}</td><td>${esc(p.location || '')}</td><td class="muted">${tshort(p.started_at)}</td><td class="num">${dur(pSecs(p))}${p.ended_at ? '' : ' (still going)'}</td></tr>`).join('')}</table></div>` : ''}
         <h4 class="pw-h">Tasks</h4>
         <div class="table-wrap"><table class="b-table"><tr><th>Task</th><th>Day</th><th>Area</th><th>Status</th><th>Who</th><th class="num">Time</th><th>Done on</th></tr>

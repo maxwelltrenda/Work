@@ -146,9 +146,9 @@ export function myDayPages(ctx) {
     const todoRow = (t) => row({ tag: 'To-do', cls: 'todo', title: esc(t.title),
       meta: [t.due_on ? (t.due_on < today ? `<b class="md-late">Late</b> · was due ${dshort(t.due_on)}` : t.due_on === today ? '<b>Due today</b>' : `Due ${dshort(t.due_on)}`) : '', t.notes ? esc(t.notes) : ''].filter(Boolean).join(' · '),
       actions: `<button class="btn small" data-md-todo="${t.id}">✓ Done</button>` });
-    const pulledRow = (p) => row({ tag: p.paused_at ? 'On break' : 'Pulled', cls: 'pulled', title: esc(p.what),
+    const pulledRow = (p) => row({ tag: p.paused_at ? 'On break' : 'Quick task', cls: 'pulled', title: esc(p.what),
       meta: [p.location ? esc(p.location) : '', p.paused_at ? `paused since ${clock(p.paused_at)}` : `since ${clock(p.started_at)}`].filter(Boolean).join(' · '),
-      actions: `<button class="btn small" data-md-pause="${p.id}" data-on="${p.paused_at ? 0 : 1}">${p.paused_at ? '▶ Resume' : '⏸ Pause'}</button><button class="btn small primary" data-md-back="${p.id}">I'm back</button>` });
+      actions: `<button class="btn small" data-md-pause="${p.id}" data-on="${p.paused_at ? 0 : 1}">${p.paused_at ? '▶ Resume' : '⏸ Pause'}</button><button class="btn small primary" data-md-back="${p.id}">✓ Done</button>` });
 
     const pw = pulledKit && canPull?.() ? await pulledKit.load(pullDept()).catch(() => null) : null;
     const nowRows = [...(pw ? [] : pulled.map(pulledRow)), ...nowCk.map((t) => ckRow(t, true)), ...nowPm.map((r) => pmRow(r, true)), ...nowReq.map((r) => reqRow(r, true))];
@@ -199,7 +199,7 @@ export function myDayPages(ctx) {
     }, 'Done ✓')));
     app.querySelectorAll('[data-md-free-start]').forEach((b) => b.addEventListener('click', () => act(() => rpc('free_task_start', { p_task: Number(b.dataset.mdFreeStart) }), 'Timing it. What you were on is paused.')));
     if (pw) pulledKit.bind(app, renderMyDay);
-    app.querySelectorAll('[data-md-back]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pulled_end', { p_id: Number(b.dataset.mdBack), p_note: null }), 'Welcome back')));
+    app.querySelectorAll('[data-md-back]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pulled_end', { p_id: Number(b.dataset.mdBack), p_note: null }), 'Quick task done')));
     app.querySelectorAll('[data-md-pause]').forEach((b) => b.addEventListener('click', () => act(() => rpc('pulled_pause', { p_id: Number(b.dataset.mdPause), p_pause: b.dataset.on === '1' }))));
 
     clearInterval(tick);

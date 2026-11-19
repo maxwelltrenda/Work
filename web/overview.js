@@ -85,7 +85,7 @@ export function overviewPages(ctx) {
       let tag; let text; let rank = 1;
       if (offRow && !offRow.part) { tag = ['Out', 'out']; text = `Out today · ${offRow.kind}`; rank = 3; }
       else if (p && p.paused_at) { tag = ['On break', 'off']; text = `Paused <b>${esc(p.what)}</b> · since ${esc(new Date(p.paused_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}`; rank = 1; }
-      else if (p) { tag = ['Pulled', 'work']; text = `<b>${esc(p.what)}</b>${p.location ? ` · ${esc(p.location)}` : ''} · ${since(p.started_at)}`; rank = 0; }
+      else if (p) { tag = ['Quick task', 'work']; text = `<b>${esc(p.what)}</b>${p.location ? ` · ${esc(p.location)}` : ''} · ${since(p.started_at)}`; rank = 0; }
       else if (r) { tag = ['Request', 'new']; text = `<b>${esc(r.subject)}</b>${r.location ? ` · ${esc(r.location)}` : ''}`; rank = 0; }
       else if (pmRun) { tag = ['Maintenance', 'work']; text = `<b>${esc(taskBy[pmRun.task_id].name)}</b>${taskBy[pmRun.task_id].location ? ` · ${esc(taskBy[pmRun.task_id].location)}` : ''}`; rank = 0; }
       else if (c) { tag = ['Custodial', 'work']; text = `<b>${esc(c.name)}</b>`; rank = 0; }
@@ -138,7 +138,7 @@ export function overviewPages(ctx) {
           + lines(pmOpen.slice(0, 4).map((r) => `<span class="ov-pill ${r.due_on < today ? 'late' : 'todo'}">${r.due_on < today ? 'Late' : `Due ${dshort(r.due_on)}`}</span> ${esc(taskBy[r.task_id].name)}`), 'Nothing due right now.'))}
         ${card('#/team', 'Team today', 'ov-team', nums([[working_today.length, 'working'], [off.length, 'out', off.length ? 'hot' : ''], [pulled.length, 'pulled off plan']])
           + lines([...outToday.map((t) => `<span class="ov-pill out">Out</span> ${esc(t)}`),
-            ...pulled.map((p) => `<span class="ov-pill work">Pulled</span> ${esc(first(who[p.member_id]))} · ${esc(p.what)}`)], working_today.length ? `On today: ${working_today.map((m) => esc(first(m.name))).join(', ')}` : 'No hours set for today.'))}
+            ...pulled.map((p) => `<span class="ov-pill work">Quick task</span> ${esc(first(who[p.member_id]))} · ${esc(p.what)}`)], working_today.length ? `On today: ${working_today.map((m) => esc(first(m.name))).join(', ')}` : 'No hours set for today.'))}
         ${card('#/out', 'Tools & stock', 'ov-tools', nums([[outs.length, 'tools out'], [low.length, 'low on stock', low.length ? 'hot' : '']])
           + lines([...outs.slice(0, 3).map((c) => `<span class="ov-pill out">Out</span> ${esc(toolName[c.tool_id] || 'A tool')} <span class="muted">· ${esc(first(who[c.borrower_id]))}</span>`),
             ...low.slice(0, 3).map((i) => `<span class="ov-pill late">Low</span> ${esc(i.name)} <span class="muted">· ${i.category === 'paint' ? `${Math.round(onHand(i) * 100) / 100} gal` : i.quantity} left</span>`)], 'All tools in, nothing low.'))}
