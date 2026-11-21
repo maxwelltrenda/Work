@@ -92,7 +92,9 @@ export function overviewPages(ctx) {
       else if (tl) { tag = ['Tool', 'out']; text = `Has the <b>${esc(toolName[tl.tool_id] || 'a tool')}</b> since ${esc(new Date(tl.checked_out_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }))}`; rank = 0; }
       // Not working on anything: say so, then what's next for them.
       // Outside their hours today (and not on anything): off the clock.
-      else if (h && offClock(h)) { tag = ['Off', 'free']; text = offClock(h); rank = 4; }
+      // No hours today: not working, whatever is coming up for them.
+      else if (!h) { tag = ['Off', 'free']; text = 'Not scheduled today'; rank = 4; }
+      else if (offClock(h)) { tag = ['Off', 'free']; text = offClock(h); rank = 4; }
       else if (ckNext.length || pmNext.length) {
         tag = ['Free', 'free'];
         const next = ckNext.length ? `Custodial: ${esc(ckNext[0].name)}${ckNext.length > 1 ? ` +${ckNext.length - 1} more` : ''}`
