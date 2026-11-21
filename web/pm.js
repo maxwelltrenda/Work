@@ -472,7 +472,8 @@ export function schedulePages(ctx) {
   // Every 2 weeks: you pick the week it's done in; it shows up that week.
   const BIWEEK_WIN = [['w1', 'Any day that week', 7], ['fri1', 'By Friday that week', 4], ['any', 'Any time in the 2 weeks', null]];
   const LEADS = [[3, '3 days'], [7, '1 week'], [14, '2 weeks'], [21, '3 weeks'], [30, '30 days']];
-  const MONTH_WIN = [['any', 'Any time', 1, null], ['w1', 'First week (1st–7th)', 1, 7], ['w2', 'First 2 weeks (1st–14th)', 1, 14], ['h2', 'Second half (15th–28th)', 15, 14]];
+  const MONTH_WIN = [['any', 'Any time', 1, null], ['w1', 'Week 1 (1st–7th)', 1, 7], ['wk2', 'Week 2 (8th–14th)', 8, 7], ['wk3', 'Week 3 (15th–21st)', 15, 7], ['wk4', 'Week 4 (22nd–28th)', 22, 7],
+    ['w2', 'First 2 weeks (1st–14th)', 1, 14], ['h2', 'Second half (15th–28th)', 15, 14]];
   const ord = (n) => `${n}${['th', 'st', 'nd', 'rd'][(n % 10 > 3 || Math.floor(n / 10) % 10 === 1) ? 0 : n % 10]}`;
   // Days for just this round. Resolves with the days, null (back to usual) or undefined (cancel).
   function pickRunDays(r, t) {
