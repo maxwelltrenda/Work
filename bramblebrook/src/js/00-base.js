@@ -18,7 +18,15 @@ function fmtT(sec) {
   const m = Math.floor(sec / 60), s = sec % 60;
   if (m < 60) return s ? `${m}m ${s}s` : `${m}m`;
   const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
+  return m % 60 ? `${h}h ${m % 60}m` : `${h}h`;
+}
+/* A clock time for when something finishes, e.g. "6:40am". */
+function clockAt(t) {
+  const d = new Date(t);
+  let h = d.getHours();
+  const ap = h < 12 ? 'am' : 'pm';
+  h = h % 12 || 12;
+  return `${h}:${String(d.getMinutes()).padStart(2, '0')}${ap}`;
 }
 function dayKey(t = now()) {
   const d = new Date(t);

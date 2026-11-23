@@ -60,7 +60,7 @@ function viewFields() {
     const it = I.items[c.id], locked = !cropOpen(c);
     return `<button class="packet${locked ? ' locked' : ''}" style="--h:${c.h}" ${locked ? 'disabled' : `data-act="seed" data-id="${c.id}"`} aria-pressed="${state.seed === c.id}">
       <span class="band">${esc(it.n)}</span><span class="pic">${pic(c.id, 40)}</span>
-      <span class="facts">${locked ? `<span>Farming Lv ${c.lvl}</span><span>&nbsp;</span>` : `<span>Grows ${fmtT(c.grow * growFactor())}</span><span>Seed ${seedCost(c)}c · sells ${priceOf(c.id)}c</span>`}</span></button>`;
+      <span class="facts">${locked ? `<span>Farming Lv ${c.lvl}</span><span>&nbsp;</span>` : `<span>Grows ${fmtT(c.grow * growFactor())}</span>${c.grow * growFactor() >= 3600 ? `<span class="ready-at">Ready ${clockAt(now() + c.grow * growFactor() * 1000)}</span>` : ''}<span>Seed ${seedCost(c)}c</span><span>Sells ${priceOf(c.id)}c</span>`}</span></button>`;
   }).join('');
   const ups = Object.entries(C.core.upgrades).map(([k, u]) => {
     const tier = state.upgrades[k], next = u.tiers[tier], cur = u.tiers[tier - 1];
