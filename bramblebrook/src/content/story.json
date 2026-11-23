@@ -1,0 +1,1874 @@
+{
+  "chapters": [
+    {
+      "id": "prologue",
+      "n": "Weeds and Wishes",
+      "blurb": "A tangled farm, a silent bell, and a note in your great-aunt's hand: Gone to listen for the bell.",
+      "intro": [
+        {
+          "say": "The coach rattles over the last hill and Bramblebrook Valley opens below you: a bright river, a small town, green hills folding up toward grey peaks."
+        },
+        {
+          "say": "In the town square hangs a great dark bell, its clapper cracked and useless. The coach driver tips a hat to it, the way you'd greet an old friend who's gone quiet."
+        },
+        {
+          "say": "Past the square, down a lane gone wild with thistles, stands the farm your great-aunt Wren Bramble left behind. Eight years of weeds have moved in."
+        },
+        {
+          "say": "Pinned to the farmhouse door is a sun-faded note in brisk, slanting handwriting:"
+        },
+        {
+          "say": "'Gone to listen for the bell. Water the rhubarb. — W.'"
+        },
+        {
+          "say": "Nobody watered the rhubarb."
+        },
+        {
+          "say": "Someone in a waistcoat is hurrying up the lane toward you, waving a clipboard and shedding papers at every step."
+        }
+      ],
+      "steps": [
+        {
+          "type": "talk",
+          "to": "oakley",
+          "t": "Say hello to Mayor Oakley",
+          "scene": [
+            {
+              "who": "oakley",
+              "say": "You must be {name}! Splendid. Mayor Oakley, chair of the Welcome Committee. Also its secretary. Also, technically, its only member."
+            },
+            {
+              "who": "oakley",
+              "say": "Your great-aunt left this with me the morning she went. 'For whoever comes,' she said. It's taken eight years to find out who that would be."
+            },
+            {
+              "say": "Oakley presses an old iron key into your hand. It's warm from a waistcoat pocket."
+            },
+            {
+              "who": "you",
+              "say": "Where did she go?"
+            },
+            {
+              "who": "oakley",
+              "say": "Ah. Well. That is the question. The minutes from that winter say only: 'Wren Bramble, departed. Bell, silent. Snow, considerable.'"
+            },
+            {
+              "who": "oakley",
+              "say": "Best get the farm going first. Hazel at the General Store will want to meet you. Desperately. Hazel keeps a ledger on everyone."
+            }
+          ],
+          "give": {
+            "items": {
+              "oldkey": 1
+            }
+          }
+        },
+        {
+          "type": "gather",
+          "item": "wheat",
+          "n": 10,
+          "t": "Clear some weeds and harvest 10 wheat",
+          "scene": [
+            {
+              "say": "Your first sheaves of wheat stand golden among the thistles. The farm looks faintly surprised, as if it had forgotten it could do this."
+            }
+          ]
+        },
+        {
+          "type": "deliver",
+          "to": "hazel",
+          "want": {
+            "carrot": 5
+          },
+          "t": "Bring 5 carrots to Hazel at the General Store",
+          "scene": [
+            {
+              "who": "hazel",
+              "say": "Carrots! Five! And lovely straight ones. Ledger, look. No, don't sit on them."
+            },
+            {
+              "who": "hazel",
+              "say": "I'll put you in the book as a supplier. Page forty-one, under B for Bramble Farm. Your aunt filled pages one to forty all by herself."
+            },
+            {
+              "who": "hazel",
+              "say": "Her very last purchase, eight winters ago: one lantern, six candles and a tin of lemon drops. Paid in turnips. I never forget a turnip."
+            },
+            {
+              "who": "hazel",
+              "say": "Off she went, north, at dusk. Nothing's north but sheep and the Highland Road. And the road came down not long after. Well."
+            },
+            {
+              "who": "hazel",
+              "say": "Now, go and have a wander, love. The meadow's full of odds and ends, and you'll want to know your way about."
+            }
+          ],
+          "give": {
+            "coins": 45,
+            "friend": {
+              "hazel": 20
+            }
+          }
+        },
+        {
+          "type": "stat",
+          "stat": "explores",
+          "n": 10,
+          "t": "Explore the valley 10 times",
+          "scene": [
+            {
+              "say": "A small figure with an enormous map pops up from behind a hedge, a toad perched on one shoulder."
+            },
+            {
+              "who": "pip",
+              "say": "Halt! Are you a bandit? You don't look like a bandit. I'm Pip, valley explorer. This is Sir Hopsalot. He's a knight."
+            },
+            {
+              "who": "pip",
+              "say": "You're the new Bramble! Gran Clementine said to send you to the bakery once you'd got some mud on you. You've got LOADS."
+            }
+          ]
+        },
+        {
+          "type": "talk",
+          "to": "clem",
+          "t": "Visit Gran Clementine at the bakery",
+          "scene": [
+            {
+              "who": "clem",
+              "say": "Let me look at you. Hm. You've got Wren's chin. Stubborn chin. Sit down and eat something; you're too thin for farming."
+            },
+            {
+              "who": "clem",
+              "say": "Wren and I were girls together. Seventy years of arguing about rhubarb, and I won most of them. She'll tell you different."
+            },
+            {
+              "who": "you",
+              "say": "Do you know where she went?"
+            },
+            {
+              "who": "clem",
+              "say": "Where she went? Mm. Wren always went where she pleased, love."
+            },
+            {
+              "say": "Gran busies herself with a loaf that doesn't need any busying."
+            },
+            {
+              "who": "clem",
+              "say": "That bell rang every evening for two hundred years. The winter it cracked, Wren went quiet. Then she went."
+            },
+            {
+              "who": "clem",
+              "say": "Go home and look in her kitchen dresser. Second drawer. She always kept her best thoughts in with the tea towels."
+            }
+          ]
+        }
+      ],
+      "outro": [
+        {
+          "say": "Back at the farmhouse, the second drawer of the dresser sticks, then gives. Under the tea towels lies a page covered in brisk, slanting handwriting."
+        },
+        {
+          "say": "A page from Wren's journal. The first, you suspect, of many."
+        },
+        {
+          "say": "There's a clucking at the door. Hazel stands on the step with a crate, slightly out of breath."
+        },
+        {
+          "who": "hazel",
+          "say": "Two hens! A welcome gift from the store. That one's Margery, and that one's Also Margery. They lay beautifully and gossip worse than I do."
+        },
+        {
+          "who": "hazel",
+          "say": "I've written it in the ledger as 'goodwill, two hens.' The old coop out back only wants a sweep."
+        },
+        {
+          "say": "That evening you read the page on the porch. The bell hangs dark against the sunset, and the river slides under a footbridge that has seen better decades."
+        },
+        {
+          "say": "A shout drifts up the lane: Mayor Oakley, announcing an emergency meeting about that footbridge. Tomorrow. Bring a hammer."
+        }
+      ],
+      "give": {
+        "coins": 150,
+        "page": 1,
+        "unlock": "coop",
+        "animals": {
+          "chicken": 2
+        }
+      }
+    },
+    {
+      "id": "bridge",
+      "n": "The Footbridge",
+      "blurb": "The old footbridge over Willow River has rotted through, and the far banks are out of reach. Time to find some planks.",
+      "intro": [
+        {
+          "say": "Willow River runs quick and bright along the valley floor. On the far side lie the willows and reeds of Willow Banks, quite out of reach."
+        },
+        {
+          "say": "Between them, the footbridge sags like a tired mule. Three planks are missing. Two more are thinking about it."
+        },
+        {
+          "say": "Old Tobin sits fishing off the near end, with a bucket of old boots where most people would keep their catch."
+        },
+        {
+          "who": "tobin",
+          "say": "Bridge went soft the year the bell stopped. Things do, when nobody's minding."
+        },
+        {
+          "who": "tobin",
+          "say": "Mayor's looking for you. Brought the clipboard. Brace yourself."
+        }
+      ],
+      "steps": [
+        {
+          "type": "talk",
+          "to": "oakley",
+          "t": "Attend Mayor Oakley's footbridge meeting",
+          "scene": [
+            {
+              "who": "oakley",
+              "say": "Order! Order! First meeting of the Footbridge Restoration Committee. Present: me, and {name}. Splendid turnout."
+            },
+            {
+              "who": "oakley",
+              "say": "Item one: the bridge is falling down. Item two: we should stop it. Item three: biscuits. Gran sent biscuits."
+            },
+            {
+              "who": "oakley",
+              "say": "We'll need planks, a great many of them, and twine to lash them tight. The Mossy Woods have timber, for anyone who knows their way among the trees."
+            },
+            {
+              "who": "you",
+              "say": "I'll learn."
+            },
+            {
+              "who": "oakley",
+              "say": "Splendid! I'll minute that. '{name} of Bramble Farm: will learn.' Oh, this is going to look marvelous in the records."
+            }
+          ]
+        },
+        {
+          "type": "level",
+          "skill": "foraging",
+          "lvl": 3,
+          "t": "Reach Foraging level 3 to find your way in the Mossy Woods",
+          "scene": [
+            {
+              "say": "The Mossy Woods start to make sense: which paths loop, which mushrooms are friendly, which squirrels hold grudges."
+            }
+          ]
+        },
+        {
+          "type": "deliver",
+          "to": "oakley",
+          "want": {
+            "plank": 15,
+            "twine": 5
+          },
+          "t": "Bring 15 planks and 5 twine to Mayor Oakley",
+          "scene": [
+            {
+              "say": "It takes a morning of hammering, one pinched thumb and several words Oakley pretends not to hear. Then the footbridge stands straight and sure."
+            },
+            {
+              "who": "oakley",
+              "say": "I declare this bridge... oh, bother, I've forgotten the ribbon. I declare it anyway! Open!"
+            },
+            {
+              "say": "Beneath the new planks the river catches the sun more brightly, sparkling as if it had been waiting for an audience."
+            },
+            {
+              "who": "oakley",
+              "say": "Tobin will want to bless it. Old ferryman's custom: three minnows from Lily Pond for every new bridge. Don't ask me why. I've asked. Tobin just nods."
+            }
+          ]
+        },
+        {
+          "type": "gather",
+          "item": "minnow",
+          "n": 3,
+          "t": "Catch 3 minnows at Lily Pond for Tobin's custom"
+        },
+        {
+          "type": "talk",
+          "to": "tobin",
+          "t": "Show Old Tobin your three minnows",
+          "scene": [
+            {
+              "who": "tobin",
+              "say": "Three minnows. Hm. Good ones."
+            },
+            {
+              "who": "you",
+              "say": "What do I do with them?"
+            },
+            {
+              "who": "tobin",
+              "say": "Keep 'em. Custom's in the catching. River knows."
+            },
+            {
+              "who": "tobin",
+              "say": "Ferried your aunt up and down this river a hundred times. Last time I saw her, she wasn't on the water. Heading up the north road at dusk, lantern lit."
+            },
+            {
+              "who": "tobin",
+              "say": "Asked where. She said, 'Up, Tobin. Where the sky's closer.' Then off she went."
+            },
+            {
+              "who": "tobin",
+              "say": "Once caught a pike so big it ran its own ferry. True story."
+            }
+          ],
+          "give": {
+            "friend": {
+              "tobin": 20
+            }
+          }
+        }
+      ],
+      "outro": [
+        {
+          "say": "Tobin rummages in the bucket of boots and pulls out a small oilcloth bundle, tied with garden string."
+        },
+        {
+          "who": "tobin",
+          "say": "Fished a boot out of the shallows last spring. This was stuffed in the toe. Wrapped tight. Wren wrapped everything."
+        },
+        {
+          "say": "Inside, dry as toast, is another page of Wren's journal."
+        },
+        {
+          "who": "tobin",
+          "say": "Kept it for whoever'd mend the bridge. Took the valley long enough."
+        },
+        {
+          "say": "Across the new bridge, Willow Banks spreads green and muddy and full of promise. Downstream, the whole river glitters."
+        },
+        {
+          "say": "Up the valley, past the quarry, a tall chimney stands against the sky: the old forge. No smoke. There hasn't been for years."
+        },
+        {
+          "who": "tobin",
+          "say": "Mira's been staring at that chimney eight years. Go help her stare. Or better."
+        }
+      ],
+      "give": {
+        "coins": 300,
+        "page": 2,
+        "unlock": [
+          "river",
+          "banks"
+        ]
+      }
+    },
+    {
+      "id": "forge",
+      "n": "The Cold Forge",
+      "blurb": "Mira Ashgrove wants to relight her grandfather's forge. It needs stone, coal, copper and someone stubborn enough to help.",
+      "intro": [
+        {
+          "say": "The old forge squats at the edge of town, its doors held shut with a loop of fencing wire and a sign: BACK SOON. The sign is very faded."
+        },
+        {
+          "say": "Inside, someone is muttering at an anvil. The anvil isn't muttering back."
+        },
+        {
+          "who": "mira",
+          "say": "If you've come to tell me the forge is a lost cause, take a number. Oh. You're the Bramble. Come in. Mind the bucket."
+        },
+        {
+          "say": "You don't mind the bucket. It clangs across the floor like a bad bell."
+        },
+        {
+          "who": "mira",
+          "say": "Everyone does that. Sit. I'd put the kettle on, if the forge were lit. Which is rather the problem."
+        }
+      ],
+      "steps": [
+        {
+          "type": "talk",
+          "to": "mira",
+          "t": "Hear Mira out about the forge",
+          "scene": [
+            {
+              "who": "mira",
+              "say": "My grandfather ran this forge fifty years. Shod every horse, mended every pot, made the hinges on half the doors in town."
+            },
+            {
+              "who": "mira",
+              "say": "After he passed, the hearth cracked, and nobody had the stone to fix it. Or the coal. Or the money. Or, frankly, the patience."
+            },
+            {
+              "who": "mira",
+              "say": "I've got the patience now. What I need is twelve stone blocks for the hearth and eight coal to wake her up."
+            },
+            {
+              "who": "mira",
+              "say": "Coal's up in the Old Quarry. You'll want a sharper eye for rocks before it gives you anything. Go on. Don't let the quarry bully you."
+            }
+          ]
+        },
+        {
+          "type": "level",
+          "skill": "foraging",
+          "lvl": 5,
+          "t": "Reach Foraging level 5 to work the Old Quarry",
+          "scene": [
+            {
+              "say": "The Old Quarry no longer looks like a heap of grey. You can read it now: black seams of coal, green stains of copper, the dull red of iron."
+            }
+          ]
+        },
+        {
+          "type": "deliver",
+          "to": "mira",
+          "want": {
+            "block": 12,
+            "coal": 8
+          },
+          "t": "Bring 12 stone blocks and 8 coal to Mira",
+          "scene": [
+            {
+              "say": "Together you rebuild the hearth, block by block. Mira lays the last stone, banks the coal and strikes a match."
+            },
+            {
+              "say": "Nothing. Then a small orange cough. Then a roar."
+            },
+            {
+              "who": "mira",
+              "say": "Ha! There she is. Hello, old girl."
+            },
+            {
+              "say": "Then the smoke arrives: thick, grey, and going everywhere except up the chimney. You both stumble outside, coughing."
+            },
+            {
+              "who": "mira",
+              "say": "Flue's cracked and the bellows have rusted through. Clay to seal the one, copper to refit the other. Ten ore, six clay."
+            }
+          ]
+        },
+        {
+          "type": "deliver",
+          "to": "mira",
+          "want": {
+            "copper": 10,
+            "clay": 6
+          },
+          "t": "Bring 10 copper ore and 6 clay to Mira",
+          "scene": [
+            {
+              "say": "Mira packs the flue with clay and fits the bellows with bright new copper. She pumps once. Twice."
+            },
+            {
+              "say": "Smoke rises straight and grey from the forge chimney. Up and down the street, doors open, and people step out to look."
+            },
+            {
+              "who": "mira",
+              "say": "Eight years that chimney's been cold. Listen to her breathe."
+            },
+            {
+              "who": "mira",
+              "say": "Give me a day to get her temper right, then come back. There's something of Grandad's you should see."
+            }
+          ]
+        },
+        {
+          "type": "talk",
+          "to": "mira",
+          "t": "Return to the forge to see Mira",
+          "scene": [
+            {
+              "who": "mira",
+              "say": "Found this clearing out the ash box. Grandad's order book. Look at the very last entry."
+            },
+            {
+              "say": "In careful, sooty handwriting: 'W. Bramble asks, can the bell's clapper be recast? Told her: only with star-iron, same as the bell. Wished her luck.'"
+            },
+            {
+              "who": "mira",
+              "say": "Star-iron. Like the old skipping song. Iron from the sky. I thought that was a story for children."
+            },
+            {
+              "who": "mira",
+              "say": "Your aunt didn't, apparently. There was a page tucked in the back cover, too. Her handwriting. I think she left it for Grandad."
+            },
+            {
+              "who": "you",
+              "say": "Where would anyone even find star-iron?"
+            },
+            {
+              "who": "mira",
+              "say": "Down, I'd guess. Everything heavy ends up down."
+            }
+          ],
+          "give": {
+            "friend": {
+              "mira": 25
+            }
+          }
+        }
+      ],
+      "outro": [
+        {
+          "say": "By evening the forge glows like a lantern at the edge of town. Folk find reasons to walk past, just to feel the warmth on their faces."
+        },
+        {
+          "who": "mira",
+          "say": "Bring me ore and I'll teach you to smelt it. Copper bars, iron bars, nails. All the things a farm needs and doesn't know it needs."
+        },
+        {
+          "who": "mira",
+          "say": "With proper nails and fittings you could put up a barnyard at your place, too. Cows are large, warm and judgmental. You'll love them."
+        },
+        {
+          "who": "mira",
+          "say": "Grandad always said the forge and the mine kept each other fed. Mine's been sealed since the flood, though. Shame."
+        },
+        {
+          "say": "Mira goes quiet, turning a lump of coal over in her fingers."
+        },
+        {
+          "who": "mira",
+          "say": "Although. Seals can be unsealed. Go and ask the mayor. Bring earplugs; there'll be a speech."
+        }
+      ],
+      "give": {
+        "coins": 500,
+        "page": 3,
+        "unlock": [
+          "forge",
+          "barnyard"
+        ]
+      }
+    },
+    {
+      "id": "mine",
+      "n": "Into the Mine",
+      "blurb": "The old mine has been sealed since the flood. If star-iron exists at all, it's somewhere down in the dark.",
+      "intro": [
+        {
+          "say": "Above the quarry, an iron gate bars the mouth of the old mine. A sign reads CLOSED BY ORDER OF THE COUNCIL. Underneath, smaller: AND THE FLOOD."
+        },
+        {
+          "say": "Cool air sighs out between the bars, smelling of stone and old water."
+        },
+        {
+          "say": "Somewhere far below, something drips. Slowly. Patiently. As if it has been waiting for someone."
+        },
+        {
+          "who": "pip",
+          "say": "On my map the mine's just a big black blob that says NO. Gran says that's very accurate. Are you going in? Can I come? Can Sir Hopsalot?"
+        },
+        {
+          "say": "You tell Pip the answer is no. Pip writes it down as 'maybe.'"
+        }
+      ],
+      "steps": [
+        {
+          "type": "talk",
+          "to": "oakley",
+          "t": "Ask Mayor Oakley about reopening the mine",
+          "scene": [
+            {
+              "who": "oakley",
+              "say": "The mine? Oh dear. Oh dear, oh dear. Let me find the minutes. Here: 'Spring flood. Mine: wet. Council: alarmed.'"
+            },
+            {
+              "who": "oakley",
+              "say": "The water drained years ago, but the shaft props rotted and the lift winch rusted solid. Nobody's been down since."
+            },
+            {
+              "who": "oakley",
+              "say": "If Mira will vouch for new props and a working winch, I shall form a subcommittee, and then, yes, open the gate."
+            },
+            {
+              "who": "you",
+              "say": "What if I just ask Mira?"
+            },
+            {
+              "who": "oakley",
+              "say": "Even better. Fewer forms. I'll still form the subcommittee, though. For morale."
+            }
+          ]
+        },
+        {
+          "type": "deliver",
+          "to": "mira",
+          "want": {
+            "copperbar": 5,
+            "plank": 10,
+            "rope": 2
+          },
+          "t": "Bring Mira 5 copper bars, 10 planks and 2 rope for the mine",
+          "scene": [
+            {
+              "who": "mira",
+              "say": "Copper for the winch gears, planks for the props, and rope for not falling. Good rope, this. I checked."
+            },
+            {
+              "say": "It takes you, Mira and half the town to haul the new winch up the hill. Oakley supervises from a folding chair."
+            },
+            {
+              "say": "The gate groans open. The winch creaks, holds, and lowers a lantern into the dark. Down, and down, and down."
+            },
+            {
+              "who": "mira",
+              "say": "Mine's open. Go carefully, and come back with ore and all your fingers."
+            },
+            {
+              "who": "oakley",
+              "say": "Splendid! Subcommittee dissolved. Best subcommittee we've ever had."
+            }
+          ],
+          "give": {
+            "unlock": "mine"
+          }
+        },
+        {
+          "type": "mine",
+          "floor": 5,
+          "t": "Reach floor 5 of the mine",
+          "scene": [
+            {
+              "say": "On the fifth floor, scratched into the rock at about knee height, you find two initials and a tiny drawing of a bell: W.B."
+            }
+          ]
+        },
+        {
+          "type": "level",
+          "skill": "mining",
+          "lvl": 5,
+          "t": "Reach Mining level 5",
+          "scene": [
+            {
+              "say": "Your swing has found its rhythm. The rock rings back at you, as if it approves."
+            }
+          ]
+        },
+        {
+          "type": "mine",
+          "floor": 10,
+          "t": "Reach floor 10 of the mine",
+          "scene": [
+            {
+              "say": "Floor ten is a wide cavern where the walls glitter faintly blue. In a dry niche sits a dented tin, the kind that once held lemon drops."
+            },
+            {
+              "say": "Inside: a stub of candle, a pencil worn to nothing, and a folded page of Wren's journal."
+            }
+          ]
+        }
+      ],
+      "outro": [
+        {
+          "say": "You ride the winch up into evening light, pockets heavy, the tin under your arm."
+        },
+        {
+          "who": "mira",
+          "say": "Ten floors. With a candle stub. Your family is something else, {name}."
+        },
+        {
+          "who": "mira",
+          "say": "Here. These were wriggling all over the winch housing. Glow grubs. Tobin swears fish go daft for them."
+        },
+        {
+          "say": "By nightfall pickaxes are ringing in the hills again, lamps bob along the mine path, and Hazel has sold out of lamp oil twice."
+        },
+        {
+          "say": "On your way home you cross the square. Gran Clementine stands beneath the silent bell, looking at the bare cobbles where the fair tents used to go."
+        },
+        {
+          "who": "clem",
+          "say": "The Spring Fair used to be right here. Lanterns, pies, fiddles till midnight. We stopped the year Wren left. It didn't feel right."
+        },
+        {
+          "who": "clem",
+          "say": "Come by the bakery tomorrow, love. I've been thinking it might feel right again."
+        }
+      ],
+      "give": {
+        "coins": 800,
+        "page": 4,
+        "items": {
+          "glowbait": 3
+        }
+      }
+    },
+    {
+      "id": "fair",
+      "n": "The Spring Fair",
+      "blurb": "Gran wants the Spring Fair back: lanterns, music, and a pie contest with eight years of grudges to settle.",
+      "intro": [
+        {
+          "say": "News travels through Bramblebrook faster than butter melts. By breakfast, everyone knows: Gran Clementine wants the Spring Fair back."
+        },
+        {
+          "who": "hazel",
+          "say": "Bunting! I've eleven yards of bunting in the cellar. Counted it twice. Ledger's been sleeping on it, but it'll shake out."
+        },
+        {
+          "who": "pip",
+          "say": "There HAS to be a pie contest. And lanterns. And a toad race. Sir Hopsalot's been training. Mostly sitting, but very hard."
+        },
+        {
+          "who": "oakley",
+          "say": "A fair! I'll need a Fair Committee, a Lantern Subcommittee and a Pie Adjudication Panel. I'm going to need a bigger clipboard."
+        },
+        {
+          "say": "Down the street, the bakery window glows warm, and the smell of cinnamon drifts all the way to the square."
+        }
+      ],
+      "steps": [
+        {
+          "type": "talk",
+          "to": "clem",
+          "t": "Visit Gran Clementine at the bakery",
+          "scene": [
+            {
+              "who": "clem",
+              "say": "There you are. Sit. If we're doing this fair, we're doing it properly, and that means you learn to cook."
+            },
+            {
+              "who": "clem",
+              "say": "Wren's farmhouse has a good stove under all that dust. Scrub it, light it and use it. Bread, eggs, whatever's to hand."
+            },
+            {
+              "who": "clem",
+              "say": "Then I want six loaves and two berry pies for the fair table. Wren's pie, mind, not mine. Hers was better. Repeat that and I'll deny it."
+            },
+            {
+              "say": "Gran takes a floury card from her apron pocket and reads it out: 'Berry pie. Don't skimp on the berries, Clementine. I mean it.'"
+            },
+            {
+              "who": "clem",
+              "say": "Eight years I've carried that card about. Never could bring myself to bake from it. You do it."
+            }
+          ],
+          "give": {
+            "unlock": "kitchen"
+          }
+        },
+        {
+          "type": "stat",
+          "stat": "cooked",
+          "n": 5,
+          "t": "Cook 5 dishes in the farmhouse kitchen",
+          "scene": [
+            {
+              "say": "The farmhouse smells of warm bread for the first time in eight years. Even the kettle seems pleased about it."
+            }
+          ]
+        },
+        {
+          "type": "deliver",
+          "to": "clem",
+          "want": {
+            "bread": 6,
+            "berrypie": 2
+          },
+          "t": "Bring Gran 6 loaves of bread and 2 berry pies",
+          "scene": [
+            {
+              "who": "clem",
+              "say": "Let's have a look. Crust: good. Crumb: good. And the pie... hm."
+            },
+            {
+              "say": "Gran takes one forkful, closes her eyes, and is quiet for a long moment."
+            },
+            {
+              "who": "clem",
+              "say": "That's hers. That's exactly hers. You didn't skimp."
+            },
+            {
+              "who": "clem",
+              "say": "Well! Off you go. Oakley's been in a state about lanterns since Tuesday, and it's Thursday."
+            }
+          ]
+        },
+        {
+          "type": "deliver",
+          "to": "oakley",
+          "want": {
+            "bouquet": 4,
+            "candle": 4,
+            "basket": 1
+          },
+          "t": "Bring Mayor Oakley 4 bouquets, 4 candles and a basket",
+          "scene": [
+            {
+              "who": "oakley",
+              "say": "Bouquets for the tables! Candles for the lanterns! A basket for the pie prizes! Every item on the list: ticked, ticked, ticked!"
+            },
+            {
+              "who": "oakley",
+              "say": "Oh, I could weep. I might weep. If I do, I'll minute it."
+            },
+            {
+              "say": "By dusk the square is strung with bunting and paper lanterns, and long tables stand waiting. Above it all, the bell hangs silent and dark."
+            },
+            {
+              "who": "oakley",
+              "say": "The fair begins tonight! Come to the square when the lanterns are lit. Wear something festive. Or clean. Clean will do splendidly."
+            }
+          ],
+          "give": {
+            "flag": "fair_ready"
+          }
+        },
+        {
+          "type": "adventure",
+          "id": "fair_night",
+          "t": "Join the Spring Fair in the town square"
+        }
+      ],
+      "outro": [
+        {
+          "say": "Long past midnight, the last lanterns bob over the square like sleepy fireflies. Somebody is still playing the fiddle, badly and with great feeling."
+        },
+        {
+          "who": "pip",
+          "say": "Best. Fair. EVER. Sir Hopsalot agrees. He's asleep in my hat."
+        },
+        {
+          "who": "clem",
+          "say": "Listen to it. The whole valley out in the square together. I'd forgotten what that sounds like."
+        },
+        {
+          "say": "Gran pins a blue ribbon to your coat. 'Whatever the judges said,' she tells you, 'this one's for bringing the fair home.'"
+        },
+        {
+          "say": "Then she presses Wren's pie card into your hand. Folded behind it, worn soft from eight years in an apron pocket, is a page of Wren's journal."
+        },
+        {
+          "who": "clem",
+          "say": "I've read it a hundred times. Time somebody else did."
+        },
+        {
+          "who": "hazel",
+          "say": "And these are yours too: fruit saplings, from the raffle. You won! Well. I may have nudged the hat. Plant them somewhere sunny."
+        },
+        {
+          "say": "At the edge of the square, Saffi is buckling down her painted cart. 'Same time tomorrow,' she calls. 'This valley is very good for business.'"
+        },
+        {
+          "say": "Then, far out past the dunes, at the very end of the Point, something flickers. Once. Twice. Then dark."
+        },
+        {
+          "say": "Down at the river mouth, Old Tobin has set the fishing rod aside and is staring out to sea."
+        }
+      ],
+      "give": {
+        "coins": 1000,
+        "page": 5,
+        "unlock": [
+          "orchard",
+          "merchant"
+        ],
+        "items": {
+          "fairribbon": 1
+        }
+      }
+    },
+    {
+      "id": "lighthouse",
+      "n": "Lantern on the Point",
+      "blurb": "A light flickers in the dead lighthouse on the Point. The old lamp still has a keeper, it seems, and a storm is on the way.",
+      "intro": [
+        {
+          "say": "Out on the Point, the lighthouse stands black against a bruised sky. Its great lamp has been dark for eight years."
+        },
+        {
+          "say": "Ships steer wide of the coast now. Saltspray Beach below is empty but for gulls and the long grey sigh of the waves."
+        },
+        {
+          "say": "Old Tobin sits on an upturned boat at the river mouth, rod forgotten, eyes on the Point."
+        },
+        {
+          "who": "tobin",
+          "say": "You saw it too."
+        }
+      ],
+      "steps": [
+        {
+          "type": "talk",
+          "to": "tobin",
+          "t": "Ask Old Tobin about the light on the Point",
+          "scene": [
+            {
+              "who": "tobin",
+              "say": "Lighthouse has a keeper. Captain Rook. Stayed on after the light went out. Never comes down. Never lets anyone up."
+            },
+            {
+              "who": "tobin",
+              "say": "Lens cracked the same winter the bell went quiet. Storm after the one that took the clapper. Rook's been up there with candles since, I reckon."
+            },
+            {
+              "who": "tobin",
+              "say": "Stubborn as a barnacle. Good company, once. Before."
+            },
+            {
+              "who": "tobin",
+              "say": "New lens needs sky crystal. Down in the mine, past the shallow floors. Bring some, then go knock."
+            },
+            {
+              "who": "tobin",
+              "say": "Storm's coming, mind. Feel it in my knees. My knees are never wrong. Except the once, with the whale."
+            }
+          ],
+          "give": {
+            "flag": "heard_light"
+          }
+        },
+        {
+          "type": "gather",
+          "item": "crystal",
+          "n": 3,
+          "t": "Find 3 sky crystals in the mine"
+        },
+        {
+          "type": "adventure",
+          "id": "lighthouse_climb",
+          "t": "Climb the dark lighthouse on the Point",
+          "scene": [
+            {
+              "say": "The storm blows itself out at last. The lamp room needs a new lens of sky crystal and silver, and a pair of lanterns to wake it. You know where to start."
+            }
+          ],
+          "give": {
+            "flag": "met_rook"
+          }
+        },
+        {
+          "type": "deliver",
+          "to": "rook",
+          "want": {
+            "lens": 1,
+            "lantern": 2
+          },
+          "t": "Bring Captain Rook a lighthouse lens and 2 lanterns",
+          "scene": [
+            {
+              "who": "rook",
+              "say": "So. The farmer returns, and not empty-handed. Crystal and silver, ground true. You'd make a decent lens-maker, if the turnips ever fail."
+            },
+            {
+              "say": "Rook fits the lens into the great brass frame and hangs a lantern on either side. The weathered hands shake only a little."
+            },
+            {
+              "who": "rook",
+              "say": "Eight years I've swept this lamp room for a light that wasn't coming. Stand back."
+            },
+            {
+              "say": "A match flares. The lens catches the flame, gathers it, and flings it out over the sea in one great golden sweep."
+            },
+            {
+              "say": "Down in the valley, people step out of their doors to look. The beam turns, and turns, and touches every roof in Bramblebrook."
+            },
+            {
+              "who": "rook",
+              "say": "There. Now the sea knows where we are. So does anyone watching from high places."
+            }
+          ],
+          "give": {
+            "friend": {
+              "rook": 25
+            }
+          }
+        }
+      ],
+      "outro": [
+        {
+          "say": "By morning, Saltspray Beach lies washed and shining below the Point, strewn with shells, driftwood and sea glass."
+        },
+        {
+          "who": "rook",
+          "say": "The beach is yours, and the cove. The fish down there have gone unbothered too long. Make them nervous."
+        },
+        {
+          "who": "rook",
+          "say": "Bees nest in the warm stones of the lighthouse wall. Take a swarm home for hives. They're better company than I am."
+        },
+        {
+          "who": "rook",
+          "say": "And this. Your aunt left it in my logbook, the night before she went up the road. I've read it more often than I'll admit."
+        },
+        {
+          "say": "Another page of Wren's journal, its ink gone soft with sea air."
+        },
+        {
+          "who": "rook",
+          "say": "I promised her I'd keep this light burning. Broke that promise in the next storm. It's kept now."
+        },
+        {
+          "say": "That night you watch the beam sweep the valley from your porch. Far inland, where the Highland Road climbs into the hills, it lights a great wall of tumbled rock."
+        },
+        {
+          "say": "And on the ridge high above it, for a heartbeat, something glints back."
+        },
+        {
+          "say": "Tomorrow, you decide, the mayor is going to hear about that road."
+        }
+      ],
+      "give": {
+        "coins": 1500,
+        "page": 6,
+        "unlock": [
+          "cove",
+          "beach",
+          "apiary"
+        ]
+      }
+    },
+    {
+      "id": "highlands",
+      "n": "The Highland Road",
+      "blurb": "A rockslide has closed the Highland Road for eight years. Wren went up it once. It's time someone followed.",
+      "intro": [
+        {
+          "say": "The Highland Road leaves the valley past the last farm gate and climbs, switchback by switchback, into the hills."
+        },
+        {
+          "say": "A mile up, it simply stops. A wall of boulders fills the cut from side to side, furred green with eight years of moss."
+        },
+        {
+          "who": "pip",
+          "say": "My map just says ROCKS here. Then MORE ROCKS. Then SHEEP, with a question mark. I've never been past the question mark."
+        },
+        {
+          "say": "From somewhere beyond the slide comes the faint clank of a sheep bell. Someone still lives up there."
+        }
+      ],
+      "steps": [
+        {
+          "type": "talk",
+          "to": "oakley",
+          "t": "Talk to Mayor Oakley about clearing the Highland Road",
+          "scene": [
+            {
+              "who": "oakley",
+              "say": "The Highland Road! I've a whole drawer about the Highland Road. Several drawers. A cabinet, really."
+            },
+            {
+              "who": "oakley",
+              "say": "We never had the stone to shore it, nor the iron for rock bolts, nor the rope. Nor, I'll confess, the nerve."
+            },
+            {
+              "who": "oakley",
+              "say": "But now there's a forge, and a mine, and you. Thirty stone blocks, six iron bars, four ropes, and I'll rally every strong back in town."
+            },
+            {
+              "who": "oakley",
+              "say": "Your aunt walked up that road just before it fell, you know. I've often wondered whether... well. Never mind. Splendid! Let's clear it!"
+            }
+          ]
+        },
+        {
+          "type": "deliver",
+          "to": "oakley",
+          "want": {
+            "block": 30,
+            "ironbar": 6,
+            "rope": 4
+          },
+          "t": "Bring Mayor Oakley 30 stone blocks, 6 iron bars and 4 ropes",
+          "scene": [
+            {
+              "say": "Half of Bramblebrook turns out with barrows and crowbars. Mira drives the rock bolts. Gran brings sandwiches. Pip supervises Oakley, who supervises everyone."
+            },
+            {
+              "say": "At sunset the last boulder rolls aside, and the Highland Road runs on up into the hills, rough but open."
+            },
+            {
+              "who": "oakley",
+              "say": "Splendid. SPLENDID. I've said it four hundred times today and I've meant it every time."
+            },
+            {
+              "who": "mira",
+              "say": "Road's clear to the top. After that it's the old pass, and the fog sits in it like soup. Watch your feet."
+            },
+            {
+              "say": "At the top of the road a rusted post box leans against a cairn. Oakley pries it open, and a drift of old envelopes spills out."
+            },
+            {
+              "who": "oakley",
+              "say": "Eight years of post nobody could fetch! I'll sort every scrap and send it on. With an apology. Possibly a committee."
+            }
+          ],
+          "give": {
+            "flag": "road_cleared"
+          }
+        },
+        {
+          "type": "mine",
+          "floor": 15,
+          "t": "Reach floor 15 of the mine",
+          "scene": [
+            {
+              "say": "On floor fifteen, the rock hums very faintly when you lay your palm against it, like a bell struck a long way off."
+            }
+          ]
+        },
+        {
+          "type": "adventure",
+          "id": "highland_pass",
+          "t": "Cross the fogged pass into the highlands",
+          "give": {
+            "flag": "met_ingrid"
+          }
+        },
+        {
+          "type": "talk",
+          "to": "ingrid",
+          "t": "Sit down for tea with Ingrid",
+          "scene": [
+            {
+              "who": "ingrid",
+              "say": "Sit. Tea's hot."
+            },
+            {
+              "who": "ingrid",
+              "say": "You're Wren's. Thought so. Same way of looking at the sky."
+            },
+            {
+              "say": "On a shelf behind Ingrid stand three tins of lemon drops. Ingrid notices you noticing."
+            },
+            {
+              "who": "ingrid",
+              "say": "Sheep like them."
+            },
+            {
+              "who": "ingrid",
+              "say": "She stopped here on her way up. Just before the slide. Left this on my table. Kept it dry eight years."
+            },
+            {
+              "who": "you",
+              "say": "Do you know where she is?"
+            },
+            {
+              "who": "ingrid",
+              "say": "Not mine to tell. Ask me again when that bell of yours rings."
+            }
+          ],
+          "give": {
+            "friend": {
+              "ingrid": 20
+            }
+          }
+        }
+      ],
+      "outro": [
+        {
+          "say": "Beyond Ingrid's door the highlands roll away under an enormous sky: heather, wind and sheep tracks, and the Highland Tarn lying cold and still in its hollow."
+        },
+        {
+          "who": "ingrid",
+          "say": "Walk where you like. Thyme on the slopes. Fish in the tarn, if you're patient. Wind everywhere, free."
+        },
+        {
+          "who": "ingrid",
+          "say": "Build a pasture down at your place. I'll sell you good sheep. Not cheap. Good."
+        },
+        {
+          "say": "On the long walk home you look back. High on the ridge above the tarn, a small domed building catches the last of the sun: the old observatory."
+        },
+        {
+          "say": "A thin thread of smoke rises from its chimney."
+        },
+        {
+          "say": "You stand and watch it until the light is gone."
+        },
+        {
+          "say": "That night you can't sleep. Down in the square the silent bell hangs in the moonlight, and at the bakery, Gran's lamp is still burning."
+        }
+      ],
+      "give": {
+        "coins": 2500,
+        "page": 7,
+        "unlock": [
+          "highlands",
+          "tarn",
+          "pasture"
+        ]
+      }
+    },
+    {
+      "id": "bell",
+      "n": "The Bramble Bell",
+      "blurb": "A letter eight winters late, a secret Gran has kept, and a bell that has waited long enough.",
+      "intro": [
+        {
+          "say": "Sorting the old post takes Oakley three days and a magnifying glass. Among the faded seed catalogues is a letter addressed to Bramble Farm."
+        },
+        {
+          "say": "The handwriting is brisk and slanting. It's from Wren, at the old observatory, and it's dated eight winters ago."
+        },
+        {
+          "say": "The road came down behind her, it says. She was fine. And the rest of the fallen star lies deep under the valley, past where the old miners stopped."
+        },
+        {
+          "say": "She was fine, eight winters ago."
+        },
+        {
+          "say": "You read it three times. Then you go straight to the bakery."
+        }
+      ],
+      "steps": [
+        {
+          "type": "talk",
+          "to": "clem",
+          "t": "Show Gran Clementine the letter from Wren",
+          "scene": [
+            {
+              "who": "clem",
+              "say": "Sit down, love. No, give it here. I'll read it myself."
+            },
+            {
+              "say": "Gran reads the letter. Her hands are steady. Her mouth isn't."
+            },
+            {
+              "who": "clem",
+              "say": "Daft old bird. Daft, stubborn, wonderful old bird."
+            },
+            {
+              "who": "clem",
+              "say": "I'll tell you what I think, and I've never said it out loud. I think she's still up there. I think she's been up there all along."
+            },
+            {
+              "who": "clem",
+              "say": "Ingrid comes down the sheep track twice a year and buys lemon drops. Lemon drops! Nobody eats those horrid things but Wren."
+            },
+            {
+              "who": "clem",
+              "say": "I never asked. If Wren wanted hiding, Wren had her reasons. But that letter says where the star-iron is. Twenty-five floors down."
+            },
+            {
+              "who": "clem",
+              "say": "So mend the bell. If she's listening, she'll hear it. And then we'll see what the daft bird has to say for herself."
+            }
+          ]
+        },
+        {
+          "type": "mine",
+          "floor": 25,
+          "t": "Reach floor 25 of the mine",
+          "scene": [
+            {
+              "say": "Floor twenty-five. The rock here hums so strongly you can feel it in your teeth: one low, clear note, like the bell clearing its throat."
+            },
+            {
+              "say": "Somewhere in these walls is star-iron. Dig out a shard, and the forge can do the rest."
+            }
+          ]
+        },
+        {
+          "type": "deliver",
+          "to": "oakley",
+          "want": {
+            "clapper": 1,
+            "bellrope": 1
+          },
+          "t": "Bring a star-iron clapper and a bell rope to Mayor Oakley",
+          "scene": [
+            {
+              "say": "The whole town packs the square. Mira and Oakley hoist the new clapper into the bell, and you tie on the rope with fingers that won't quite stop shaking."
+            },
+            {
+              "who": "oakley",
+              "say": "On behalf of the Council, the committee, the subcommittee and... oh, never mind all that. Ring it, {name}. Ring it!"
+            },
+            {
+              "say": "You pull."
+            },
+            {
+              "say": "One note rolls out over the rooftops, deep and clear and sweet: down the river, out to the Point, up into the hills. The first in eight years."
+            },
+            {
+              "say": "The whole valley stops to listen. Hazel's pen goes still. Tobin's line goes slack. Out on the Point, the lighthouse flashes twice, like a reply."
+            },
+            {
+              "say": "The echo takes a long time to fade. Nobody speaks until it's gone. Gran stands with her eyes closed."
+            },
+            {
+              "say": "The lamps are being lit when there are running footsteps. Ingrid bursts into the square, red-cheeked and breathless, straight down from the highlands."
+            },
+            {
+              "who": "ingrid",
+              "say": "Up at the observatory. Someone heard it. Asked for {name}. By name. Come now. Bring a coat."
+            }
+          ],
+          "give": {
+            "flag": "bell_rung"
+          }
+        },
+        {
+          "type": "adventure",
+          "id": "observatory",
+          "t": "Climb to the old observatory",
+          "give": {
+            "flag": "found_wren"
+          }
+        },
+        {
+          "type": "talk",
+          "to": "wren",
+          "t": "Have tea with Wren at the observatory",
+          "scene": [
+            {
+              "who": "wren",
+              "say": "Sit. Tea first, then questions. Oh, very well, questions during. You've earned that much."
+            },
+            {
+              "who": "you",
+              "say": "Eight years! Why didn't you come home?"
+            },
+            {
+              "who": "wren",
+              "say": "The road fell, the pass is a goat's road, and I have a librarian's knees. Also, the sky wanted mapping and nobody else was doing it."
+            },
+            {
+              "who": "wren",
+              "say": "And if the valley had known I was up here, every fool with a rope would have tried that pass. Clem first. In her slippers."
+            },
+            {
+              "who": "wren",
+              "say": "So I asked Ingrid to keep quiet until the bell could ring. A bell that rings means a valley that's mended, and somebody who did the mending."
+            },
+            {
+              "who": "wren",
+              "say": "I watched it all through that telescope, you know. Forge smoke. Fair lanterns. Rook's light. The whole valley waking up, one light at a time."
+            },
+            {
+              "who": "wren",
+              "say": "That was you, {name}. I'm proud of you. Don't let it go to your head."
+            },
+            {
+              "who": "wren",
+              "say": "Now help me pack. Eight years of star charts, and not one of them rolled properly."
+            }
+          ]
+        }
+      ],
+      "outro": [
+        {
+          "say": "Wren packs light: three notebooks, a fat roll of star charts, a tin of lemon drops, and a small cloth pouch she won't let anyone else touch."
+        },
+        {
+          "who": "ingrid",
+          "say": "Eight years I kept it. Didn't like it. Liked her, though."
+        },
+        {
+          "who": "wren",
+          "say": "Ingrid, you were magnificent, and you overcharged me for every candle. We'll call it even."
+        },
+        {
+          "say": "Halfway down the Highland Road, Wren stops to look at the valley spread below: the bright river, the forge smoke, the orchard, the lighthouse turning on the Point."
+        },
+        {
+          "who": "wren",
+          "say": "Well. Look at that. You've made it look like itself again."
+        },
+        {
+          "say": "She hands you a folded page, the newest in her journal, written the day the bell rang. Then the little cloth pouch."
+        },
+        {
+          "who": "wren",
+          "say": "Carry that. Don't open it. Don't drop it. Don't ask. All will be explained once I've had a proper sit-down."
+        },
+        {
+          "say": "Far below, the bell rings again, and keeps on ringing. Gran, by the sound of it, has got hold of the rope and has no intention of letting go."
+        }
+      ],
+      "give": {
+        "coins": 5000,
+        "page": 8,
+        "flag": "heirloom",
+        "items": {
+          "seedpouch": 1
+        }
+      }
+    },
+    {
+      "id": "epilogue",
+      "n": "Home Again",
+      "blurb": "Wren is home, the bell rings every evening, and there's one very particular seed left to plant.",
+      "intro": [
+        {
+          "say": "By breakfast, the whole valley knows: Wren Bramble is home."
+        },
+        {
+          "say": "Hazel closes the store for the first time in thirty years, and writes it in the ledger. Tobin brings a boot full of daisies. Pip draws Wren a new map, in case things have moved."
+        },
+        {
+          "say": "Gran and Wren sit on the bakery step and argue about rhubarb until sundown, as if they'd never stopped."
+        },
+        {
+          "say": "Next morning, Wren is out in your fields before you are, hands on hips, inspecting your rows."
+        }
+      ],
+      "steps": [
+        {
+          "type": "talk",
+          "to": "wren",
+          "t": "Find Wren out in the fields",
+          "scene": [
+            {
+              "who": "wren",
+              "say": "Your rows are crooked. Your carrots are excellent. I'll allow it."
+            },
+            {
+              "who": "wren",
+              "say": "Now then. The pouch I made you carry. Open it."
+            },
+            {
+              "say": "Inside lie a handful of pale seeds that shimmer faintly, like frost catching moonlight."
+            },
+            {
+              "who": "wren",
+              "say": "Moonbloom. My grandmother carried these into the valley in her apron pocket. They only open under a clear night sky."
+            },
+            {
+              "who": "wren",
+              "say": "I've kept these back twenty years, waiting for a good enough reason. You'll do."
+            },
+            {
+              "who": "wren",
+              "say": "Plant them. Water them. Don't fuss them. When one blooms, fetch me. I want to see your face."
+            },
+            {
+              "who": "you",
+              "say": "Why me? It's your farm."
+            },
+            {
+              "who": "wren",
+              "say": "Not anymore, {name}. It's yours. I'm just the old woman on the porch. Best job in the valley."
+            }
+          ]
+        },
+        {
+          "type": "gather",
+          "item": "moonbloom",
+          "n": 1,
+          "t": "Grow and harvest a Moonbloom",
+          "scene": [
+            {
+              "say": "On a clear night, the first Moonbloom opens: pale silver petals unfolding slow as a breath. The air smells of rain and honey."
+            },
+            {
+              "who": "wren",
+              "say": "There it is. Eighty-odd years I've grown those, and they still make me teary. Don't tell Clem."
+            },
+            {
+              "who": "wren",
+              "say": "Go on, then. Tell Oakley. I expect there'll be a committee."
+            }
+          ]
+        },
+        {
+          "type": "talk",
+          "to": "oakley",
+          "t": "Join Mayor Oakley for the first Bell Day",
+          "scene": [
+            {
+              "who": "oakley",
+              "say": "Citizens of Bramblebrook! I hereby declare the first annual Bell Day! It's minuted. In gold ink. I bought gold ink."
+            },
+            {
+              "say": "The square is packed: lanterns and bunting, Gran's cakes, Saffi's cart, Pip's maps pinned to every post. Rook has come in from the Point. Ingrid has come down from the hills."
+            },
+            {
+              "who": "hazel",
+              "say": "Everyone's here. I counted. Twice. Ledger tried to help, but got bored at forty."
+            },
+            {
+              "who": "wren",
+              "say": "Go on, {name}. Ring it. It's yours as much as anyone's."
+            },
+            {
+              "say": "The bell rings out across the valley, sweet and clear, and all of Bramblebrook cheers."
+            },
+            {
+              "who": "oakley",
+              "say": "Splendid. Truly, utterly splendid. Now, who's for the Bell Day Committee? We'll need a Harvest Subcommittee, and a..."
+            },
+            {
+              "who": "clem",
+              "say": "Oakley, love. Hush and eat your cake."
+            }
+          ]
+        }
+      ],
+      "outro": [
+        {
+          "say": "Gran sends you home with two whole cakes 'for the porch,' and Wren tucks a crate of her best Grow Tonic under your arm."
+        },
+        {
+          "say": "You walk home along the river. The water glitters under the footbridge. The forge glows. Out on the Point, the lighthouse beam turns, steady as a heartbeat."
+        },
+        {
+          "say": "On the porch, Wren has fallen asleep in the rocking chair, a star chart across her knees and a lemon drop still in her cheek."
+        },
+        {
+          "who": "wren",
+          "say": "Mm. Water the rhubarb..."
+        },
+        {
+          "say": "Out in the field, the Moonbloom shines softly under the stars."
+        },
+        {
+          "say": "There are still crops to grow, fish to catch, deep floors to explore and friends to make. The farm hums with all of it."
+        },
+        {
+          "say": "Down in the square, the bell rings once for goodnight, the way it used to. The way it will now, every evening."
+        },
+        {
+          "say": "You smile, and go inside. Tomorrow is another day on Bramblebrook Farm."
+        }
+      ],
+      "give": {
+        "coins": 10000,
+        "items": {
+          "cake": 2,
+          "tonic": 5
+        }
+      }
+    }
+  ],
+  "pages": [
+    {
+      "n": 1,
+      "title": "The Night It Cracked",
+      "text": "Frost on the cabbages again. Brought the rhubarb crowns in under sacking. They sulked.\n\nBig storm last night. Near midnight the bell gave one dreadful clank, like a pot dropped down a well, and then nothing. This morning Oakley had the whole committee out in the square, staring up with their mouths open. The clapper is split clean through.\n\nClem says get the smith to weld it. Clem is a magnificent baker and a dreadful metallurgist. Everyone knows you can't mend the Bramble Bell with any old iron. Nobody remembers why.\n\nI mean to find out.\n\nNote: lemon drops. Also, fix the gate before the goat notices it's broken."
+    },
+    {
+      "n": 2,
+      "title": "Iron from the Sky",
+      "text": "Three evenings in the town hall with Oakley's archive. Three hundred years of minutes. I have aged a decade.\n\nBut it's there, in the oldest book, in brown ink: a star fell over the highlands and glowed for a week. The first valley folk hauled its iron down and cast it into a bell. That's why ours rings sweeter than any bell has a right to.\n\nIt's the old skipping song, too. 'Iron from the sky, ring the valley home.' We all sang it. None of us believed it.\n\nSo: only star-iron will take the bell's note. And they used it all on the bell. Or did they?\n\nGarden: thin the carrots. Tell Tobin to stop losing boots in my river."
+    },
+    {
+      "n": 3,
+      "title": "What Old Ashgrove Said",
+      "text": "Took the broken clapper to Ashgrove at the forge. He tapped it with a little hammer and listened like a doctor.\n\n'Star-iron,' he said. 'Nothing else will hold her note. Use ordinary iron and she'll clang like a bucket for a hundred years.'\n\nSo. I need a piece of fallen star. Simple. Ha.\n\nHe says the old miners used to turn up odd shards, very deep. Humming rock, they called it. His granddaughter Mira, pretending not to listen from the bellows, asked whether stars really hum. I told her everything hums, if you're quiet enough.\n\nLeaving him this page; he wants my notes on the song. Beans need staking. Mira needs a hobby that isn't glowering."
+    },
+    {
+      "n": 4,
+      "title": "Ten Floors Down",
+      "text": "Ten floors. My knees have filed a formal complaint.\n\nFound coal, a nice seam of copper and one extremely rude bat. No star-iron. But some old miner has scratched into the rock down here: HUMMING ROCK, DEEPER. Deeper than ten? Not on these knees. Not this winter.\n\nSat on an upturned bucket with a lemon drop and had a think. If a star fell, somebody must have watched it fall. The old observatory on the highland ridge kept a record of every shooting star for two hundred years. If there's a map of where the pieces landed, it's up there.\n\nLeaving this tin for the next fool who comes this deep. Hello, fool. Mind the bat."
+    },
+    {
+      "n": 5,
+      "title": "Telling Clem",
+      "text": "Told Clem I'm going up the Highland Road to the observatory. She threw a bun at me. A good bun, too; she'd never waste a stale one on a friend.\n\nShe says if I'm not back by spring she'll cancel the Spring Fair out of spite. She would, too.\n\nShe asked what she should tell people. I said: tell them I've gone to listen for the bell. She said that's nonsense. It is, a bit. But up there the sky is close and the valley is small, and if anyone ever makes it ring again, I'll hear it.\n\nTearing this out and folding it behind the pie card, so she can't say I never explained myself. Don't skimp on the berries, Clementine."
+    },
+    {
+      "n": 6,
+      "title": "The Keeper's Lamp Room",
+      "text": "Last night before the road. Walked out to the Point to say goodbye to Rook, who insisted it wasn't a goodbye.\n\nWe sat up in the lamp room with cocoa and watched the sky turn. Rook pointed out a low, steady star over the highlands. Sailors call it the Bell Star. Rook's grandmother swore it's the one ours fell from. I like that better than any record.\n\nRook says you can see this light from the high ridge on a clear night, and promised to keep it burning so I'd have something to steer by. I said don't be poetic. Rook was poetic anyway.\n\nLeaving this page in the logbook, so the lamp room has some company while I'm gone."
+    },
+    {
+      "n": 7,
+      "title": "The Hill Is Grumbling",
+      "text": "Stopping the night with the shepherd, Ingrid. Says almost nothing, makes excellent tea, and owns a dog with more sense than most of the council.\n\nThe sheep won't settle. Ingrid says the hill's grumbling down by the road cut. I can hear it too: small stones ticking down in the dark, like a clock nobody wound.\n\nFrom the hut door I can see Rook's light, way off on the Point. Good. A promise kept.\n\nUp at first light. The observatory is two hours' climb, Ingrid says. Three, for 'a lady of your vintage.' Cheek.\n\nLeft Ingrid a tin of lemon drops for the tea. Taking the rest of my nerve with me."
+    },
+    {
+      "n": 8,
+      "title": "Two Entries from the Top",
+      "text": "First winter. The road came down two days after I got here, with a noise like the sky clearing its throat. I'm fine. Ingrid came over the pass with bread and the news: shut until someone with rope and patience mends it.\n\nThe records are wonderful. The sky is ridiculous. I meant to stay one winter.\n\nEighth winter. Stars charted: four thousand and six. Ingrid has kept my secret the way a good dog keeps a gate.\n\nAnd this afternoon I heard it. Clear as anything, rolling up the valley. The bell. I dropped my teacup.\n\nIngrid's gone down to fetch whoever rang it. I've put the kettle on, and I am not crying. It's the altitude."
+    }
+  ],
+  "letters": [
+    {
+      "id": "l_hazel_welcome",
+      "from": "hazel",
+      "subject": "Welcome to Bramblebrook!",
+      "body": "Hello, new neighbor!\n\nHazel here, of Pennywhistle's General Store: seeds, string, soap and gossip (the gossip's free). Ledger is my cat, and also sits on my ledger, which confuses everyone.\n\nThree lengths of twine enclosed. Everybody new needs twine; you'll see. I've written it in the book as 'goodwill', so don't you dare pay me.\n\nCome by any time. I've already started your page.\n\nHazel P.\n\nP.S. Your aunt's rhubarb patch is behind the well. It is, I'm sorry to say, mostly nettles now.",
+      "when": {
+        "day": 1
+      },
+      "give": {
+        "items": {
+          "twine": 3
+        }
+      }
+    },
+    {
+      "id": "l_oakley_minutes",
+      "from": "oakley",
+      "subject": "Minutes: Welcome Committee",
+      "body": "MINUTES OF THE BRAMBLEBROOK WELCOME COMMITTEE\nPresent: Mayor Oakley (chair, secretary, treasurer, refreshments).\n\nItem 1: A new farmer, {name}, has arrived at Bramble Farm. Motion to welcome them warmly. Carried unanimously.\n\nItem 2: Motion to send a modest sum from the Welcome Fund for seeds. Carried, after a brief argument with myself.\n\nItem 3: Biscuits. Deferred. Gran had run out.\n\nMeeting closed. Splendid meeting.\n\nYours in civic enthusiasm,\nOakley, Mayor",
+      "when": {
+        "day": 2
+      },
+      "give": {
+        "coins": 50
+      }
+    },
+    {
+      "id": "l_pip_map",
+      "from": "pip",
+      "subject": "I DREW YOU A MAP",
+      "body": "Hello new Bramble!!\n\nI drew you a map of the whole valley so you don't get lost. The X is your farm. The squiggle is the river. The big black blob is the mine. It says NO. The other blob is a cow. I don't know whose.\n\nSir Hopsalot helped. He stepped in the ink, so some of the woods are toad-shaped now.\n\nI put in five four-leaf clovers. I checked every leaf. Twice.\n\nYour friend (I decided),\nPip\n\nP.S. If you find treasure, I am VERY good at keeping secrets. Mostly.",
+      "when": {
+        "day": 3
+      },
+      "give": {
+        "items": {
+          "clover": 5
+        }
+      }
+    },
+    {
+      "id": "l_clem_bread",
+      "from": "clem",
+      "subject": "Country bread, the proper way",
+      "body": "Love,\n\nYou looked peaky on Tuesday. You'll look peaky again by Thursday, I expect, so here's my country bread.\n\nFour handfuls of your own wheat, ground fine. A pinch of salt, warm water, and patience. Mostly patience.\n\nWren used to say bread is just wheat that's been told a good story. She had a lot of sayings. Most of them were cheek.\n\nThree loaves enclosed to tide you over. Don't let them go stale. It hurts my feelings.\n\nGran Clementine",
+      "when": {
+        "day": 5
+      },
+      "give": {
+        "items": {
+          "bread": 3
+        }
+      }
+    },
+    {
+      "id": "l_tobin_worms",
+      "from": "tobin",
+      "subject": "Worms",
+      "body": "Twenty worms. Good ones. The fat one's Gerald.\n\nPerch by the reeds, mornings. Carp at dusk, if you're patient and don't hum.\n\nOnce hooked a perch that towed my boat clear to the sea and back. Took all day. Let it go. It looked tired.\n\nTobin",
+      "when": {
+        "day": 8
+      },
+      "give": {
+        "items": {
+          "worm": 20
+        }
+      }
+    },
+    {
+      "id": "l_pip_bridge",
+      "from": "pip",
+      "subject": "I CROSSED THE BRIDGE 47 TIMES",
+      "body": "It doesn't even wobble anymore!!! I crossed it 47 times. Sir Hopsalot crossed it 3 times, then sat down in the middle and wouldn't move.\n\nOn the other side there's MUD. Excellent mud. Also a heron that looked at me like I owed it money.\n\nI've added Willow Banks to my map. I drew you on the bridge. You're the one with the hammer.\n\nHere are some feathers from REAL birds.\n\nPip",
+      "when": {
+        "chapter": "bridge"
+      },
+      "give": {
+        "items": {
+          "feather": 4
+        }
+      }
+    },
+    {
+      "id": "l_hazel_gossip",
+      "from": "hazel",
+      "subject": "A curious order (don't tell anyone)",
+      "body": "Well! I simply have to tell someone, and Ledger won't listen.\n\nTwice a year, Ingrid the shepherd comes down the old sheep track from the highlands with a list. Three bottles of ink. Two dozen candles. A ream of good paper. And four tins of lemon drops!\n\nFor a shepherd! I asked once why anyone minding sheep needs all that. 'Mice,' came the answer. 'They get into everything.' Mice! Eating ink!\n\nOnly one other customer ever bought lemon drops, and that was your aunt. Make of that what you will. I've made quite a lot of it.\n\nOne candle enclosed, since they're so popular.\n\nHazel P.",
+      "when": {
+        "day": 12
+      },
+      "give": {
+        "items": {
+          "candle": 1
+        }
+      }
+    },
+    {
+      "id": "l_mira_forge",
+      "from": "mira",
+      "subject": "Thanks. Also: more ore.",
+      "body": "I'm bad at thank-you notes, so: thank you. The forge is breathing again. Grandad would have pretended not to cry, then cried.\n\nThree copper bars enclosed, the first metal out of that hearth in eight years. Don't sell them. Or do, I'm not your keeper. But don't.\n\nBring me ore and I'll show you how to smelt it yourself. Bring me coffee and I'll show you faster.\n\nMira",
+      "when": {
+        "chapter": "forge"
+      },
+      "give": {
+        "items": {
+          "copperbar": 3
+        }
+      }
+    },
+    {
+      "id": "l_clem_soup",
+      "from": "clem",
+      "subject": "Root soup for windy nights",
+      "body": "Love,\n\nThe wind comes straight off the hills at your place of an evening. Here's my root soup for it: two potatoes, two carrots, two good mushrooms, and a long, slow simmer.\n\nWren took a jar of this up the Highland Road the night she went. Said she'd bring the jar back. I'm still waiting on that jar.\n\nOne pot enclosed. Eat it hot.\n\nGran Clementine",
+      "when": {
+        "day": 18
+      },
+      "give": {
+        "items": {
+          "soup": 1
+        }
+      }
+    },
+    {
+      "id": "l_hazel_mine",
+      "from": "hazel",
+      "subject": "Business is BOOMING",
+      "body": "Since the mine reopened I've sold forty lamp wicks, twelve pickaxe handles and one very large hat. Ledger has had to have a lie-down.\n\nI've enclosed one of Gran's Miner's Sandwiches. Good for long days underground; the old miners swore they help you sniff out the stairs.\n\nDo be careful down there. You've got a whole page in my book now, and I'd hate to have to close it.\n\nHazel P.",
+      "when": {
+        "chapter": "mine"
+      },
+      "give": {
+        "items": {
+          "sandwich": 1
+        }
+      }
+    },
+    {
+      "id": "l_clem_pie",
+      "from": "clem",
+      "subject": "Wren's berry pie",
+      "body": "Love,\n\nYou'll want this for the fair table. Wren's berry pie, copied from the card I've carried eight years:\n\nFour handfuls of wild berries. Three of wheat. One good egg. Hot oven. Lattice on top, or Wren will come home just to tell you off.\n\nSome berries from my own bushes enclosed to start you off. The rest you'll find in the Mossy Woods, if the squirrels haven't been.\n\nGran Clementine",
+      "when": {
+        "started": "fair"
+      },
+      "give": {
+        "items": {
+          "berries": 6
+        }
+      }
+    },
+    {
+      "id": "l_pip_toad",
+      "from": "pip",
+      "subject": "SIR HOPSALOT IS SAFE",
+      "body": "THANK YOU THANK YOU THANK YOU for helping at the fair!! Sir Hopsalot says thank you too. He said it with a croak, but I could tell.\n\nHe has been knighted again (by me) for bravery, and grounded (by me) for wandering off.\n\nI'm giving you my best treasure. I found it in the Mossy Woods. It's an acorn but it's GOLD. Don't spend it all at once.\n\nYour friend forever (this is official),\nPip",
+      "when": {
+        "chapter": "fair"
+      },
+      "give": {
+        "items": {
+          "goldacorn": 1
+        }
+      }
+    },
+    {
+      "id": "l_rook_point",
+      "from": "rook",
+      "subject": "From the Point",
+      "body": "Farmer,\n\nThe storm's gone out to sea, still grumbling. The gulls have opinions about it.\n\nI'm no hand at visitors and worse at letters. But it was good to hear boots on those stairs again. Eight years is a long time to talk to a lamp.\n\nThe tide left these on my step. Sea glass: old bottles the sea has been patient with. Seemed right to send them to someone being patient with this valley.\n\nRook\nKeeper, Point Light",
+      "when": {
+        "flag": "met_rook"
+      },
+      "give": {
+        "items": {
+          "seaglass": 3
+        }
+      }
+    },
+    {
+      "id": "l_tobin_light",
+      "from": "tobin",
+      "subject": "Saw the light",
+      "body": "Saw the light come on. Stood on the bank an hour, watching it go round.\n\nCove'll be biting now. Shrimp. Crab. Squid, if you're quick. Octopus, if you don't mind being looked at.\n\nGlow grubs enclosed. Dug 'em myself.\n\nRook still owes me a boot. Long story. Rook knows.\n\nTobin",
+      "when": {
+        "chapter": "lighthouse"
+      },
+      "give": {
+        "items": {
+          "glowbait": 4
+        }
+      }
+    },
+    {
+      "id": "l_ingrid_candles",
+      "from": "ingrid",
+      "subject": "Candles",
+      "body": "Farmer.\n\nIf you're at Hazel's, I need candles. Two dozen. Mice got the last lot.\n\nBig mice.\n\nWool enclosed. For your trouble.\n\nI.",
+      "when": {
+        "flag": "met_ingrid"
+      },
+      "give": {
+        "items": {
+          "wool": 4
+        }
+      }
+    },
+    {
+      "id": "l_oakley_road",
+      "from": "oakley",
+      "subject": "Eight years of post",
+      "body": "Dear {name},\n\nThe Council has formally reopened the Highland Road. With a ribbon, this time. I remembered.\n\nThe old post box at the top was crammed: seed catalogues, a birthday card for Tobin (eight years late; Tobin claims it was the wind making those eyes water), and a letter addressed to Bramble Farm. I've sent that on. I did not read it. I wanted to. I didn't.\n\nPlease accept the enclosed from the Road Fund, with the town's thanks.\n\nOakley, Mayor",
+      "when": {
+        "chapter": "highlands"
+      },
+      "give": {
+        "coins": 200
+      }
+    },
+    {
+      "id": "l_wren_first_winter",
+      "from": "wren",
+      "subject": "Dated eight winters ago",
+      "body": "To whoever is minding my farm (Clem, if it's you: split the rhubarb),\n\nThe Highland Road came down behind me like a dropped tea tray. I'm fine. Knees fine. Pride bruised.\n\nI'm at the old observatory: a roof, a stove, two hundred years of star records and nobody to argue with. Bliss.\n\nThe records say the star broke as it fell. The biggest piece went into our bell. The rest went down, deep under the hill, past where the old miners stopped. Twenty-five floors, or more. Tell Ashgrove.\n\nDo NOT let anyone try the pass to fetch me. It's a goat's road, and I've watched the goats think twice.\n\nW.\n\nP.S. Lemon drops, please, when they dig the road out in spring.",
+      "when": {
+        "chapter": "highlands"
+      }
+    },
+    {
+      "id": "l_mira_clapper",
+      "from": "mira",
+      "subject": "Grandad's clapper notes",
+      "body": "Found Grandad's notes on the bell under eight years of soot. If we're doing this, we do it right:\n\nTwo gold bars for weight. Two iron bars for the spine. One shard of star-iron at the heart. Hot forge, steady hands, no talking.\n\nTwo iron bars enclosed to get you going. The gold and the star you'll have to dig for.\n\nYou'll want a bell rope too. Three good ropes, plaited with yarn so it doesn't burn the hands. Ingrid's sheep can help with the yarn.\n\nMira",
+      "when": {
+        "started": "bell"
+      },
+      "give": {
+        "items": {
+          "ironbar": 2
+        }
+      }
+    },
+    {
+      "id": "l_ingrid_no_mice",
+      "from": "ingrid",
+      "subject": "There were no mice",
+      "body": "Farmer.\n\nShe asked me, eight years ago, at my table. Keep quiet till the bell rings. So I did.\n\nDidn't like it. Liked her.\n\nThe lemon drops were hers. The candles. The ink. There were no mice.\n\nYarn enclosed. Spun it myself.\n\nI.",
+      "when": {
+        "chapter": "bell"
+      },
+      "give": {
+        "items": {
+          "yarn": 2
+        }
+      }
+    },
+    {
+      "id": "l_wren_third_winter",
+      "from": "wren",
+      "subject": "Found stuck in a seed catalogue",
+      "body": "To the farm, again.\n\nNo answer to my last, so either the post is stuck or Clem is sulking. Ingrid says it's the post. I've decided to believe that.\n\nI've asked Ingrid to keep mum about me. If the valley knew I was up here, half the town would try that pass with a rope and good intentions, and I won't have anyone's neck on my account. Clem's least of all.\n\nWhen the bell rings, I'll know someone has mended things down there. Then I'll come home. Until then: stars. They're coming along nicely.\n\nIf this letter somehow arrives after I do, I'll eat my hat.\n\nW.\n\n(Pinned on, in Oakley's hand: Found inside a seed catalogue. Deepest apologies. Minuted.)",
+      "when": {
+        "chapter": "bell"
+      }
+    },
+    {
+      "id": "l_oakley_month",
+      "from": "oakley",
+      "subject": "One month! (Minuted)",
+      "body": "Dear {name},\n\nThe Council notes, with great pleasure, that you have now been in Bramblebrook for one whole month. I checked the minutes. Thirty days exactly. Splendid.\n\nI would list everything that has changed since you came, but the list is longer than my clipboard, and my clipboard is quite long.\n\nPlease accept the enclosed from the Civic Gratitude Fund, which I founded this morning for the purpose.\n\nWith admiration and a slightly sprained pen hand,\nOakley, Mayor",
+      "when": {
+        "day": 30
+      },
+      "give": {
+        "coins": 300
+      }
+    },
+    {
+      "id": "l_wren_kettle",
+      "from": "wren",
+      "subject": "Note on the kettle",
+      "body": "Gone up to the observatory for the night. Back by breakfast. This time I mean it.\n\nDon't fuss, don't wait up, and don't let Clem rearrange my shelves.\n\nYour Moonbloom wants a clear sky and a little tonic. Not too much. They're like people: they bloom when they're left alone and believed in.\n\nGrow Tonic enclosed. Made it myself. It's better than Hazel's. Don't tell Hazel.\n\nProud of you. Still.\n\nW.",
+      "when": {
+        "chapter": "epilogue"
+      },
+      "give": {
+        "items": {
+          "tonic": 3
+        }
+      }
+    }
+  ]
+}

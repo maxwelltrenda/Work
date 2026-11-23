@@ -1,0 +1,1120 @@
+{
+  "adventures": [
+    {
+      "id": "fair_night", "n": "Night of the Fair", "where": "town",
+      "blurb": "Lanterns, pies, an escaped toad and a painted cart. The Spring Fair is back for one night. Make it a good one.",
+      "req": { "flag": "fair_ready" }, "start": "a",
+      "nodes": {
+        "a": { "who": "oakley", "say": "{name}! Splendid, you're here. Look at it! Bunting! Pies! A brass band of two!\n\nJust one teensy thing. The lantern line blew down, the pie judging starts at moonrise, and the committee minutes say “disaster” in three places.",
+          "ch": [
+            { "t": "Fix the lantern line", "go": "lanterns" },
+            { "t": "Ask what the minutes say", "go": "minutes" }
+          ] },
+        "minutes": { "who": "oakley", "say": "Item one: lanterns, down. Item two: Gran wants a second pie judge. Item three, which I added myself: Pip has brought a toad.\n\nI'm sure it's fine. It's a splendid toad. Lanterns first?",
+          "ch": [ { "t": "Lanterns first", "go": "lanterns" } ] },
+        "lanterns": { "say": "The lantern string droops from the store's sign to the bakery eave, high above the cobbles. Mira stands under it with a ladder that is missing two rungs.\n\n“Don't look at me,” she says. “I only fix things made of metal and regret.”",
+          "ch": [
+            { "t": "Climb the wobbly ladder", "go": "lit", "roll": { "skill": "foraging", "base": 0.55, "per": 0.03, "max": 0.95 }, "fail": "hay" },
+            { "t": "Lash the ladder with rope", "go": "lit", "cost": { "items": { "rope": 1 } } },
+            { "t": "Ask Mira for a plan B", "go": "planb" }
+          ] },
+        "hay": { "say": "Three rungs up, the ladder sighs and folds politely to one side. You land in a hay bale meant for the sack race.\n\nMira looks down at you. “Ten out of ten for the landing. Shall we do it my way now?”",
+          "ch": [ { "t": "Do it Mira's way", "go": "planb" } ] },
+        "planb": { "who": "mira", "say": "Plan B. You hold the ladder. I climb. You tell me I'm doing wonderfully. I complain the whole way up.\n\nIt's a very old plan. It works every time.",
+          "ch": [ { "t": "Hold the ladder steady", "go": "lit" } ] },
+        "lit": { "say": "The line goes up. One by one the lanterns wake, paper moons in red and gold and green, all the way across the square to the old Bell.\n\nSomeone in the crowd says “ohhh”, and then everyone does.", "give": { "xp": { "crafting": 20 } },
+          "ch": [ { "t": "Head to the pie table", "go": "pies" } ] },
+        "pies": { "who": "clem", "say": "There you are. Pull up a stool, {name}. I need a second judge. My tongue is eighty-odd years old and it's started to like everything.\n\nSeven pies, not counting yours. Yours are out of the running, since you're judging. One is Pip's, and it's made of mud. We'll taste the other six.",
+          "ch": [
+            { "t": "Taste every pie, fair and square", "go": "taste" },
+            { "t": "Judge the fruit like a farmer", "go": "taste_pro", "req": { "skill": { "farming": 6 } } }
+          ] },
+        "taste": { "say": "Hazel's pie has a lattice so straight you could rule a ledger with it. The Mayor's pie was clearly designed by committee. Tobin's is eel and blackberry, and somehow it works.\n\nYou're reaching for a fourth slice when a shriek goes up from the crowd.",
+          "ch": [ { "t": "See what's happened", "go": "toad" } ] },
+        "taste_pro": { "say": "You know berries. These were picked at dawn, these at noon, and these, Tobin's, were very possibly picked out of a river.\n\nGran nods slowly. “A farmer's tongue. Wren had one too.” Then a shriek goes up from the crowd.", "give": { "friend": { "clem": 15 } },
+          "ch": [ { "t": "See what's happened", "go": "toad" } ] },
+        "toad": { "who": "pip", "say": "{name}! SIR HOPSALOT HAS ESCAPED! The toad is loose and heading for the pies!\n\nI only opened the box a tiny bit. To show the band!",
+          "ch": [
+            { "t": "Dive for the toad", "go": "caught", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "chase" },
+            { "t": "Lure it out with worms", "go": "caught", "cost": { "items": { "worm": 2 } } },
+            { "t": "Stand still and let Pip whistle", "go": "whistle" }
+          ] },
+        "chase": { "say": "You dive. The toad does not. You come up with a faceful of cobbles and a cream bun on your elbow.\n\nSir Hopsalot hops under the band's drum. The crowd is laughing, mostly kindly. Pip is hopping too, from worry.",
+          "ch": [
+            { "t": "Chase it through the crowd", "go": "caught", "roll": { "skill": "foraging", "base": 0.3, "per": 0.02, "max": 0.8 }, "fail": "chaos" },
+            { "t": "Stop, breathe, let Pip try", "go": "whistle" }
+          ] },
+        "chaos": { "say": "You chase. The crowd scatters. A pie flies. The lantern line wobbles alarmingly, and the brass band of two plays something nervous.\n\nThe Mayor is writing very fast.",
+          "ch": [
+            { "t": "Keep chasing!", "go": "lose" },
+            { "t": "Stop and let Pip try", "go": "whistle" }
+          ] },
+        "whistle": { "say": "Pip shushes the whole square and whistles three low notes, like a frog clearing its throat.\n\nUnder the drum, something croaks back. Out hops Sir Hopsalot, straight into Pip's hat, looking very pleased with himself.", "give": { "friend": { "pip": 10 } },
+          "ch": [ { "t": "Applaud the toad whisperer", "go": "cart" } ] },
+        "caught": { "who": "pip", "say": "You got him! You're a hero! Sir Hopsalot says thank you. He says it in toad, so it sounds like “grawp.”\n\nI'm drawing you on my next map. With a cape.", "give": { "friend": { "pip": 15 } },
+          "ch": [ { "t": "Grawp to you too", "go": "cart" } ] },
+        "cart": { "say": "Wheels rattle on the cobbles. A cart painted with suns and fish and question marks rolls into the square behind a sleepy donkey.\n\nA woman in a patchwork coat hops down. “A fair! A real one! I'm Saffi. I trade in bargains, curiosities and gossip. Who's in charge of the best spot?”",
+          "ch": [
+            { "t": "Give her the spot by the Bell", "go": "spot" },
+            { "t": "Haggle for a fair-night trinket", "go": "trinket", "cost": { "coins": 40 } },
+            { "t": "Trade a bouquet for a story", "go": "story", "cost": { "items": { "bouquet": 1 } } }
+          ] },
+        "spot": { "say": "Saffi parks by the silent Bell and throws open the cart's shutters. Inside: jars, maps, fishing lures, and a stuffed owl wearing a hat.\n\n“A good spot is worth a good deal,” she says, and presses a few coins into your hand. “Remember Saffi. Everyone does, eventually.”", "give": { "coins": 30 },
+          "ch": [ { "t": "Back to the fair", "go": "crown" } ] },
+        "trinket": { "say": "Saffi weighs your coins, then your face, then the coins again. “For you, fair-night price.” She hands over a beeswax candle and two winking fishing lures.\n\n“Don't tell the others. No, tell everyone. Good for business.”", "give": { "items": { "lure": 2, "candle": 1 } },
+          "ch": [ { "t": "Back to the fair", "go": "crown" } ] },
+        "story": { "say": "Saffi sniffs the flowers like fine perfume. “A fair price. Here's my story.”\n\n“Out on the Point there's a lighthouse that hasn't shone in years. Yet on stormy nights, a little light walks round the top. Sailors' talk, of course. Sailors talk a lot.”", "give": { "buff": "lucky" },
+          "ch": [ { "t": "Back to the fair", "go": "crown" } ] },
+        "crown": { "who": "clem", "say": "Ahem! The judging is done.\n\nFirst prize: Hazel's lattice. Most daring: Tobin's eel pie. Most heart: Pip's mud pie, which is not for eating, Pip.\n\nAnd a special thank-you to whoever got this square glowing again.",
+          "ch": [
+            { "t": "Join the dancing", "go": "dance" },
+            { "t": "Sit with Gran by the Bell", "go": "bell" }
+          ] },
+        "dance": { "say": "The brass band of two becomes a brass band of five. Hazel dances with Ledger the cat. Tobin dances like a heron. The Mayor dances, and for once nobody takes minutes.\n\nYou dance until the lanterns are the only light in the valley.",
+          "ch": [ { "t": "Catch your breath", "go": "win" } ] },
+        "bell": { "who": "clem", "say": "Wren loved this fair. Said a fair was just a town remembering it likes itself.\n\nEight years that bell's been quiet, {name}. Tonight it hardly matters. Look at them all.",
+          "ch": [ { "t": "“Wren would have loved tonight.”", "go": "bell2" } ] },
+        "bell2": { "say": "Gran pats your hand with flour-dusted fingers. “She would. She will, maybe. I've a feeling about that.”\n\nShe won't say more. The lanterns sway above the silent Bell, and the whole square glows.",
+          "ch": [ { "t": "Stay a while longer", "go": "win" } ] },
+        "win": { "say": "The Spring Fair is back. By midnight the square is full of sleepy people, crumbs and lantern light, and the Mayor's minutes say just one word: “Splendid.”\n\nGran sends you home with the last berry pie.", "end": "win",
+          "give": { "flag": "fair_done", "coins": 300, "items": { "berrypie": 1, "candle": 2 }, "friend": { "oakley": 30, "clem": 20, "pip": 20 }, "xp": { "farming": 40 } } },
+        "lose": { "say": "The toad escapes into the night. Two pies are flattened, the lantern line is down again, and the brass band has gone home.\n\nThe Mayor sighs. “Not a disaster. A rehearsal.” Everyone agrees to try again tomorrow night.", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "lighthouse_climb", "n": "The Keeper's Light", "where": "cove",
+      "blurb": "A storm, a dark lighthouse, and a light at the window that shouldn't be there. Climb the Point and find out who's keeping watch.",
+      "req": { "flag": "heard_light" }, "start": "a",
+      "nodes": {
+        "a": { "who": "tobin", "say": "Storm's in. Saw it again, up the lighthouse. A light at the window. Walking.\n\nTide's coming over the causeway. You go now, or you go wet. Or you go tomorrow.",
+          "ch": [
+            { "t": "Go now", "go": "causeway" },
+            { "t": "Ask Tobin who's up there", "go": "tale" }
+          ] },
+        "tale": { "who": "tobin", "say": "Some say a ghost. Some say a gull with a candle.\n\nI say a keeper. Keepers don't leave. Like barnacles. Go on, before the sea makes up its mind.",
+          "ch": [ { "t": "Go now", "go": "causeway" } ] },
+        "causeway": { "say": "Rain comes sideways off the sea. The causeway to the Point is a line of black stones, and every seventh wave slops right over it.\n\nAt the far end the lighthouse stands dark against the cloud. Then, high up, a small gold light moves past a window.",
+          "ch": [
+            { "t": "Run for it between waves", "go": "door", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "soaked" },
+            { "t": "Rope yourself to the railing", "go": "door", "cost": { "items": { "rope": 1 } } },
+            { "t": "Go stone by careful stone", "go": "careful" }
+          ] },
+        "soaked": { "say": "The seventh wave arrives early. It is very cold and very wet and extremely thorough.\n\nYou reach the lighthouse door dripping like a mop. But you reach it.",
+          "ch": [ { "t": "Wring out and keep going", "go": "door" } ] },
+        "careful": { "say": "Slow is fine. Slow is dry. You count the waves, step on the sixth, freeze on the seventh, and inch across like a crab with somewhere to be.\n\nIt takes ages. You make it.",
+          "ch": [ { "t": "Go to the door", "go": "door" } ] },
+        "door": { "say": "A sign on the iron door, painted in white: KEEPER. KNOCK. THEN KNOCK LOUDER.\n\nYou knock. The storm answers. Nobody else does.",
+          "ch": [
+            { "t": "Knock louder", "go": "stairs" },
+            { "t": "Turn back for tonight", "go": "lose" }
+          ] },
+        "stairs": { "say": "You knock louder, and the door swings open on its own. It was never locked.\n\nInside, an iron stair spirals up into total dark. Somewhere far above, a kettle is whistling.",
+          "ch": [
+            { "t": "Light a lantern", "go": "stairs_lit", "req": { "items": { "lantern": 1 } } },
+            { "t": "Climb by feel, hand on the wall", "go": "stairs_dark" },
+            { "t": "Count the steps out loud", "go": "stairs_count" }
+          ] },
+        "stairs_lit": { "say": "Lantern light slides up the walls. They're covered in pencil marks: dates, tides, little drawings of ships, and a gull that appears on every landing, getting fatter each year.\n\nSomeone has kept very careful company with this tower.", "give": { "xp": { "foraging": 15 } },
+          "ch": [ { "t": "Keep climbing", "go": "room" } ] },
+        "stairs_dark": { "say": "The wall is cold and smooth, then rough with scratches, then warm where a stove pipe runs behind it. The stairs never seem to end.\n\nAt last, a door with a line of firelight under it.",
+          "ch": [ { "t": "Open the door", "go": "room" } ] },
+        "stairs_count": { "say": "One. Two. Forty. Ninety-nine. A hundred and... was that a hundred and twelve, or a hundred and twenty?\n\nA voice drifts down from above: “Two hundred and eleven. Don't lose count. I've had to start over myself.”",
+          "ch": [ { "t": "Keep counting up", "go": "room" } ] },
+        "room": { "who": "rook", "say": "So. The valley sent someone up at last. Wipe your feet. Those stairs don't mop themselves.\n\nRook. Captain, once. Keeper, still. Keeper of a light that doesn't light.",
+          "ch": [
+            { "t": "Why stay, if the light is out?", "go": "why" },
+            { "t": "Was that your lamp at the window?", "go": "window" },
+            { "t": "Offer a warm loaf of bread", "go": "bread", "cost": { "items": { "bread": 1 } } }
+          ] },
+        "bread": { "say": "Rook takes the loaf as if it were made of glass, and breathes it in for a long moment.\n\n“Gran's recipe. I'd know it in a fog.” He tears it in two and hands you half. “Sit. Nobody's sat in that chair in eight years.”", "give": { "friend": { "rook": 20 } },
+          "ch": [ { "t": "Ask why he stayed", "go": "why" } ] },
+        "why": { "who": "rook", "say": "A keeper keeps. Light or no light. That's the whole of the job.\n\nThe winter the bell went quiet, I lost the lens to the sea. Felt like the luck went out of the valley, like a tide that forgot to come back in.",
+          "ch": [ { "t": "And the light at the window?", "go": "window" } ] },
+        "window": { "who": "rook", "say": "That was me and my old storm lamp. I walk the gallery when the weather's up. Habit. Ships don't come any more, but the sea likes to be watched.\n\nIt writes in the sand every night and wipes it out by morning. Somebody ought to read it first.",
+          "ch": [ { "t": "Step out onto the gallery", "go": "storm" } ] },
+        "storm": { "say": "Out on the gallery the wind roars. Rook's lamp swings on its hook. Below, the sea is all white teeth and thunder.\n\nThen a gust slams the gallery door wide, and a thick book on the chart table goes skidding toward the rail.",
+          "ch": [
+            { "t": "Grab the book", "go": "saved", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "corner" },
+            { "t": "Slam the door shut first", "go": "door_shut" }
+          ] },
+        "corner": { "say": "You lunge and catch it by one soggy corner, right at the rail. Rain pours off you. The book stays in your hand.\n\nRook hauls you both back inside by the collar. “Not elegant,” he grumbles. “But kept.”",
+          "ch": [ { "t": "Hand Rook the book", "go": "saved" } ] },
+        "door_shut": { "say": "You lean on the gallery door with everything you've got. It shuts with a boom, and the book slides to a stop against your boot.\n\nRook nods once. “Good instinct. The sea takes what you leave loose.”",
+          "ch": [ { "t": "Pick up the book", "go": "saved" } ] },
+        "saved": { "who": "rook", "say": "My logbook. Eight years of weather. Every tide, every wind, every night the light didn't shine. Nobody to read a word of it.\n\nLast time the wind got in like that, I let go of something I couldn't get back. Not tonight.\n\nTake it, {name}. Someone ought to know what the sea did while the valley slept.",
+          "ch": [
+            { "t": "Promise to keep it safe", "go": "promise" },
+            { "t": "Ask Rook to come down to town", "go": "town" }
+          ] },
+        "promise": { "say": "Rook almost smiles. It's a rusty smile, out of practice.\n\n“If that bell ever rings again,” he says, “I'll light this tower with whatever I've got left. Candles. Lanterns. Stubbornness.”",
+          "ch": [ { "t": "Goodnight, Captain", "go": "win" } ] },
+        "town": { "who": "rook", "say": "Town? Hm. The bread's still good, I see. Perhaps.\n\nIf that bell ever rings again, I'll light this tower with whatever I've got. Until then, I'll come down now and then. To check you're all still there.",
+          "ch": [ { "t": "Goodnight, Captain", "go": "win" } ] },
+        "win": { "say": "Before you go, Rook slips one folded page out of the back of the logbook and tucks it inside his coat. “Not that one. Not yet.”\n\nAt first light you cross the causeway with the Keeper's Logbook buttoned under your coat. Behind you, a small gold light waves from the gallery. You wave back.", "end": "win",
+          "give": { "flag": "met_rook", "items": { "logbook": 1 }, "coins": 400, "friend": { "rook": 40, "tobin": 10 }, "xp": { "foraging": 60 } } },
+        "lose": { "say": "You turn back. The causeway is mostly sea now, and you squelch home soaked to the knees.\n\nUp on the Point, the small gold light watches you go. It will be there next storm. Keepers keep.", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "highland_pass", "n": "The Highland Pass", "where": "highlands",
+      "blurb": "The Highland Road is open for the first time in eight years. Cross it in the fog, mind the sheep, and meet whoever lives up there.",
+      "req": { "flag": "road_cleared" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Where the rockslide used to be, there's a road again, its gravel still raw and pale. You follow it up past the last of the trees.\n\nThen the fog comes down, thick as fleece. Somewhere ahead, dozens of sheep bells are clinking.",
+          "ch": [
+            { "t": "Keep to the old road", "go": "road" },
+            { "t": "Follow the sheep bells", "go": "flock" }
+          ] },
+        "road": { "say": "The road narrows. On your left, a stone wall. On your right, a long quiet nothing where the hillside falls away, and a stream far, far below.\n\nAt a cairn of stacked stones, the road splits in two.",
+          "ch": [
+            { "t": "Keep one hand on the wall", "go": "wall" },
+            { "t": "Hurry on before dark", "go": "wall", "roll": { "skill": "foraging", "base": 0.5, "per": 0.025, "max": 0.95 }, "fail": "slip" },
+            { "t": "Read the moss on the cairn", "go": "moss", "req": { "skill": { "foraging": 14 } } }
+          ] },
+        "wall": { "say": "Step by step, the wall leads you on. It knows the way even if you don't.\n\nIt brings you down into a hollow where the bells are loudest, and the fog is full of shapes. Woolly ones.",
+          "ch": [ { "t": "Wade in", "go": "flock" } ] },
+        "slip": { "say": "Your boot skids on wet gravel and you sit down hard in the heather, right at the edge. A few pebbles rattle off into the white.\n\nA sharp whistle cuts the fog. Something big and woolly leans against your side, holding you in place.",
+          "ch": [ { "t": "Stay very still", "go": "ingrid" } ] },
+        "moss": { "say": "Moss grows thickest on the north side, and someone has scratched a tiny arrow into the top stone. Left fork, then.\n\nThe left fork is drier and sheltered. It brings you out above a hollow full of sheep, beside a stone hut with smoke rising.", "give": { "xp": { "foraging": 20 } },
+          "ch": [ { "t": "Go down to the hut", "go": "ingrid" } ] },
+        "flock": { "say": "Sheep. Sheep everywhere. They flow around your knees like a woolly river, bells clinking, and they do not care at all where you were going.\n\nOne ewe sits down on your foot.",
+          "ch": [
+            { "t": "Wade through politely", "go": "ingrid" },
+            { "t": "Offer a handful of clover", "go": "clover", "cost": { "items": { "clover": 3 } } }
+          ] },
+        "clover": { "say": "The ewe gets off your foot at once. Six of her friends crowd in for clover, and when you walk on, the whole flock follows you like a parade.\n\nA voice in the fog says, “Huh.”", "give": { "friend": { "ingrid": 10 } },
+          "ch": [ { "t": "Turn toward the voice", "go": "ingrid" } ] },
+        "ingrid": { "say": "A tall woman in a grey oilskin steps out of the fog, crook in one hand, a sheepdog at her heel. She looks at you for a long, long time.\n\n“Ingrid,” she says at last. “These are mine. You'll be the Bramble.”",
+          "ch": [
+            { "t": "How do you know who I am?", "go": "know" },
+            { "t": "Ask the way over the pass", "go": "way" },
+            { "t": "Offer some trail mix", "go": "food", "cost": { "items": { "trailmix": 1 } } }
+          ] },
+        "know": { "who": "ingrid", "say": "Valley's small. Wind talks.\n\nYou've the look. The chin, mostly.",
+          "ch": [ { "t": "Ask the way over the pass", "go": "way" } ] },
+        "food": { "say": "Ingrid takes the trail mix, looks at it, and eats one acorn very slowly.\n\n“Kind,” she says. From Ingrid, you will learn, that is a whole speech.", "give": { "friend": { "ingrid": 15 } },
+          "ch": [ { "t": "Ask the way over the pass", "go": "way" } ] },
+        "way": { "who": "ingrid", "say": "Fog won't lift till morning. My hut's over the ridge. Keep to my heels and don't go poking at edges.\n\nOr go alone. Your choice. Mind the bog.",
+          "ch": [
+            { "t": "Keep to Ingrid's heels", "go": "ridge" },
+            { "t": "Go alone, thanks", "go": "alone", "roll": { "skill": "foraging", "base": 0.35, "per": 0.02, "max": 0.85 }, "fail": "lose" }
+          ] },
+        "ridge": { "say": "Ingrid walks fast and never looks down. You keep to her heels. Her dog keeps to yours.\n\nAt the top of the ridge her pack strap snaps, and out tumbles everything: candles, a tin of tea, a bag of lemon drops, packets of seeds, and a big bottle of ink.",
+          "ch": [ { "t": "Help gather it all up", "go": "spill" } ] },
+        "alone": { "say": "You pick your way along the ridge by the sound of the stream and the feel of the wind, and get to the top before Ingrid does.\n\nShe arrives, sees you sitting on a rock, and raises an eyebrow. “Huh.” Then her pack strap snaps, and out tumbles everything: candles, tea, lemon drops, seeds, and a big bottle of ink.", "give": { "xp": { "foraging": 30 } },
+          "ch": [ { "t": "Help gather it all up", "go": "spill" } ] },
+        "spill": { "say": "You pick up a seed packet. On it, in a sharp, slanting hand, someone has written: Alpine strawberries. Do NOT let Ingrid eat these.\n\nThe writing looks a lot like the journal pages. Ingrid takes the packet back, quickly. “Mine,” she says. She is not very good at lying.",
+          "ch": [
+            { "t": "Ask who the ink is for", "go": "ask" },
+            { "t": "Hand it all back, no questions", "go": "trust" }
+          ] },
+        "ask": { "who": "ingrid", "say": "A friend. Who asked me to say nothing. So I say nothing.\n\nSome promises are like fences, Bramble. You mend them. You don't climb them.",
+          "ch": [ { "t": "Fair enough", "go": "hut" } ] },
+        "trust": { "say": "You pack everything back in and tie the strap with a good knot. Ingrid watches your hands, then your face.\n\nHer shoulders drop an inch. “Thank you,” she says, and it seems to mean a great deal more than that.", "give": { "friend": { "ingrid": 15 } },
+          "ch": [ { "t": "Walk on to the hut", "go": "hut" } ] },
+        "hut": { "say": "The fog thins as you come down off the ridge. Below sits a stone hut with a turf roof, a thread of chimney smoke, and a dog-shaped dent in the doormat. Sheep drift past it like slow clouds.\n\nIngrid stops at the gate and looks at you for a long moment, the way you'd look at weather coming in.",
+          "ch": [ { "t": "Wait for Ingrid to speak", "go": "gate" } ] },
+        "gate": { "who": "ingrid", "say": "Road's open now. Come up when you like. Mind the bog.\n\nKettle's on. Come in. Sit.",
+          "ch": [ { "t": "Step inside", "go": "win" } ] },
+        "win": { "say": "The dog flops across your boots. The kettle starts to sing. Out on the hill, the sheep settle down to chew and think.\n\nYou've met Ingrid. And you have the strong feeling she already knew a great deal about you.", "end": "win",
+          "give": { "flag": "met_ingrid", "coins": 600, "items": { "wool": 3, "thyme": 4 }, "friend": { "ingrid": 40 }, "xp": { "foraging": 80 } } },
+        "lose": { "say": "The bog is very welcoming. It welcomes you up to the knees, then politely keeps your left boot.\n\nBy the time you pull free, the fog is black with night. You limp back down the road, one boot lighter. The pass will still be there tomorrow.", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "observatory", "n": "The Observatory", "where": "highlands",
+      "blurb": "The Bell has rung for the first time in eight years. Ingrid is waiting on the ridge with a lantern and a secret she's ready to share.",
+      "req": { "flag": "bell_rung" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Ingrid sets a pace up the Highland Road that would wind a goat. Behind you, the Bell's voice still hums in the hills: eight years of silence, and now the whole valley rings like a struck glass.\n\nAt the cairn she stops to catch her breath, lantern held high. Her eyes are wet. She doesn't explain.",
+          "ch": [
+            { "t": "“Ingrid, who's asking for me?”", "go": "secret" },
+            { "t": "Walk on beside her in silence", "go": "quiet" }
+          ] },
+        "secret": { "who": "ingrid", "say": "Your aunt. She's alive, Bramble. Up at the observatory. Has been all along.\n\nI kept a promise eight years. Didn't like keeping it. I'm done now.",
+          "ch": [
+            { "t": "“Why didn't she come home?”", "go": "why" },
+            { "t": "Run for the observatory", "go": "path" }
+          ] },
+        "quiet": { "say": "Ingrid walks a long way without a word. At the foot of the crag, she stops.\n\n“It's Wren,” she says, as if she's carried the words all the way up the hill and they've got heavy. “She's alive. She heard you ring it.”",
+          "ch": [
+            { "t": "“Why didn't anyone tell me?”", "go": "why" },
+            { "t": "Run for the observatory", "go": "path" }
+          ] },
+        "why": { "who": "ingrid", "say": "Not mine to say. She'll tell you herself. At length. With diagrams.\n\nCome on. She's been pacing since the first note. I could hear her boots from the tarn.",
+          "ch": [ { "t": "Climb. Now.", "go": "path" } ] },
+        "path": { "say": "The old path is steep and broken. An iron stair is bolted to the crag, rusty and beaded with dew. Beside it, a goat track wanders up the slope in no hurry at all.\n\nAbove, the dome is lit from inside, warm and gold.",
+          "ch": [
+            { "t": "Take the iron stair", "go": "door", "roll": { "skill": "foraging", "base": 0.6, "per": 0.02, "max": 0.95 }, "fail": "slip" },
+            { "t": "Follow Ingrid up the goat track", "go": "track" },
+            { "t": "Scramble straight up the scree", "go": "scree", "roll": { "skill": "foraging", "base": 0.3, "per": 0.015, "max": 0.8 }, "fail": "lose" },
+            { "t": "Light the way with a crystal lamp", "go": "lamp", "req": { "items": { "lamp": 1 } } }
+          ] },
+        "slip": { "say": "Halfway up, a rung shifts under your boot. For one long second there's nothing but air and the sound of your own heart.\n\nThen Ingrid's hand closes on your collar. “Not today,” she says, and hauls you up the rest of the way.",
+          "ch": [ { "t": "Thank Ingrid", "go": "door" } ] },
+        "track": { "say": "The goat track wanders left, then right, then left again, as if it's thinking it over. Ingrid knows every stone.\n\n“Eight years,” she says, “I've walked this every week. Tea. Candles. Lemon drops. Ink. So much ink.”",
+          "ch": [ { "t": "Reach the top", "go": "door" } ] },
+        "scree": { "say": "Scree slides under every step, but you climb faster than it can slide. You arrive at the top breathless, scraped, and ahead of Ingrid, who is not impressed.\n\n“She'd have done the same,” Ingrid mutters. “Brambles.”", "give": { "xp": { "foraging": 30 } },
+          "ch": [ { "t": "Catch your breath", "go": "door" } ] },
+        "lamp": { "say": "The crystal lamp throws soft light over the whole crag. The iron stair turns out to have a handrail, and the handrail has a little hand-painted sign: ALMOST THERE. KEEP GOING. W.\n\nYou keep going.",
+          "ch": [ { "t": "Keep going", "go": "door" } ] },
+        "door": { "say": "The observatory door stands open. Inside, every wall is papered with star maps in a quick, slanting hand. A kettle whistles. A telescope as long as a rowboat points at the evening sky.\n\nFrom behind it, a voice says: “Ingrid, if that's you, you're late. If it isn't, wipe your feet.”",
+          "ch": [
+            { "t": "Step inside", "go": "wren" },
+            { "t": "Wipe your feet first", "go": "feet" }
+          ] },
+        "feet": { "say": "You wipe your feet very thoroughly. There's a pause behind the telescope.\n\n“Well,” says the voice. “Somebody raised you right. Come in, come in, before I come out.”",
+          "ch": [ { "t": "Step inside", "go": "wren" } ] },
+        "wren": { "who": "wren", "say": "So. You're {name}.\n\nYou've got the Bramble chin. Poor thing. I'm sorry about that.\n\nI'm Wren. Don't mind the ink. I'd shake your hand, but I seem to have mapped most of the Milky Way onto mine.",
+          "ch": [
+            { "t": "Hug Wren", "go": "hug" },
+            { "t": "“You're alive!”", "go": "alive" },
+            { "t": "“Why did you stay away?”", "go": "later" }
+          ] },
+        "alive": { "who": "wren", "say": "Apparently! Ingrid checks every Thursday. Very thorough. Brings a mirror to see if I fog it.\n\nWell, come here, then. Let me look at you properly.",
+          "ch": [
+            { "t": "Hug Wren", "go": "hug" },
+            { "t": "“Why did you stay away?”", "go": "later" }
+          ] },
+        "hug": { "say": "You cross the room in three steps. Wren goes stiff as a fence post for exactly one second.\n\nThen she hugs you back, hard, the way people hold on in a strong wind. “Oh, never mind the ink,” she says into your shoulder. “Never mind the ink.”", "give": { "friend": { "wren": 20 } },
+          "ch": [
+            { "t": "“Why did you stay away?”", "go": "later" },
+            { "t": "Look at the star maps", "go": "maps" }
+          ] },
+        "later": { "who": "wren", "say": "Oh, I've a whole speech. Eight years to write it, and I've forgotten every word.\n\nQuestions over tea. Proper tea, sitting down, with biscuits if Ingrid hasn't eaten them. But first I want to show you something. I've been waiting a long time to show somebody.",
+          "ch": [ { "t": "“Show me.”", "go": "maps" } ] },
+        "maps": { "say": "Wren spreads a chart across the desk, pinning the corners with a teacup, a trowel and a very old pear. Eight years of sky, every falling star marked in red.\n\nAmong the familiar stars she's inked a new shape: seven small stars in a crooked spout and handle. Underneath, in her slanting hand: The Watering Can.",
+          "ch": [ { "t": "“What's this one?”", "go": "named" } ] },
+        "named": { "who": "wren", "say": "Seven stars that were there all along. Nobody had bothered to join them up. I did it the spring you came.\n\nOfficially, it's The Watering Can. Unofficially, it's yours, {name}.\n\nDo you know how many people have mended a whole valley? I checked the records. One.",
+          "ch": [ { "t": "Look through the telescope", "go": "scope" } ] },
+        "scope": { "say": "Wren swings the great telescope round and steers you to the eyepiece. Dusk has gone to dark. The stars crowd in, sharp as frost.\n\nAnd there, just over the Point, seven small stars in a crooked spout and handle. Behind you, Wren hums to herself, very pleased, and pretends she isn't.",
+          "ch": [
+            { "t": "Step outside to see them", "go": "star" },
+            { "t": "“Thank you, Wren.”", "go": "gift" }
+          ] },
+        "star": { "say": "The three of you sit on the observatory steps in the cold: Ingrid on one side, Wren in the middle, you on the other. Down in the valley, every window is lit.\n\nA star falls, long and slow, right through the Watering Can. Nobody makes a wish. Nobody needs to.", "give": { "friend": { "ingrid": 20 } },
+          "ch": [ { "t": "Head back in", "go": "gift" } ] },
+        "gift": { "say": "Wren unscrews a small brass telescope from its stand and presses it into your hands. It's warm from the lamp.\n\n“Yours now. So you can find your stars from the porch. I'll be busy with the garden.”",
+          "ch": [ { "t": "Hold on to it tight", "go": "win" } ] },
+        "win": { "say": "Ingrid stamps in, shuts the door on the cold, and puts the kettle on without being asked. Wren sweeps three chairs clear of star charts.\n\nYou've found her. After eight years, Wren Bramble is alive, and laughing, and telling Ingrid she's put far too much water in the pot.", "end": "win",
+          "give": { "flag": "found_wren", "items": { "telescope": 1 }, "coins": 1500, "friend": { "wren": 80, "ingrid": 50 }, "xp": { "foraging": 150 } } },
+        "lose": { "say": "The scree has other ideas. You slide most of the way back down in a clatter of stones, dusty but unhurt.\n\nIngrid helps you up. “Tomorrow,” she says gently. “She's waited eight years. She can wait one more night. So can you.”", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "pips_map", "n": "Pip's Treasure Map", "where": "meadow",
+      "blurb": "Pip has drawn a treasure map of the meadow. It is mostly accurate. The dragon is for decoration.",
+      "req": { "chapter": "prologue" }, "start": "a",
+      "nodes": {
+        "a": { "who": "pip", "say": "{name}! I made a treasure map! X marks the spot. I'm almost completely sure.\n\nThe dragon is just for decoration. Probably.",
+          "ch": [
+            { "t": "Follow the map", "go": "fence" },
+            { "t": "Ask about the dragon", "go": "dragon" }
+          ] },
+        "dragon": { "who": "pip", "say": "It's a goose. But if you're small, a goose is basically a dragon.\n\nShe guards the stream crossing. She has opinions.",
+          "ch": [ { "t": "Follow the map", "go": "fence" } ] },
+        "fence": { "say": "Step one, in Pip's best handwriting: TWENTY PACES FROM THE CROOKED FENCE TOWARD THE SUN.\n\nThe sun has moved quite a lot since Pip drew the map.",
+          "ch": [
+            { "t": "Pace it out exactly as written", "go": "wrong" },
+            { "t": "Read the old cart tracks", "go": "tracks", "req": { "skill": { "foraging": 4 } } },
+            { "t": "Let Pip lead the way", "go": "stream" }
+          ] },
+        "wrong": { "say": "Twenty paces toward the sun brings you face to face with a cowpat and a very confused rabbit.\n\nPip consults the map, turns it upside down, and says “Aha!” in a way that inspires no confidence at all.",
+          "ch": [ { "t": "Let Pip lead the way", "go": "stream" } ] },
+        "tracks": { "say": "Old cart ruts run from the crooked fence straight across the meadow, half hidden in the grass. Whoever buried the treasure came this way, and recently enough to leave a dropped spoon.\n\nPip gasps. “A clue!” It is Pip's own spoon.", "give": { "xp": { "foraging": 15 } },
+          "ch": [ { "t": "Follow the ruts", "go": "stream" } ] },
+        "stream": { "say": "The map leads to stepping stones over the meadow stream. On the far bank stands a goose. A large one. She looks at you the way the Mayor looks at an unbalanced budget.\n\nPip whispers: “The dragon.”",
+          "ch": [
+            { "t": "Tiptoe past the goose", "go": "rock", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "honk" },
+            { "t": "Win the goose over with clover", "go": "goose", "cost": { "items": { "clover": 3 } } },
+            { "t": "Wade across further down", "go": "rock", "cost": { "stamina": 4 } }
+          ] },
+        "honk": { "say": "HONK. The goose rises to her full and terrible height, wings out, and comes at you like a feathery steam engine.\n\nPip shrieks with delight.",
+          "ch": [
+            { "t": "Stand tall and flap back", "go": "rock", "roll": { "skill": "foraging", "base": 0.4, "per": 0.03, "max": 0.9 }, "fail": "lose" },
+            { "t": "Run for the hedge", "go": "lose" }
+          ] },
+        "goose": { "say": "The goose eats the clover, inspects you for further clover, and waddles off with enormous dignity.\n\nPip writes on the map, in capitals: DRAGON TAMED.", "give": { "friend": { "pip": 10 } },
+          "ch": [ { "t": "Onward!", "go": "rock" } ] },
+        "rock": { "say": "Past the stream, under a lopsided boulder, someone has scratched a big X. Pip drops to the grass and starts digging with a spoon.\n\nAfter a while, the spoon goes clunk.",
+          "ch": [ { "t": "Dig alongside Pip", "go": "tin" } ] },
+        "tin": { "say": "It's a biscuit tin. Inside is Pip's treasure from last summer: three marbles, a jay feather, and a drawing of Sir Hopsalot. Pip is delighted to see them again.\n\nBut deeper down, under the tin, the spoon finds something older: a little glass jar with a rolled note inside.",
+          "ch": [ { "t": "Read the note", "go": "note" } ] },
+        "note": { "say": "The note is in faded ink, in a quick, slanting hand:\n\nFor the next explorer of Bramblebrook. The best clover in the valley grows by the crooked fence. Pick it in the morning, and say thank you to the goose. W.B.\n\nPip goes very quiet. Then very loud. “A REAL TREASURE!”",
+          "ch": [
+            { "t": "Let Pip keep the note", "go": "win", "give": { "friend": { "pip": 20 } } },
+            { "t": "Pin it up at the farmhouse", "go": "win", "give": { "items": { "clover": 3 } } }
+          ] },
+        "win": { "say": "You walk home through the long grass with Pip chattering about the next map, which will have three dragons and a volcano.\n\nThe meadow seems friendlier somehow. So does the goose. A little.", "end": "win",
+          "give": { "coins": 150, "items": { "clover": 4, "feather": 3, "wildflower": 3 }, "friend": { "pip": 25 }, "xp": { "foraging": 30 } } },
+        "lose": { "say": "You both reach the hedge with the goose hissing behind you, and agree that the treasure can stay buried a little longer.\n\nPip, breathless and thrilled: “Expedition... postponed!”", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "whispering_oak", "n": "The Whispering Oak", "where": "woods",
+      "blurb": "Deep in the Mossy Woods, an old oak is whispering. Gran says it's harmless. Gran also says to bring a scarf.",
+      "req": { "chapter": "prologue", "skill": { "foraging": 3 } }, "start": "a",
+      "nodes": {
+        "a": { "say": "The wood is perfectly still. Not a leaf moves. And yet, from somewhere deeper in, comes a soft, steady whisper: shhhhh... hhhhhh...\n\nIt sounds like someone trying very hard not to wake a baby.",
+          "ch": [
+            { "t": "Follow the whisper", "go": "log" },
+            { "t": "Whisper back", "go": "back" }
+          ] },
+        "back": { "say": "“Hello?” you whisper.\n\n“Shhhhhh,” says the wood.\n\nFair enough.",
+          "ch": [ { "t": "Follow the whisper", "go": "log" } ] },
+        "log": { "say": "The path ends at a ditch full of black water and ferns. A mossy fallen log bridges it. To the right, a wall of brambles hums with bees.\n\nThe whisper is louder on the other side.",
+          "ch": [
+            { "t": "Balance across the log", "go": "oak", "roll": { "skill": "foraging", "base": 0.55, "per": 0.03, "max": 0.95 }, "fail": "ditch" },
+            { "t": "Push through the brambles", "go": "oak", "cost": { "stamina": 5 } }
+          ] },
+        "ditch": { "say": "Halfway across, the moss lets go of your boot. You sit down in the ditch with a splash that sends three frogs and a moorhen running for their lives.\n\nThe whisper carries on, unbothered.",
+          "ch": [
+            { "t": "Climb out and press on", "go": "oak" },
+            { "t": "Squelch home for dry socks", "go": "lose" }
+          ] },
+        "oak": { "say": "In a clearing stands the biggest oak you've ever seen, wide as a cottage and hollow at the heart. Wind you can't feel moves through its knotholes, and the tree breathes: shhhhh.\n\nCarved into the bark, old and healed over: W.B., and an arrow pointing up.",
+          "ch": [
+            { "t": "Climb up to the knotholes", "go": "knots", "req": { "skill": { "foraging": 5 } } },
+            { "t": "Peer into the hollow", "go": "hollow" },
+            { "t": "Leave the tree a gift of acorns", "go": "gift", "cost": { "items": { "acorn": 3 } } }
+          ] },
+        "knots": { "say": "Up in the branches, the knotholes have been carefully notched, each a different size, like the holes of a flute.\n\nWind from the hills makes it whisper. Wind from the sea makes it hum. Someone turned this tree into a weather vane. Someone who liked to know when rain was coming.", "give": { "xp": { "foraging": 20 } },
+          "ch": [ { "t": "Climb back down", "go": "win" } ] },
+        "hollow": { "say": "Inside the hollow it's dark and dry and smells like old books. Something rustles. Two round eyes blink at you from a ledge: a small brown owl, deeply unimpressed.\n\nBelow the owl, half buried in leaves, something glints.",
+          "ch": [
+            { "t": "Reach in, very slowly", "go": "hoard", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "owl" },
+            { "t": "Leave the owl in peace", "go": "win" }
+          ] },
+        "owl": { "say": "The owl says one very loud word in owl, and you fall over backwards into a fern.\n\nBy the time you sit up, the wind has dropped. The whisper has stopped. The oak is just an oak, and the owl has turned its back on you.",
+          "ch": [ { "t": "Try another day", "go": "lose" } ] },
+        "hoard": { "say": "Your fingers close on a squirrel's secret stash: acorns, beech nuts, a button, and a silver thimble with a C engraved on it.\n\nGran's thimble, surely. She'll be thrilled. Or she'll pretend she never lost it.", "give": { "items": { "acorn": 5 }, "friend": { "clem": 15 } },
+          "ch": [ { "t": "Pocket the thimble for Gran", "go": "win" } ] },
+        "gift": { "say": "You set three acorns in a row on a root. For a moment, nothing. Then a squirrel shoots down the trunk, inspects your gift, and chatters up at the canopy.\n\nA little rain of berries and mushrooms tumbles down around you. The whisper sounds a bit like laughter.", "give": { "items": { "berries": 3, "mushroom": 3 } },
+          "ch": [ { "t": "Say thank you", "go": "win" } ] },
+        "win": { "say": "You walk home with the whisper following you a little way through the trees, like a friend seeing you to the gate.\n\nThat evening the wind turns, just as the tree said it would, and a soft, steady rain falls right on your crops.", "end": "win",
+          "give": { "coins": 200, "items": { "acorn": 3, "sap": 2 }, "buff": "greenthumb", "xp": { "foraging": 40 } } },
+        "lose": { "say": "You head home with leaves in your hair and moss on your knees. The oak keeps its secret for today.\n\nIt will still be whispering tomorrow. Old oaks are very patient.", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "river_ghost", "n": "Tobin's River Ghost", "where": "banks",
+      "blurb": "Something tall and grey haunts Old Tobin's boot garden at dawn. Tobin says it's a ghost. Tobin says a lot of things.",
+      "req": { "chapter": "bridge" }, "start": "a",
+      "nodes": {
+        "a": { "who": "tobin", "say": "Ghost in my boot garden.\n\nTall. Grey. Comes at dawn. Stands in my boots. Doesn't blink. Scared every frog out of the mint.",
+          "ch": [
+            { "t": "Keep watch at dawn", "go": "dawn" },
+            { "t": "Ask Tobin for the whole story", "go": "tale" }
+          ] },
+        "tale": { "who": "tobin", "say": "Ferryman before me lost his boots in this river. Sixty years back. Not himself. Just the boots.\n\nBeen looking for 'em ever since, they say. Comes up at dawn to check mine.",
+          "ch": [ { "t": "Keep watch at dawn", "go": "dawn" } ] },
+        "dawn": { "say": "Dawn on Willow River. Mist hangs on the water like breath on a window. Tobin's boot garden runs along the bank: thirty old boots, each one sprouting mint or chives or marigolds.\n\nAnd there among them, perfectly still, stands something tall and grey.",
+          "ch": [
+            { "t": "Creep closer through the reeds", "go": "heron", "roll": { "skill": "foraging", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "splash" },
+            { "t": "Read the ripples", "go": "ripples", "req": { "skill": { "fishing": 6 } } },
+            { "t": "Wait very, very still", "go": "wait" }
+          ] },
+        "wait": { "say": "You wait. The mist waits. Your nose itches. A dragonfly lands on it, and also waits.\n\nAt last the grey shape takes one slow step, and the mist thins around it.",
+          "ch": [ { "t": "Look closer", "go": "heron" } ] },
+        "ripples": { "say": "The ripples in the shallows are tiny and tidy. Something long-legged is wading there, watching for frogs. No ghost leaves ripples like that.\n\nYou'd know that patient, fishy stillness anywhere. You've practised it yourself.", "give": { "xp": { "fishing": 20 } },
+          "ch": [ { "t": "Look closer", "go": "heron" } ] },
+        "splash": { "say": "A reed you were sure was solid turns out to be mostly river. In you go, with a splash that echoes off both banks.\n\nThe grey shape lifts on enormous wings and vanishes into the mist.",
+          "ch": [
+            { "t": "Wait, dripping, for it to return", "go": "wait" },
+            { "t": "Squelch home to dry off", "go": "lose" }
+          ] },
+        "heron": { "say": "It's a heron. A grand old grey heron, standing in a big old fisherman's boot like it pays rent.\n\nIt turns one yellow eye on you, then goes back to staring at the water, where several frogs are pretending very hard to be stones.",
+          "ch": [
+            { "t": "Shoo it away gently", "go": "shoo" },
+            { "t": "Offer it some fish instead", "go": "deal", "cost": { "items": { "minnow": 2 } } },
+            { "t": "Fetch Tobin to see", "go": "truth" }
+          ] },
+        "shoo": { "say": "You wave your arms. The heron looks at your arms. Then it flaps, lazily, all the way to the next boot along.\n\nThis could take all morning.",
+          "ch": [
+            { "t": "Offer it some fish instead", "go": "deal", "cost": { "items": { "minnow": 2 } } },
+            { "t": "Fetch Tobin to see", "go": "truth" }
+          ] },
+        "deal": { "say": "You toss two minnows onto the bank. The heron considers them, swallows them with great ceremony, and settles onto a fence post to think it over.\n\nThe frogs creep back into their boots. A treaty has been signed.", "give": { "friend": { "tobin": 10 } },
+          "ch": [ { "t": "Fetch Tobin to see", "go": "truth" } ] },
+        "truth": { "say": "Tobin squints at the heron for a very long time. The heron squints back.\n\n“Heron,” he says at last. A longer pause. “Ghost of a heron, maybe.” He names it Old Grey, and decides it should have a boot of its own. A big one. With a perch.",
+          "ch": [ { "t": "Help plant Old Grey's boot", "go": "win" } ] },
+        "win": { "say": "By breakfast Old Grey has its own boot by the bridge, and the frogs have all the rest. Tobin is very pleased with the arrangement.\n\nHe hands you a boot of your own, with great ceremony. It is the highest honour he knows.", "end": "win",
+          "give": { "coins": 350, "items": { "boot": 1, "trout": 2, "reed": 4, "worm": 6 }, "friend": { "tobin": 40 }, "xp": { "fishing": 50 } } },
+        "lose": { "say": "You squelch home with river in both boots and a reed behind your ear.\n\nTobin calls after you: “Ghosts don't like an audience. Try again.”", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "quarry_echoes", "n": "Echoes in the Quarry", "where": "quarry",
+      "blurb": "Pip swears the Old Quarry talks back, and says things nobody shouted. Mira thinks it's a draft. Mira is wrong.",
+      "req": { "chapter": "bridge", "skill": { "foraging": 5 } }, "start": "a",
+      "nodes": {
+        "a": { "who": "pip", "say": "The quarry talks back! I shouted HELLO, and it said HELLO, and then it said MIND THE STEP!\n\nI didn't say mind the step. I never say mind the step. I never mind the step.",
+          "ch": [
+            { "t": "Go and see for yourself", "go": "shout" },
+            { "t": "Ask what Mira thinks", "go": "mira" }
+          ] },
+        "mira": { "who": "mira", "say": "A talking quarry. Sure. It's a draft through a crack, Pip.\n\nFine, I'll come. I need coal anyway. If it's a ghost, I'm charging it rent.",
+          "ch": [ { "t": "To the quarry", "go": "shout" } ] },
+        "shout": { "say": "The quarry is a great stone bowl of ledges and old cuts. Mira, who came along for coal and sarcasm, folds her arms. You cup your hands and shout HELLO.\n\nHELLO... hello... hello... And then, from high on the cliff, clear as anything: “MIND THE STEP.”\n\nPip grabs your sleeve, delighted and terrified.",
+          "ch": [
+            { "t": "Climb toward the voice", "go": "ledge", "roll": { "skill": "foraging", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "scree" },
+            { "t": "Take the long path round", "go": "ledge", "cost": { "stamina": 6 } },
+            { "t": "Rope down from the top", "go": "ledge", "req": { "items": { "rope": 1 } } }
+          ] },
+        "scree": { "say": "Halfway up, the loose stone decides it would rather be at the bottom. So, briefly, do you.\n\nYou slide down in a cloud of dust and land on your seat next to Pip, who writes in a notebook: THE QUARRY 1, US 0.",
+          "ch": [
+            { "t": "Take the long path round", "go": "ledge", "cost": { "stamina": 6 } },
+            { "t": "Call it a day", "go": "lose" }
+          ] },
+        "ledge": { "say": "On a ledge high up the cliff, among tufts of grass and old chalk marks, sits a raven. A big, ragged, ancient raven, with a grey beard of feathers at its throat.\n\nIt tilts its head, looks right at you, and says in a gruff old man's voice: “MIND THE STEP, MIRA.”\n\nMira goes very still.",
+          "ch": [
+            { "t": "Offer it something shiny", "go": "shiny", "cost": { "items": { "copper": 1 } } },
+            { "t": "Let Mira talk to it", "go": "mira_talk" },
+            { "t": "Shout HELLO right back", "go": "startle" }
+          ] },
+        "shiny": { "say": "You hold up a lump of copper ore. The raven's eyes go bright. It hops down, takes the copper with great delicacy, and drops something in your palm in exchange.\n\nIt's a small purple stone, rough and glittering. A fair trade, by raven standards.", "give": { "items": { "amethyst": 1 } },
+          "ch": [ { "t": "Let Mira talk to it", "go": "mira_talk" } ] },
+        "mira_talk": { "who": "mira", "say": "Hello, old thing. You remember him, don't you.\n\nMy grandfather fed a raven. Every lunchtime, on this ledge, for twenty years. Grandmother said he was soft. He said the raven was the only one who listened.",
+          "ch": [ { "t": "Watch quietly", "go": "seam" } ] },
+        "seam": { "say": "The raven hops along the ledge to a crack in the rock, taps it twice with its beak, and looks at Mira as if to say: well?\n\nBehind a curtain of grass is a seam of coal black as a cat, with old chalk letters above it: BEST COAL. DON'T TELL. Mira laughs, wipes her eyes, and laughs again.",
+          "ch": [ { "t": "Help Mira fill her sacks", "go": "win" } ] },
+        "startle": { "say": "HELLO, you shout. The raven gives you a look of the deepest disappointment, spreads its ragged wings, and sails away over the quarry rim.\n\nMira sighs. “Well. That went about as well as most of my conversations.”",
+          "ch": [ { "t": "Head home", "go": "lose" } ] },
+        "win": { "say": "You come down the cliff with sacks of the best coal in the valley. The raven rides on Mira's shoulder all the way, muttering MIND THE STEP at every step.\n\n“Grandad's forge is going to sing,” Mira says. She doesn't say thank you. She doesn't need to.", "end": "win",
+          "give": { "coins": 450, "items": { "coal": 6, "copper": 4, "fossil": 1 }, "friend": { "mira": 40, "pip": 15 }, "xp": { "foraging": 50 } } },
+        "lose": { "say": "You head home dusty, with gravel in your boots and the quarry's echo following you down the lane.\n\nPip is already planning the next expedition. “We'll bring snacks. Ravens love snacks. Probably.”", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "flooded_gallery", "n": "The Flooded Gallery", "where": "mine",
+      "blurb": "Mira has found a door in the mine that nobody has opened since the flood. She promises it's only ankle-deep. Mira's promises are approximate.",
+      "req": { "chapter": "mine" }, "start": "a",
+      "nodes": {
+        "a": { "who": "mira", "say": "Found a door on the sixth floor nobody's opened since the flood. Want to get wet?\n\nAnkle wet. Knee wet at most. Not hat wet, I promise.",
+          "ch": [
+            { "t": "Always", "go": "door" },
+            { "t": "Define “hat wet”", "go": "define" }
+          ] },
+        "define": { "who": "mira", "say": "Hat wet is when the water's over your hat. It won't be. Probably.\n\nBring a towel. Bring two. One's for me.",
+          "ch": [ { "t": "Lead the way", "go": "door" } ] },
+        "door": { "say": "The door is oak, swollen with old water and banded with iron. Painted on it, long ago: GALLERY 6. PUMP INSIDE. KEEP SHUT IN STORMS.\n\nMira raps it with her knuckles. “Stuck tight. Old wood swells.”",
+          "ch": [
+            { "t": "Shoulder it open", "go": "gallery", "roll": { "skill": "mining", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "bounce" },
+            { "t": "Ease the hinges with tree sap", "go": "gallery", "cost": { "items": { "sap": 2 } } },
+            { "t": "Help Mira lever it slowly", "go": "gallery", "cost": { "stamina": 6 } }
+          ] },
+        "bounce": { "say": "You hit the door. The door does not notice. You bounce off and sit down in a puddle.\n\nMira chalks on the door: DOOR 1, US 0. “Again? Or my way?”",
+          "ch": [ { "t": "Back to the door", "go": "door" } ] },
+        "gallery": { "say": "The door groans open. Beyond is a long tunnel full of still black water. Somewhere in the dark, a drip keeps time like a clock.\n\nAt the far end, deep under the water, something glows faintly blue.",
+          "ch": [
+            { "t": "Light a lantern", "go": "lit", "req": { "items": { "lantern": 1 } } },
+            { "t": "Wade in by feel", "go": "pump", "roll": { "skill": "mining", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "dunk" }
+          ] },
+        "lit": { "say": "Lantern light spills across the water and the whole gallery wakes up. The walls are studded with sky crystal, and glowcaps grow in the cracks like tiny blue moons.\n\nYou ease a crystal from the wall on your way to the old pump. Mira whistles.", "give": { "items": { "crystal": 1 } },
+          "ch": [ { "t": "Wade to the pump", "go": "pump" } ] },
+        "dunk": { "say": "You step confidently into a hole that wasn't there a moment ago. The water closes over your head with a cold, polite gulp.\n\nYou come up spluttering. Mira, dry to the knees, says: “I lied about the hat.”",
+          "ch": [
+            { "t": "Squelch onward", "go": "pump" },
+            { "t": "Call it a day", "go": "lose" }
+          ] },
+        "pump": { "say": "The old hand pump stands on a ledge, rusted, with a long iron handle. A pipe runs from it up into the rock, toward the river.\n\n“Get that going,” Mira says, “and we drain the whole gallery. If it doesn't fall apart first.”",
+          "ch": [
+            { "t": "Pump with all your might", "go": "drained", "roll": { "skill": "mining", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "stuck" },
+            { "t": "Mend it with nails", "go": "drained", "cost": { "items": { "nails": 5 } } },
+            { "t": "Take turns with Mira", "go": "turns" }
+          ] },
+        "stuck": { "say": "The handle moves an inch, then locks solid with a sound like a giant clearing its throat.\n\nMira peers at it. “Rust. Rust and spite.”",
+          "ch": [
+            { "t": "Take turns with Mira", "go": "turns" },
+            { "t": "Mend it with nails", "go": "drained", "cost": { "items": { "nails": 5 } } }
+          ] },
+        "turns": { "say": "Pump, pass. Pump, pass. Mira hums an old forge song to keep time, and after a while you hum it too.\n\nIt takes nearly an hour. But slowly, slowly, the water starts to drop.",
+          "ch": [ { "t": "Keep pumping", "go": "drained" } ] },
+        "drained": { "say": "With a last gurgle, the water slides away down the pipe. The gallery floor is carpeted with glowcaps and glittering silver ore.\n\nOn a high shelf, safe and dry, sits a dented lunch tin. Inside is a note: Back after the storm. Save me a crust. Abel.",
+          "ch": [ { "t": "Show Mira the note", "go": "abel" } ] },
+        "abel": { "who": "mira", "say": "Abel Ashgrove. Grandad's brother. He made it out the night of the flood, you know. Lived to ninety-one. Never came down here again.\n\nI'll take this to his old house. Somebody should finally save him a crust.",
+          "ch": [ { "t": "Fill your pack and head up", "go": "win" } ] },
+        "win": { "say": "You climb back to the lift with pockets full of crystal and silver, and Abel's lunch tin under Mira's arm. Behind you the gallery stays drained, glowing softly.\n\n“Not bad,” Mira says, wringing out a sock. “Next time I'm bringing a boat anyway.”", "end": "win",
+          "give": { "coins": 700, "items": { "crystal": 2, "glowcap": 3, "silver": 4 }, "friend": { "mira": 40 }, "xp": { "mining": 80 } } },
+        "lose": { "say": "You retreat up the tunnel, dripping, while the water settles back into its old black stillness.\n\nMira wrings out her hat. “Same time tomorrow? I'll bring a better plan. And a boat. Mostly the boat.”", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "saffis_wheel", "n": "Saffi's Broken Wheel", "where": "woods",
+      "blurb": "Saffi's painted cart has lost a wheel in the woods, and her donkey has sat down in protest. There may be a bargain in it.",
+      "req": { "chapter": "fair" }, "start": "a",
+      "nodes": {
+        "a": { "say": "In the lane through the Mossy Woods, Saffi's painted cart leans at a sad angle. One wheel lies in the ferns. Her donkey, Parsnip, has sat down in the road like a furry boulder.\n\n“A rescuer!” cries Saffi. “Mend my wheel, move my donkey, and I'll pay you in coin, curiosities or a story. Practically robbery. Of me.”",
+          "ch": [ { "t": "Look at the wheel", "go": "wheel" } ] },
+        "wheel": { "say": "Two spokes have snapped clean off and the rim is cracked. The rest is sound, painted with little blue fish that swim round and round as it turns.\n\n“Forty years that wheel's been rolling,” Saffi says. “It deserves a rest. Just not here.”",
+          "ch": [
+            { "t": "Splint it with planks", "go": "fixed", "cost": { "items": { "plank": 3 } } },
+            { "t": "Mend it properly", "go": "fixed_well", "req": { "skill": { "crafting": 8 } } },
+            { "t": "Run and fetch Mira", "go": "mira" }
+          ] },
+        "mira": { "say": "Mira comes stomping up the lane with a toolbag, grumbling about people who drive carts into woods.\n\nShe fixes the wheel in twenty minutes, then spends ten more admiring the painted fish. “Who did these? They're good.” Saffi beams.", "give": { "friend": { "mira": 10 } },
+          "ch": [ { "t": "Now, the donkey", "go": "donkey" } ] },
+        "fixed": { "say": "You lash three planks across the broken spokes with twine and a great deal of hope. It isn't pretty. It turns.\n\n“Beautiful,” says Saffi, who clearly means it. “Like a scar with a story.”",
+          "ch": [ { "t": "Now, the donkey", "go": "donkey" } ] },
+        "fixed_well": { "say": "You whittle two new spokes from a fallen branch, fit them snug, and bind the rim tight. When you spin the wheel, the painted fish swim smooth as river water.\n\nSaffi claps. “A craftsperson! I'll tell everyone. I'll charge them for the telling, but I'll tell them.”", "give": { "xp": { "crafting": 30 } },
+          "ch": [ { "t": "Now, the donkey", "go": "donkey" } ] },
+        "donkey": { "say": "Parsnip the donkey has not moved. Parsnip has no plans to move. Parsnip looks at you the way a cat looks at a bath.\n\n“She does this,” says Saffi. “Usually for about a week.”",
+          "ch": [
+            { "t": "Coax Parsnip with carrots", "go": "up", "cost": { "items": { "carrot": 3 } } },
+            { "t": "Push from behind", "go": "up", "roll": { "skill": "farming", "base": 0.35, "per": 0.02, "max": 0.85 }, "fail": "sat" },
+            { "t": "Sing to Parsnip", "go": "sing" }
+          ] },
+        "sing": { "say": "You sing the only song you know all the words to. Parsnip's ears swivel. One eye opens. On the second verse she sighs enormously and gets up, mostly so you'll stop.\n\nSaffi wipes away a tear. “Never heard it sung so badly. Beautiful.”",
+          "ch": [ { "t": "Take a bow", "go": "bargain" } ] },
+        "sat": { "say": "You push. Parsnip leans back. Very slowly, with great dignity, Parsnip sits on your foot.\n\nSaffi shakes her head. “Deal's off until she's in a better mood. Perhaps Tuesday. Perhaps next year.”",
+          "ch": [
+            { "t": "Wriggle free and try again", "go": "donkey" },
+            { "t": "Give up for today", "go": "lose" }
+          ] },
+        "up": { "say": "Parsnip rises like a hill getting up, shakes herself, and trots to the cart shafts as if this were her idea all along.\n\nSaffi throws her arms around the donkey's neck. “My hero. Not you. Well. Also you.”",
+          "ch": [ { "t": "Ask about payment", "go": "bargain" } ] },
+        "bargain": { "say": "Saffi hitches Parsnip to the cart and turns to you, rubbing her hands together.\n\n“Now. Payment. Coin, curiosities, or a story?”",
+          "ch": [
+            { "t": "Coin, please", "go": "win", "give": { "coins": 300 } },
+            { "t": "Curiosities!", "go": "curios" },
+            { "t": "A story", "go": "tale" }
+          ] },
+        "curios": { "say": "Saffi rummages in the cart and comes up with an armful of oddments: shiny lures that wink like fish, a jar of glowing grubs, and two bottles of something green.\n\n“Grow tonic,” she says. “Or hair tonic. One of the two.”", "give": { "items": { "lure": 2, "glowbait": 3, "tonic": 2 } },
+          "ch": [ { "t": "Thank Saffi", "go": "win" } ] },
+        "tale": { "say": "Saffi leans close. “High up the valley, past the old rockslide, they say someone has watched the sky for years. Writes it all down. Never comes to town.”\n\n“A shepherd buys her ink, a gallon at a time. Isn't that the most interesting thing you've ever heard?”", "give": { "buff": "lucky" },
+          "ch": [ { "t": "“It really is.”", "go": "win" } ] },
+        "win": { "say": "The painted cart rolls away down the lane, wheel squeaking, Parsnip trotting, and Saffi singing your terrible song at the top of her voice.\n\n“Remember Saffi!” she calls back. “Everyone does, eventually!”", "end": "win",
+          "give": { "coins": 800, "xp": { "crafting": 60 } } },
+        "lose": { "say": "You leave Saffi reading a book on the cart step, and Parsnip asleep in the middle of the road.\n\n“Come back when she's in the mood!” Saffi calls. “Or bring carrots. Carrots are a mood.”", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "smugglers_cave", "n": "The Smugglers' Cave", "where": "cove",
+      "blurb": "Pip has seen lanterns in the sea cave and someone rolling a barrel at low tide. Smugglers! Probably. Almost certainly not.",
+      "req": { "chapter": "lighthouse" }, "start": "a",
+      "nodes": {
+        "a": { "who": "pip", "say": "SMUGGLERS. In the cove. I saw lanterns in the sea cave at low tide, and somebody rolling a BARREL.\n\nWe have to investigate. I've packed. I packed a sandwich and a whistle and a spare sandwich.",
+          "ch": [
+            { "t": "Investigate at low tide", "go": "rocks" },
+            { "t": "Ask Captain Rook first", "go": "rook", "req": { "flag": "met_rook" } }
+          ] },
+        "rook": { "who": "rook", "say": "Smugglers. In my cove. Hm.\n\nThe only thing smuggled round here is pie. Bring a basket. And don't tell the young one I said so.", "give": { "friend": { "rook": 10 } },
+          "ch": [ { "t": "Head for the cave", "go": "rocks" } ] },
+        "rocks": { "say": "Low tide. The cove is all wet black rock, weed and pools. At the far end, the mouth of the sea cave glows with warm lantern light.\n\nPip lies flat on the sand with a spyglass made from a rolled-up map and whispers: “Movement.”",
+          "ch": [
+            { "t": "Scramble over the rocks", "go": "cave", "roll": { "skill": "foraging", "base": 0.5, "per": 0.025, "max": 0.95 }, "fail": "wave" },
+            { "t": "Wade the long way round", "go": "cave", "cost": { "stamina": 6 } },
+            { "t": "Row in with Tobin's dinghy", "go": "boat", "req": { "skill": { "fishing": 10 } } }
+          ] },
+        "wave": { "say": "A wave you didn't see coming arrives with tremendous enthusiasm. You and Pip are soaked from hat to boots.\n\nPip, dripping, is thrilled. “The sea's on the smugglers' side!”",
+          "ch": [
+            { "t": "Try the rocks again", "go": "rocks" },
+            { "t": "Go home and dry off", "go": "lose" }
+          ] },
+        "boat": { "say": "Tobin's dinghy is tied at the jetty with a note: BORROW IT. BRING IT BACK. YES, YOU. You row in quietly on the tide, oars barely dipping.\n\nPip lies in the bow with the map-spyglass, narrating everything in a whisper.", "give": { "xp": { "fishing": 20 } },
+          "ch": [ { "t": "Glide into the cave", "go": "cave" } ] },
+        "cave": { "say": "The sea cave is huge, and dry at the back. Barrels. Crates. Lanterns hung on hooks. Voices around a bend in the rock.\n\n“Did you bring the crab?” says one. “I brought two,” says another. Pip mouths: CODE WORDS.",
+          "ch": [
+            { "t": "Sneak closer to listen", "go": "listen", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "sneeze" },
+            { "t": "Stride in boldly", "go": "reveal" }
+          ] },
+        "listen": { "say": "You creep along the wall until you can hear every word.\n\n“Seventeen sandwiches. Ledger counted.” “And my pie.” “Lemonade's in the barrels. Mostly.” “Same as every midsummer before the bell went quiet.”\n\nThose voices are very, very familiar.",
+          "ch": [ { "t": "Step round the corner", "go": "reveal" } ] },
+        "sneeze": { "say": "Pip sneezes. It is the loudest sneeze in the history of sneezing, and it echoes round the cave four times.\n\nThe voices stop. Footsteps. A lantern swings round the corner.",
+          "ch": [ { "t": "Stand your ground", "go": "reveal" } ] },
+        "reveal": { "say": "It's Hazel, holding a tray of sandwiches. Behind her: Gran with a pie, Tobin with a crab pot, the Mayor with a clipboard, and Captain Rook rolling a barrel.\n\n“Oh!” says Hazel. “Surprise! It's the Cove Picnic! We were going to invite you. We just hadn't got to the inviting part.”",
+          "ch": [
+            { "t": "Join the picnic", "go": "picnic" },
+            { "t": "Add some crab to the feast", "go": "share", "cost": { "items": { "crab": 2 } } }
+          ] },
+        "share": { "say": "You add your crabs to Tobin's pot. Tobin nods at you with deep, wordless respect. Gran sets a plate aside for you before anyone else.\n\nPip announces that, as chief investigator, the case is now officially solved.", "give": { "friend": { "tobin": 15, "clem": 15 } },
+          "ch": [ { "t": "Sit down to eat", "go": "picnic" } ] },
+        "picnic": { "say": "The Cove Picnic was a valley tradition, Gran explains: midsummer, low tide, lanterns and lemonade in the sea cave. Nobody had the heart for it after the bell went quiet.\n\nRook recites a poem about the tide that makes Hazel cry into a sandwich. Tobin describes a crab the size of a door. Pip falls asleep on a sack of shells.",
+          "ch": [ { "t": "Stay until the tide turns", "go": "win" } ] },
+        "win": { "say": "When the tide turns, everyone wades out together, lanterns held high. Rook walks last, and you hear him say quietly, to nobody in particular: “Good. That's good.”\n\nThe Cove Picnic is back. Hazel has already written next year's date in the ledger.", "end": "win",
+          "give": { "coins": 1200, "items": { "starfish": 2, "seaglass": 2, "oyster": 1 }, "friend": { "rook": 30, "hazel": 20, "pip": 20, "oakley": 15 }, "xp": { "foraging": 100 } } },
+        "lose": { "say": "You wring out your socks on the beach while the lanterns in the cave glow on without you.\n\nPip refuses to give up. “Smugglers always come back. That's the first rule of smuggling. I think.”", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "lost_lamb", "n": "Ingrid's Lost Lamb", "where": "highlands",
+      "blurb": "The wind is rising, and Ingrid's smallest lamb has wandered toward the tarn cliffs. Ingrid doesn't ask for help often.",
+      "req": { "chapter": "highlands" }, "start": "a",
+      "nodes": {
+        "a": { "who": "ingrid", "say": "Small Biscuit's gone. Smallest lamb.\n\nWind's rising. I'd not ask. But I'm asking.",
+          "ch": [
+            { "t": "Search the heather", "go": "heather" },
+            { "t": "Check the tarn shore", "go": "shore" }
+          ] },
+        "heather": { "say": "The heather is waist-deep and full of wind. Here and there a white tuft of wool clings to the gorse, as if someone had left a trail of tiny clouds.\n\nHigh above, an eagle hangs in the air, watching too.",
+          "ch": [
+            { "t": "Follow the wool tufts", "go": "ledge", "req": { "skill": { "foraging": 14 } } },
+            { "t": "Call out for Small Biscuit", "go": "call" }
+          ] },
+        "call": { "say": "“Small Biscuit!” The wind steals the words and throws them away. So you stop shouting, stand very still, and listen.\n\nFrom somewhere below the edge of the hill comes one small, cross baa.",
+          "ch": [ { "t": "Follow the baa", "go": "ledge" } ] },
+        "shore": { "say": "The tarn is grey and choppy, slapping at the stones. In the mud at its edge are small, neat hoofprints, heading for the cliffs where the hill drops into the water.\n\nIngrid's dog whines and runs ahead.",
+          "ch": [ { "t": "Follow the dog", "go": "ledge" } ] },
+        "ledge": { "say": "There she is. Small Biscuit stands on a ledge a little way down the cliff, above the dark tarn, bleating with great indignation. She is very small, very fluffy, and has clearly made a mistake.\n\nIngrid arrives, breathing hard. “Can't reach. Too narrow for me.”",
+          "ch": [
+            { "t": "Climb down to the lamb", "go": "got", "roll": { "skill": "foraging", "base": 0.45, "per": 0.02, "max": 0.95 }, "fail": "slip" },
+            { "t": "Lower a rope with a loop", "go": "rope", "cost": { "items": { "rope": 1 } } },
+            { "t": "Tempt the lamb up with thyme", "go": "tempt", "cost": { "items": { "thyme": 3 } } }
+          ] },
+        "slip": { "say": "Your boot slides on wet rock. You grab a fistful of heather and hang there, nose to nose with a very surprised lamb.\n\nAbove you, Ingrid says one word, very calmly: “Rope.”",
+          "ch": [
+            { "t": "Grab Ingrid's rope", "go": "hauled" },
+            { "t": "Scramble back up alone", "go": "lose" }
+          ] },
+        "hauled": { "say": "Ingrid's rope drops beside you. You loop it round yourself and the lamb, and Ingrid hauls you both up, hand over hand, without a word.\n\nHer arms are a good deal stronger than they look.",
+          "ch": [ { "t": "Hand the lamb over", "go": "got" } ] },
+        "rope": { "say": "You tie a loop, lower it gently, and talk to Small Biscuit in your calmest voice while you work it round her middle.\n\nSmall Biscuit complains the whole way up, but up she comes, dangling like a cross little cloud.",
+          "ch": [ { "t": "Carry the lamb to Ingrid", "go": "got" } ] },
+        "tempt": { "say": "You scatter a trail of thyme along a crack in the rock. Small Biscuit sniffs. Considers. Then she picks her way up, munching every step, as if climbing had been her idea all along.",
+          "ch": [ { "t": "Scoop the lamb up", "go": "got" } ] },
+        "got": { "say": "Ingrid takes Small Biscuit in both arms and presses her face into the wool for a long moment. When she looks up, her eyes are bright.\n\n“Thank you, Bramble.” Then, after a pause, more words than you've ever heard her say at once: “Valley's lucky to have you. More than you know.”",
+          "ch": [ { "t": "Walk them home", "go": "win" } ] },
+        "win": { "say": "You walk back to the hut with Small Biscuit fast asleep in Ingrid's arms. The wind drops, as if it's a little embarrassed.\n\nIngrid makes tea, gives you the good mug, and sends you home with a bundle that's heavier than it looks.", "end": "win",
+          "give": { "coins": 1800, "items": { "wool": 6, "eaglefeather": 2, "oldcoin": 1 }, "friend": { "ingrid": 50 }, "xp": { "foraging": 120 } } },
+        "lose": { "say": "You haul yourself back over the edge. Ingrid is already climbing down, slow and sure, and she brings Small Biscuit up on her shoulders.\n\n“Next time,” she says. It isn't unkind. She gives you a mug of tea anyway.", "end": "lose" }
+      }
+    },
+
+    {
+      "id": "falling_stars", "n": "Night of Falling Stars", "where": "farm",
+      "blurb": "Wren says the Lantern Shower peaks tonight, and she hasn't watched it from the valley in eight years. Bring a blanket.",
+      "req": { "chapter": "bell" }, "start": "a",
+      "nodes": {
+        "a": { "who": "wren", "say": "{name}! The Lantern Shower peaks tonight. I haven't seen it from the valley in eight years.\n\nBring a blanket. Bring two. I'm old and I feel the cold, and I refuse to discuss it.",
+          "ch": [
+            { "t": "Fetch the blankets", "go": "hill" },
+            { "t": "“What's a Lantern Shower?”", "go": "what" }
+          ] },
+        "what": { "who": "wren", "say": "Falling stars. Hundreds of them. The valley calls them lanterns, because it looks like somebody up there keeps dropping theirs.\n\nWhen I was small I thought it was my mother, looking for her spectacles.",
+          "ch": [ { "t": "Fetch the blankets", "go": "hill" } ] },
+        "hill": { "say": "You spread the blankets on the hill above the farm. Down in town, the Bell hums faintly in the breeze. Wren settles in with a flask and a pencil behind her ear.\n\nThe sky is enormous, and very, very dark.",
+          "ch": [
+            { "t": "Set up the brass telescope", "go": "scope", "req": { "items": { "telescope": 1 } } },
+            { "t": "Lie back and just look", "go": "look" },
+            { "t": "Brew a pot of Forest Tea", "go": "tea", "cost": { "items": { "tea": 1 } } }
+          ] },
+        "tea": { "say": "Wren wraps her inky fingers round the mug and sighs. “Fern and honey. You've been reading my recipes.”\n\n“Don't answer that. Of course you have. Good.”", "give": { "friend": { "wren": 15 } },
+          "ch": [ { "t": "Watch the sky", "go": "look" } ] },
+        "scope": { "say": "Through the telescope, the observatory dome shows on the far ridge, a tiny dark bump. Beside it, a lamp burns in Ingrid's hut window.\n\n“She's watching too,” Wren says. “We made a pact. Every shower, we both look up.”", "give": { "friend": { "ingrid": 10 } },
+          "ch": [ { "t": "Watch the sky", "go": "look" } ] },
+        "look": { "say": "The first star falls, then another, then dozens, streaking silver over the hills.\n\nWren names the constellations as they rise. “The Rake. The Grumpy Goat. And there's the Watering Can, which is yours, so stop looking surprised. I named them all myself. Don't tell the astronomers.”",
+          "ch": [ { "t": "Keep watching", "go": "big" } ] },
+        "big": { "say": "Then a big one: slow and green-gold, trailing sparks. It falls and falls, right over the farm, and with a soft hiss it lands somewhere in the bottom field.\n\nWren sits bolt upright. “Did you see that? That landed. That actually landed!”",
+          "ch": [
+            { "t": "Run and find where it fell", "go": "found", "roll": { "skill": "foraging", "base": 0.5, "per": 0.02, "max": 0.95 }, "fail": "dark" },
+            { "t": "Let Wren track it on her chart", "go": "track" }
+          ] },
+        "dark": { "say": "You sprint into the bottom field and immediately lose all sense of direction. Every patch of grass looks the same. Somewhere, a hedgehog is offended by your boots.\n\nBehind you, Wren is shouting directions, most of them contradictory.",
+          "ch": [
+            { "t": "Go back and use Wren's chart", "go": "track" },
+            { "t": "Keep searching on your own", "go": "lose" }
+          ] },
+        "track": { "say": "Wren scribbles on her chart: angle, speed, the line of the hedge. “Thirty paces past the scarecrow. Left a bit. No, my left.”\n\nShe takes your arm, and you walk out into the field together, slowly, counting.",
+          "ch": [ { "t": "Count the paces", "go": "found" } ] },
+        "found": { "say": "There, in the strawberry bed, a small stone sits glowing in a little dent in the soil, still warm as fresh bread. It shimmers, silver and gold.\n\nWren kneels beside it. “Star-iron,” she whispers. “Like the Bell. Like the clapper you made.”",
+          "ch": [ { "t": "Pick it up", "go": "sit" } ] },
+        "sit": { "who": "wren", "say": "Keep it. Don't plant it. Rocks don't grow, I've tried.\n\nI'll tell you something, {name}. Eight showers I watched from that hill, counting them on my own. Ingrid came up for one and fell asleep at nine.\n\nTonight I had somebody to nudge. That's all. That's the whole thing. Pass the flask.",
+          "ch": [ { "t": "Pass the flask", "go": "win" } ] },
+        "win": { "say": "You lie back on the blankets with Wren and watch the sky rain lanterns until the east turns pale. At some point she falls asleep mid-sentence, pencil still in hand.\n\nIn your pocket, the star shard stays warm all night.", "end": "win",
+          "give": { "coins": 3000, "items": { "starshard": 1, "crystal": 3 }, "friend": { "wren": 60 }, "buff": "lucky", "xp": { "farming": 200 } } },
+        "lose": { "say": "You search until your lantern gutters out, and find one very offended hedgehog and a sock you lost in spring.\n\nWren shrugs when you trudge back. “Stars are like cats. They turn up when they please. Another clear night, then.”", "end": "lose" }
+      }
+    }
+  ],
+
+  "encounters": [
+    {
+      "id": "lost_hen", "where": ["meadow"], "weight": 10, "once": false, "req": { "chapter": "prologue" }, "start": "a",
+      "nodes": {
+        "a": { "say": "A plump brown hen is standing in the long grass, looking deeply offended by the whole meadow. A ribbon on her leg reads: DUCHESS. PROPERTY OF C.",
+          "ch": [
+            { "t": "Scoop her up", "go": "home", "roll": { "skill": "foraging", "base": 0.55, "per": 0.03, "max": 0.95 }, "fail": "flap" },
+            { "t": "Tempt her with a worm", "go": "home", "cost": { "items": { "worm": 1 } } }
+          ] },
+        "home": { "who": "clem", "say": "Duchess! You absolute menace. Third time this week.\n\nThank you, dear. Here, take a couple of her eggs. She owes you.", "end": "win",
+          "give": { "coins": 15, "items": { "egg": 2 }, "friend": { "clem": 15 } } },
+        "flap": { "say": "Duchess explodes into a storm of feathers and stalks off toward town on her own, muttering.\n\nYou're left holding three feathers and most of your dignity.", "end": "win",
+          "give": { "items": { "feather": 3 } } }
+      }
+    },
+    {
+      "id": "sock_fox", "where": ["woods"], "weight": 8, "once": false, "req": {}, "start": "a",
+      "nodes": {
+        "a": { "say": "A fox trots across the path with something in its mouth: a long, striped, extremely official-looking sock.\n\nIt stops and looks at you, as if deciding whether you're going to be a problem.",
+          "ch": [
+            { "t": "Follow the fox", "go": "den" },
+            { "t": "Let it keep its prize", "go": "letgo" }
+          ] },
+        "den": { "say": "The fox leads you to a den under a beech root. Outside, three cubs are playing tug-of-war with a whole collection of socks: striped, spotted, and one with little ducks on it.\n\nThe ducks one has OAKLEY sewn into the heel.",
+          "ch": [
+            { "t": "Trade a feather for the sock", "go": "sock", "cost": { "items": { "feather": 1 } } },
+            { "t": "Leave them their socks", "go": "leave" }
+          ] },
+        "sock": { "who": "oakley", "say": "My committee sock! The one with the ducks! I've worn odd socks to every meeting for a month. Nobody said a word. Too polite.\n\nSplendid. Truly splendid.", "end": "win",
+          "give": { "coins": 40, "friend": { "oakley": 15 } } },
+        "leave": { "say": "Some socks are happier with foxes. The cubs go back to their game, and on your way out you find a bramble heavy with ripe berries.", "end": "win",
+          "give": { "items": { "berries": 3 }, "xp": { "foraging": 10 } } },
+        "letgo": { "say": "The fox trots off with the sock held high, like a flag. You have the strange feeling you've just witnessed a very important mission.", "end": "win",
+          "give": { "xp": { "foraging": 5 } } }
+      }
+    },
+    {
+      "id": "pip_tree", "where": ["meadow", "woods"], "weight": 8, "once": false, "req": {}, "start": "a",
+      "nodes": {
+        "a": { "who": "pip", "say": "{name}! UP HERE! I can see the whole valley! I can see the lighthouse! I can see the Mayor's bald spot!\n\nAlso, I can't get down.",
+          "ch": [
+            { "t": "Talk Pip down, branch by branch", "go": "down" },
+            { "t": "Climb up and help", "go": "rescue", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "stuck" }
+          ] },
+        "down": { "who": "pip", "say": "Left foot. Right foot. Bottom. Okay, bottom isn't a foot. I'm down!\n\nHere, I drew the view from the top. You can keep it. I'll draw another one next time I'm stuck.", "end": "win",
+          "give": { "items": { "feather": 2 }, "friend": { "pip": 15 } } },
+        "rescue": { "say": "You climb up, hand Pip down to a low branch, and climb down after. By teatime Pip has told the whole town about the daring rescue, now with extra eagles.", "end": "win",
+          "give": { "friend": { "pip": 20 }, "xp": { "foraging": 10 } } },
+        "stuck": { "say": "You climb up. Now you're both stuck. Pip is thrilled.\n\nEventually Hazel walks by with a ladder, a lot of questions, and a pencil to write the answers in her ledger.", "end": "win",
+          "give": { "friend": { "pip": 10, "hazel": 5 } } }
+      }
+    },
+    {
+      "id": "rainbow", "where": ["meadow", "banks"], "weight": 5, "once": true, "req": {}, "start": "a",
+      "nodes": {
+        "a": { "say": "The rain stops all at once. A rainbow drops one end into the grass so close you could almost walk to it.\n\nIt's the brightest you've ever seen.",
+          "ch": [
+            { "t": "Run for the end of it", "go": "run" },
+            { "t": "Stand still and watch", "go": "watch" }
+          ] },
+        "run": { "say": "It moves as you move, the way rainbows do. But where you finally stop, out of breath, the grass is thick with clover.\n\nYou'd swear every one of them is lucky.", "end": "win",
+          "give": { "items": { "clover": 5 }, "buff": "lucky" } },
+        "watch": { "say": "You stand very still while the colours fade, one by one, red last. Afterward you feel lighter, as if you'd had a long nap in the sun.", "end": "win",
+          "give": { "stamina": 15 } }
+      }
+    },
+    {
+      "id": "old_well", "where": ["meadow"], "weight": 6, "once": true, "req": {}, "start": "a",
+      "nodes": {
+        "a": { "say": "A mossy old well hides in the long grass. Carved around its lip: WISH WELL. Someone has added, in smaller letters: AND BE WELL.",
+          "ch": [
+            { "t": "Toss in a coin and wish", "go": "wish", "cost": { "coins": 5 } },
+            { "t": "Drop a pebble and listen", "go": "listen" },
+            { "t": "Lower a bucket", "go": "bucket", "req": { "items": { "bucket": 1 } } }
+          ] },
+        "wish": { "say": "Plink. Far, far down, something hums back: a low, warm note, like a bell trying to remember a song.", "end": "win",
+          "give": { "buff": "lucky" } },
+        "listen": { "say": "You count to eleven before you hear the plop. A very deep well, then, and a very old one. You leave it to its thoughts.", "end": "win",
+          "give": { "xp": { "foraging": 8 } } },
+        "bucket": { "say": "The bucket comes up full of cold, sweet water that tastes like the first day of spring. Stuck to the bottom is an old valley penny, still bright.", "end": "win",
+          "give": { "coins": 50, "stamina": 20 } }
+      }
+    },
+    {
+      "id": "stuck_cart", "where": ["meadow", "woods"], "weight": 8, "once": false, "req": {}, "start": "a",
+      "nodes": {
+        "a": { "who": "hazel", "say": "{name}! Oh, thank goodness. The cart's stuck in the mud, the deliveries are late, and Ledger refuses to get off the flour sacks.\n\nI've written it all down, but writing it down isn't helping as much as usual.",
+          "ch": [
+            { "t": "Push from behind", "go": "free", "roll": { "skill": "farming", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "muddy" },
+            { "t": "Wedge a plank under the wheel", "go": "free", "cost": { "items": { "plank": 1 } } }
+          ] },
+        "free": { "who": "hazel", "say": "Free! Ledger, say thank you. He won't. He's a cat. I'll write you down for a dozen thank-yous.\n\nAnd here's a little something. Don't tell the Mayor I gave you the good biscuits.", "end": "win",
+          "give": { "coins": 40, "friend": { "hazel": 15 } } },
+        "muddy": { "say": "The cart lurches free with a great sucking squelch. You, however, stay exactly where you were, now with mud up to your knees.\n\nHazel writes in her ledger: One muddy hero. Owe them two.", "end": "win",
+          "give": { "coins": 30, "friend": { "hazel": 15 } } }
+      }
+    },
+    {
+      "id": "bee_log", "where": ["meadow", "woods"], "weight": 5, "once": false, "req": {}, "start": "a",
+      "nodes": {
+        "a": { "say": "A hollow log hums like a busy kitchen. Wild bees drift in and out of a crack, and the air smells of warm honey.",
+          "ch": [
+            { "t": "Reach in very slowly", "go": "honey", "roll": { "skill": "foraging", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "buzz" },
+            { "t": "Calm them with candle smoke", "go": "honey", "cost": { "items": { "candle": 1 } } },
+            { "t": "Leave the bees in peace", "go": "peace" }
+          ] },
+        "honey": { "say": "The bees hum around your hands but let you be. You take one small piece of comb and leave a clover on the log, by way of thank you.", "end": "win",
+          "give": { "items": { "honeycomb": 1 } } },
+        "buzz": { "say": "A bee lands on your thumb and gives it a firm, warning look. Message received. You back away slowly, with great respect.", "end": "win",
+          "give": { "xp": { "foraging": 5 } } },
+        "peace": { "say": "You leave them to it. All afternoon, bees drift over from the log to your fields, bumbling busily among your crops.", "end": "win",
+          "give": { "buff": "greenthumb" } }
+      }
+    },
+    {
+      "id": "fairy_ring", "where": ["woods"], "weight": 6, "once": false, "req": {}, "start": "a",
+      "nodes": {
+        "a": { "say": "In a sunny clearing, mushrooms grow in a perfect ring. Gran says never step inside one. Gran also says never trust anyone who doesn't like pie.",
+          "ch": [
+            { "t": "Pick from the outside edge", "go": "pick" },
+            { "t": "Step into the middle", "go": "middle" }
+          ] },
+        "pick": { "say": "You pick carefully round the outside, leaving the ring unbroken. It seems only polite.", "end": "win",
+          "give": { "items": { "mushroom": 4 } } },
+        "middle": { "say": "Nothing happens. Then a warm breeze blows through, smelling of rain and cake, and you feel as rested as if you'd slept a week.\n\nWhen you step out, the ring looks exactly the same. Possibly smug.", "end": "win",
+          "give": { "stamina": 15 } }
+      }
+    },
+    {
+      "id": "tobin_tale", "where": ["banks"], "weight": 8, "once": false, "req": { "chapter": "bridge" }, "start": "a",
+      "nodes": {
+        "a": { "who": "tobin", "say": "Sit. I'll tell you about the catfish that ate a rowboat.\n\nOr a fishing tip. One or the other. Not both. I'm not made of words.",
+          "ch": [
+            { "t": "Hear the catfish story", "go": "tale" },
+            { "t": "Ask for a fishing tip", "go": "tip" }
+          ] },
+        "tale": { "who": "tobin", "say": "Big as a barn door. Took the rowboat, oars and all. Spat out the oars. Didn't like the taste.\n\nThat's why the river bends there. Catfish is still in it. Rowboat too, probably.", "end": "win",
+          "give": { "items": { "worm": 5 }, "friend": { "tobin": 15 } } },
+        "tip": { "who": "tobin", "say": "Fish where the willow shadow ends. Cast soft. Don't stare at the float. Fish can tell.\n\nDon't tell anyone I said.", "end": "win",
+          "give": { "buff": "steady" } }
+      }
+    },
+    {
+      "id": "otter_slide", "where": ["banks"], "weight": 6, "once": false, "req": { "chapter": "bridge" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Two otters are taking turns sliding down a mud bank into the river, squeaking with joy every time they hit the water.\n\nThe mud looks very slippery. And very fun.",
+          "ch": [
+            { "t": "Have a go yourself", "go": "whee", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "flop" },
+            { "t": "Sit and watch them play", "go": "watch" }
+          ] },
+        "whee": { "say": "Whoosh. Splash. You come up laughing with a fistful of good river clay. The otters seem to approve, in a slightly judging way.", "end": "win",
+          "give": { "items": { "clay": 4 }, "stamina": 10 } },
+        "flop": { "say": "You go down sideways and stop halfway, stuck in the mud like a fence post. The otters hold a short meeting about it, then slide round you.", "end": "win",
+          "give": { "items": { "clay": 2 } } },
+        "watch": { "say": "You sit on the bank and watch until the shadows move. It's very hard to feel grumpy after an hour of otters.", "end": "win",
+          "give": { "buff": "refreshed" } }
+      }
+    },
+    {
+      "id": "mira_measure", "where": ["quarry"], "weight": 7, "once": false, "req": { "chapter": "bridge" }, "start": "a",
+      "nodes": {
+        "a": { "who": "mira", "say": "Oh good, hands. Hold this end of the tape. No, the other end. The end that isn't tangled round your boot.\n\nGrandad's notes say this copper seam is forty hands wide. Grandad's notes also say there's a dragon down here.",
+          "ch": [
+            { "t": "Hold it steady", "go": "steady" },
+            { "t": "Chip out the soft vein", "go": "chip", "req": { "skill": { "foraging": 7 } } }
+          ] },
+        "steady": { "who": "mira", "say": "Forty-two hands. Grandad was right. About the copper. Jury's out on the dragon.\n\nTake some. You earned it by standing still, which is harder than people think.", "end": "win",
+          "give": { "items": { "copper": 4 }, "friend": { "mira": 15 } } },
+        "chip": { "who": "mira", "say": "Good eye. That's the soft vein, right there.\n\nKeep half. Don't argue. I'll have plenty for the forge.", "end": "win",
+          "give": { "items": { "copper": 5, "coal": 3 }, "friend": { "mira": 20 } } }
+      }
+    },
+    {
+      "id": "pip_fossil", "where": ["quarry"], "weight": 6, "once": false, "req": { "chapter": "bridge" }, "start": "a",
+      "nodes": {
+        "a": { "who": "pip", "say": "{name}! I'm digging for a dinosaur. So far I've found eleven rocks and one extremely old sandwich.\n\nThe sandwich might be a fossil. I'm not touching it.",
+          "ch": [
+            { "t": "Help Pip dig", "go": "fossil", "roll": { "skill": "foraging", "base": 0.35, "per": 0.02, "max": 0.8 }, "fail": "rocks" },
+            { "t": "Cheer Pip on", "go": "cheer" }
+          ] },
+        "fossil": { "say": "Your fingers find a curl of stone, ridged like a seashell, older than the whole valley.\n\nPip names it Gerald, then insists you keep it, because Gerald clearly likes you best.", "end": "win",
+          "give": { "items": { "fossil": 1 }, "friend": { "pip": 15 } } },
+        "rocks": { "say": "More rocks. Pip is not discouraged. “Dinosaurs are shy. You have to sneak up on them.” You leave with a pocketful of pebbles and a promise to come back.", "end": "win",
+          "give": { "items": { "pebble": 5 }, "friend": { "pip": 10 } } },
+        "cheer": { "say": "You cheer. Pip digs with tremendous energy and unearths a twelfth rock, which is declared the best one yet and given to you as a medal.", "end": "win",
+          "give": { "items": { "pebble": 1 }, "friend": { "pip": 10 } } }
+      }
+    },
+    {
+      "id": "quarry_rumble", "where": ["quarry"], "weight": 5, "once": false, "req": { "chapter": "bridge" }, "start": "a",
+      "nodes": {
+        "a": { "say": "A trickle of pebbles, then a low rumble. Far across the quarry, a slab of rock slides off the face and lands with a thud, well away from you.\n\nWhere it stood, something in the fresh stone glints.",
+          "ch": [
+            { "t": "Pick through the fresh rock", "go": "gem", "roll": { "skill": "foraging", "base": 0.4, "per": 0.02, "max": 0.85 }, "fail": "dust" },
+            { "t": "Wait for the dust to settle", "go": "wait" }
+          ] },
+        "gem": { "say": "Wedged in a crack is a cluster of purple crystal, catching the light. An amethyst, clean and bright as a plum.", "end": "win",
+          "give": { "items": { "amethyst": 1 } } },
+        "dust": { "say": "The glint turns out to be a beetle with a very shiny back. It leaves, unimpressed. Still, there's good ore in the rubble.", "end": "win",
+          "give": { "items": { "copper": 2, "coal": 2 } } },
+        "wait": { "say": "You wait for the dust to settle, then gather what the cliff gave up: a little iron, a little coal, and a perfect flat pebble for skipping.", "end": "win",
+          "give": { "items": { "iron": 2, "coal": 2, "pebble": 1 } } }
+      }
+    },
+    {
+      "id": "bat_colony", "where": ["mine"], "weight": 8, "once": false, "req": { "chapter": "mine" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Your lamp lights up the ceiling, and the ceiling is covered in bats: hundreds of them, hanging upside down, wrapped in their wings, fast asleep.\n\nOne opens an eye.",
+          "ch": [
+            { "t": "Tiptoe past", "go": "past", "roll": { "skill": "mining", "base": 0.55, "per": 0.03, "max": 0.95 }, "fail": "flutter" },
+            { "t": "Dim your lamp and wait", "go": "wait" }
+          ] },
+        "past": { "say": "You make it past without a single squeak. Behind the colony, in a pocket of rock nobody has touched for years, the ore is thick.", "end": "win",
+          "give": { "items": { "iron": 3, "coal": 3 } } },
+        "flutter": { "say": "A hundred bats wake at once and swirl around you like a soft, dark wind. Then they settle again, grumbling. You feel very, very looked at.", "end": "win",
+          "give": { "xp": { "mining": 10 } } },
+        "wait": { "say": "You dim your lamp and sit quietly. After a while you notice the bats' tiny draft, all flowing one way. Toward the stairs, if you had to guess.", "end": "win",
+          "give": { "buff": "miner" } }
+      }
+    },
+    {
+      "id": "mine_cart", "where": ["mine"], "weight": 6, "once": false, "req": { "chapter": "mine" }, "start": "a",
+      "nodes": {
+        "a": { "say": "An old mine cart sits on a rusty rail, pointing downhill into the dark. Someone has painted a name on its side: BESSIE.\n\nBessie looks extremely rideable.",
+          "ch": [
+            { "t": "Ride Bessie", "go": "whee", "roll": { "skill": "mining", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "bump" },
+            { "t": "Give Bessie a push and listen", "go": "push" }
+          ] },
+        "whee": { "say": "Clatter, rattle, WHEEEE. Bessie flies round two bends and stops at a dead end glittering with silver. You climb out shaking with laughter.", "end": "win",
+          "give": { "items": { "silver": 2 }, "xp": { "mining": 10 } } },
+        "bump": { "say": "Bessie rolls about ten feet and stops with a sad clunk. You have never been so disappointed by a vehicle. There's coal under the wheels, at least.", "end": "win",
+          "give": { "items": { "coal": 3 } } },
+        "push": { "say": "Bessie rattles away into the dark. A long pause. A distant crash. Following the rail, you find Bessie on her side beside a fresh heap of ore she knocked loose.", "end": "win",
+          "give": { "items": { "iron": 2, "copper": 2 } } }
+      }
+    },
+    {
+      "id": "old_lunchbox", "where": ["mine"], "weight": 4, "once": true, "req": { "chapter": "mine" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Wedged behind an old beam is a dented lunch tin from before the flood. Scratched on the lid: PROPERTY OF DOT. KEEP OUT. THIS MEANS YOU, ABEL.",
+          "ch": [
+            { "t": "Open it", "go": "open" },
+            { "t": "Take it to town unopened", "go": "town" }
+          ] },
+        "open": { "say": "Inside is a note in pencil: Back after the storm. Don't touch my biscuits. Dot. Under the note, a few old coins knotted in a handkerchief.", "end": "win",
+          "give": { "coins": 60 } },
+        "town": { "who": "hazel", "say": "Where did you find this? It's my gran's! Dot Pennywhistle. She trimmed the lamps in the mine, years ago. Always said she left her best biscuit tin down there.\n\nThank you. This is going in the ledger in my very best ink.", "end": "win",
+          "give": { "coins": 30, "friend": { "hazel": 30 } } }
+      }
+    },
+    {
+      "id": "glow_grotto", "where": ["mine"], "weight": 4, "once": true, "req": { "chapter": "mine" }, "start": "a",
+      "nodes": {
+        "a": { "say": "A crack in the wall leaks soft blue light. Behind it lies a little grotto, lit by glowcaps growing on every surface, like a sky full of tiny moons.",
+          "ch": [
+            { "t": "Squeeze through the crack", "go": "inside", "cost": { "stamina": 5 } },
+            { "t": "Just admire it from here", "go": "admire" }
+          ] },
+        "inside": { "say": "It's cool and quiet and blue inside. You pick a few glowcaps, careful to leave plenty, and find a sky crystal growing from the floor like a frozen flame.", "end": "win",
+          "give": { "items": { "glowcap": 3, "crystal": 1 } } },
+        "admire": { "say": "You sit and look for a long while. When you get up again, your lamp seems brighter and your feet seem lighter.", "end": "win",
+          "give": { "buff": "refreshed" } }
+      }
+    },
+    {
+      "id": "tide_pool", "where": ["beach"], "weight": 10, "once": false, "req": { "chapter": "lighthouse" }, "start": "a",
+      "nodes": {
+        "a": { "say": "The tide has left behind a rock pool full of tiny worlds: anemones like spilled jam, a sulking crab, and a starfish doing nothing whatsoever.\n\nAt the bottom, something catches the light.",
+          "ch": [
+            { "t": "Reach in for the shiny thing", "go": "shiny", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "pinch" },
+            { "t": "Just look closely", "go": "look" }
+          ] },
+        "shiny": { "say": "Your fingers close on a smooth piece of sea glass, frosted green. The starfish, as it happens, comes along for the ride.", "end": "win",
+          "give": { "items": { "seaglass": 1, "starfish": 1 } } },
+        "pinch": { "say": "The crab objects to your hand, firmly but fairly. You withdraw with a pinched finger and two shells the crab clearly didn't want anyway.", "end": "win",
+          "give": { "items": { "shell": 2 } } },
+        "look": { "say": "You lie on your stomach and watch the pool for a long time. Then you gather the empty shells from its edge, and leave the rest of the tiny world in peace.", "end": "win",
+          "give": { "items": { "shell": 3 }, "xp": { "foraging": 10 } } }
+      }
+    },
+    {
+      "id": "crab_parade", "where": ["beach"], "weight": 6, "once": false, "req": { "chapter": "lighthouse" }, "start": "a",
+      "nodes": {
+        "a": { "say": "A line of hermit crabs has formed on the sand, biggest to smallest. One by one they're swapping shells, each moving into the next one up, like a very slow dance.\n\nThe smallest crab has no shell at all.",
+          "ch": [
+            { "t": "Offer it a spare shell", "go": "gift", "cost": { "items": { "shell": 1 } } },
+            { "t": "Watch the whole parade", "go": "watch" }
+          ] },
+        "gift": { "say": "The smallest crab inspects your shell, moves in at once, and waves a claw at you. You decide to take it as a thank-you.", "end": "win",
+          "give": { "buff": "lucky", "xp": { "foraging": 10 } } },
+        "watch": { "say": "It takes nearly an hour. The tide creeps in. When it's over, everyone has a new home, and you feel strangely proud of them all.", "end": "win",
+          "give": { "stamina": 10 } }
+      }
+    },
+    {
+      "id": "gull_thief", "where": ["beach"], "weight": 8, "once": false, "req": { "chapter": "lighthouse" }, "start": "a",
+      "nodes": {
+        "a": { "say": "A gull lands beside you, looks you dead in the eye, and steals the biscuit right out of your pocket.",
+          "ch": [
+            { "t": "Chase it", "go": "back", "roll": { "skill": "foraging", "base": 0.4, "per": 0.02, "max": 0.85 }, "fail": "gone" },
+            { "t": "Admire its nerve", "go": "nerve" }
+          ] },
+        "back": { "say": "You chase it the whole length of the beach. The gull drops the biscuit and two feathers in a huff, and you're left with a crumbly prize and a story.", "end": "win",
+          "give": { "items": { "feather": 2 }, "stamina": 5 } },
+        "gone": { "say": "The gull lands on a rock, eats your biscuit very slowly, and laughs at you. It is the most gull thing that has ever happened.", "end": "win",
+          "give": { "xp": { "foraging": 5 } } },
+        "nerve": { "say": "You give it a round of applause. The gull bows. Probably. On its way out, it drops a bit of driftwood at your feet. Fair trade.", "end": "win",
+          "give": { "items": { "driftwood": 2 } } }
+      }
+    },
+    {
+      "id": "ram_path", "where": ["highlands"], "weight": 10, "once": false, "req": { "chapter": "highlands" }, "start": "a",
+      "nodes": {
+        "a": { "say": "A huge, curly-horned ram is standing in the middle of the path. He has decided this is now his path, and he would like you to know it.",
+          "ch": [
+            { "t": "Offer a handful of thyme", "go": "treat", "cost": { "items": { "thyme": 2 } } },
+            { "t": "Stare him down", "go": "stare", "roll": { "skill": "farming", "base": 0.4, "per": 0.02, "max": 0.9 }, "fail": "outstared" },
+            { "t": "Sit and wait it out", "go": "wait" }
+          ] },
+        "treat": { "say": "The ram eats the thyme and lets you pass. Then he follows you for half a mile like an enormous woolly dog, and leaves you a tuft of fleece at the gate.", "end": "win",
+          "give": { "items": { "wool": 2 } } },
+        "stare": { "say": "You stare. The ram stares. A long minute passes. Then he blinks, snorts, and wanders off, as if he'd been meaning to leave anyway.", "end": "win",
+          "give": { "xp": { "farming": 15 } } },
+        "outstared": { "say": "You stare. The ram stares harder. You lose. You take the long way round, which turns out to have a lovely patch of heather.", "end": "win",
+          "give": { "items": { "heather": 2 } } },
+        "wait": { "say": "You sit on a rock and have a snack. Twenty minutes later the ram leaves, mostly out of boredom. You feel rested.", "end": "win",
+          "give": { "stamina": 10 } }
+      }
+    },
+    {
+      "id": "fog_bells", "where": ["highlands"], "weight": 7, "once": false, "req": { "chapter": "highlands" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Fog pours over the ridge until you can't see your own boots. Somewhere out in the white, sheep bells are clinking.",
+          "ch": [
+            { "t": "Follow the bells", "go": "bells" },
+            { "t": "Sit tight until it lifts", "go": "sit" }
+          ] },
+        "bells": { "say": "You follow the clinking, step by careful step. Then a voice comes out of the fog, close by: “You're walking toward the tarn, Bramble. Turn left.”\n\nIngrid. She walks you to the road, hands you a bunch of thyme, and is gone before the fog clears.", "end": "win",
+          "give": { "items": { "thyme": 3 }, "friend": { "ingrid": 15 } } },
+        "sit": { "say": "You sit tight in the heather and wait. When the fog finally lifts, you're surrounded by heather in full bloom, and a curious sheep is eating your hat.", "end": "win",
+          "give": { "items": { "heather": 3 } } }
+      }
+    },
+    {
+      "id": "eagle_feather", "where": ["highlands"], "weight": 4, "once": true, "req": { "chapter": "highlands" }, "start": "a",
+      "nodes": {
+        "a": { "say": "An eagle circles low over the moor, then lower still. A single great feather comes loose and spirals down toward you on the wind.",
+          "ch": [
+            { "t": "Try to catch it", "go": "catch", "roll": { "skill": "foraging", "base": 0.5, "per": 0.02, "max": 0.95 }, "fail": "miss" },
+            { "t": "Just watch it fall", "go": "watch" }
+          ] },
+        "catch": { "say": "You jump, stretch, and close your fingers around it. The feather is as long as your forearm and striped like toast.", "end": "win",
+          "give": { "items": { "eaglefeather": 1 } } },
+        "miss": { "say": "The wind snatches it just past your fingertips and carries it off over the tarn. The eagle cries once. You choose to hear it as sympathy.", "end": "win",
+          "give": { "xp": { "foraging": 10 } } },
+        "watch": { "say": "The feather dances on the wind, over the heather and away. It's the most beautiful thing you've seen all week, and somehow you feel lucky just to have seen it.", "end": "win",
+          "give": { "buff": "lucky" } }
+      }
+    },
+    {
+      "id": "saffi_cart", "where": ["meadow", "woods", "banks"], "weight": 5, "once": false, "req": { "chapter": "fair" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Saffi's painted cart comes rattling up the path behind Parsnip the donkey.\n\n“Friend! A mystery bundle, today only. Cheaper than yesterday, and much cheaper than tomorrow.”",
+          "ch": [
+            { "t": "Buy the mystery bundle", "go": "bundle", "cost": { "coins": 100 } },
+            { "t": "Haggle hard", "go": "bargain", "roll": { "skill": "crafting", "base": 0.35, "per": 0.02, "max": 0.8 }, "fail": "nope" },
+            { "t": "Just wave hello", "go": "wave" }
+          ] },
+        "bundle": { "say": "Saffi hands over a knotted bundle with a flourish. Inside: shiny lures, a jar of glowing grubs, and a bottle of something green.\n\n“Grow tonic,” she says. “Almost certainly.”", "end": "win",
+          "give": { "items": { "lure": 2, "glowbait": 2, "tonic": 1 } } },
+        "bargain": { "say": "You haggle. Saffi haggles back. Somewhere around the twelfth round she throws up her hands, laughing. “Take it! Take it, and tell no one I lost.”", "end": "win",
+          "give": { "items": { "lure": 1, "glowbait": 2 } } },
+        "nope": { "say": "Saffi laughs until Parsnip looks embarrassed. “Come back when you've practised, friend. Here, a lure, for the entertainment.”", "end": "win",
+          "give": { "items": { "lure": 1 } } },
+        "wave": { "say": "Saffi waves back, shares three pieces of gossip and one rumour, and tosses you an apple as the cart rattles off down the lane.", "end": "win",
+          "give": { "items": { "apple": 1 } } }
+      }
+    }
+  ]
+}

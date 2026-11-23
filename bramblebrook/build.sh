@@ -19,7 +19,7 @@ fs.writeFileSync('game.html', page);
 const head = [
   '<!doctype html>', '<html lang="en">', '<head>', '<meta charset="utf-8">',
   '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">',
-  '<meta name="theme-color" content="#2D6838">',
+  '<meta name="theme-color" content="#0E0F1E">',
   '<meta name="description" content="A cozy, menu-based farming RPG. Grow crops, explore, fish, mine, cook, befriend the villagers and ring the Bramble Bell again.">',
   '<link rel="manifest" href="manifest.webmanifest">', '<link rel="icon" href="icon.svg" type="image/svg+xml">',
   '<link rel="apple-touch-icon" href="icon-180.png">', '<meta name="apple-mobile-web-app-capable" content="yes">',
