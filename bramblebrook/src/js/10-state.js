@@ -67,6 +67,8 @@ function addXP(sk, amount) {
   if (after > before) {
     const un = unlocksAt(sk, after);
     toast(`${skillName(sk)} level ${after}!${un ? ' New: ' + un : ''}`, 'lvl', 4200);
+    play('level', 0.15);
+    setTimeout(() => pulse($(`.skill[data-id="${sk}"]`)), 80);
   }
 }
 function unlocksAt(sk, l) {
@@ -222,7 +224,7 @@ function applyGive(g) {
   for (const [sk, x] of Object.entries(g.xp || {})) { addXP(sk, x); out.push(`+${x} ${skillName(sk)} XP`); }
   for (const [vid, p] of Object.entries(g.friend || {})) { addFriend(vid, p); out.push(`${p > 0 ? '+' : ''}${p} friendship with ${vilShort(vid)}`); }
   if (g.page && !state.pages[g.page]) { state.pages[g.page] = now(); out.push(`Journal page ${g.page}`); }
-  for (const f of [].concat(g.flag || [])) state.flags[f] = 1;
+  for (const f of [].concat(g.flag || [])) { if (f === 'bell_rung' && !state.flags[f]) { play('bell', 0.3); bloom(); } state.flags[f] = 1; }
   if (g.stamina) { syncStamina(); state.stamina = Math.min(maxStamina() * 2, state.stamina + g.stamina); out.push(`+${g.stamina} stamina`); }
   if (g.buff && I.buffs[g.buff]) { setBuff(g.buff, 15); out.push(`${I.buffs[g.buff].n} for 15 min`); }
   if (g.plots) {
@@ -251,7 +253,7 @@ function addFriend(vid, p) {
   if (p > 0) p = Math.round(p * (1 + perkVal('kind') / 100));
   state.friends[vid] = clamp(friendPts(vid) + p, 0, C.core.friendship.perHeart * C.core.friendship.maxHearts);
   const after = hearts(vid);
-  if (after > before) toast(`${vilShort(vid)}: ${after} ♥`, 'lvl');
+  if (after > before) { toast(`${vilShort(vid)}: ${after} ♥`, 'lvl'); play('heart', 0.2); }
 }
 const vilAvailable = v => reqMet(v.req);
 function animalRec(id) { if (!state.animals[id]) state.animals[id] = { n: 0, at: 0 }; return state.animals[id]; }

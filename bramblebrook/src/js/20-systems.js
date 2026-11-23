@@ -253,7 +253,7 @@ function spotOpen(s) { return lvl('fishing') >= s.lvl && unlocked(s.unlock); }
 function clearFishTimers() { fishing.timers.forEach(clearTimeout); fishing.timers = []; cancelAnimationFrame(fishing.raf); }
 function fishButton() {
   if (fishing.phase === 'idle' || fishing.phase === 'result') return cast();
-  if (fishing.phase === 'waiting') { clearFishTimers(); fishing.phase = 'result'; fishing.msg = 'Too soon. The fish spooked and swam off.'; syncFishDom(); return; }
+  if (fishing.phase === 'waiting') { clearFishTimers(); fishing.phase = 'result'; fishing.msg = 'Too soon. The fish spooked and swam off.'; syncFishDom(); play('miss'); return; }
   if (fishing.phase === 'bite') return reel();
 }
 function cast() {
@@ -271,6 +271,7 @@ function cast() {
   fishing.phase = 'waiting';
   fishing.msg = 'Waiting for a bite…';
   syncFishDom(); updateBaitCounts();
+  play('cast'); setTimeout(() => ripple($('#pond')), 220);
   fishing.timers.push(setTimeout(bite, 900 + Math.random() * 1700));
   commit();
 }
@@ -296,10 +297,11 @@ function bite() {
   Object.assign(fishing, { fish: { id, r }, zone: [5 + Math.random() * (90 - width), width], speed: R.speed * (relaxed ? 0.55 : 1), offset: Math.random() * 2, start: performance.now(), phase: 'bite' });
   fishing.msg = `<span>Bite!</span><span class="muted">${r === 5 ? 'The line screams. Something enormous!' : r >= 3 ? 'Something big is pulling hard.' : r === 2 ? 'A strong tug.' : 'A nibble.'}</span>`;
   syncFishDom();
+  play('bite'); ripple($('#pond'));
   animateNeedle();
   fishing.timers.push(setTimeout(() => {
     if (fishing.phase !== 'bite') return;
-    clearFishTimers(); fishing.phase = 'result'; fishing.msg = 'It got away.'; syncFishDom();
+    clearFishTimers(); fishing.phase = 'result'; fishing.msg = 'It got away.'; syncFishDom(); play('miss');
   }, relaxed ? 7000 : 4200));
 }
 function needlePos() {
@@ -335,10 +337,14 @@ function reel() {
       if (firstLegend) toast(`Legendary catch: ${name}! Tobin will never believe this.`, 'lvl', 5000);
     }
     syncFishDom();
+    play(r >= 3 ? 'bigcatch' : 'catch'); ripple($('#pond'));
+    { const pond = $('#pond'); if (pond) floatAt(pond.getBoundingClientRect(), `${pic(id, 32)}`); }
+    if (r === 5) bloom();
     commit();
   } else {
     fishing.msg = 'Missed. The line went slack.';
     syncFishDom();
+    play('miss');
   }
 }
 
@@ -540,6 +546,7 @@ function checkAchievements() {
     if (state.ach[a.id] || statValue(a.stat) < achGoal(a)) continue;
     state.ach[a.id] = now();
     applyGive(a.give);
+    play('feat', 0.3);
     toast(`Feat unlocked: ${a.n}`, 'lvl', 4200);
   }
 }

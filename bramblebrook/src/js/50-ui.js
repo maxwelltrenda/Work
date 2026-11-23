@@ -21,7 +21,10 @@ function renderView() {
   if (!state) return;
   if (state.tab === 'fish' && (fishing.phase === 'waiting' || fishing.phase === 'bite')) { updateBaitCounts(); return; }
   if (!tabOn(state.tab)) state.tab = 'farm';
+  const vkey = state.tab + ':' + sub(state.tab);
   $('#view').innerHTML = (VIEWS[state.tab] || viewFarm)();
+  $('#view').classList.toggle('fx-in', vkey !== renderView.last);
+  renderView.last = vkey;
   if (state.tab === 'fish') syncFishDom();
   // a ? button on every screen that has a tour
   const head = $('#view .view-head');
@@ -52,7 +55,7 @@ function updateBadges() {
 let lastSkillSig = '';
 function updateHeader(force) {
   syncStamina();
-  $('#coins').textContent = fmtN(state.coins);
+  showCoins(state.coins);
   const max = maxStamina();
   $('#stam-now').textContent = state.stamina;
   $('#stam-max').textContent = max;
@@ -276,7 +279,7 @@ function handle(act, el, e) {
       if (!r) return false;
       commit();
       playScene([{ who: id, say: pickLine([I.vil[id].thanks && I.vil[id].thanks.loved].filter(Boolean)) || 'Thank you, {name}!' }], { title: 'Request filled', rewards: r.lines });
-      return false;
+      return 'done';
     }
     case 'chat': {
       const first = state.chatted[id] !== dayKey();
@@ -292,7 +295,7 @@ function handle(act, el, e) {
       closeSheet(); commit();
       const v = I.vil[vid];
       playScene([{ who: vid, say: (v.thanks && v.thanks[kind]) || 'Thank you!' }], { title: `${itemName(id)} for ${v.short || v.n}` });
-      return false;
+      return 'done';
     }
     case 'heart': {
       const h = heartSceneReady(id);
@@ -301,7 +304,7 @@ function handle(act, el, e) {
       const rewards = applyGive(h.give);
       commit();
       playScene(h.scene, { title: `${h.at} ♥ · ${h.title}`, rewards });
-      return false;
+      return 'done';
     }
     case 'letter': letterSheet(id); return false;
     case 'letter-gift': {
@@ -364,7 +367,7 @@ function handle(act, el, e) {
     case 'fest-buy': if (!festivalBuy(+el.dataset.i)) return false; break;
     case 'login-claim': if (!claimLogin()) return false; break;
     case 'help': replayTour(); return false;
-    case 'opt': state.opts[id] = !state.opts[id]; toast(id === 'tipsOff' ? (state.opts.tipsOff ? 'Tutorials off' : 'Tutorials on') : (state.opts.relaxedFish ? 'Relaxed fishing on' : 'Relaxed fishing off')); break;
+    case 'opt': state.opts[id] = !state.opts[id]; toast({ tipsOff: state.opts.tipsOff ? 'Tutorials off' : 'Tutorials on', relaxedFish: state.opts.relaxedFish ? 'Relaxed fishing on' : 'Relaxed fishing off', soundOff: state.opts.soundOff ? 'Sound off' : 'Sound on' }[id] || 'Saved'); if (id === 'soundOff' && !state.opts.soundOff) play('chime'); break;
     case 'replay-tours': state.toursSeen = {}; state.opts.tipsOff = false; toast('Tutorials will show again as you visit each screen'); break;
     case 'take-overflow': { const n = takeOverflow(); toast(n ? `Moved ${n} into your barn` : 'Still no room. Sell something or upgrade the barn first.'); if (!n) return false; break; }
     default: return false;
@@ -372,6 +375,12 @@ function handle(act, el, e) {
   return true;
 }
 
+document.addEventListener('input', e => {
+  if (e.target.id !== 'vol' || !state) return;
+  state.opts.volume = +e.target.value / 100;
+  setVolume(state.opts.volume);
+});
+document.addEventListener('change', e => { if (e.target.id === 'vol' && state) { play('pick'); commit(); } });
 document.addEventListener('pointerdown', e => {
   const b = e.target.closest('[data-act="fish-btn"]');
   if (!b || e.button > 0 || !state) return;
@@ -388,5 +397,6 @@ document.addEventListener('click', e => {
   const act = el.dataset.act;
   if (act === 'fish-btn') { if (e.detail === 0) fishButton(); return; }
   if (act === 'sheet-close') { if (e.target === el || el.tagName === 'BUTTON') closeSheet(); return; }
-  if (handle(act, el, e)) commit();
+  const snap = fxSnap(el);
+  if (handle(act, el, e)) { commit(); fxAfter(act, el, snap); }
 });

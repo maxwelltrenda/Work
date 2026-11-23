@@ -47,6 +47,7 @@ function finishChapter() {
   const ch = curChapter();
   const rewards = applyGive(ch.give);
   state.story.done[ch.id] = now();
+  play('bell', 0.2); bloom();
   state.story.queue.push({ title: `${ch.n} · Chapter complete`, lines: ch.outro, rewards });
   state.story.ci++; state.story.si = 0; state.story.started = false; state.story.base = 0;
   toast(`Chapter complete: ${ch.n}`, 'lvl', 4500);
@@ -136,6 +137,7 @@ function nextScene() {
       $$('[data-scene-choice]').forEach(b => b.addEventListener('click', () => {
         const c = l.choices[+b.dataset.sceneChoice];
         lines.splice(i, 1, ...(c.reply && c.reply.length ? c.reply : [{ who: 'you', say: c.t }]));
+        play('tick');
         draw();
       }));
       focusScene();
@@ -150,7 +152,7 @@ function nextScene() {
       <div class="scene-foot"><span class="progress-dots">${lines.length > 1 ? lines.map((_, j) => `<i class="${j <= i ? 'on' : ''}"></i>`).join('') : ''}</span>
       <button class="btn" data-scene-next>${last ? 'Done' : 'Next'}</button></div>`, i, lines.length);
     $$('[data-scene-next]').forEach(b => b.addEventListener('click', () => {
-      if (i < lines.length - 1) { i++; draw(); return; }
+      if (i < lines.length - 1) { i++; play('page'); draw(); return; }
       if (s.opts.onDone) s.opts.onDone();
       nextScene();
     }));
@@ -159,7 +161,8 @@ function nextScene() {
   draw();
 }
 function sceneShell(opts, inner) {
-  return `<div class="scene-wrap"><div class="scene" role="dialog" aria-modal="true" aria-label="${esc(opts.title || 'Story')}">${opts.title ? `<div class="scene-title">${esc(fill(opts.title))}</div>` : ''}${inner}</div></div>`;
+  const again = !!$('#scene-root .scene-wrap');   // only the first card of a scene slides up
+  return `<div class="scene-wrap${again ? ' again' : ''}"><div class="scene" role="dialog" aria-modal="true" aria-label="${esc(opts.title || 'Story')}">${opts.title ? `<div class="scene-title">${esc(fill(opts.title))}</div>` : ''}${inner}</div></div>`;
 }
 function focusScene() { const b = $('#scene-root .scene .btn, #scene-root .choice'); if (b) b.focus({ preventScroll: true }); }
 
@@ -172,6 +175,7 @@ function playAdventure(def, isEnc) {
 }
 function startAdventure(def, isEnc) {
   advRun = { def, isEnc, cur: null, given: new Set(), rewards: [], last: '' };
+  play(isEnc ? 'pick' : 'page');
   enterNode(def.start);
 }
 function rollChance(r) { return clamp(r.base + (r.per || 0) * lvl(r.skill), 0.02, r.max || 0.95); }
@@ -220,9 +224,11 @@ function chooseAdv(i) {
   if (c.give) advRun.rewards.push(...applyGive(c.give));
   let go = c.go;
   advRun.last = '';
+  if (!c.roll) play('page');
   if (c.roll) {
     const ok = Math.random() < rollChance(c.roll);
     advRun.last = ok ? `Success (${skillName(c.roll.skill)})` : `It didn't work out (${skillName(c.roll.skill)})`;
+    play(ok ? 'chime' : 'miss');
     if (!ok) go = c.fail;
   }
   enterNode(go);
@@ -231,7 +237,7 @@ function finishAdventure() {
   const { def, isEnc, cur } = advRun;
   const n = def.nodes[cur] || {};
   if (isEnc) { if (def.once) state.encDone[def.id] = now(); }
-  else if (n.end === 'win' && !state.advDone[def.id]) { state.advDone[def.id] = now(); toast(`Adventure complete: ${def.n}`, 'lvl'); }
+  else if (n.end === 'win' && !state.advDone[def.id]) { state.advDone[def.id] = now(); toast(`Adventure complete: ${def.n}`, 'lvl'); play('feat'); }
   advRun = null;
   $('#scene-root').innerHTML = '';
   commit();

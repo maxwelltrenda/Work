@@ -6,9 +6,10 @@ const SUBS = {
   town: [['people', 'People'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
   bag: [['items', 'Items'], ['almanac', 'Almanac'], ['feats', 'Feats'], ['perks', 'Perks'], ['settings', 'Settings']],
 };
-const visibleSubs = t => SUBS[t].filter(([id]) => subOn(t, id));
+const visibleSubs = t => (SUBS[t] || []).filter(([id]) => subOn(t, id));
 function sub(t) {
   const list = visibleSubs(t);
+  if (!list.length) return '';
   const want = state.sub[t];
   return list.some(([id]) => id === want) ? want : list[0][0];
 }
@@ -413,6 +414,9 @@ function viewSettings() {
       <div class="stat"><b>${fmtN(s.cooked)}</b><span>meals cooked</span></div>
       <div class="stat"><b>${fmtN(s.earned)}</b><span>coins from sales</span></div>
     </div></div>
+    <div class="card"><h2>Sound</h2>
+      <div class="toggle"><div class="what"><b>Sound effects</b><small>Soft sounds for harvesting, fishing, coins and story moments</small></div><button class="switch" role="switch" aria-label="Sound effects" aria-checked="${!state.opts.soundOff}" data-act="opt" data-id="soundOff"></button></div>
+      ${state.opts.soundOff ? '' : `<label class="label" for="vol">Volume</label><input type="range" class="vol" id="vol" min="0" max="100" value="${Math.round(volume() * 100)}">`}</div>
     <div class="card"><h2>Help &amp; comfort</h2>
       <div class="toggle"><div class="what"><b>Tutorials</b><small>A short guided tour the first time you open each screen</small></div><button class="switch" role="switch" aria-label="Tutorials" aria-checked="${!state.opts.tipsOff}" data-act="opt" data-id="tipsOff"></button></div>
       <div class="toggle"><div class="what"><b>Relaxed fishing</b><small>Slower marker, wider green zone, more time to react</small></div><button class="switch" role="switch" aria-label="Relaxed fishing" aria-checked="${!!state.opts.relaxedFish}" data-act="opt" data-id="relaxedFish"></button></div>

@@ -84,8 +84,9 @@ function placeTour(el) {
 function tourAct(a) {
   if (!tour) return;
   if (a === 'skip') return endTour();
-  if (a === 'back' && tour.i > 0) { tour.i--; drawTour(); return; }
-  if (a === 'next') { if (tour.i < tour.steps.length - 1) { tour.i++; drawTour(); } else endTour(); }
+  if (a === 'back' && tour.i > 0) { tour.i--; play('tick'); drawTour(); return; }
+  if (a === 'next') {
+    play('tick'); if (tour.i < tour.steps.length - 1) { tour.i++; drawTour(); } else endTour(); }
 }
 function endTour() {
   tour = null;
