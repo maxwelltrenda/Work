@@ -68,6 +68,8 @@ Chapters complete in this order: `prologue` → `bridge` → `forge` → `mine` 
 | during `bell` | starshard (mine floor 25+), clapper |
 | after `bell` | moonbloom |
 
+**Pacing.** Levels follow `core.xpCurve`: the XP from level *l* to *l*+1 is `base × l^exp` (base 20, exp 2.15), capped at level 60. Every crop timer is multiplied by `core.growScale` (4), and crops unlock across Farming 1–30 (see `core.crops` for the current levels; the crop levels in the table above predate this). Targets for a player visiting 4 times a day for 10 minutes: the story in about a month (measured at about 26 days), the last crop around day 90, and a skill at 60 after a year or more. Story steps lean on grind: a level goal in most chapters and deliveries in the tens.
+
 Legendary fish (very rare): whiskers (pond), silverjaw (river), mossback (cove), glimmerfin (tarn).
 Keepsake (`t: "key"`) items for story use only: oldkey, wrenmap, locket, telescope, seedpouch, fairribbon, logbook.
 

@@ -35,7 +35,8 @@ function pickWeighted(entries, rnd = Math.random) {
   for (const e of entries) { r -= e[1]; if (r <= 0) return e; }
   return entries[entries.length - 1];
 }
-const xpToNext = l => Math.floor(12 * Math.pow(l, 1.45));
+// XP from level l to l+1. The curve lives in core.json (xpCurve) so pacing can be tuned without code.
+const xpToNext = l => { const k = (C && C.core && C.core.xpCurve) || { base: 12, exp: 1.45 }; return Math.floor(k.base * Math.pow(l, k.exp)); };
 const MAX_LVL = 60;
 function levelInfo(xp) {
   let l = 1, rest = xp || 0;

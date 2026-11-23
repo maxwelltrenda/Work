@@ -5,7 +5,7 @@ const PITY = { explore: 90, starshard: 70, legendary: 160 };
 
 /* Fields */
 function growFactor() {
-  let f = 1;
+  let f = C.core.growScale || 1;   // the pacing knob for every crop timer
   const sp = state.upgrades.sprinkler;
   if (sp) f *= 1 - C.core.upgrades.sprinkler.tiers[sp - 1].pct / 100;
   if (buffOn('greenthumb')) f *= 0.75;
