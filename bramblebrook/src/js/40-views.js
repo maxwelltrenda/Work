@@ -6,9 +6,19 @@ const SUBS = {
   town: [['people', 'People'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
   bag: [['items', 'Items'], ['almanac', 'Almanac'], ['feats', 'Feats'], ['perks', 'Perks'], ['settings', 'Settings']],
 };
-const sub = t => state.sub[t] || SUBS[t][0][0];
+const visibleSubs = t => SUBS[t].filter(([id]) => subOn(t, id));
+function sub(t) {
+  const list = visibleSubs(t);
+  const want = state.sub[t];
+  return list.some(([id]) => id === want) ? want : list[0][0];
+}
 function subtabs(t, dots = {}) {
-  return `<div class="subtabs" role="tablist">${SUBS[t].map(([id, n]) => `<button class="subtab" data-act="sub" data-tab="${t}" data-sub="${id}" aria-pressed="${sub(t) === id}">${n}${dots[id] ? '<span class="dot"></span>' : ''}</button>`).join('')}</div>`;
+  const list = visibleSubs(t);
+  if (list.length < 2) return '';
+  return `<div class="subtabs" role="tablist">${list.map(([id, n]) => {
+    const fresh = isNew(`${t}:${id}`);
+    return `<button class="subtab" data-act="sub" data-tab="${t}" data-sub="${id}" aria-pressed="${sub(t) === id}">${n}${dots[id] || fresh ? `<span class="dot${fresh && !dots[id] ? ' new' : ''}"></span>` : ''}</button>`;
+  }).join('')}</div>`;
 }
 const lockedCard = (title, unlockId) => `<div class="card locked-card"><h2>${esc(title)}</h2><p>${esc(unlockHint(unlockId))}</p></div>`;
 const progressBar = (a, b) => `<span class="bar"><i style="--p:${b ? clamp(a / b, 0, 1).toFixed(3) : 0}"></i></span>`;
@@ -65,8 +75,8 @@ function viewFields() {
       <button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${empty || ''} ${esc(itemName(seed.id))}${empty ? ` · ${empty * seedCost(seed)}c` : ''}</button>
     </div>
     ${have('tonic') ? `<button class="btn sun" data-act="tonic">${pic('tonic', 24)} Use Grow Tonic (${have('tonic')}) · halves growing time</button>` : ''}
-    <div class="card"><h2>Farm improvements</h2><div class="upgrades">${ups}</div>
-      <p class="sub">${state.plots.length}/${C.core.plots.max} plots. Buy more at Pennywhistle's store in Town.</p></div>`;
+    ${featureOn('upgrades') ? `<div class="card"><h2>Farm improvements</h2><div class="upgrades">${ups}</div>
+      <p class="sub">${state.plots.length}/${C.core.plots.max} plots. Buy more at Pennywhistle's store in Town.</p></div>` : ''}`;
 }
 function tickFarm() {
   let changed = false;
@@ -254,7 +264,7 @@ function viewTown() {
   const s = sub('town');
   ensureChores();
   const unread = state.mail.filter(m => !m.read).length;
-  const choresReady = state.chores.list.some(c => !c.claimed && choreProgress(c) >= c.n) || loginReady() || festivalOpenCount() > 0;
+  const choresReady = state.chores.list.some(c => !c.claimed && choreProgress(c) >= c.n) || (featureOn('daily') && loginReady()) || (featureOn('festival') && festivalOpenCount() > 0);
   const people = I.vils.some(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id)));
   const head = `<div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>${subtabs('town', { mail: unread > 0, board: choresReady, people })}`;
   if (s === 'shops') return head + viewShops();
@@ -315,13 +325,13 @@ function viewShops() {
       <div class="store-item">${pic(m.want, 32)}<div class="what"><b>Saffi wants ${esc(itemName(m.want))}</b><small>Pays double: ${fmtN(priceOf(m.want) * 2)}c each, up to ${left} more today</small></div>
         <button class="btn small sun" data-act="saffi-sell" ${have(m.want) && left > 0 ? '' : 'disabled'}>Sell ${Math.min(have(m.want), left) || ''}</button></div></div>`;
   }
-  return `<div class="card"><h2>Pennywhistle's General Store</h2><p class="sub">Seeds are bought as you sow. Sell your goods from the Bag.</p>
+  return `<div class="card" data-tour="store"><h2>Pennywhistle's General Store</h2><p class="sub">Seeds are bought as you sow. Sell your goods from the Bag.</p>
     ${rows}
     <div class="store-item"><span class="emo" style="--s:32px">🟩</span><div class="what"><b>New farm plot</b><small>${state.plots.length}/${C.core.plots.max} plots</small></div>
       ${state.plots.length < C.core.plots.max ? `<button class="btn small" data-act="buy-plot" ${state.coins >= pc ? '' : 'disabled'}>${fmtN(pc)}c</button>` : '<span class="chip plain">All bought</span>'}</div>
     <div class="store-item"><span class="emo" style="--s:32px">🛖</span><div class="what"><b>${nextBarn ? `Upgrade to ${esc(nextBarn.n)}` : esc(C.core.barn[state.barn].n)}</b><small>Holds ${fmtN(cap())} of each item${nextBarn ? ` → ${fmtN(nextBarn.cap)}` : ''}</small></div>
       ${nextBarn ? `<button class="btn small" data-act="buy-barn" ${state.coins >= nextBarn.cost ? '' : 'disabled'}>${fmtN(nextBarn.cost)}c</button>` : '<span class="chip plain">Maxed</span>'}</div>
-  </div>${viewExchange()}${saffi || (I.unlockAt.merchant != null ? lockedCard("Saffi's cart", 'merchant') : '')}`;
+  </div>${featureOn('exchange') ? viewExchange() : ''}${saffi}`;
 }
 function viewBoard() {
   ensureChores();
@@ -332,7 +342,7 @@ function viewBoard() {
   }).join('');
   const all = state.chores.list.every(c => c.claimed);
   const w = weather();
-  return `${viewDaily()}${viewFestival()}<div class="card"><div class="row between"><h2>Today's chores</h2><span class="chip plain">New list at midnight</span></div>${chores}
+  return `${featureOn('daily') ? viewDaily() : ''}${featureOn('festival') ? viewFestival() : ''}<div class="card" data-tour="chores"><div class="row between"><h2>Today's chores</h2><span class="chip plain">New list at midnight</span></div>${chores}
       ${all && !state.chores.bonus ? '<button class="btn sun" data-act="chore-bonus">All done! Claim bonus: 2 Grow Tonic</button>' : ''}</div>
     <div class="card"><h2>Valley almanac</h2><p>Day ${dayNumber()} · ${esc(season())}</p><p class="sub">Weather: ${esc(w.n)}. ${esc(w.desc)}</p>
       <p class="sub">Seasons turn every seven days. Weather changes at midnight.</p></div>`;
@@ -365,7 +375,10 @@ function viewItems() {
     return `<div class="card"><div class="row between"><h2>${esc(C.core.types[t])}</h2>${sellable ? `<button class="btn small ghost" data-act="sell-type" data-t="${t}">Sell all</button>` : ''}</div>
       <div class="inv">${list.map(id => slotHTML(id)).join('')}</div></div>`;
   }).join('');
-  return groups || '<div class="card"><p class="muted">Your bag is empty. Harvest, explore or fish to fill it.</p></div>';
+  const lost = overflowCount() ? `<div class="card" style="border-color:var(--sun)"><div class="row between"><h2>Lost &amp; found</h2><button class="btn small sun" data-act="take-overflow">Take what fits</button></div>
+    <p class="sub">These didn't fit in your barn, so they're waiting here. Sell something or upgrade the barn, then take them.</p>
+    <div class="row">${Object.entries(state.overflow).map(([id, n]) => chip(id, n)).join('')}</div></div>` : '';
+  return lost + (groups || '<div class="card"><p class="muted">Your bag is empty. Harvest, explore or fish to fill it.</p></div>');
 }
 function slotHTML(id, act = 'item') {
   const t = masteryTier(id);
@@ -400,6 +413,10 @@ function viewSettings() {
       <div class="stat"><b>${fmtN(s.cooked)}</b><span>meals cooked</span></div>
       <div class="stat"><b>${fmtN(s.earned)}</b><span>coins from sales</span></div>
     </div></div>
+    <div class="card"><h2>Help &amp; comfort</h2>
+      <div class="toggle"><div class="what"><b>Tutorials</b><small>A short guided tour the first time you open each screen</small></div><button class="switch" role="switch" aria-label="Tutorials" aria-checked="${!state.opts.tipsOff}" data-act="opt" data-id="tipsOff"></button></div>
+      <div class="toggle"><div class="what"><b>Relaxed fishing</b><small>Slower marker, wider green zone, more time to react</small></div><button class="switch" role="switch" aria-label="Relaxed fishing" aria-checked="${!!state.opts.relaxedFish}" data-act="opt" data-id="relaxedFish"></button></div>
+      <div class="row"><button class="btn small ghost" data-act="replay-tours">Show all tutorials again</button></div></div>
     <div class="card"><h2>Save</h2><p class="sub">${where}</p>
       <div class="row"><button class="btn small ghost" data-act="export">Show save code</button><button class="btn small ghost" data-act="import-open">Load a save code</button><button class="btn small danger" data-act="reset">Start over</button></div>
       <div id="save-box"></div></div>

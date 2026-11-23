@@ -1,5 +1,8 @@
 /* ---------- game systems ---------- */
 
+/* Bad-luck protection: rare finds that the story or requests rely on are guaranteed within this many tries. */
+const PITY = { explore: 90, starshard: 70, legendary: 160 };
+
 /* Fields */
 function growFactor() {
   let f = 1;
@@ -147,10 +150,18 @@ function explore(n) {
   const found = {}, full = new Set();
   let empty = 0;
   const table = exploreTable(a.drops);
+  const rares = Object.entries(a.drops).filter(([k, w]) => k !== 'none' && w < 3);
+  const pk = 'ex:' + a.id;
   for (let k = 0; k < times; k++) {
-    const [id] = pickWeighted(table);
+    let [id] = pickWeighted(table);
+    // bad-luck protection: a rare find is guaranteed within PITY trips
+    if (rares.length) {
+      if (rares.some(([r]) => r === id)) state.pity[pk] = 0;
+      else if ((state.pity[pk] = (state.pity[pk] || 0) + 1) >= PITY.explore) { id = pickWeighted(rares)[0]; state.pity[pk] = 0; }
+    }
     if (id === 'none') { empty++; continue; }
-    if (addItem(id, 1)) found[id] = (found[id] || 0) + 1; else full.add(id);
+    if (addItem(id, 1) === 0) { addOrStash(id, 1); full.add(id); }
+    found[id] = (found[id] || 0) + 1;
   }
   spendStamina(times);
   addXP('foraging', a.xp * times);
@@ -161,7 +172,7 @@ function explore(n) {
   else html = `${parts.join('') || '<span>Nothing this time.</span>'}${empty && times > 1 ? `<span class="muted">${empty} empty</span>` : ''}`;
   exploreLog.unshift({ html, when: times > 1 ? `${times} trips` : '1 trip' });
   exploreLog = exploreLog.slice(0, 6);
-  if (full.size) toast(`Barn is full of ${[...full].map(itemName).join(', ')}. Sell some or upgrade the barn.`);
+  if (full.size) toast(`Barn is full of ${[...full].map(itemName).join(', ')}. The extra went to Lost & found in your Bag.`);
   const rare = Object.keys(found).filter(id => (a.drops[id] || 99) < 3);
   if (rare.length) toast(`Rare find: ${rare.map(itemName).join(', ')}!`, 'lvl');
   maybeEncounter(a.id, times);
@@ -197,9 +208,14 @@ function dig(n) {
       const p = Math.max(0.04, C.core.mine.stairs + lvl('mining') * 0.004 + (buffOn('miner') ? 0.08 : 0) + perkVal('prospector') / 100 - (m.floor > 30 ? Math.min(0.06, (m.floor - 30) * 0.002) : 0));
       if (Math.random() < p) { m.stairs = true; stairsAt = k + 1; }
     }
-    const [id] = pickWeighted(table);
+    let [id] = pickWeighted(table);
+    if (m.floor >= 25) {
+      if (id === 'starshard') state.pity['mine:star'] = 0;
+      else if ((state.pity['mine:star'] = (state.pity['mine:star'] || 0) + 1) >= PITY.starshard) { id = 'starshard'; state.pity['mine:star'] = 0; }
+    }
     if (id === 'none') continue;
-    if (addItem(id, 1)) found[id] = (found[id] || 0) + 1; else full.add(id);
+    if (addItem(id, 1) === 0) { addOrStash(id, 1); full.add(id); }
+    found[id] = (found[id] || 0) + 1;
   }
   spendStamina(times);
   addXP('mining', times * (2 + m.floor * 0.25));
@@ -209,7 +225,7 @@ function dig(n) {
   if (stairsAt) html += '<span class="chip gold plain">Found the way down!</span>';
   mineLog.unshift({ html, when: `Floor ${m.floor} · ${times} dig${times > 1 ? 's' : ''}` });
   mineLog = mineLog.slice(0, 6);
-  if (full.size) toast(`Barn is full of ${[...full].map(itemName).join(', ')}.`);
+  if (full.size) toast(`Barn is full of ${[...full].map(itemName).join(', ')}. The extra went to Lost & found in your Bag.`);
   if (found.starshard) toast('A Star Shard! It hums faintly in your hand.', 'lvl', 4200);
   maybeEncounter('mine', times);
 }
@@ -268,17 +284,23 @@ function bite() {
     if (r === 5) w *= 1 + perkVal('luckyhook') / 100;
     return [id, w, r];
   });
-  const [id, , r] = pickWeighted(table);
+  let [id, , r] = pickWeighted(table);
+  const legend = sp.fish.find(f => f[2] === 5), pk = 'fish:' + sp.id;
+  if (legend) {
+    if (r === 5) state.pity[pk] = 0;
+    else if ((state.pity[pk] = (state.pity[pk] || 0) + 1) >= PITY.legendary) { [id, , r] = legend; state.pity[pk] = 0; }
+  }
+  const relaxed = state.opts && state.opts.relaxedFish;
   const R = C.core.rarity[r];
-  const width = Math.min(62, R.zone + Math.min(12, fl * 0.5) + (lure ? 8 : 0) + (buffOn('steady') ? 10 : 0) + perkVal('steady'));
-  Object.assign(fishing, { fish: { id, r }, zone: [5 + Math.random() * (90 - width), width], speed: R.speed, offset: Math.random() * 2, start: performance.now(), phase: 'bite' });
+  const width = Math.min(relaxed ? 72 : 62, R.zone + Math.min(12, fl * 0.5) + (lure ? 8 : 0) + (buffOn('steady') ? 10 : 0) + perkVal('steady') + (relaxed ? 14 : 0));
+  Object.assign(fishing, { fish: { id, r }, zone: [5 + Math.random() * (90 - width), width], speed: R.speed * (relaxed ? 0.55 : 1), offset: Math.random() * 2, start: performance.now(), phase: 'bite' });
   fishing.msg = `<span>Bite!</span><span class="muted">${r === 5 ? 'The line screams. Something enormous!' : r >= 3 ? 'Something big is pulling hard.' : r === 2 ? 'A strong tug.' : 'A nibble.'}</span>`;
   syncFishDom();
   animateNeedle();
   fishing.timers.push(setTimeout(() => {
     if (fishing.phase !== 'bite') return;
     clearFishTimers(); fishing.phase = 'result'; fishing.msg = 'It got away.'; syncFishDom();
-  }, 4200));
+  }, relaxed ? 7000 : 4200));
 }
 function needlePos() {
   const t = (performance.now() - fishing.start) / 1000 * fishing.speed + fishing.offset;
@@ -300,10 +322,9 @@ function reel() {
     const { id, r } = fishing.fish;
     const name = itemName(id);
     const firstLegend = I.legendary.has(id) && !state.got[id];
-    const got = addItem(id, 1);
-    if (!got) {
-      fishing.msg = `You caught ${/^[AEIOU]/.test(name) ? 'an' : 'a'} ${esc(name)}, but your barn is full of them. You let it go.`;
-    } else {
+    const got = 1;
+    if (addItem(id, 1) === 0) { addOrStash(id, 1); toast(`Barn is full of ${name}. It went to Lost & found in your Bag.`); }
+    {
       const xp = id === 'boot' ? 1 : C.core.rarity[r].xp;
       addXP('fishing', xp);
       if (I.items[id].t === 'fish' && id !== 'boot') state.stats.fish++;

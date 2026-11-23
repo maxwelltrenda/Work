@@ -94,7 +94,7 @@ function collectNet(spotId) {
   const got = {};
   for (let k = 0; k < s.caught; k++) { const [id] = pickWeighted(pool); got[id] = (got[id] || 0) + 1; }
   let total = 0;
-  for (const [id, n] of Object.entries(got)) total += addItem(id, n);
+  for (const [id, n] of Object.entries(got)) { addOrStash(id, n); total += n; }
   const per = C.core.nets.every * 1000, el = now() - state.nets[spotId].at;
   state.nets[spotId].at = s.caught >= C.core.nets.cap ? now() : now() - (el % per);
   addXP('fishing', total * C.core.nets.xp);
@@ -205,7 +205,7 @@ function collectPet(id) {
   const got = {};
   for (let k = 0; k < s.finds; k++) { const [iid] = pickWeighted(table); got[iid] = (got[iid] || 0) + 1; }
   let total = 0;
-  for (const [iid, n] of Object.entries(got)) total += addItem(iid, n);
+  for (const [iid, n] of Object.entries(got)) { addOrStash(iid, n); total += n; }
   const per = p.every * 1000 / (s.fed ? 2 : 1);
   s.rec.at = s.finds >= p.cap ? now() : now() - ((now() - s.rec.at) % per);
   state.stats.petfinds = (state.stats.petfinds || 0) + total;
@@ -249,8 +249,9 @@ function checkLogin() {
   const today = dayKey();
   if (!state.login) state.login = { last: '', streak: 0, claimed: '' };
   if (state.login.last === today) return;
-  const y = dayKey(now() - 86400000);
-  state.login.streak = state.login.last === y ? state.login.streak + 1 : 1;
+  // one missed day is forgiven; two in a row starts the streak over
+  const y = dayKey(now() - 86400000), y2 = dayKey(now() - 2 * 86400000);
+  state.login.streak = state.login.last === y || state.login.last === y2 ? state.login.streak + 1 : 1;
   state.login.last = today;
   state.stats.streak = Math.max(state.stats.streak || 0, state.login.streak);
 }

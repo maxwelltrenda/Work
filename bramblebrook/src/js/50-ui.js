@@ -10,14 +10,26 @@ const TAB_DEFS = [
 const VIEWS = { farm: viewFarm, wilds: viewWilds, fish: viewFish, make: viewMake, town: viewTown, bag: viewBag };
 
 function renderTabs() {
-  $('#tabs').innerHTML = TAB_DEFS.map(t => `<button class="tab" data-act="tab" data-tab="${t.id}" ${t.id === state.tab ? 'aria-current="page"' : ''}>
-    <svg viewBox="0 0 24 24" aria-hidden="true">${t.svg}</svg><span>${t.n}</span><span class="badge" id="badge-${t.id}" hidden></span></button>`).join('');
+  const tabs = TAB_DEFS.filter(t => tabOn(t.id));
+  if (!tabOn(state.tab)) state.tab = 'farm';
+  $('#tabs').style.gridTemplateColumns = `repeat(${tabs.length}, minmax(0, 1fr))`;
+  $('#tabs').innerHTML = tabs.map(t => `<button class="tab" data-act="tab" data-tab="${t.id}" ${t.id === state.tab ? 'aria-current="page"' : ''}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">${t.svg}</svg><span>${t.n}</span>${tabFresh(t.id) ? '<span class="newdot" aria-label="New"></span>' : ''}<span class="badge" id="badge-${t.id}" hidden></span></button>`).join('');
 }
+const tabFresh = t => isNew('tab:' + t) || (SUBS[t] || []).some(([s]) => isNew(`${t}:${s}`) && subOn(t, s));
 function renderView() {
   if (!state) return;
   if (state.tab === 'fish' && (fishing.phase === 'waiting' || fishing.phase === 'bite')) { updateBaitCounts(); return; }
+  if (!tabOn(state.tab)) state.tab = 'farm';
   $('#view').innerHTML = (VIEWS[state.tab] || viewFarm)();
   if (state.tab === 'fish') syncFishDom();
+  // a ? button on every screen that has a tour
+  const head = $('#view .view-head');
+  if (head && tourReady(screenKey())) head.insertAdjacentHTML('beforeend', '<button class="help" data-act="help" aria-label="Show the tour for this screen">?</button>');
+  const vk = state.tab === 'fish' ? 'tab:fish' : `${state.tab}:${sub(state.tab)}`;
+  if (isNew(vk) || isNew('tab:' + state.tab)) { markVisited(vk); markVisited('tab:' + state.tab); setTimeout(() => { renderTabs(); updateBadges(); }, 0); }
+  if (tour) requestAnimationFrame(() => placeTour(tourTarget(tour.steps[tour.i].target)));
+  else setTimeout(maybeTour, 60);
 }
 function renderAll() { renderTabs(); updateHeader(true); renderView(); updateBadges(); }
 
@@ -27,11 +39,12 @@ function updateBadges() {
   set('farm', state.plots.filter(p => p.crop && p.ready <= now()).length + orchardReady() + animalsReady() + petsReady());
   set('make', benchReady() + casksReady());
   set('fish', netsReady());
-  set('bag', perkPointsFree());
+  set('bag', (featureOn('bag:perks') ? perkPointsFree() : 0) + (overflowCount() ? 1 : 0));
   set('wilds', I.advs.filter(a => !state.advDone[a.id] && reqMet(a.req)).length);
   ensureChores();
   set('town', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length
-    + state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length + state.mail.filter(m => !m.read).length + (loginReady() ? 1 : 0) + festivalOpenCount());
+    + (featureOn('town:board') ? state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length : 0) + state.mail.filter(m => !m.read).length
+    + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0));
   const st = storyStatus();
   const jb = $('#badge-journal');
   if (jb) { jb.hidden = !st.ready; jb.textContent = '!'; }
@@ -48,10 +61,12 @@ function updateHeader(force) {
   const buffs = Object.keys(I.buffs).filter(buffOn).map(b => `<span class="buff">${esc(I.buffs[b].n)} ${fmtT((state.buffs[b] - now()) / 1000)}</span>`).join('');
   const bEl = $('#buffs');
   bEl.innerHTML = buffs; bEl.hidden = !buffs;
-  const sig = I.skills.map(s => state.xp[s.id]).join(',');
+  const sig = I.skills.map(s => (skillOn(s.id) ? '' : '-') + state.xp[s.id]).join(',');
   if (sig === lastSkillSig && !force) return;
   lastSkillSig = sig;
-  $('#skills').innerHTML = I.skills.map(s => {
+  const shown = I.skills.filter(s => skillOn(s.id));
+  $('#skills').style.gridTemplateColumns = `repeat(${shown.length}, minmax(0, 1fr))`;
+  $('#skills').innerHTML = shown.map(s => {
     const L = levelInfo(state.xp[s.id] || 0);
     return `<button class="skill" data-act="skill" data-id="${s.id}" aria-label="${esc(s.n)} level ${L.lvl}"><span>${esc(s.short)}</span><b>${L.lvl}</b>${progressBar(L.into, L.need || 1)}</button>`;
   }).join('');
@@ -88,10 +103,11 @@ function itemSheet(id) {
   if (crop) where.push(crop.flag ? 'Heirloom seeds' : `Grow it (Farming ${crop.lvl})`);
   if (I.tree[id]) where.push(`Orchard (${I.tree[id].n})`);
   I.animals.forEach(a => { if (a.produce === id) where.push(a.n); });
-  I.areas.forEach(a => { if (a.drops[id]) where.push(a.n); });
-  C.core.mine.bands.forEach(b => { if (b.drops[id]) where.push(`Mine floors ${b.from}-${b.to}`); });
+  const odds = (w, table) => { const tot = Object.values(table).reduce((x, y) => x + y, 0); const p = w / tot; return p >= 0.1 ? `${Math.round(p * 100)}%` : `about 1 in ${Math.round(1 / p)}`; };
+  I.areas.forEach(a => { if (a.drops[id]) where.push(`${a.n} (${odds(a.drops[id], a.drops)} of trips)`); });
+  C.core.mine.bands.forEach(b => { if (b.drops[id]) where.push(`Mine floors ${b.from}-${b.to === 30 ? '30+' : b.to} (${odds(b.drops[id], b.drops)} of digs)`); });
   C.core.mine.rare.forEach(r => { if (r.item === id) where.push(`Mine floor ${r.from}+`); });
-  I.spots.forEach(s => { if (s.fish.some(f => f[0] === id)) where.push(s.n); });
+  I.spots.forEach(s => { const f = s.fish.find(x => x[0] === id); if (f) where.push(`${s.n} (${odds(f[1], Object.fromEntries(s.fish.map(x => [x[0], x[1]])))} of bites${f[2] === 5 ? ', guaranteed within ' + PITY.legendary + ' bites' : ''})`); });
   if (I.recipe[id]) where.push(`Workshop (Crafting ${I.recipe[id].lvl})`);
   if (I.meal[id]) where.push(`Kitchen (Cooking ${I.meal[id].lvl})`);
   if (C.core.store.some(s => s.item === id)) where.push('General store');
@@ -165,7 +181,7 @@ function journalHTML() {
     ${past ? `<div class="card"><h2>Chapters so far</h2>${past}</div>` : ''}
     <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`;
 }
-function openJournal() { openSheet(journalHTML(), journalHTML); }
+function openJournal() { openSheet(journalHTML(), journalHTML); maybeSheetTour('journal'); }
 function pageSheet(n) {
   const p = I.pages.find(x => x.n === n);
   if (!p) return;
@@ -347,6 +363,10 @@ function handle(act, el, e) {
     case 'fest-deliver': if (!festivalDeliver(+el.dataset.i)) return false; break;
     case 'fest-buy': if (!festivalBuy(+el.dataset.i)) return false; break;
     case 'login-claim': if (!claimLogin()) return false; break;
+    case 'help': replayTour(); return false;
+    case 'opt': state.opts[id] = !state.opts[id]; toast(id === 'tipsOff' ? (state.opts.tipsOff ? 'Tutorials off' : 'Tutorials on') : (state.opts.relaxedFish ? 'Relaxed fishing on' : 'Relaxed fishing off')); break;
+    case 'replay-tours': state.toursSeen = {}; state.opts.tipsOff = false; toast('Tutorials will show again as you visit each screen'); break;
+    case 'take-overflow': { const n = takeOverflow(); toast(n ? `Moved ${n} into your barn` : 'Still no room. Sell something or upgrade the barn first.'); if (!n) return false; break; }
     default: return false;
   }
   return true;
@@ -358,6 +378,7 @@ document.addEventListener('pointerdown', e => {
   fishButton();   // fishing reacts on press for tight timing; keyboard presses arrive as clicks with detail 0
 });
 document.addEventListener('keydown', e => {
+  if (tour) return;
   if (e.key === 'Escape' && sheetOpen()) { closeSheet(); return; }
   if (state && state.tab === 'fish' && e.key === ' ' && !e.target.closest('button, input, textarea') && !sceneOpen && !advRun) { e.preventDefault(); fishButton(); }
 });

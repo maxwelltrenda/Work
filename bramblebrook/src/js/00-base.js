@@ -59,6 +59,7 @@ function indexContent(data) {
     advs: data.adventures.adventures || [], adv: byId(data.adventures.adventures), encs: data.adventures.encounters || [],
     art: (data.art && data.art.map) || {},
   });
+  C.tours = data.tours || { tours: {} };
   I.enc = byId(I.encs);
   I.legendary = new Set(k.spots.flatMap(s => s.fish.filter(f => f[2] === 5).map(f => f[0])));
   I.fishKinds = Object.keys(k.items).filter(id => k.items[id].t === 'fish');

@@ -29,6 +29,7 @@ function freshState() {
     mail: [], chores: null, merchant: null, ach: {}, mastery: {},
     bench: Array.from({ length: k.workbench.slots }, () => null), nets: {}, casks: Array.from({ length: k.cellar.slots }, () => null),
     pets: {}, perks: {}, tokens: 0, festival: null, login: null, exchange: null,
+    toursSeen: {}, revealed: {}, visited: {}, opts: { tipsOff: false, relaxedFish: false }, overflow: {}, pity: {},
     stats: { harvested: 0, fish: 0, explores: 0, crafted: 0, cooked: 0, digs: 0, collected: 0, delivered: 0, earned: 0, gifts: 0, bottled: 0, benched: 0, netted: 0, petfinds: 0, tokens: 0, streak: 0 },
     seed: 'wheat', spot: 'pond', bait: 'worm', area: 'meadow',
     tab: 'farm', sub: {},
@@ -38,7 +39,7 @@ function migrate(s) {
   const base = freshState();
   if (!s || typeof s !== 'object' || s.v !== 2) return base;
   const out = Object.assign({}, base, s);
-  for (const key of ['inv', 'locked', 'seen', 'got', 'xp', 'upgrades', 'buffs', 'mine', 'story', 'flags', 'unlocks', 'pages', 'friends', 'gifted', 'chatted', 'reqs', 'heartSeen', 'advDone', 'encDone', 'ach', 'mastery', 'stats', 'animals', 'sub', 'nets', 'pets', 'perks']) {
+  for (const key of ['inv', 'locked', 'seen', 'got', 'xp', 'upgrades', 'buffs', 'mine', 'story', 'flags', 'unlocks', 'pages', 'friends', 'gifted', 'chatted', 'reqs', 'heartSeen', 'advDone', 'encDone', 'ach', 'mastery', 'stats', 'animals', 'sub', 'nets', 'pets', 'perks', 'toursSeen', 'revealed', 'visited', 'opts', 'overflow', 'pity']) {
     out[key] = Object.assign({}, base[key], s[key] || {});
   }
   out.story.queue = Array.isArray(out.story.queue) ? out.story.queue : [];
@@ -93,6 +94,19 @@ function addItem(id, n) {
     checkMastery(id);
   }
   return got;
+}
+/* Adds what fits; anything over the barn limit waits in Lost & found instead of vanishing. Returns the amount stored. */
+function addOrStash(id, n) {
+  const got = addItem(id, n);
+  const extra = n - got;
+  if (extra > 0 && I.items[id]) { state.overflow[id] = (state.overflow[id] || 0) + extra; state.seen[id] = 1; }
+  return got;
+}
+const overflowCount = () => Object.values(state.overflow || {}).reduce((a, n) => a + n, 0);
+function takeOverflow() {
+  let moved = 0;
+  for (const [id, n] of Object.entries(state.overflow)) { const got = addItem(id, n); moved += got; if (got >= n) delete state.overflow[id]; else state.overflow[id] = n - got; }
+  return moved;
 }
 function takeItem(id, n) {
   const left = have(id) - n;
@@ -202,8 +216,8 @@ function applyGive(g) {
   if (!g) return out;
   if (g.coins) { state.coins += g.coins; out.push(`+${fmtN(g.coins)} coins`); }
   for (const [id, n] of Object.entries(g.items || {})) {
-    const got = addItem(id, n);
-    out.push(got ? `${got}× ${itemName(id)}` : `${itemName(id)} (barn full)`);
+    const got = addOrStash(id, n);
+    out.push(got >= n ? `${n}× ${itemName(id)}` : `${n}× ${itemName(id)} (${n - got} to Lost & found)`);
   }
   for (const [sk, x] of Object.entries(g.xp || {})) { addXP(sk, x); out.push(`+${x} ${skillName(sk)} XP`); }
   for (const [vid, p] of Object.entries(g.friend || {})) { addFriend(vid, p); out.push(`${p > 0 ? '+' : ''}${p} friendship with ${vilShort(vid)}`); }

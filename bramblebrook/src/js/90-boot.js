@@ -7,6 +7,9 @@ function commit() {
   storyCheck();
   checkMail();
   checkAchievements();
+  const before = Object.keys(state.revealed || {}).length;
+  checkReveals();
+  if (Object.keys(state.revealed).length !== before) renderTabs();
   state.savedAt = now();
   clearTimeout(localTimer);
   localTimer = setTimeout(saveLocal, 300);
@@ -84,6 +87,7 @@ function start(data) {
   state = migrate(fromHot ? data.state : loadLocal());
   ensureChores();
   checkLogin();
+  checkReveals(true);
   renderAll();
   setInterval(tick, 1000);
   if (!state.name) askName();

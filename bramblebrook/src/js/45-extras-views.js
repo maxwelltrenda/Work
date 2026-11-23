@@ -67,7 +67,7 @@ function viewNets() {
 function viewExchange() {
   const rows = exchangeBoard();
   const ends = (exchangeWindow() + 1) * C.core.exchange.hours * 3600000 - now();
-  return `<div class="card"><div class="row between"><h2>Valley Exchange</h2><span class="chip plain">New prices in ${fmtT(ends / 1000)}</span></div>
+  return `<div class="card" data-tour="exchange"><div class="row between"><h2>Valley Exchange</h2><span class="chip plain">New prices in ${fmtT(ends / 1000)}</span></div>
     <p class="sub">Merchants from over the hills pay more for some goods and less for others. Up to ${C.core.exchange.cap} of each per price window.</p>
     ${rows.map(r => {
       const each = Math.round(priceOf(r.id) * r.mult), left = C.core.exchange.cap - exchangeSold(r.id), n = Math.min(have(r.id), left);
@@ -110,7 +110,7 @@ function viewDaily() {
   const ready = loginReady(), cycle = C.core.login.length;
   const pos = (Math.max(1, state.login.streak) - 1) % cycle;
   const days = C.core.login.map((g, i) => `<span class="chip plain ${i === pos ? 'gold' : ''}" title="${esc(giveSummary(g))}">Day ${i + 1}${i < pos || (i === pos && !ready) ? ' ✓' : ''}</span>`).join('');
-  return `<div class="card"><div class="row between"><h2>Daily visit gift</h2><span class="chip plain">${state.login.streak}-day streak</span></div>
+  return `<div class="card" data-tour="daily"><div class="row between"><h2>Daily visit gift</h2><span class="chip plain">${state.login.streak}-day streak</span></div>
     <div class="row">${days}</div>
     ${ready ? `<button class="btn sun" data-act="login-claim">Open today's gift: ${esc(giveSummary(loginReward()))}</button>` : '<p class="sub">Come back tomorrow to keep the streak going.</p>'}</div>`;
 }
@@ -129,7 +129,7 @@ function viewFestival() {
       ${owned ? '<span class="chip plain">Yours</span>' : `<button class="btn small" data-act="fest-buy" data-i="${i}" ${(state.tokens || 0) >= s.cost ? '' : 'disabled'}>${s.cost} 🎀</button>`}</div>`;
   }).join('');
   const daysLeft = 7 - ((dayNumber() - 1) % 7);
-  return `<div class="card"><div class="row between"><h2>${esc(f.n)}</h2><span class="chip plain">${daysLeft} day${daysLeft > 1 ? 's' : ''} left</span></div>
+  return `<div class="card" data-tour="festival"><div class="row between"><h2>${esc(f.n)}</h2><span class="chip plain">${daysLeft} day${daysLeft > 1 ? 's' : ''} left</span></div>
     <p class="sub">${esc(f.blurb)} You have ${state.tokens || 0} ribbons.</p>${reqs}
     <div class="label" style="margin-top:6px">Festival stall</div>${shop}</div>`;
 }
