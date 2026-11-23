@@ -219,7 +219,7 @@ function dig(n) {
     found[id] = (found[id] || 0) + 1;
   }
   spendStamina(times);
-  addXP('mining', times * (2 + m.floor * 0.25));
+  addXP('mining', times * (2 + Math.min(m.floor, 30) * 0.25));   // past floor 30 digging pays no more than at 30
   state.stats.digs += times;
   const parts = Object.entries(found).map(([id, q]) => chip(id, q > 1 ? q + '×' : null));
   let html = parts.join('') || `<span>${esc(C.core.mine.empty[Math.floor(Math.random() * C.core.mine.empty.length)])}</span>`;
@@ -236,7 +236,7 @@ function descend() {
   const next = m.floor + 1, need = mineGate(next);
   if (lvl('mining') < need) { toast(`Hard rock blocks the way. You need Mining ${need} to reach floor ${next}.`); return; }
   m.floor = next; m.stairs = false;
-  if (next > m.deepest) { m.deepest = next; addXP('mining', 8 * next); toast(`New depth: floor ${next}`, 'lvl'); maybeDelve(next); }
+  if (next > m.deepest) { m.deepest = next; addXP('mining', next <= 30 ? 8 * next : 60); toast(`New depth: floor ${next}`, 'lvl'); maybeDelve(next); }
   mineLog.unshift({ html: `<span>You climb down to floor ${next}.</span>`, when: '' });
   mineLog = mineLog.slice(0, 6);
 }
