@@ -79,7 +79,9 @@ function showDice(choice, ch, onDone, rerolled) {
       <div class="dice-row">${res.rolls.map((r, i) => `<div class="d20 spin" data-i="${i}">${D20_SVG}<span class="d20-n">?</span></div>`).join('')}</div>
       <p class="dice-result" id="dice-result" aria-live="polite">&nbsp;</p>
       <div class="dice-btns" id="dice-btns"></div></div>`;
-  $('#scene-root').innerHTML = sceneShell({ title: advRun.isEnc ? 'Something happens…' : advRun.def.n }, `<div class="say">${esc(fill(choice.t))}</div>${body}`);
+  stopTyping();
+  if (renderScene({ title: advRun.isEnc ? 'Something happens…' : advRun.def.n, stage: advRun.stage }, `<div class="say you">${esc(fill(choice.t))}</div>${body}`)) mountStage(advRun.stage, advRun.companion ? [advRun.companion] : []);
+  stageLine('you', null);
   play('dice');
   const dice = $$('#scene-root .d20');
   const settle = () => {

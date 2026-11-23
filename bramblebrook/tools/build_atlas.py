@@ -130,6 +130,35 @@ for folder, stem in FACES:
     sheet = load(FOLK.format(folder, stem))
     cells.append((f'face:{stem}', sheet.crop((32, 0, 64, 32)), 1, None))
 
+# walking frames for story scenes: the sheet's left-facing row (step, stand, step); right is a mirror in CSS
+for key, (folder, stem) in list(FOLKS.items()) + [('face:' + st, (fo, st)) for fo, st in FACES]:
+    sheet = load(FOLK.format(folder, stem))
+    for f in range(3):
+        cells.append((f'walk:{key}:{f}', sheet.crop((f * 32, 32, f * 32 + 32, 64)), 1, None))
+
+# emote bubbles: the pack's own, plus ! ? and ... drawn into an emptied bubble
+BUBBLE = 'mood-health-bubbles/{} bubble.png'
+for key, name in {'heart': 'heart', 'happy': 'smile', 'glad': 'happy', 'sad': 'sad', 'cross': 'angry' if False else 'error', 'ok': 'ok'}.items():
+    cells.append((f'emote:{key}', to32(load(BUBBLE.format(name))), 1, None))
+blank = load(BUBBLE.format('neutral'))
+px = blank.load()
+for y in range(16):
+    for x in range(16):
+        r, g, b_, a_ = px[x, y]
+        if a_ and (r, g, b_) != (255, 255, 255) and 6 <= y <= 13 and 3 <= x <= 11:
+            px[x, y] = (255, 255, 255, 255)
+INK = (40, 36, 60, 255)
+GLYPHS = {
+    'bang': [(7, 7), (7, 8), (7, 9), (7, 10), (7, 12)],
+    'ask': [(6, 7), (7, 7), (8, 7), (8, 8), (7, 9), (8, 9), (7, 10), (7, 12)],
+    'dots': [(5, 11), (7, 11), (9, 11)],
+}
+for key, pts in GLYPHS.items():
+    im = blank.copy()
+    for xy in pts:
+        im.putpixel(xy, INK)
+    cells.append((f'emote:{key}', to32(im), 1, None))
+
 # pack cells: single-height first in rows, then tall cells two rows high
 singles = [c for c in cells if c[2] == 1]
 talls = [c for c in cells if c[2] == 2]
@@ -148,6 +177,28 @@ for i, (key, im, h, flt) in enumerate(talls):
 
 os.makedirs(os.path.join(ROOT, 'assets'), exist_ok=True)
 atlas.save(os.path.join(ROOT, 'assets', 'atlas.png'), optimize=True)
+
+# story backdrops: village buildings in one strip, all 128px tall. The 256px ones are
+# box-filtered down to 128 and snapped back to their own colours so the pixels stay crisp.
+BUILDINGS = ['Chieftains_Hall', 'longhouse', 'viking_watch_tower', 'Village_Home_1', 'Village_Home_2', 'Village_Home_3',
+             'Village_Home_4', 'Village_Home_5', 'blacksmiths', 'docks', 'Stone_Masons_Workshop', 'Carpenters_Workshop',
+             'Boat_Builders_Workshop']
+strip, stage = [], {}
+for name in BUILDINGS:
+    im = load(f'viking-village-buildings/{name}.png')
+    if im.size[0] > 128:
+        small = im.resize((128, 128), Image.BOX)
+        pal = im.convert('RGB').quantize(colors=64)
+        alpha = small.getchannel('A').point(lambda v: 255 if v > 110 else 0)
+        im = small.convert('RGB').quantize(palette=pal, dither=Image.Dither.NONE).convert('RGBA')
+        im.putalpha(alpha)
+    strip.append((name, im))
+sheet = Image.new('RGBA', (128 * len(strip), 128), (0, 0, 0, 0))
+for i, (name, im) in enumerate(strip):
+    sheet.paste(im, (i * 128, 0), im)
+    stage[name] = i
+sheet.quantize(colors=255, method=Image.Quantize.FASTOCTREE).save(os.path.join(ROOT, 'assets', 'stage.png'), optimize=True)
+
 with open(os.path.join(ROOT, 'src', 'content', 'art.json'), 'w') as f:
-    json.dump({'cols': COLS, 'rows': rows_single + rows_tall, 'cell': 32, 'map': index}, f, separators=(',', ':'))
-print(f'atlas {atlas.size}, {len(index)} pictures')
+    json.dump({'cols': COLS, 'rows': rows_single + rows_tall, 'cell': 32, 'map': index, 'stage': {'w': 128, 'count': len(strip), 'map': stage}}, f, separators=(',', ':'))
+print(f'atlas {atlas.size}, {len(index)} pictures; stage strip {sheet.size}')

@@ -124,17 +124,23 @@ function playScene(lines, opts = {}) {
 }
 function nextScene() {
   const s = sceneQ.shift();
-  if (!s) { sceneOpen = false; $('#scene-root').innerHTML = ''; renderAll(); return; }
-  if (s.adv) { sceneOpen = false; $('#scene-root').innerHTML = ''; startAdventure(s.adv, s.isEnc, s.companion); return; }
+  stopTyping();
+  if (!s) { sceneOpen = false; stg = null; $('#scene-root').innerHTML = ''; renderAll(); flushToasts(); return; }
+  if (s.adv) { sceneOpen = false; stg = null; $('#scene-root').innerHTML = ''; startAdventure(s.adv, s.isEnc, s.companion); return; }
   sceneOpen = true;
+  holdToasts();
   const lines = s.lines.slice();
   if (!lines.length) lines.push({ say: '…' });
+  const st = newStage(stagePlace(s.opts.where, lines));
+  const opts = { ...s.opts, stage: st };
   let i = 0;
+  const show = inner => { if (renderScene(opts, inner)) mountStage(st); };
   const draw = () => {
     const l = lines[i];
     const last = i === lines.length - 1;
     if (l.choices) {
-      $('#scene-root').innerHTML = sceneShell(s.opts, `<div class="choices">${l.choices.map((c, j) => `<button class="choice" data-scene-choice="${j}">${esc(fill(c.t))}</button>`).join('')}</div>`, i, lines.length);
+      show(`<div class="choices">${l.choices.map((c, j) => `<button class="choice" data-scene-choice="${j}">${esc(fill(c.t))}</button>`).join('')}</div>`);
+      stageLine('you', null);
       $$('[data-scene-choice]').forEach(b => b.addEventListener('click', () => {
         const c = l.choices[+b.dataset.sceneChoice];
         lines.splice(i, 1, ...(c.reply && c.reply.length ? c.reply : [{ who: 'you', say: c.t }]));
@@ -145,25 +151,45 @@ function nextScene() {
       return;
     }
     const who = l.who;
-    const speaker = !who ? '' : who === 'you'
-      ? `<div class="speaker"><div><b>${esc(state.name || 'You')}</b><small>You</small></div></div>`
-      : `<div class="speaker">${folk(who, 48)}<div><b>${esc(vilName(who))}</b><small>${esc((I.vil[who] || {}).role || '')}</small></div></div>`;
     const rewards = last && s.opts.rewards && s.opts.rewards.length ? `<div class="row">${s.opts.rewards.map(r => `<span class="chip plain gold">${esc(r)}</span>`).join('')}</div>` : '';
-    $('#scene-root').innerHTML = sceneShell(s.opts, `${speaker}<div class="say ${who ? (who === 'you' ? 'you' : '') : 'narration'}" data-scene-next>${esc(fill(l.say))}</div>${rewards}
+    show(`${speakerHead(who)}<div class="say ${who ? (who === 'you' ? 'you' : '') : 'narration'}" data-scene-next></div>${rewards}
       <div class="scene-foot"><span class="progress-dots">${lines.length > 1 ? lines.map((_, j) => `<i class="${j <= i ? 'on' : ''}"></i>`).join('') : ''}</span>
-      <button class="btn" data-scene-next>${last ? 'Done' : 'Next'}</button></div>`, i, lines.length);
-    $$('[data-scene-next]').forEach(b => b.addEventListener('click', () => {
+      <button class="btn" data-scene-next>${last ? 'Done' : 'Next'}</button></div>`);
+    stageLine(who, l);
+    typeLine($('#scene-root .say'), fill(l.say), who);
+    $$('#scene-root [data-scene-next]').forEach(b => b.addEventListener('click', () => {
+      if (finishTyping()) return;   // the first tap finishes the line, the next one moves on
       if (i < lines.length - 1) { i++; play('page'); draw(); return; }
       if (s.opts.onDone) s.opts.onDone();
       nextScene();
     }));
+    const stage = $('#scene-root .stage');
+    if (stage && !stage.dataset.tap) { stage.dataset.tap = 1; stage.addEventListener('click', () => { const n = $('#scene-root .scene-foot [data-scene-next]'); if (n) n.click(); }); }
     focusScene();
   };
   draw();
 }
+/* The name over a line: the portrait only when that person isn't standing on the stage. */
+function speakerHead(who) {
+  if (!who) return '';
+  if (who === 'you') return `<div class="speaker"><div><b>${esc(state.name || 'You')}</b><small>You</small></div></div>`;
+  const standing = onStage(who) || (stg && actorBase(who) && stg.used < STAGE_SLOTS.length);
+  return `<div class="speaker">${standing ? '' : folk(who, 48)}<div><b>${esc(vilName(who))}</b><small>${esc((I.vil[who] || {}).role || '')}</small></div></div>`;
+}
 function sceneShell(opts, inner) {
   const again = !!$('#scene-root .scene-wrap');   // only the first card of a scene slides up
-  return `<div class="scene-wrap${again ? ' again' : ''}"><div class="scene" role="dialog" aria-modal="true" aria-label="${esc(opts.title || 'Story')}">${opts.title ? `<div class="scene-title">${esc(fill(opts.title))}</div>` : ''}${inner}</div></div>`;
+  const st = opts.stage;
+  return `<div class="scene-wrap${again ? ' again' : ''}"${st ? ` data-stage="${st.key}"` : ''}><div class="scene${st ? ' staged' : ''}" role="dialog" aria-modal="true" aria-label="${esc(opts.title || 'Story')}">${st ? stageHTML(st.place) : ''}<div class="scene-body">${opts.title ? `<div class="scene-title">${esc(fill(opts.title))}</div>` : ''}${inner}</div></div></div>`;
+}
+/* Draws a scene card. A card for the stage already showing keeps that stage and its cast; returns true when the stage is new. */
+function renderScene(opts, inner) {
+  const st = opts.stage, wrap = $('#scene-root .scene-wrap');
+  if (st && wrap && wrap.dataset.stage === st.key) {
+    wrap.querySelector('.scene-body').innerHTML = `${opts.title ? `<div class="scene-title">${esc(fill(opts.title))}</div>` : ''}${inner}`;
+    return false;
+  }
+  $('#scene-root').innerHTML = sceneShell(opts, inner);
+  return !!st;
 }
 function focusScene() { const b = $('#scene-root .scene .btn, #scene-root .choice'); if (b) b.focus({ preventScroll: true }); }
 
@@ -175,7 +201,8 @@ function playAdventure(def, isEnc, companion) {
   startAdventure(def, isEnc, companion);
 }
 function startAdventure(def, isEnc, companion) {
-  advRun = { def, isEnc, cur: null, given: new Set(), rewards: [], last: '', companion: companion || '', joined: false };
+  holdToasts();
+  advRun = { def, isEnc, cur: null, given: new Set(), rewards: [], last: '', companion: companion || '', joined: false, stage: newStage(def.floor ? 'mine:' : stagePlace(def.where || (isEnc ? state.area : 'town'))) };
   play(isEnc ? 'pick' : 'page');
   enterNode(def.start);
 }
@@ -190,9 +217,9 @@ function enterNode(id) {
 function drawAdventure() {
   const { def, isEnc, cur } = advRun;
   const n = def.nodes[cur];
-  const speaker = n.who && n.who !== 'you' ? `<div class="speaker">${folk(n.who, 48)}<div><b>${esc(vilName(n.who))}</b><small>${esc((I.vil[n.who] || {}).role || '')}</small></div></div>` : '';
+  const speaker = speakerHead(n.who);
   const title = isEnc ? 'Something happens…' : def.n;
-  let body = `${speaker}<div class="say">${paras(n.say)}</div>`;
+  let body = `${speaker}<div class="say${n.who ? '' : ' narration'}"></div>`;
   if (advRun.companion && !advRun.joined) {
     advRun.joined = true;
     const cj = C.companions.companions[advRun.companion];
@@ -206,7 +233,7 @@ function drawAdventure() {
       ${!won && !isEnc ? '<p class="sub">You can try this adventure again later.</p>' : ''}</div>
       <button class="btn big" data-adv-done>${won ? 'Done' : 'Head home'}</button>`;
   } else {
-    body += `<div class="choices">${n.ch.map((c, i) => {
+    body += `<div class="choices later">${n.ch.map((c, i) => {
       const probs = reqProblems(c.req), costs = costProblems(c.cost);
       const notes = [];
       if (probs.length) notes.push('Needs ' + probs.join(', '));
@@ -216,11 +243,18 @@ function drawAdventure() {
     }).join('')}</div>
     ${isEnc ? '' : '<div class="scene-foot"><span></span><button class="btn small ghost" data-adv-leave>Leave for now</button></div>'}`;
   }
-  $('#scene-root').innerHTML = sceneShell({ title }, body);
-  if (!n.end && n.ch.some(c => c.roll)) setTimeout(() => $('#scene-root .choice small') && !$('#scene-root .d20') && maybeTourNow('dice-choice'), 150);
+  if (renderScene({ title, stage: advRun.stage }, body)) mountStage(advRun.stage, advRun.companion ? [advRun.companion] : []);
+  stageLine(n.who || null, n);
+  const reveal = () => {
+    const ch = $('#scene-root .choices.later');
+    if (ch) ch.classList.remove('later');
+    if (!n.end && n.ch.some(c => c.roll)) setTimeout(() => $('#scene-root .choice small') && !$('#scene-root .d20') && maybeTourNow('dice-choice'), 150);
+  };
+  typeLine($('#scene-root .say'), fill(n.say), n.who, reveal);
+  { const sy = $('#scene-root .say'); if (sy) sy.addEventListener('click', finishTyping); const sg = $('#scene-root .stage'); if (sg) sg.onclick = finishTyping; }
   $$('[data-adv-choice]').forEach(b => b.addEventListener('click', () => chooseAdv(+b.dataset.advChoice)));
   const d = $('[data-adv-done]'); if (d) d.addEventListener('click', finishAdventure);
-  const l = $('[data-adv-leave]'); if (l) l.addEventListener('click', () => { advRun = null; $('#scene-root').innerHTML = ''; commit(); if (sceneQ.length) nextScene(); });
+  const l = $('[data-adv-leave]'); if (l) l.addEventListener('click', () => { stopTyping(); advRun = null; stg = null; $('#scene-root').innerHTML = ''; commit(); if (sceneQ.length) nextScene(); });
   focusScene();
 }
 function chooseAdv(i) {
@@ -246,7 +280,7 @@ function finishAdventure() {
     const cw = C.companions.companions[advRun.companion];
     if (cw && cw.win) toast(`${vilShort(advRun.companion)}: “${fill(cw.win)}”`);
   }
-  advRun = null;
+  advRun = null; stg = null; stopTyping();
   $('#scene-root').innerHTML = '';
   commit();
   if (sceneQ.length) nextScene();

@@ -29,6 +29,7 @@ function startTour(id) {
   state.toursSeen[id] = now();
   saveLocal();
   tour = { id, steps: t.steps, i: 0 };
+  holdToasts();
   document.body.classList.add('touring');
   $('#tour-root').innerHTML = `<div class="tour" role="dialog" aria-modal="true" aria-label="${esc(t.title || 'Tour')}">
     <div class="tour-hole" id="tour-hole"></div>

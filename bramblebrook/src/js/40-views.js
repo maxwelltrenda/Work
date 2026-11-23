@@ -421,6 +421,7 @@ function viewSettings() {
     <div class="card"><h2>Help &amp; comfort</h2>
       <div class="toggle"><div class="what"><b>Tutorials</b><small>A short guided tour the first time you open each screen</small></div><button class="switch" role="switch" aria-label="Tutorials" aria-checked="${!state.opts.tipsOff}" data-act="opt" data-id="tipsOff"></button></div>
       <div class="toggle"><div class="what"><b>Relaxed fishing</b><small>Slower marker, wider green zone, more time to react</small></div><button class="switch" role="switch" aria-label="Relaxed fishing" aria-checked="${!!state.opts.relaxedFish}" data-act="opt" data-id="relaxedFish"></button></div>
+      <div class="toggle"><div class="what"><b>Type out story text</b><small>Lines appear letter by letter. Turn off to show each line at once</small></div><button class="switch" role="switch" aria-label="Type out story text" aria-checked="${!state.opts.instantText}" data-act="opt" data-id="instantText"></button></div>
       <div class="row"><button class="btn small ghost" data-act="replay-tours">Show all tutorials again</button></div></div>
     <div class="card"><h2>Save</h2><p class="sub">${where}</p>
       <div class="row"><button class="btn small ghost" data-act="export">Show save code</button><button class="btn small ghost" data-act="import-open">Load a save code</button><button class="btn small danger" data-act="reset">Start over</button></div>

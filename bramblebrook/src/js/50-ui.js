@@ -76,15 +76,48 @@ function updateHeader(force) {
 }
 
 /* toasts */
+/* Notifications drop in from just under the header, two at most. While a story scene, an adventure or a
+   guided tour is on screen they wait their turn, so nothing is ever drawn over what you are reading. */
+const toastQ = [];
+const toastBusy = () => sceneOpen || !!advRun || !!tour || !!$('#scene-root .scene-wrap');
 function toast(msg, kind = '', ms = 2800) {
+  if (toastQ.some(t => t.msg === msg) || $$('#toasts .toast').some(el => el.dataset.msg === msg)) return;
+  toastQ.push({ msg, kind, ms, born: Date.now() });
+  flushToasts();
+}
+function flushToasts() {
+  const box = $('#toasts');
+  if (!box || toastBusy()) return;
+  placeToasts();
+  const fresh = t => Date.now() - t.born < (t.kind === 'lvl' ? 120000 : 10000);
+  for (let i = toastQ.length - 1; i >= 0; i--) if (!fresh(toastQ[i])) toastQ.splice(i, 1);
+  while (toastQ.length && box.children.length < 2) {
+    const { msg, kind, ms, born } = toastQ.shift();
+    const el = document.createElement('div');
+    const [head, ...rest] = msg.split('\n');
+    el.className = 'toast ' + kind + (rest.length ? ' multi' : '');
+    el.dataset.msg = msg;
+    el.dataset.born = born;
+    if (rest.length) el.innerHTML = `<b>${esc(head)}</b>${rest.map(r => `<span>${esc(r)}</span>`).join('')}`;
+    else el.textContent = msg;
+    const gone = () => { if (!el.isConnected) return; el.remove(); flushToasts(); };
+    el.addEventListener('click', gone);
+    box.appendChild(el);
+    setTimeout(gone, ms);
+  }
+}
+/* Something to read has opened: anything showing goes back to the front of the line and waits. */
+function holdToasts() {
   const box = $('#toasts');
   if (!box) return;
-  const el = document.createElement('div');
-  el.className = 'toast ' + kind;
-  el.textContent = msg;
-  box.appendChild(el);
-  while (box.children.length > 3) box.firstChild.remove();
-  setTimeout(() => el.remove(), ms);
+  const back = $$('#toasts .toast').map(el => ({ msg: el.dataset.msg, kind: el.className.replace(/\btoast\b|\bmulti\b/g, '').trim(), ms: 2800, born: +el.dataset.born || Date.now() }));
+  box.innerHTML = '';
+  toastQ.unshift(...back);
+}
+function placeToasts() {
+  const sk = $('#skills'), top = $('.top');
+  const y = sk && sk.offsetHeight ? sk.getBoundingClientRect().top : top ? top.getBoundingClientRect().bottom : 0;
+  document.documentElement.style.setProperty('--toast-top', Math.max(0, Math.round(y)) + 'px');
 }
 
 /* sheets */

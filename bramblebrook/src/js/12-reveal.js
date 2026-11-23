@@ -26,9 +26,9 @@ const FEATURES = {
   'upgrades': () => unlocked('forge'),
 };
 const FEATURE_NAMES = {
-  'tab:fish': 'Fishing. Find it in the new Fish tab.', 'tab:make': 'Crafting. Find it in the new Make tab.',
+  'tab:fish': 'Fishing, in the new Fish tab.', 'tab:make': 'Crafting, in the new Make tab.',
   'farm:orchard': 'The orchard, on the Farm tab.', 'farm:animals': 'Animals, on the Farm tab.', 'farm:pets': 'Pets, on the Farm tab.',
-  'wilds:mine': 'The Mine, in the Wilds.', 'town:inn': 'The Lantern & Ladle inn and its quest board, in Town.', 'bag:bestiary': 'The bestiary, in your Bag.',
+  'wilds:mine': 'The Mine, in the Wilds.', 'town:inn': 'The Lantern & Ladle inn, in Town.', 'bag:bestiary': 'The bestiary, in your Bag.',
   'make:kitchen': 'Cooking, in the Make tab.', 'make:bench': 'The workbench, in the Make tab.', 'make:cellar': 'The cellar, in the Make tab.',
   'town:board': 'The town board: chores and daily gifts.', 'bag:perks': 'Perks, in your Bag.',
   'festival': 'Seasonal festivals, on the town board.', 'exchange': 'The Valley Exchange, in Shops.',
@@ -41,11 +41,15 @@ const skillOn = sk => featureOn('skill:' + sk);
 function checkReveals(silent) {
   if (!state.revealed) state.revealed = {};
   const fresh = !Object.keys(state.revealed).length;
+  const news = [];
   for (const k of Object.keys(FEATURES)) {
     if (state.revealed[k] || !featureOn(k)) continue;
     state.revealed[k] = now();
-    if (!silent && !fresh && FEATURE_NAMES[k]) toast(`New: ${FEATURE_NAMES[k]}`, 'lvl', 5000);
+    if (!silent && !fresh && FEATURE_NAMES[k]) news.push(FEATURE_NAMES[k]);
   }
+  // several at once arrive as one notification, not a pile
+  if (news.length === 1) toast(`New: ${news[0]}`, 'lvl', 5000);
+  else if (news.length) toast(`New in the valley\n${news.join('\n')}`, 'lvl', 4500 + news.length * 1200);
   if (fresh) state.revealed._init = now();
 }
 const isNew = key => !!(state.revealed && state.revealed[key] && state.revealed._init && state.revealed[key] > state.revealed._init && !(state.visited || {})[key]);

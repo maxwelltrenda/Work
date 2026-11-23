@@ -3,6 +3,7 @@ const cloud = { ref: null, ready: false, busy: false, again: false, timer: 0 };
 let localTimer = 0;
 
 function commit() {
+  setTimeout(flushToasts, 0);
   if (!state) return;
   storyCheck();
   checkMail();

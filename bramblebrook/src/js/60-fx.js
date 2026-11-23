@@ -47,6 +47,7 @@ const pluck = (c, t, f, v = 0.22) => { tone(c, t, f, { vol: v, dur: 0.28 }); ton
 const NOTE = { C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, C6: 1046.5, E6: 1318.5, G6: 1568, A4: 440, G4: 392, E4: 329.63, C4: 261.63, G3: 196 };
 const SOUNDS = {
   tick: (c, t) => tone(c, t, 1800, { vol: 0.035, dur: 0.03, type: 'triangle' }),
+  voice: (c, t) => tone(c, t, 330 * (FX.voicePitch || 1) * (0.92 + Math.random() * 0.16), { vol: 0.022, dur: 0.04, type: 'triangle' }),
   page: (c, t) => noise(c, t, { f: 3200, type: 'highpass', vol: 0.05, dur: 0.05 }),
   sow: (c, t) => { noise(c, t, { f: 500, type: 'lowpass', vol: 0.16, dur: 0.09 }); tone(c, t + 0.01, 160, { vol: 0.1, dur: 0.1, to: 110 }); },
   harvest: (c, t) => { pluck(c, t, NOTE.G4); pluck(c, t + 0.07, NOTE.C5); },
