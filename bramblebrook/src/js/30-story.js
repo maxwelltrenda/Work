@@ -48,6 +48,7 @@ function finishChapter() {
   const rewards = applyGive(ch.give);
   state.story.done[ch.id] = now();
   play('bell', 0.2); bloom();
+  gainInsp(1, 'a chapter finished');
   state.story.queue.push({ title: `${ch.n} · Chapter complete`, lines: ch.outro, rewards });
   state.story.ci++; state.story.si = 0; state.story.started = false; state.story.base = 0;
   toast(`Chapter complete: ${ch.n}`, 'lvl', 4500);
@@ -83,7 +84,7 @@ function storyAction() {
   }
   if (s.type === 'adventure') {
     const a = I.adv[s.id];
-    if (a && reqMet(a.req)) { closeSheet(); playAdventure(a, false); return; }
+    if (a && reqMet(a.req)) { closeSheet(); startQuest(a); return; }
   }
   openJournal();
 }
@@ -124,7 +125,7 @@ function playScene(lines, opts = {}) {
 function nextScene() {
   const s = sceneQ.shift();
   if (!s) { sceneOpen = false; $('#scene-root').innerHTML = ''; renderAll(); return; }
-  if (s.adv) { sceneOpen = false; $('#scene-root').innerHTML = ''; startAdventure(s.adv, s.isEnc); return; }
+  if (s.adv) { sceneOpen = false; $('#scene-root').innerHTML = ''; startAdventure(s.adv, s.isEnc, s.companion); return; }
   sceneOpen = true;
   const lines = s.lines.slice();
   if (!lines.length) lines.push({ say: '…' });
@@ -168,13 +169,13 @@ function focusScene() { const b = $('#scene-root .scene .btn, #scene-root .choic
 
 /* Adventures and encounters: a graph of nodes with choices, requirements, costs and chance rolls. */
 let advRun = null;
-function playAdventure(def, isEnc) {
-  if (advRun) return;
-  if (sceneOpen) { sceneQ.push({ adv: def, isEnc }); return; }
-  startAdventure(def, isEnc);
+function playAdventure(def, isEnc, companion) {
+  if (advRun || !def) return;
+  if (sceneOpen) { sceneQ.push({ adv: def, isEnc, companion }); return; }
+  startAdventure(def, isEnc, companion);
 }
-function startAdventure(def, isEnc) {
-  advRun = { def, isEnc, cur: null, given: new Set(), rewards: [], last: '' };
+function startAdventure(def, isEnc, companion) {
+  advRun = { def, isEnc, cur: null, given: new Set(), rewards: [], last: '', companion: companion || '', joined: false };
   play(isEnc ? 'pick' : 'page');
   enterNode(def.start);
 }
@@ -192,6 +193,11 @@ function drawAdventure() {
   const speaker = n.who && n.who !== 'you' ? `<div class="speaker">${folk(n.who, 48)}<div><b>${esc(vilName(n.who))}</b><small>${esc((I.vil[n.who] || {}).role || '')}</small></div></div>` : '';
   const title = isEnc ? 'Something happens…' : def.n;
   let body = `${speaker}<div class="say">${paras(n.say)}</div>`;
+  if (advRun.companion && !advRun.joined) {
+    advRun.joined = true;
+    const cj = C.companions.companions[advRun.companion];
+    if (cj && cj.join) body = `<p class="dice-quip">${folk(advRun.companion, 28)}<i>“${esc(fill(cj.join))}”</i></p>` + body;
+  }
   if (advRun.last) body = `<p class="muted" style="font-size:13px">${esc(advRun.last)}</p>` + body;
   if (n.end) {
     const won = n.end === 'win';
@@ -205,12 +211,13 @@ function drawAdventure() {
       const notes = [];
       if (probs.length) notes.push('Needs ' + probs.join(', '));
       if (c.cost) notes.push('Costs ' + costText(c.cost) + (costs.length ? ` (you're short)` : ''));
-      if (c.roll) notes.push(`${Math.round(rollChance(c.roll) * 100)}% chance · ${skillName(c.roll.skill)}`);
+      if (c.roll) { const ck = checkFor(c.roll); notes.push(`🎲 ${skillName(ck.sk)} roll: need ${ck.dc} or more · ${Math.round(chanceOf(ck) * 100)}% chance${ck.adv ? ` · ${ck.adv === 'Lucky' ? 'feeling lucky' : esc(ck.adv) + ' helps'}: best of two dice` : ''}`); }
       return `<button class="choice" data-adv-choice="${i}" ${probs.length || costs.length ? 'disabled' : ''}>${esc(fill(c.t))}${notes.length ? `<small>${esc(notes.join(' · '))}</small>` : ''}</button>`;
     }).join('')}</div>
     ${isEnc ? '' : '<div class="scene-foot"><span></span><button class="btn small ghost" data-adv-leave>Leave for now</button></div>'}`;
   }
   $('#scene-root').innerHTML = sceneShell({ title }, body);
+  if (!n.end && n.ch.some(c => c.roll)) setTimeout(() => $('#scene-root .choice small') && !$('#scene-root .d20') && maybeTourNow('dice-choice'), 150);
   $$('[data-adv-choice]').forEach(b => b.addEventListener('click', () => chooseAdv(+b.dataset.advChoice)));
   const d = $('[data-adv-done]'); if (d) d.addEventListener('click', finishAdventure);
   const l = $('[data-adv-leave]'); if (l) l.addEventListener('click', () => { advRun = null; $('#scene-root').innerHTML = ''; commit(); if (sceneQ.length) nextScene(); });
@@ -222,22 +229,23 @@ function chooseAdv(i) {
   if (!c || reqProblems(c.req).length || costProblems(c.cost).length) return;
   payCost(c.cost);
   if (c.give) advRun.rewards.push(...applyGive(c.give));
-  let go = c.go;
   advRun.last = '';
-  if (!c.roll) play('page');
-  if (c.roll) {
-    const ok = Math.random() < rollChance(c.roll);
-    advRun.last = ok ? `Success (${skillName(c.roll.skill)})` : `It didn't work out (${skillName(c.roll.skill)})`;
-    play(ok ? 'chime' : 'miss');
-    if (!ok) go = c.fail;
-  }
-  enterNode(go);
+  if (c.roll) { showDice(c, checkFor(c.roll), ok => enterNode(ok ? c.go : c.fail)); return; }
+  play('page');
+  enterNode(c.go);
 }
 function finishAdventure() {
   const { def, isEnc, cur } = advRun;
   const n = def.nodes[cur] || {};
-  if (isEnc) { if (def.once) state.encDone[def.id] = now(); }
+  if (isEnc) { if (def.once && (n.end === 'win' || !def.creature)) state.encDone[def.id] = now(); }
+  else if (def.floor) { if (n.end === 'win' && !state.delvesDone[def.id]) { state.delvesDone[def.id] = now(); toast(`Delve complete: ${def.n}`, 'lvl'); play('feat'); } }
   else if (n.end === 'win' && !state.advDone[def.id]) { state.advDone[def.id] = now(); toast(`Adventure complete: ${def.n}`, 'lvl'); play('feat'); }
+  if (n.end === 'win' && advRun.companion) {
+    state.stats.partywins = (state.stats.partywins || 0) + 1;
+    addFriend(advRun.companion, 10);
+    const cw = C.companions.companions[advRun.companion];
+    if (cw && cw.win) toast(`${vilShort(advRun.companion)}: “${fill(cw.win)}”`);
+  }
   advRun = null;
   $('#scene-root').innerHTML = '';
   commit();
@@ -257,8 +265,7 @@ function askName() {
   $('#name-form').addEventListener('submit', e => {
     e.preventDefault();
     state.name = ($('#name-in').value || '').trim().slice(0, 20) || 'Farmer';
-    $('#scene-root').innerHTML = '';
     commit();
-    beginChapter();
+    createCharacter(true);
   });
 }

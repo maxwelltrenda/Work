@@ -1,0 +1,343 @@
+{
+  "creatures": [
+    { "id": "moss_sprite", "n": "Moss Sprite", "i": "🍃", "where": ["woods"],
+      "blurb": "A thumb-high tuft of moss that hums to itself and tidies the forest floor when nobody is looking.",
+      "lore": "Moss sprites keep the Mossy Woods soft underfoot, mending bare earth one tuft at a time. They are shy, house-proud and deeply offended by litter. Wren swore they were the reason her strawberries never caught mildew; nobody believed her, which suited the sprites fine." },
+    { "id": "lantern_moth", "n": "Lantern Moth", "i": "🦋", "where": ["meadow"],
+      "blurb": "A moth the size of a teacup whose wings glow like a lamp turned low.",
+      "lore": "Lantern moths drift over the Sunny Meadow on warm evenings, glowing brighter the happier they are. They are drawn to candles, kind voices and the smell of fresh bread, in roughly that order. The old lamplighters said a lantern moth on your windowsill meant you'd be home before dark." },
+    { "id": "witch_cat", "n": "Mistletoe, the Witch's Cat", "i": "🐈‍⬛", "where": ["meadow", "woods"],
+      "blurb": "A black cat with a silver bell, one bent whisker and very firm opinions about brooms.",
+      "lore": "Mistletoe belonged to the hedge witch over the eastern hills until one Tuesday she decided she was finished with cauldrons. She now lives wherever the sun is warmest and accepts tributes of fish. The witch writes to her every spring. She has never once replied." },
+    { "id": "river_otters", "n": "Willow River Otters", "i": "🦦", "where": ["banks", "river"],
+      "blurb": "A family of otters who run a small, strict trading post on a flat rock by the water.",
+      "lore": "The otters of Willow River trade in shiny things: buttons, bottle caps, fishing weights and the occasional lost spoon. Their prices are fair, their bookkeeping is done entirely by smell, and they never give change. Old Tobin has traded with them for forty years and says they've only cheated him twice, both times deserved." },
+    { "id": "bridge_troll", "n": "Grumbleweed the Troll", "i": "🧌", "where": ["banks"],
+      "blurb": "A mossy, apologetic troll who lives under the new footbridge and charges a toll of one good riddle.",
+      "lore": "Grumbleweed has lived under nine bridges in four valleys and says Bramblebrook's is the best: honest planks, a river that sings, and townsfolk who are excellent at riddles. He has never eaten a goat. He asked for that to go in the minutes, and Mayor Oakley duly noted it." },
+    { "id": "pebble_hog", "n": "Pebble Hedgehog", "i": "🦔", "where": ["quarry"],
+      "blurb": "A hedgehog that curls into a perfect grey ball and is almost always mistaken for a stone.",
+      "lore": "Pebble hedgehogs sun themselves among the rubble of the Old Quarry, where they are indistinguishable from rocks except for the sneezing. Quarrymen used to pocket them by accident and find them at home that evening, eating the cat's dinner. They like worms, warm stones and being left alone, in that order." },
+    { "id": "glow_newt", "n": "Glow Newt", "i": "🦎", "where": ["mine"],
+      "blurb": "A finger-long newt that glows sea-green and lives where the mine is quietest.",
+      "lore": "Glow newts feed on the light of glowcap mushrooms and shine brighter the longer they're left in peace. The old miners called them lamp-friends and followed them out whenever their candles died, because a glow newt always knows the way to fresh air. They love warm hands and hold grudges against bats." },
+    { "id": "glass_crab", "n": "Sea-Glass Crab", "i": "🦀", "where": ["beach", "cove"],
+      "blurb": "A hermit crab who wears a shell of sea glass and is forever looking for a better one.",
+      "lore": "Sea-glass crabs build their homes from smoothed glass, adding a piece for every year they live. The oldest glow like chapel windows in the morning sun. They are house-proud and dreadfully indecisive, and will happily spend a week choosing between two pieces of green." },
+    { "id": "dune_hare", "n": "Dune Hare", "i": "🐇", "where": ["beach"],
+      "blurb": "A sandy hare who races the tide every evening and has never once lost.",
+      "lore": "Dune hares live in the marram grass above Saltspray Beach and race the incoming tide for the sheer fun of it. They can outrun a gull and turn on a seashell. Captain Rook keeps a tally of the hare's wins chalked on the lighthouse wall: four thousand and something, against the sea's none." },
+    { "id": "foghorn_seal", "n": "Foghorn Seal", "i": "🦭", "where": ["beach", "cove"],
+      "blurb": "A grey seal who sings along with the lighthouse foghorn, slightly flat.",
+      "lore": "The Foghorn Seal has hauled out on the rocks below the Point for as long as Captain Rook has kept the light. When the horn sounds she sings back: one long, mournful, slightly flat note that sailors call the loneliest sound on the coast. Rook says she isn't lonely. She just likes harmony." },
+    { "id": "cloud_sheep", "n": "Cloud Sheep", "i": "🐑", "where": ["highlands"],
+      "blurb": "A sheep so fluffy and so light that on windy days it has to be held down.",
+      "lore": "Cloud sheep graze the highest pastures, where the grass is sweetest and the wind is strongest. Their fleece is so light that a good gust lifts them clean off the hill, and they drift, bleating mildly, until someone fetches them down. Ingrid keeps three on long ribbons, like kites, and won't hear a word against them." },
+    { "id": "star_fox", "n": "Star-Fox", "i": "🦊", "where": ["highlands", "meadow"],
+      "blurb": "A silver fox with a coat full of stars, seen only on the clearest nights.",
+      "lore": "The star-fox walks the high ridges on cloudless nights, and its coat holds whatever stars are overhead. Wren logged it forty-one times from the observatory and never got closer than a stone's throw. Rook's grandmother said it fell with the star that made the bell, and has been looking for the rest of it ever since." }
+  ],
+  "encounters": [
+    {
+      "id": "meet_moss_sprite", "creature": "moss_sprite", "where": ["woods"], "weight": 6, "once": true, "req": {}, "start": "a",
+      "nodes": {
+        "a": { "say": "On a bare patch of earth under the oaks, a tuft of moss is moving. Not blowing in the breeze. Moving, with great purpose, dragging a twig twice its size.\n\nIt stops. It has seen you. It goes very still and pretends, extremely hard, to be ordinary moss.",
+          "ch": [
+            { "t": "Sit down and keep still", "go": "patch", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "startled" },
+            { "t": "Let Oakley handle it", "go": "oakley", "req": { "companion": "oakley" } }
+          ] },
+        "startled": { "say": "Your knee goes pop like a snapped twig. The moss squeaks, scuttles behind a toadstool and peeks out at you, trembling all over.\n\nIt hasn't run off, though. It's deciding about you.",
+          "ch": [
+            { "t": "Hum softly until it settles", "go": "patch" },
+            { "t": "Leave it in peace", "go": "lose" }
+          ] },
+        "oakley": { "who": "oakley", "say": "Good heavens. A moss sprite! Splendid! They're in the town charter, you know. Section fourteen: sprites are not to be stepped on, swept up or entered in the flower show.\n\nThe charter says they like help. Quiet help. No committee. It pains me, but there it is.",
+          "ch": [
+            { "t": "Help it, quietly", "go": "patch", "give": { "friend": { "oakley": 10 } } }
+          ] },
+        "patch": { "say": "The sprite decides you're furniture and gets back to work. Now you can see the trouble: a cart has cut right through its patch, leaving a long scar of bare, scuffed earth.\n\nThe sprite pats at it with tiny mossy hands and sighs, like a kettle cooling. It will take all summer to mend alone.",
+          "ch": [
+            { "t": "Tuck ferns into the bare earth", "go": "win", "cost": { "items": { "fern": 2 } } },
+            { "t": "Smooth the soil with your hands", "go": "win", "roll": { "skill": "farming", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "smudge" }
+          ] },
+        "smudge": { "say": "You press a little too hard and squash a whole tuft flat. The sprite looks at the squashed bit, then at you, the way Gran looks at a sunken sponge.\n\nIt isn't angry. Just tired.",
+          "ch": [
+            { "t": "Tuck in ferns to make amends", "go": "win", "cost": { "items": { "fern": 2 } } },
+            { "t": "Say sorry and back away", "go": "lose" }
+          ] },
+        "win": { "say": "The sprite climbs onto the mended patch and bounces once, testing it. Then it trots over and presses something into your palm: a tiny knot of living moss, cool and soft, smelling of rain.\n\nWhen you look up, the scar is a velvet lawn and the sprite has gone. Somewhere close by, something is humming.", "end": "win",
+          "give": { "befriend": "moss_sprite", "items": { "charm_moss": 1 }, "xp": { "foraging": 20 } } },
+        "lose": { "say": "You back away slowly. The sprite watches you go, then picks up its twig and gets on with things.\n\nMaybe another day, once you've learned to sit as still as a stone.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_lantern_moth", "creature": "lantern_moth", "where": ["meadow"], "weight": 5, "once": true, "req": { "chapter": "prologue" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Dusk comes down soft over the meadow. Out in the long grass, a light is bobbing: low and gold, flickering like a lamp that's nearly out.\n\nIt's a moth. A moth the size of a teacup, glowing faintly, and tangled in an old spider's web strung between two thistles.",
+          "ch": [
+            { "t": "Untangle it, gently", "go": "free", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "tangle" },
+            { "t": "Ask Gran what to do", "go": "clem", "req": { "companion": "clem" } }
+          ] },
+        "tangle": { "say": "You tug one thread and three more pull tight. The moth flutters in a panic, and its light gutters down to a frightened orange.\n\nYou stop. You take a breath. The moth, as far as a moth can, takes one too.",
+          "ch": [
+            { "t": "Try again, slower", "go": "free", "cost": { "stamina": 4 } },
+            { "t": "Fetch help in the morning", "go": "lose" }
+          ] },
+        "clem": { "who": "clem", "say": "Breathe on it first, love. Warm breath. Moths are like bread dough: they won't do a thing for you till they've had a bit of warmth.\n\nThen pick the threads off one at a time. No tugging. Tugging never helped a dough or a moth.",
+          "ch": [
+            { "t": "Do as Gran says", "go": "free", "give": { "friend": { "clem": 10 } } }
+          ] },
+        "free": { "say": "The last thread lets go. The moth sits on your knuckle, too tired to fly, its glow faded to an ember.\n\nIt needs a little light to get its own back.",
+          "ch": [
+            { "t": "Light a candle for it", "go": "win", "cost": { "items": { "candle": 1 } } },
+            { "t": "Hold it up to the last of the sun", "go": "win" }
+          ] },
+        "win": { "say": "Little by little the glow comes back: ember, then amber, then gold. The moth lifts off your hand, circles your head twice and settles on your hat like a brooch.\n\nIt rides home with you through the dark meadow, lighting the path, and only flutters off once the farmhouse lamps are lit. Next morning there are wildflowers on the doorstep.", "end": "win",
+          "give": { "befriend": "lantern_moth", "items": { "wildflower": 3 }, "xp": { "foraging": 15 } } },
+        "lose": { "say": "You leave the moth tucked in a fold of thistle, out of the wind, and promise to come back.\n\nWhen you do, it's gone. Off on its own, you hope. Maybe you'll see that little gold light again some warm evening.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_witch_cat", "creature": "witch_cat", "where": ["meadow", "woods"], "weight": 5, "once": true, "req": { "chapter": "prologue" }, "start": "a",
+      "nodes": {
+        "a": { "say": "A black cat is sitting in the middle of the path as if she's been expecting you. Silver bell. One bent whisker. A tag on her collar that reads: IF FOUND, DO NOT RETURN. I AM ON HOLIDAY.\n\nShe yawns, showing every single tooth, and waits to see what you'll do about it.",
+          "ch": [
+            { "t": "Offer her a minnow", "go": "win", "cost": { "items": { "minnow": 1 } } },
+            { "t": "Hold out a hand to sniff", "go": "win", "roll": { "skill": "foraging", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "snub" },
+            { "t": "Let Hazel do the talking", "go": "hazel", "req": { "companion": "hazel" } }
+          ] },
+        "snub": { "say": "She sniffs your fingers, considers, and pats your hand away with one soft paw. No claws. Just a firm not yet.\n\nThen she strolls into the brambles and sits with her back to you, which in cat means: I'm still here. You may continue to try.",
+          "ch": [
+            { "t": "Offer her a minnow", "go": "win", "cost": { "items": { "minnow": 1 } } },
+            { "t": "Leave her to her holiday", "go": "lose" }
+          ] },
+        "hazel": { "who": "hazel", "say": "Mistletoe! As I live and breathe! She came through the shop last spring and ate a whole tin of sardines off the counter. It's still in the ledger. Fourpence, unpaid.\n\nShe'll let you stroke her if you pretend you don't want to. Go on. Look at the sky. Very interesting, the sky.",
+          "ch": [
+            { "t": "Look at the sky, casually", "go": "win", "give": { "friend": { "hazel": 10 } } }
+          ] },
+        "win": { "say": "The cat steps onto your boot, turns round three times and sits on your foot as if she owns it. A deep purr starts up, rattly as a cart on cobbles.\n\nWhen at last she wanders off, she leaves something on the path behind her: two four-leaf clovers, still dewy. You decide not to ask where she got them.", "end": "win",
+          "give": { "befriend": "witch_cat", "items": { "clover": 2 }, "buff": "lucky" } },
+        "lose": { "say": "You leave her to her holiday. As you go, the bell on her collar tinkles once, which might be goodbye and might be a yawn.\n\nShe'll be about. Cats on holiday always are.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_river_otters", "creature": "river_otters", "where": ["banks", "river"], "weight": 5, "once": true, "req": { "chapter": "bridge" }, "start": "a",
+      "nodes": {
+        "a": { "say": "On a flat rock by the water, three otters have laid out their wares in a neat row: a brass button, a bottle cap, a teaspoon, a lead weight, and something small and gold with a hook on it.\n\nThe biggest otter sits behind them with its paws folded. It looks at you the way Hazel looks at a customer who's only browsing.",
+          "ch": [
+            { "t": "Offer a trout in trade", "go": "win", "cost": { "items": { "trout": 1 } } },
+            { "t": "Skip a stone to impress them", "go": "win", "roll": { "skill": "fishing", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "plop" },
+            { "t": "Follow Tobin's lead", "go": "tobin", "req": { "companion": "tobin" } }
+          ] },
+        "plop": { "say": "Your stone does not skip. It goes plop. All three otters watch it sink, then look at each other.\n\nThe big one begins, slowly and pointedly, to pack up the shop.",
+          "ch": [
+            { "t": "Offer a trout, quickly", "go": "win", "cost": { "items": { "trout": 1 } } },
+            { "t": "Wave and let them go", "go": "lose" }
+          ] },
+        "tobin": { "who": "tobin", "say": "Otter rules. Don't look at the goods. Rude. Look at the river.\n\nHum something. Set your offer down. Step back three. Never point. Never rush. Never pay first.",
+          "ch": [
+            { "t": "Hum, and look at the river", "go": "win", "give": { "friend": { "tobin": 10 } } }
+          ] },
+        "win": { "say": "The big otter sniffs at you for a long, considering moment. Then it pushes the little gold thing across the rock with one paw: a fishing hook, bright as new, with a twist of red thread on the shank.\n\nDeal done. All three otters slide into the river, pop up again and watch you go, as if they're expecting you back.", "end": "win",
+          "give": { "befriend": "river_otters", "items": { "charm_hook": 1 }, "xp": { "fishing": 20 } } },
+        "lose": { "say": "The otters slip into the water one by one, taking the shop with them. The teaspoon goes last, carried like a flag.\n\nThey'll be open again some other day. Otters always are.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_bridge_troll", "creature": "bridge_troll", "where": ["banks"], "weight": 5, "once": true, "req": { "chapter": "bridge" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Halfway over the footbridge, a plank lifts like a trapdoor and a large, mossy face peers up at you. It yawns enormously.\n\n“Sorry. So sorry. Troll. I live here now. There's a toll, I'm afraid. One riddle. A good one, mind. I've heard the one about the egg.”",
+          "ch": [
+            { "t": "Tell the one about the river", "go": "heard" },
+            { "t": "Let Pip ask a riddle", "go": "pip", "req": { "companion": "pip" } },
+            { "t": "Ask why he looks so tired", "go": "plank" }
+          ] },
+        "heard": { "say": "“What has a mouth but never eats, and a bed but never sleeps?”\n\n“A river,” sighs the troll. “Heard it. Heard it from the river, actually. It tells it all night long, right outside my bedroom.”\n\nHe rubs his eyes. He really does look very tired.",
+          "ch": [
+            { "t": "Ask what's keeping him up", "go": "plank" }
+          ] },
+        "pip": { "say": "“What gets wetter the more it dries?” Pip asks, bouncing on the planks.\n\nThe troll thinks. And thinks. His ears go pink. “A... a towel?” he whispers at last, then claps his huge hands. “Oh, that's good. That's very good. Toll paid! Toll paid twice!”",
+          "ch": [
+            { "t": "Shake his enormous hand", "go": "win", "give": { "friend": { "pip": 10 } } }
+          ] },
+        "plank": { "say": "“It's the plank over my bed,” the troll admits. “Creaks every time a cart goes over. Drips when it rains. I haven't slept properly since spring.”\n\nYou look. One plank is split along the grain and wobbles under your boot.",
+          "ch": [
+            { "t": "Patch it with a spare plank", "go": "win", "cost": { "items": { "plank": 1 } } },
+            { "t": "Wedge it tight by hand", "go": "win", "roll": { "skill": "crafting", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "lose" },
+            { "t": "Let Mira take a look", "go": "mira", "req": { "companion": "mira" } }
+          ] },
+        "mira": { "who": "mira", "say": "Joist's split. I can sister it with a bit of oak. Five minutes. Ten, if he keeps talking.\n\nHe's going to keep talking, isn't he. Fine. Hold the lamp.",
+          "ch": [
+            { "t": "Hold the lamp", "go": "win", "give": { "friend": { "mira": 10 } } }
+          ] },
+        "win": { "say": "The troll beams, which on a troll is a lot of beam. “Toll paid, and then some,” he says, and rummages under the bridge. He comes back with an old brass compass.\n\n“Fell through the gaps years ago. Points north, mostly. Gets distracted near cake.” He presses it into your hand and lowers the plank. From underneath, faintly, comes snoring.", "end": "win",
+          "give": { "befriend": "bridge_troll", "items": { "compass": 1 }, "xp": { "crafting": 20 } } },
+        "lose": { "say": "The plank shifts, creaks, and drops back exactly where it was. The troll pats your shoulder with a hand the size of a skillet.\n\n“Not to worry. Come back with a better riddle. Or a hammer.” The trapdoor closes softly over his head.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_pebble_hog", "creature": "pebble_hog", "where": ["quarry"], "weight": 5, "once": true, "req": { "chapter": "bridge" }, "start": "a",
+      "nodes": {
+        "a": { "say": "You stoop to pick up a nice round pebble for your collection. The pebble sneezes.\n\nYou put it down. It uncurls just enough to show a pointed nose and two bright black eyes, then rolls itself up tight again, mortified.",
+          "ch": [
+            { "t": "Sit and wait for it to uncurl", "go": "sun", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "tumble" },
+            { "t": "Set some worms down beside it", "go": "sun", "cost": { "items": { "worm": 2 } } }
+          ] },
+        "tumble": { "say": "It rolls. Off the ledge, down the scree, bumping and bouncing, faster and faster, until it fetches up in a dusty hollow far below.\n\nIt lies there being a rock, as hard as it possibly can.",
+          "ch": [
+            { "t": "Clamber down after it", "go": "sun", "cost": { "stamina": 6 } },
+            { "t": "Let it be a rock", "go": "lose" }
+          ] },
+        "sun": { "say": "Slowly, the ball loosens. A nose. A paw. A whole small, prickly, dusty hedgehog, blinking in the sun.\n\nIt sniffs your boot, decides you are probably a large and friendly rock, and climbs on to warm its belly.",
+          "ch": [
+            { "t": "Stay until it's done sunning", "go": "win" }
+          ] },
+        "win": { "say": "You sit for a long, warm, dusty hour. When the hedgehog finally trundles off, it leaves something behind in the shadow of your boot: a fossil shell, perfect, curled up just like it.\n\nIt seems to want you to have it. Or it can't be bothered to carry it. Either way.", "end": "win",
+          "give": { "befriend": "pebble_hog", "items": { "fossil": 1 }, "xp": { "foraging": 15 } } },
+        "lose": { "say": "You leave it in its hollow, being a rock. On your way back up, you'd swear one of the other pebbles winks at you.\n\nThe quarry is full of rocks, and some of them are hedgehogs. Another day, you'll know which.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_glow_newt", "creature": "glow_newt", "where": ["mine"], "weight": 4, "once": true, "req": { "chapter": "mine" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Your lamp gutters and goes out. In the sudden dark, something small is glowing on the wall: a newt no longer than your finger, lit from inside like sea glass held up to the sun.\n\nIt tilts its head at you. You tilt yours back.",
+          "ch": [
+            { "t": "Offer it a glowcap", "go": "follow", "cost": { "items": { "glowcap": 1 } } },
+            { "t": "Hold out a warm hand", "go": "follow", "roll": { "skill": "mining", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "dart" }
+          ] },
+        "dart": { "say": "The newt darts into a crack. For a while there's only the dark and the drip, drip of water.\n\nThen, a little way down a side tunnel you hadn't noticed, a faint green glow. Waiting. As if to say: well? Are you coming?",
+          "ch": [
+            { "t": "Feel your way after it", "go": "follow", "cost": { "stamina": 5 } },
+            { "t": "Relight your lamp and go back", "go": "lose" }
+          ] },
+        "follow": { "say": "The newt leads you down a narrow side passage, its glow bobbing ahead like a tiny lantern. The air turns fresh and cool.\n\nIt stops at a pocket in the rock where a seam of silver glitters in its green light, and looks back at you, rather pleased with itself.",
+          "ch": [
+            { "t": "Thank it, and dig", "go": "win" }
+          ] },
+        "win": { "say": "You dig, and the newt watches from your shoulder, warming its belly against your collar. When your pack is full, it leads you all the way back to the stairs.\n\nAt the bottom step it blinks once, slowly, and slips away into the rock. Your lamp, when you try it, lights first time.", "end": "win",
+          "give": { "befriend": "glow_newt", "items": { "silver": 2, "glowcap": 2 }, "xp": { "mining": 15 } } },
+        "lose": { "say": "You strike a match and the lamp catches. The green glow down the side tunnel fades, slowly, like a held breath let go.\n\nIt was only a little newt. Still, you get the feeling you've missed something. Maybe next time.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_glass_crab", "creature": "glass_crab", "where": ["beach", "cove"], "weight": 5, "once": true, "req": { "chapter": "lighthouse" }, "start": "a",
+      "nodes": {
+        "a": { "say": "At the tide line, a crab the size of your palm is trying on houses. It has lined up three pieces of sea glass, green, brown and white, and is walking round them like a buyer at a fair.\n\nIt pokes each one. It sighs. It has clearly outgrown all three.",
+          "ch": [
+            { "t": "Offer your best sea glass", "go": "fit", "cost": { "items": { "seaglass": 1 } } },
+            { "t": "Hunt the tide line for a bigger one", "go": "fit", "roll": { "skill": "foraging", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "wave" }
+          ] },
+        "wave": { "say": "You search and search. Then a wave comes in, bigger than the rest, and you and the crab both scramble up the sand.\n\nWhen it slides back out, the three pieces of glass have gone with it. The crab looks at the empty sand. Then it looks at you.",
+          "ch": [
+            { "t": "Offer your own sea glass", "go": "fit", "cost": { "items": { "seaglass": 1 } } },
+            { "t": "Say sorry and leave it be", "go": "lose" }
+          ] },
+        "fit": { "say": "The crab circles the new glass twice, taps it, and backs inside with a satisfied click. It fits like a slipper.\n\nIn the low sun the crab lights up blue all over, a little walking window. It turns this way and that, admiring itself in a rock pool.",
+          "ch": [
+            { "t": "Tell it it looks wonderful", "go": "win" }
+          ] },
+        "win": { "say": "The crab clacks its claws at you, which you decide means thank you. Then it scuttles off along the tide line, glowing, stopping every few yards to admire itself again.\n\nWhere it was sitting, it has left a little pile of things it no longer needs: two shells and a starfish.", "end": "win",
+          "give": { "befriend": "glass_crab", "items": { "shell": 2, "starfish": 1 }, "xp": { "foraging": 15 } } },
+        "lose": { "say": "You leave the crab sitting on the empty sand, deep in thought. Crabs are patient. The sea will bring it something eventually.\n\nMaybe you'll be the one who brings it, another day.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_dune_hare", "creature": "dune_hare", "where": ["beach"], "weight": 5, "once": true, "req": { "chapter": "lighthouse" }, "start": "a",
+      "nodes": {
+        "a": { "say": "A hare sits at the top of the dunes, ears up, watching the tide. As the first long wave rolls in, it drums its back feet, looks straight at you, and bolts along the waterline.\n\nFifty yards off, it stops and looks back. The meaning is perfectly clear: well? Race you.",
+          "ch": [
+            { "t": "Race it along the sand", "go": "win", "roll": { "skill": "foraging", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "sprawl" },
+            { "t": "Let Pip race it", "go": "pip", "req": { "companion": "pip" } }
+          ] },
+        "sprawl": { "say": "You're doing brilliantly for nine whole strides. On the tenth, you meet a piece of driftwood and land face first in the wet sand.\n\nThe hare trots back and peers at you, ears tipped, as if it's never seen anyone fall over before and isn't sure of the rules.",
+          "ch": [
+            { "t": "Offer it a carrot", "go": "win", "cost": { "items": { "carrot": 1 } } },
+            { "t": "Laugh and head for home", "go": "lose" }
+          ] },
+        "pip": { "who": "pip", "say": "I'm the fastest in the whole valley! Well. In our lane. Ready, steady...\n\nHEY! It went on steady! That's CHEATING! Come back! I'm still racing! Sir Hopsalot, you're the judge!",
+          "ch": [
+            { "t": "Run after them both", "go": "win", "give": { "friend": { "pip": 10 } } }
+          ] },
+        "win": { "say": "The hare wins. Of course it wins. But afterwards it flops down in the warm sand beside you, flanks heaving, ears lying flat and easy, and lets you sit with it while the tide comes in.\n\nWhen it finally lopes off into the dunes, it stops once at the top to look back. Same time tomorrow, says the look.", "end": "win",
+          "give": { "befriend": "dune_hare", "stamina": 10, "buff": "refreshed", "xp": { "foraging": 15 } } },
+        "lose": { "say": "You lie in the sand laughing until the tide tickles your boots. By the time you sit up, the hare is a speck far down the beach, still racing.\n\nIt has never lost. One day, you might at least come second.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_foghorn_seal", "creature": "foghorn_seal", "where": ["beach", "cove"], "weight": 4, "once": true, "req": { "chapter": "lighthouse" }, "start": "a",
+      "nodes": {
+        "a": { "say": "Fog rolls into the cove. Somewhere out on the rocks, something is singing: one long, low, wobbling note, like a cello that's had some bad news.\n\nThrough the mist you make out a grey seal on a flat rock, head tipped back, eyes shut, giving it everything she's got.",
+          "ch": [
+            { "t": "Pick your way out to her rock", "go": "rock", "roll": { "skill": "foraging", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "slip" },
+            { "t": "Ask Rook about her", "go": "rook", "req": { "companion": "rook" } }
+          ] },
+        "slip": { "say": "Seaweed. Of course it's seaweed. You sit down hard in a rock pool, and a small crab leaves in disgust.\n\nThe seal stops singing to stare at you. Then she makes a short, wet, honking noise that is very definitely a laugh.",
+          "ch": [
+            { "t": "Toss her a squid", "go": "rock", "cost": { "items": { "squid": 1 } } },
+            { "t": "Squelch home to dry off", "go": "lose" }
+          ] },
+        "rook": { "who": "rook", "say": "That's Old Marrow. Sings with the foghorn. Has for thirty years.\n\nHorn's been cracked since spring. She's been singing alone. Nobody should sing alone.\n\nWell. We'll be the horn, then. Low and long. Breathe from your boots.",
+          "ch": [
+            { "t": "Breathe from your boots", "go": "rock", "give": { "friend": { "rook": 10 } } }
+          ] },
+        "rock": { "say": "You settle on the cold rock beside her. She opens one dark eye, then shuffles over to make room.\n\nYou take a breath and hum, low and long, the way a foghorn would. For a moment, nothing. Then she tips her head back and joins in, and the two notes fill the whole cove.",
+          "ch": [
+            { "t": "Keep humming", "go": "win" }
+          ] },
+        "win": { "say": "You sing together until the fog lifts. When it does, the seal rolls off the rock with a splash and comes back up a minute later with something in her mouth.\n\nShe sets it on your knee: a pearl oyster, still dripping. Then she's gone, a dark shape sliding out to sea, still humming.", "end": "win",
+          "give": { "befriend": "foghorn_seal", "items": { "oyster": 1 }, "xp": { "fishing": 15 } } },
+        "lose": { "say": "You squelch back up the beach with seaweed in your pockets. Behind you, the singing starts up again, slightly flatter than before.\n\nNext foggy day, perhaps. With better boots.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_cloud_sheep", "creature": "cloud_sheep", "where": ["highlands"], "weight": 5, "once": true, "req": { "chapter": "highlands" }, "start": "a",
+      "nodes": {
+        "a": { "say": "The wind gusts hard across the ridge, and something white and bleating sails past at head height.\n\nIt's a sheep. An extremely fluffy sheep, drifting like a dandelion clock, legs paddling uselessly. It looks more embarrassed than frightened.",
+          "ch": [
+            { "t": "Leap and catch a hoof", "go": "win", "roll": { "skill": "foraging", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "gorse" },
+            { "t": "Throw it a rope", "go": "win", "cost": { "items": { "rope": 1 } } },
+            { "t": "Let Ingrid call it down", "go": "ingrid", "req": { "companion": "ingrid" } }
+          ] },
+        "gorse": { "say": "You leap. You miss by a whisker and land in a gorse bush, which has opinions.\n\nThe sheep drifts on, bleating sympathy, a little higher than before.",
+          "ch": [
+            { "t": "Throw it a rope", "go": "win", "cost": { "items": { "rope": 1 } } },
+            { "t": "Watch it float away", "go": "lose" }
+          ] },
+        "ingrid": { "who": "ingrid", "say": "Mm. That's Puff. Third time this week.\n\nHup. Hup-hup. Down, you daft cloud.\n\nI speak sheep. Badly. They forgive me.",
+          "ch": [
+            { "t": "Catch Puff on the way down", "go": "win", "give": { "friend": { "ingrid": 10 } } }
+          ] },
+        "win": { "say": "Down comes the sheep, into your arms, light as a pillow and twice as warm. You hold on until the gust passes. It leans its whole weight against your legs, which isn't much, and nibbles your sleeve by way of thanks.\n\nWhen it finally wanders off, it leaves a drift of soft wool caught on the heather and a faint smell of clean laundry.", "end": "win",
+          "give": { "befriend": "cloud_sheep", "items": { "wool": 4 }, "xp": { "foraging": 20 } } },
+        "lose": { "say": "The sheep floats off over the ridge, getting smaller and fluffier, until you can't tell it from the real clouds.\n\nIt'll come down somewhere. They always do. Maybe next time you'll be the one who catches it.", "end": "lose" }
+      }
+    },
+    {
+      "id": "meet_star_fox", "creature": "star_fox", "where": ["highlands", "meadow"], "weight": 3, "once": true, "req": { "chapter": "bell" }, "start": "a",
+      "nodes": {
+        "a": { "say": "The night is clear and cold and enormous. You've stopped to look up when you notice that one patch of stars is moving: low down, near the grass, trotting.\n\nIt's a fox. A silver fox, and its coat is full of stars, the very same stars as the sky, turning slowly as it walks.",
+          "ch": [
+            { "t": "Lie back and watch the sky", "go": "near", "roll": { "skill": "foraging", "base": 0.4, "per": 0.03, "max": 0.95 }, "fail": "rustle" },
+            { "t": "Hold up a sky crystal", "go": "near", "cost": { "items": { "crystal": 1 } } },
+            { "t": "Follow Wren's lead", "go": "wren", "req": { "companion": "wren" } }
+          ] },
+        "rustle": { "say": "You shift to get comfortable, and the grass crackles like paper. The fox stops dead, one paw raised, and the stars in its coat go still.\n\nIt doesn't run. Not yet. But it's thinking about it.",
+          "ch": [
+            { "t": "Hold up a sky crystal", "go": "near", "cost": { "items": { "crystal": 1 } } },
+            { "t": "Let it go on its way", "go": "lose" }
+          ] },
+        "wren": { "who": "wren", "say": "Forty-one sightings, and it never once came within a stone's throw of me. Hm.\n\nDon't look at it. Look where it's looking. Foxes and comets are the same: they come to you if you pretend to be busy.\n\nNow. That bright one is Vega. You name the next.",
+          "ch": [
+            { "t": "Name the stars with Wren", "go": "near", "give": { "friend": { "wren": 10 } } }
+          ] },
+        "near": { "say": "The fox comes closer. Then closer still, until it sits in the grass beside you, near enough to count the stars in its coat. Three run in a line down its back. The Bell Star sits right between its ears.\n\nFor a long while you just watch the sky together, and neither of you says anything at all.",
+          "ch": [
+            { "t": "Stay until it goes", "go": "win" }
+          ] },
+        "win": { "say": "When you look down again, the fox is gone. In the grass where it sat lies a single silver hair, glowing faintly, that fades to nothing as you pick it up.\n\nYou walk home under the stars feeling, absurdly, as if you've been told a secret and trusted to keep it.", "end": "win",
+          "give": { "befriend": "star_fox", "inspiration": 1, "xp": { "foraging": 30 } } },
+        "lose": { "say": "The fox trots on, a little walking patch of night, until you can't tell where it ends and the sky begins.\n\nClear nights come round again. So, they say, does the fox.", "end": "lose" }
+      }
+    }
+  ]
+}

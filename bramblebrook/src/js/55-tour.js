@@ -14,6 +14,10 @@ function maybeTour() {
   if (id === 'farm-fields' && !state.story.started && !chapterDone('prologue')) return;   // wait until the prologue has begun
   startTour(id);
 }
+function maybeTourNow(id) {
+  if (!state || tour || (state.opts && state.opts.tipsOff) || (state.toursSeen || {})[id] || !tourReady(id)) return;
+  startTour(id);
+}
 function maybeSheetTour(id) {
   if (!state || tour || (state.opts && state.opts.tipsOff) || (state.toursSeen || {})[id] || !tourReady(id)) return;
   setTimeout(() => { if (sheetOpen() && !tour) startTour(id); }, 120);
@@ -25,6 +29,7 @@ function startTour(id) {
   state.toursSeen[id] = now();
   saveLocal();
   tour = { id, steps: t.steps, i: 0 };
+  document.body.classList.add('touring');
   $('#tour-root').innerHTML = `<div class="tour" role="dialog" aria-modal="true" aria-label="${esc(t.title || 'Tour')}">
     <div class="tour-hole" id="tour-hole"></div>
     <div class="tour-card" id="tour-card"><span class="tour-title" id="tour-title"></span><p id="tour-text"></p>
@@ -90,6 +95,7 @@ function tourAct(a) {
 }
 function endTour() {
   tour = null;
+  document.body.classList.remove('touring');
   $('#tour-root').innerHTML = '';
   window.scrollTo(0, 0);
   commit();

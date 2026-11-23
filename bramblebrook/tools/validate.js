@@ -16,6 +16,10 @@ const core = load('core.json');
 const story = load('story.json');
 const people = load('people.json');
 const adv = load('adventures.json');
+const beasts = load('bestiary.json');
+const delves = load('delves.json');
+const comps = load('companions.json');
+const CREATURES = new Set(((beasts || {}).creatures || []).map(c => c.id));
 if (!core) { console.log('core.json missing'); process.exit(1); }
 
 const ITEMS = new Set(Object.keys(core.items));
@@ -62,7 +66,9 @@ function lines(where, arr) {
 function give(where, g) {
   if (g === undefined) return;
   if (!isObj(g)) { errors.push(`${where}: give must be an object`); return; }
-  const ok = new Set(['coins', 'items', 'xp', 'friend', 'page', 'flag', 'stamina', 'buff', 'plots', 'animals', 'unlock']);
+  const ok = new Set(['coins', 'items', 'xp', 'friend', 'page', 'flag', 'stamina', 'buff', 'plots', 'animals', 'unlock', 'inspiration', 'befriend']);
+  if (g.befriend && beasts && !CREATURES.has(g.befriend)) errors.push(`${where}: unknown creature "${g.befriend}"`);
+  if (g.items && g.items.charm_starglass) warn.push(`${where}: gives the bestiary prize charm`);
   for (const k of Object.keys(g)) if (!ok.has(k)) errors.push(`${where}: unknown give key "${k}"`);
   if (g.items) items(`${where}.items`, g.items);
   if (g.xp) for (const k of Object.keys(g.xp)) if (!SKILLS.has(k)) errors.push(`${where}.xp: unknown skill "${k}"`);
@@ -76,7 +82,8 @@ function give(where, g) {
 function req(where, r) {
   if (r === undefined) return;
   if (!isObj(r)) { errors.push(`${where}: req must be an object`); return; }
-  const ok = new Set(['items', 'skill', 'flag', 'noflag', 'chapter', 'started', 'coins']);
+  const ok = new Set(['items', 'skill', 'flag', 'noflag', 'chapter', 'started', 'coins', 'companion']);
+  if (r.companion && !VILLAGERS.has(r.companion)) errors.push(`${where}.companion: unknown villager "${r.companion}"`);
   for (const k of Object.keys(r)) if (!ok.has(k)) errors.push(`${where}: unknown req key "${k}"`);
   if (r.items) items(`${where}.items`, r.items);
   if (r.skill) for (const [k, v] of Object.entries(r.skill)) { if (!SKILLS.has(k)) errors.push(`${where}.skill: unknown skill "${k}"`); if (!(v >= 1 && v <= 60)) errors.push(`${where}.skill: bad level`); }
@@ -193,8 +200,41 @@ if (people) {
   });
   for (const id of VILLAGERS) if (!seen.has(id)) errors.push(`people.json: missing villager "${id}"`);
 }
+if (beasts) {
+  (beasts.creatures || []).forEach(c => { const w = `creature[${c.id}]`; text(`${w}.n`, c.n, 40); text(`${w}.blurb`, c.blurb, 160); text(`${w}.lore`, c.lore, 500); if (!c.i) errors.push(`${w}: needs an emoji i`); });
+  const met = new Set();
+  (beasts.encounters || []).forEach((e, i) => {
+    const w = `bestiary.encounters[${e.id || i}]`;
+    if (advIds.has(e.id)) errors.push(`${w}: duplicate id`); advIds.add(e.id);
+    if (!CREATURES.has(e.creature)) errors.push(`${w}: unknown creature`);
+    met.add(e.creature);
+    if (!Array.isArray(e.where) || !e.where.every(x => WHERE.has(x))) errors.push(`${w}: where must be area ids`);
+    req(`${w}.req`, e.req); graph(w, e);
+    const befriends = Object.values(e.nodes || {}).some(n => n.end === 'win' && n.give && n.give.befriend === e.creature);
+    if (!befriends) errors.push(`${w}: a win node must give befriend "${e.creature}"`);
+  });
+  for (const c of CREATURES) if (!met.has(c)) errors.push(`creature ${c} has no encounter`);
+}
+if (delves) {
+  (delves.delves || []).forEach((d, i) => {
+    const w = `delve[${d.id || i}]`;
+    if (advIds.has(d.id)) errors.push(`${w}: duplicate id`); advIds.add(d.id);
+    if (!(d.floor >= 5 && d.floor % 5 === 0)) errors.push(`${w}: floor must be a multiple of 5`);
+    text(`${w}.n`, d.n, 40); text(`${w}.blurb`, d.blurb, 200); graph(w, d);
+  });
+}
+if (comps) {
+  for (const [vid, c] of Object.entries(comps.companions || {})) {
+    const w = `companion[${vid}]`;
+    if (!VILLAGERS.has(vid)) errors.push(`${w}: unknown villager`);
+    (c.skills || []).forEach(sk => { if (!SKILLS.has(sk)) errors.push(`${w}: unknown skill ${sk}`); });
+    text(`${w}.join`, c.join, 200); text(`${w}.win`, c.win, 200);
+    (c.cheer || []).concat(c.oops || []).forEach((l, i) => text(`${w}.line${i}`, l, 180));
+  }
+  for (const k of ['crit', 'fumble']) for (const sk of SKILLS) if (!((comps[k] || {})[sk] || []).length) errors.push(`companions.json: ${k}.${sk} needs lines`);
+}
 for (const f of usedFlags) if (!setFlags.has(f) && !['heirloom'].includes(f)) warn.push(`flag "${f}" is required somewhere but never given`);
 
 if (warn.length) console.log('Warnings:\n  ' + warn.join('\n  '));
 if (errors.length) { console.log(`\n${errors.length} error(s):\n  ` + errors.join('\n  ')); process.exit(1); }
-console.log(`OK  (story: ${!!story}, people: ${!!people}, adventures: ${!!adv})`);
+console.log(`OK  (story: ${!!story}, people: ${!!people}, adventures: ${!!adv}, bestiary: ${!!beasts}, delves: ${!!delves}, companions: ${!!comps})`);

@@ -85,8 +85,12 @@ FOLKS = {
     'oakley': ('adults', 'mascAdultHuman2'), 'hazel': ('adults', 'femAdultHuman1'), 'tobin': ('elders', 'mascElderHuman2'),
     'mira': ('adults', 'femAdultHuman5'), 'clem': ('elders', 'femElderHuman3'), 'pip': ('children', 'femChildHuman1'),
     'rook': ('elders', 'mascElderHuman1'), 'ingrid': ('heroes', 'femHeroHuman1'), 'wren': ('elders', 'femElderHuman1'),
-    'saffi': ('adults', 'femAdultHuman3'),
+    'saffi': ('adults', 'femAdultHuman3'), 'tess': ('adults', 'femAdultHuman2'),
 }
+# portraits the player can choose from (everyone not already a villager)
+FACES = [('adults', s) for s in ['femAdultHuman4', 'femAdultHuman6', 'mascAdultHuman1', 'mascAdultHuman3', 'mascAdultHuman4', 'mascAdultHuman5', 'mascAdultHuman6']] + \
+        [('elders', s) for s in ['femElderHuman2', 'mascElderHuman3']] + \
+        [('heroes', s) for s in ['femHeroHuman2', 'femHeroHuman3', 'femHeroHuman4', 'mascHeroHuman1', 'mascHeroHuman2', 'mascHeroHuman3', 'mascHeroHuman4']]
 
 COLS = 16
 cells = []   # (key, image 32x(32*h), h, filter)
@@ -122,6 +126,9 @@ cells.append(('ui:bench', to32(load(ORE.format(3))), 1, None))
 for vid, (folder, stem) in FOLKS.items():
     sheet = load(FOLK.format(folder, stem))
     cells.append((f'folk:{vid}', sheet.crop((32, 0, 64, 32)), 1, None))
+for folder, stem in FACES:
+    sheet = load(FOLK.format(folder, stem))
+    cells.append((f'face:{stem}', sheet.crop((32, 0, 64, 32)), 1, None))
 
 # pack cells: single-height first in rows, then tall cells two rows high
 singles = [c for c in cells if c[2] == 1]

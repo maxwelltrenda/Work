@@ -60,7 +60,13 @@ function indexContent(data) {
     art: (data.art && data.art.map) || {},
   });
   C.tours = data.tours || { tours: {} };
+  C.bestiary = data.bestiary || { creatures: [], encounters: [] };
+  C.bestiary.byId = byId(C.bestiary.creatures);
+  I.encs = I.encs.concat(C.bestiary.encounters || []);
   I.enc = byId(I.encs);
+  C.delves = { list: (data.delves && data.delves.delves) || [] };
+  C.delves.byId = byId(C.delves.list);
+  C.companions = data.companions || { companions: {}, inn: null, crit: {}, fumble: {} };
   I.legendary = new Set(k.spots.flatMap(s => s.fish.filter(f => f[2] === 5).map(f => f[0])));
   I.fishKinds = Object.keys(k.items).filter(id => k.items[id].t === 'fish');
   // which chapter unlocks what (for "unlocks in chapter N" hints)
@@ -94,7 +100,7 @@ function stagePic(crop, stage, size) {
   return artCell(`stage:${crop}:${stage}`, size, 'sprout') || `<span class="emo sprout" style="--s:${size}px">${stage < 3 ? '🌱' : stage < 4 ? '🌿' : I.items[crop].i}</span>`;
 }
 function folk(id, size = 48) {
-  if (id === 'saffi') return `<span class="mono" style="--h:20">${artCell('folk:saffi', size) || 'S'}</span>`;
+  if (id === 'saffi' || id === 'tess') return `<span class="mono" style="--h:${id === 'tess' ? 30 : 20}">${artCell('folk:' + id, size) || id[0].toUpperCase()}</span>`;
   const v = I.vil[id];
   if (!v) return '';
   return `<span class="mono" style="--h:${v.h}">${artCell('folk:' + id, size) || esc(v.mono || v.n[0])}</span>`;

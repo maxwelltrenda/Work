@@ -1,10 +1,10 @@
 /* ---------- views ---------- */
 const SUBS = {
   farm: [['fields', 'Fields'], ['orchard', 'Orchard'], ['animals', 'Animals'], ['pets', 'Pets']],
-  wilds: [['explore', 'Explore'], ['mine', 'Mine'], ['adventures', 'Adventures']],
+  wilds: [['explore', 'Explore'], ['mine', 'Mine']],
   make: [['workshop', 'Workshop'], ['kitchen', 'Kitchen'], ['bench', 'Bench'], ['cellar', 'Cellar']],
-  town: [['people', 'People'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
-  bag: [['items', 'Items'], ['almanac', 'Almanac'], ['feats', 'Feats'], ['perks', 'Perks'], ['settings', 'Settings']],
+  town: [['people', 'People'], ['inn', 'Inn'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
+  bag: [['items', 'Items'], ['sheet', 'Sheet'], ['almanac', 'Almanac'], ['bestiary', 'Bestiary'], ['feats', 'Feats'], ['perks', 'Perks'], ['settings', 'Settings']],
 };
 const visibleSubs = t => (SUBS[t] || []).filter(([id]) => subOn(t, id));
 function sub(t) {
@@ -126,10 +126,8 @@ function viewAnimals() {
 /* ---- Wilds ---- */
 function viewWilds() {
   const s = sub('wilds');
-  const newAdv = I.advs.some(a => !state.advDone[a.id] && reqMet(a.req));
-  const head = `<div class="view-head"><h1>The wilds</h1><p>Stamina refills 1 every ${Math.round(regenMs() / 1000)}s</p></div>${subtabs('wilds', { adventures: newAdv })}`;
+  const head = `<div class="view-head"><h1>The wilds</h1><p>Stamina refills 1 every ${Math.round(regenMs() / 1000)}s</p></div>${subtabs('wilds')}`;
   if (s === 'mine') return head + (unlocked('mine') ? viewMine() : lockedCard('The Mine', 'mine'));
-  if (s === 'adventures') return head + viewAdventures();
   return head + viewExplore();
 }
 function staminaLine() {
@@ -267,7 +265,8 @@ function viewTown() {
   const unread = state.mail.filter(m => !m.read).length;
   const choresReady = state.chores.list.some(c => !c.claimed && choreProgress(c) >= c.n) || (featureOn('daily') && loginReady()) || (featureOn('festival') && festivalOpenCount() > 0);
   const people = I.vils.some(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id)));
-  const head = `<div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>${subtabs('town', { mail: unread > 0, board: choresReady, people })}`;
+  const head = `<div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>${subtabs('town', { mail: unread > 0, board: choresReady, people, inn: I.advs.some(a => !state.advDone[a.id] && reqMet(a.req)) || openDelves().length > 0 })}`;
+  if (s === 'inn') return head + viewInn();
   if (s === 'shops') return head + viewShops();
   if (s === 'board') return head + viewBoard();
   if (s === 'mail') return head + viewMail();
@@ -360,9 +359,11 @@ function viewMail() {
 /* ---- Bag ---- */
 function viewBag() {
   const s = sub('bag');
-  const head = `<div class="view-head"><h1>${{ items: 'Bag', almanac: 'Almanac', feats: 'Feats', perks: 'Perks', settings: 'Settings' }[s]}</h1><p>${s === 'items' ? `Barn holds ${fmtN(cap())} of each item` : s === 'almanac' ? `${Object.keys(state.seen).length} of ${Object.keys(I.items).length} found` : s === 'feats' ? `${Object.keys(state.ach).length} of ${I.ach.length} earned` : ''}</p></div>${subtabs('bag')}`;
+  const head = `<div class="view-head"><h1>${{ sheet: 'Character', items: 'Bag', almanac: 'Almanac', bestiary: 'Bestiary', feats: 'Feats', perks: 'Perks', settings: 'Settings' }[s]}</h1><p>${s === 'items' ? `Barn holds ${fmtN(cap())} of each item` : s === 'almanac' ? `${Object.keys(state.seen).length} of ${Object.keys(I.items).length} found` : s === 'feats' ? `${Object.keys(state.ach).length} of ${I.ach.length} earned` : ''}</p></div>${subtabs('bag')}`;
   if (s === 'almanac') return head + viewAlmanac();
   if (s === 'feats') return head + viewFeats();
+  if (s === 'sheet') return head + viewSheet();
+  if (s === 'bestiary') return head + viewBestiary();
   if (s === 'perks') return head + viewPerks();
   if (s === 'settings') return head + viewSettings();
   return head + viewItems();
@@ -383,7 +384,7 @@ function viewItems() {
 }
 function slotHTML(id, act = 'item') {
   const t = masteryTier(id);
-  return `<button class="slot${have(id) >= cap() ? ' full' : ''}" data-act="${act}" data-id="${id}">${t ? `<span class="stars">${'★'.repeat(t)}</span>` : ''}${state.locked[id] ? '<span class="lock" aria-label="Locked">🔒</span>' : ''}${pic(id, 32)}<span class="nm">${esc(itemName(id))}</span><span class="q">${have(id)}</span></button>`;
+  return `<button class="slot${have(id) >= cap() ? ' full' : ''}${rarClass(id)}" data-act="${act}" data-id="${id}">${t ? `<span class="stars">${'★'.repeat(t)}</span>` : ''}${state.locked[id] ? '<span class="lock" aria-label="Locked">🔒</span>' : ''}${pic(id, 32)}<span class="nm">${esc(itemName(id))}</span><span class="q">${have(id)}</span></button>`;
 }
 function viewAlmanac() {
   const groups = Object.keys(C.core.types).filter(t => t !== 'key').map(t => {

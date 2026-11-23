@@ -67,6 +67,9 @@ const SOUNDS = {
   catch: (c, t) => { noise(c, t, { f: 1200, vol: 0.08, dur: 0.12 }); [NOTE.G4, NOTE.C5, NOTE.E5].forEach((f, i) => pluck(c, t + 0.04 + i * 0.06, f, 0.15)); },
   bigcatch: (c, t) => { noise(c, t, { f: 1000, vol: 0.1, dur: 0.16 }); [NOTE.C5, NOTE.E5, NOTE.G5, NOTE.C6, NOTE.E6].forEach((f, i) => pluck(c, t + 0.04 + i * 0.06, f, 0.14)); },
   miss: (c, t) => { tone(c, t, 330, { vol: 0.07, dur: 0.16, type: 'triangle' }); tone(c, t + 0.1, 262, { vol: 0.06, dur: 0.22, type: 'triangle' }); },
+  dice: (c, t) => { for (let i = 0; i < 7; i++) tone(c, t + i * 0.07 + Math.random() * 0.02, 900 + Math.random() * 700, { vol: 0.05, dur: 0.035, type: 'triangle' }); noise(c, t + 0.5, { f: 1600, vol: 0.06, dur: 0.05 }); },
+  crit: (c, t) => { [NOTE.C5, NOTE.G5, NOTE.C6, NOTE.E6, NOTE.G6].forEach((f, i) => pluck(c, t + i * 0.06, f, 0.14)); tone(c, t + 0.3, NOTE.C6 * 2, { vol: 0.06, dur: 0.6, type: 'triangle' }); },
+  fumble: (c, t) => { tone(c, t, 392, { vol: 0.1, dur: 0.14, type: 'triangle' }); tone(c, t + 0.13, 330, { vol: 0.09, dur: 0.14, type: 'triangle' }); tone(c, t + 0.26, 220, { vol: 0.1, dur: 0.35, to: 160, glide: 0.3, type: 'triangle' }); },
   // the Bramble Bell: a low bell with uneven partials and a long, soft tail
   bell: (c, t) => {
     const f = NOTE.G3;
@@ -144,7 +147,7 @@ const ACT_SOUND = {
   deliver: 'chime', 'fest-deliver': 'chime', chore: 'chime', 'chore-bonus': 'chime', 'login-claim': 'chime', 'letter-gift': 'chime',
   'gift-pick': 'heart', chat: 'pick', heart: 'heart', collect: 'pick', 'collect-all': 'pick', pet: 'heart', tree: 'pick', 'harvest-trees': 'pick',
   'plant-tree': 'sow', 'net-set': 'cast', 'net-collect': 'catch', 'cask-fill': 'knock', 'cask-bottle': 'clink', 'pet-collect': 'pick', 'pet-feed': 'heart', 'pet-adopt': 'heart',
-  perk: 'sparkle', install: 'knock', tonic: 'sparkle', 'take-overflow': 'pick', 'fest-buy': 'coins',
+  perk: 'sparkle', install: 'knock', 'charm-on': 'clink', 'charm-off': 'tick', tonic: 'sparkle', 'take-overflow': 'pick', 'fest-buy': 'coins',
 };
 function fxAfter(act, el, snap) {
   if (!snap) return;

@@ -185,3 +185,56 @@ Any node may have `give` (applied when the node is reached).
 A choice whose `req` isn't met shows as disabled with the reason. A `roll` needs a `fail` node.
 `where` for adventures: an area id (meadow, woods, banks, quarry, beach, highlands), "mine", "river", "pond", "cove", "tarn", "town", "farm".
 Encounters trigger at random while exploring their `where` areas (or "mine" while digging).
+
+---
+
+## 7. Tabletop layer (dice, companions, creatures, delves)
+
+**Dice checks.** A choice's `roll` is now shown as a d20 skill check. `base` sets the difficulty:
+DC = 21 − 20 × base (base 0.5 → DC 11, 0.35 → DC 14, 0.65 → DC 8). The player adds +1 per 3 skill
+levels, +2 for their background skill, and charm bonuses. A companion whose specialty matches the
+check gives **advantage** (roll twice, keep the higher). Natural 20 always succeeds (a critical:
+bonus coins and an Inspiration point). Natural 1 always fails, with a gentle comic line.
+
+New **Give** keys: `"inspiration": 1` (add Inspiration, max 3), `"befriend": "<creature id>"` (logs a
+creature in the bestiary). Charm items (ids starting `charm_`, `t: "charm"` in core.json) are rare
+wearable rewards: give them sparingly (crits, delve wins, befriending).
+New **Req** key: `"companion": "<villager id>"` (choice only available if that villager came along).
+
+**Charms in core.json:** charm_clover, charm_acorn, charm_compass, charm_thimble, charm_spoon,
+charm_lantern, charm_ribbon, charm_hook, charm_boots, charm_whistle, charm_feather, charm_bell,
+charm_trowel, charm_worry, charm_moss, charm_starglass (the last is the bestiary completion prize;
+don't give it).
+
+## 8. `bestiary.json`
+
+```json
+{ "creatures": [ { "id": "moss_sprite", "n": "Moss Sprite", "i": "🌿", "where": ["woods"],
+    "blurb": "One-line almanac entry.", "lore": "2-3 sentence almanac entry, revealed once befriended." } ],
+  "encounters": [ { "id": "meet_moss_sprite", "creature": "moss_sprite", "where": ["woods"], "weight": 6,
+    "once": true, "req": Req, "start": "a", "nodes": { ... } } ] }
+```
+Gentle creatures only: no monsters to fight. Each creature gets exactly one encounter; its win node
+must give `"befriend": "<id>"`. Befriending is by kindness, cleverness, gifts or patience (use
+checks, item costs and companion-only choices). `where` uses area ids or "mine"; respect the unlock
+timeline. `i` is an emoji used as the creature's picture.
+
+## 9. `delves.json`
+
+```json
+{ "delves": [ { "id": "delve_5", "floor": 5, "n": "The Old Pump Room", "blurb": "...", "start": "a", "nodes": { ... } } ] }
+```
+A delve is a short adventure (6-10 nodes) that opens the first time the player reaches that mine
+floor. Same node/choice format as adventures; mild peril, puzzles, sealed doors, sleeping animals,
+old miners' stories. Use mining/foraging/crafting checks. Wins give ore, gems, coins and sometimes a charm.
+
+## 10. `companions.json`
+
+```json
+{
+  "companions": { "tobin": { "skills": ["fishing"], "join": "...", "cheer": ["..."], "oops": ["..."], "win": "..." } },
+  "inn": { "n": "The Lantern & Ladle", "keeper": "Tess Marlow", "role": "...", "greet": ["..."], "rumors": ["..."] },
+  "crit": { "farming": ["..."], "fishing": ["..."], "foraging": ["..."], "mining": ["..."], "crafting": ["..."], "cooking": ["..."] },
+  "fumble": { "farming": ["..."], ... }
+}
+```

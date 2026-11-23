@@ -1,0 +1,274 @@
+{
+ "companions": {
+  "oakley": {
+   "skills": ["crafting"],
+   "join": "An expedition! Splendid. I've brought a notebook, two pencils and a spare pencil for emergencies. Lead on, {name}.",
+   "cheer": [
+    "Splendid! Absolutely splendid! I'm minuting that in capitals.",
+    "Six years on the Committee for Knots, and it finally paid off!",
+    "Motion to declare that a triumph. Seconded. Carried. Splendid!",
+    "Did everyone see that? I'll need a witness for the minutes. Oh, I'm the witness. Splendid."
+   ],
+   "oops": [
+    "Not to worry. I'll record that as 'a learning experience'. Most of my minutes are.",
+    "Hm. Let's refer that to a subcommittee and try again.",
+    "History is full of second attempts. I've read most of them. Twice.",
+    "I'm fairly sure that was my fault somehow. It usually is. I've checked the records."
+   ],
+   "win": "A splendid day! I'll write it up tonight, every word. Possibly in two volumes."
+  },
+  "hazel": {
+   "skills": ["farming"],
+   "join": "An outing! Shop's locked, Ledger's in charge, and I've brought a fresh page for counting things. Lead on, {name}!",
+   "cheer": [
+    "Ooh! That's one for the ledger. Top line, underlined twice.",
+    "I've sold that seed a thousand times. Never once seen it behave that nicely!",
+    "Lovely! That's three wins today. Four, if I count the biscuit I found.",
+    "Wait till the shop hears about this. Well, wait till I tell them. Which is tonight."
+   ],
+   "oops": [
+    "Oh dear. I'll file that under 'Nearly'. It's a very thick file. Very friendly, too.",
+    "Not to worry! Most seeds take two tries. Some take nine. I've counted.",
+    "Hmm. Let's not count that one. I'm the counter, so I'm allowed to decide.",
+    "Ledger does that all the time. Then he sits on it and pretends he meant to."
+   ],
+   "win": "What a day! I've counted everything twice and it all came out lovely. Same time next week?"
+  },
+  "tobin": {
+   "skills": ["fishing"],
+   "join": "Hm. Going out, are we? I'll bring the worms. You bring the quiet.",
+   "cheer": [
+    "Hm. Good.",
+    "Nell would've clapped. I'll nod. Same thing.",
+    "That's the one. Knew it. Fish knew it too.",
+    "Caught one like that once. Bigger. Still. Good."
+   ],
+   "oops": [
+    "Happens. River keeps a few for herself.",
+    "Fish said no. Fish are allowed.",
+    "Lost a pike that way once. Pike's still out there. Wearing my lure.",
+    "Breathe. Try again. River's not going anywhere. Mostly."
+   ],
+   "win": "Good day. Not a tall tale, that one. Doesn't need to be."
+  },
+  "mira": {
+   "skills": ["crafting", "mining"],
+   "join": "Packed a hammer, a spare hammer and a sandwich. Two of those are for emergencies. Let's go, {name}.",
+   "cheer": [
+    "Clean work. I'd sign that.",
+    "See? Hit it where it wants to be hit. Grandad's rule.",
+    "Huh. That's better than I'd have done. Don't tell anyone I said that.",
+    "Solid. Like a good anvil. Highest praise I've got."
+   ],
+   "oops": [
+    "Well, now we know one way that doesn't work. That's science.",
+    "Happens to me daily. Usually before breakfast.",
+    "That's not broken. That's just pre-fixed.",
+    "Lost a screw, found a lesson. Net gain, technically."
+   ],
+   "win": "Not bad. Not bad at all. Next time I'm bringing two sandwiches."
+  },
+  "clem": {
+   "skills": ["cooking", "farming"],
+   "join": "I've packed scones, a flask and a rolling pin. Don't ask about the rolling pin. Off we go, pet.",
+   "cheer": [
+    "There! Gentle hands. Wren's got them too. Must run in the family.",
+    "Lovely, dear. That's how my mother did it, and she'd have said so loudly.",
+    "Patience, a pinch of salt and a firm hand. Works on dough. Works on most people.",
+    "Oh, well done, pet. Have a scone. I'm not asking."
+   ],
+   "oops": [
+    "Never mind, dear. The first pancake's always a mess. So's the second, sometimes.",
+    "Ha! Wren once did exactly that and blamed a goose. There was no goose.",
+    "Hush now. My knees say you'll get it next time. They're right about half the time.",
+    "It's only flour and pride, pet. Both brush off."
+   ],
+   "win": "A good day's work. Come home with me and we'll eat until we're sensible again."
+  },
+  "pip": {
+   "skills": ["foraging"],
+   "join": "AN EXPEDITION! Sir Hopsalot's in one pocket and my map's in the other. Let's GO, {name}!",
+   "cheer": [
+    "WHOA! That's going on the map! With a STAR!",
+    "Sir Hopsalot saw that! He's doing his proud croak!",
+    "That's the best thing I've seen since the snail with the stripe!",
+    "You're SO good at this. I'm writing 'EXPERT' next to your stick person."
+   ],
+   "oops": [
+    "That's okay! Explorers fall over loads. It's in the rules. I wrote the rules.",
+    "Sir Hopsalot says that didn't count. He's a knight, so it's official.",
+    "I'm drawing that bit as 'HERE BE OOPS'. It's a real map thing. Probably.",
+    "Don't worry! I tripped on that exact root yesterday. And the day before."
+   ],
+   "win": "Best. Expedition. EVER. I'm drawing all of it tonight, even the boring bits!"
+  },
+  "rook": {
+   "skills": ["fishing", "foraging"],
+   "join": "Hm. The sea can watch itself for a day. I'll walk with you, {name}. Mind the wind.",
+   "cheer": [
+    "There. The tide's on your side today.",
+    "Well done. That one's going in the log.",
+    "Like a ship rounding the Point in fog. Steady, steady, then home.",
+    "The gulls saw that. They'll be insufferable about it for weeks."
+   ],
+   "oops": [
+    "The sea takes. The sea gives back. Usually on a Tuesday.",
+    "No shame in it. Every captain runs aground once. I did it twice. Same rock.",
+    "Write it in the log as weather. Weather's nobody's fault.",
+    "Steady. One bad wave doesn't make a storm."
+   ],
+   "win": "A fair day, and a fair wind home. I'll log it as one of the good ones."
+  },
+  "ingrid": {
+   "skills": ["foraging"],
+   "join": "Mm. I'll come. Bring a scarf. Wind always finds whoever forgot one.",
+   "cheer": [
+    "Mm. Good.",
+    "Nicely done. Quiet hands.",
+    "There. You listened. That's most of it.",
+    "Old Mags couldn't have done better. That's a compliment. She's a very good sheep."
+   ],
+   "oops": [
+    "Mm. Happens.",
+    "Stand still a moment. Then try again. It'll keep.",
+    "Wind took that one. Wind takes plenty. Gives some back.",
+    "Stubborn did the same once. She's still proud of it."
+   ],
+   "win": "Good day. Better company. ...Don't tell anyone I said that."
+  },
+  "wren": {
+   "skills": ["farming", "foraging"],
+   "join": "Fine, I'll come. Someone has to stop you stepping on anything interesting, {name}.",
+   "cheer": [
+    "Not bad. I'd have done it faster, but I've had a seventy-year head start.",
+    "See? It leaned toward you. They do that, when you listen.",
+    "Good. Now do it again without looking so surprised.",
+    "That's the Bramble touch. Took me years. Took you an afternoon. Rude."
+   ],
+   "oops": [
+    "Hm. The plant won that round. Plants usually do.",
+    "Don't sulk. I once planted a whole bed of onions upside down. They forgave me.",
+    "That's step one: getting it wrong. Step two takes about forty years.",
+    "Clementine would say 'never mind, pet'. I'll say: again. Properly."
+   ],
+   "win": "Not a bad day. Don't tell Clementine I enjoyed it. She'll bake me a cake about it."
+  }
+ },
+ "inn": {
+  "n": "The Lantern & Ladle",
+  "keeper": "Tess Marlow",
+  "role": "innkeeper, retired adventurer, soup enthusiast",
+  "greet": [
+   "Welcome to the Lantern & Ladle, {name}! Sit anywhere. Not there, that stool wobbles. It's had a long life.",
+   "Ah, {name}! Today's soup is a daring expedition into parsnip country. Few return. All are delighted.",
+   "I once crossed the Glimmer Fens with nothing but a spoon. These days I mostly stir with it.",
+   "Fresh notices on the board! Quests for the brave, the curious and the slightly bored.",
+   "Twenty years on the road and I never met a mountain I couldn't climb. Then I met a really good stew.",
+   "Hang up your hat and tell me everything. Strange tracks? Odd weather? Big mushrooms? I live for it.",
+   "Every bowl's an adventure, {name}. Today's is called 'The Leek Who Went Too Far'. It has dumplings.",
+   "Behold! A hero returns! Or a farmer. From back here it's hard to tell. Either way, there's bread."
+  ],
+  "rumors": [
+   "A traveler swears a fox in the Mossy Woods stole one sock. Just the one. Keep an eye on your laundry.",
+   "Little lights over Lily Pond at dusk, I hear. Fireflies, probably. Probably.",
+   "Otters on the riverbanks, they say, sliding down the mud for the sheer joy of it. Fine role models.",
+   "Old miners left a crust for the bats, for luck. Said it kept the tunnels friendly. Can't hurt.",
+   "The gulls on the coast are up to something. Sharing secrets or stealing sandwiches. With gulls it's both.",
+   "Sheep bells on the wind some evenings, from way up high. Somebody's keeping a flock up there.",
+   "Someone still keeps watch out on the Point, they say. Lonely work. A visitor wouldn't go amiss.",
+   "Pip swears the Old Quarry talks back. Pip also swears Sir Hopsalot can read. Worth checking one of them.",
+   "Hazel counted the same shelf three times this morning. When Hazel recounts, something's running short.",
+   "Mira's been muttering at her anvil. She'll never ask for help. Which is exactly when to offer.",
+   "Gran's baking more than the whole valley can eat. Means she's happy, or she's thinking. Worth a visit either way.",
+   "Ask Tobin what's wrong and he'll say 'nothing'. Ask twice and you'll get a story. Ask three times and you'll get a fish."
+  ]
+ },
+ "crit": {
+  "farming": [
+   "The turnip practically leaps into your hand.",
+   "Every seed sprouts at once, like a tiny round of applause.",
+   "The soil crumbles just right. Somewhere below, a worm nods approvingly.",
+   "The vine untangles itself and hands you its very best fruit.",
+   "The scarecrow would tip its hat, if it could. It very nearly manages."
+  ],
+  "fishing": [
+   "A fish leaps straight into your bucket, then looks around as if it meant to all along.",
+   "Your line sings. The water holds its breath. Then: the catch of the week.",
+   "A perfect cast. Even the heron stops to watch.",
+   "The float dips once, politely, like a fish knocking before it comes in.",
+   "It's the sort of catch that becomes a tall tale. Except you've got the fish to prove it."
+  ],
+  "foraging": [
+   "You part the ferns and there it is, as if it had been waiting for you.",
+   "A whole patch of the good stuff, right where nobody else thought to look.",
+   "A squirrel drops exactly what you were after and scampers off looking pleased with itself.",
+   "Your nose, your eyes and your luck all agree at once. Rare. Wonderful.",
+   "The path seems to bend just to show you something lovely."
+  ],
+  "mining": [
+   "One tap and the rock splits clean, like a loaf fresh from Gran's oven.",
+   "The vein glitters in your lantern light, bright as a wink.",
+   "Your pick finds the sweet spot. The whole tunnel hums a happy little note.",
+   "A pebble rolls aside to reveal a gleam. The mountain was saving it for you.",
+   "Not a speck of dust out of place. Old miners would tip their helmets for that swing."
+  ],
+  "crafting": [
+   "Every piece clicks together on the first try. It even looks better than the drawing.",
+   "The knot practically ties itself. Well, you tied it. But beautifully.",
+   "Not a single bent nail. Mira would frame it.",
+   "You stand back and admire it. It's sturdy enough to hold a whole committee meeting.",
+   "The grain lines up, the joints sit snug, and the whole thing hums with good work."
+  ],
+  "cooking": [
+   "The kitchen fills with a smell so good the neighbors suddenly need to borrow sugar.",
+   "It rises perfectly. You didn't even peek. Gran would be proud.",
+   "One taste and your knees go a little wobbly. In the good way.",
+   "Golden on top, soft in the middle, and not a crumb out of place.",
+   "You season it without measuring and it's exactly right. Instinct, or magic. Possibly both."
+  ]
+ },
+ "fumble": {
+  "farming": [
+   "You plant the seed upside down. It will sort itself out. Eventually. Grumpily.",
+   "You water the scarecrow's boots instead of the beds. It seems grateful, at least.",
+   "A crow watches you dig the wrong row and makes a noise that sounds a lot like laughing.",
+   "You pull up a weed with great confidence. It was a carrot. The carrot forgives you.",
+   "Your boot sticks in the mud. You get free. The mud keeps the boot. Somewhere, Tobin senses an opportunity."
+  ],
+  "fishing": [
+   "You slip into the creek. The heron looks embarrassed for you.",
+   "You reel in with great drama and land a very surprised clump of weed.",
+   "Your hook catches your own hat. Well. You caught something.",
+   "The fish takes the bait, looks you in the eye, and leaves. Rude, but impressive.",
+   "You cast beautifully, straight into a tree. The tree is not hungry."
+  ],
+  "foraging": [
+   "You proudly pick a mushroom. It's a pinecone. With ambitions.",
+   "You reach for the berries. A squirrel reaches first and gives you a look.",
+   "You trip on a root, roll gently down a bank, and land in a very comfy patch of clover.",
+   "You sneeze at exactly the wrong moment. Every bird nearby files a complaint.",
+   "You follow a promising trail for ten minutes. It's your own footprints."
+  ],
+  "mining": [
+   "Your pick bounces off the rock with a cheerful 'boing'. The rock wins this round.",
+   "You dig with great enthusiasm and uncover the other side of the same rock.",
+   "Your lantern flickers and you politely apologize to a stalagmite.",
+   "A puff of dust turns you an elegant shade of grey. Very distinguished.",
+   "You spot a glittering gem! It's your lantern's reflection. Still, lovely lantern."
+  ],
+  "crafting": [
+   "You glue it together beautifully. Upside down. It's modern art now.",
+   "The knot you tie is magnificent and holds nothing at all.",
+   "You measure twice, cut once, and still end up with a very short plank.",
+   "Your creation wobbles, sighs, and lies down. It needs a rest. So do you.",
+   "You nail it firmly in place. Along with your sleeve. You and the shelf are close friends now."
+  ],
+  "cooking": [
+   "You reach for the sugar and grab the salt. Bold choice. Brave, even.",
+   "The bread rises, looks around, and thinks better of it.",
+   "The pot boils over the moment you turn your back. It was waiting for that.",
+   "Your pancake flips beautifully and lands on top of the cupboard. It lives there now.",
+   "It smells wonderful, looks alarming, and tastes like an apology. Next time!"
+  ]
+ }
+}

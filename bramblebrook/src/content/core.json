@@ -41,7 +41,8 @@
   "bait": "Bait",
   "crafted": "Crafted goods",
   "meal": "Meals",
-  "key": "Keepsakes"
+  "key": "Keepsakes",
+  "charm": "Charms"
  },
  "items": {
   "wheat": {
@@ -1101,6 +1102,187 @@
    "t": "key",
    "s": 0,
    "f": "hue-rotate(-60deg) brightness(1.3)"
+  },
+  "charm_clover": {
+   "n": "Pressed Four-Leaf",
+   "i": "🍀",
+   "t": "charm",
+   "s": 120,
+   "rar": "uncommon",
+   "desc": "Rare finds 10% more likely",
+   "fx": {
+    "luck": 10
+   }
+  },
+  "charm_acorn": {
+   "n": "Acorn of Small Courage",
+   "i": "🌰",
+   "t": "charm",
+   "s": 120,
+   "rar": "uncommon",
+   "desc": "+1 to every dice roll",
+   "fx": {
+    "check:all": 1
+   }
+  },
+  "charm_compass": {
+   "n": "True-North Compass",
+   "i": "🧭",
+   "t": "charm",
+   "s": 120,
+   "rar": "uncommon",
+   "desc": "+2 to Foraging rolls",
+   "fx": {
+    "check:foraging": 2
+   }
+  },
+  "charm_thimble": {
+   "n": "Brass Thimble",
+   "i": "🪡",
+   "t": "charm",
+   "s": 40,
+   "rar": "common",
+   "desc": "+2 to Crafting rolls",
+   "fx": {
+    "check:crafting": 2
+   }
+  },
+  "charm_spoon": {
+   "n": "Gran's Wooden Spoon",
+   "i": "🥄",
+   "t": "charm",
+   "s": 40,
+   "rar": "common",
+   "desc": "+2 to Cooking rolls",
+   "fx": {
+    "check:cooking": 2
+   }
+  },
+  "charm_lantern": {
+   "n": "Pocket Lantern",
+   "i": "🏮",
+   "t": "charm",
+   "s": 120,
+   "rar": "uncommon",
+   "desc": "+2 to Mining rolls, stairs 3% more likely",
+   "fx": {
+    "check:mining": 2,
+    "stairs": 3
+   }
+  },
+  "charm_ribbon": {
+   "n": "Lucky Ribbon",
+   "i": "🎀",
+   "t": "charm",
+   "s": 120,
+   "rar": "uncommon",
+   "desc": "Everything sells for 3% more",
+   "fx": {
+    "price": 3
+   }
+  },
+  "charm_hook": {
+   "n": "Angler's Lucky Hook",
+   "i": "🪝",
+   "t": "charm",
+   "s": 400,
+   "rar": "rare",
+   "desc": "+2 to Fishing rolls, catch zone 5% wider",
+   "fx": {
+    "check:fishing": 2,
+    "zone": 5
+   }
+  },
+  "charm_boots": {
+   "n": "Boots of the Quiet Step",
+   "i": "🥾",
+   "t": "charm",
+   "s": 400,
+   "rar": "rare",
+   "desc": "Encounters happen half again as often",
+   "fx": {
+    "encounter": 50
+   }
+  },
+  "charm_whistle": {
+   "n": "Shepherd's Whistle",
+   "i": "🎶",
+   "t": "charm",
+   "s": 400,
+   "rar": "rare",
+   "desc": "Friendship grows 15% faster",
+   "fx": {
+    "friend": 15
+   }
+  },
+  "charm_feather": {
+   "n": "Eagle-Feather Pin",
+   "i": "🪶",
+   "t": "charm",
+   "s": 400,
+   "rar": "rare",
+   "desc": "+6 max stamina",
+   "fx": {
+    "stamina": 6
+   }
+  },
+  "charm_bell": {
+   "n": "Tiny Brass Bell",
+   "i": "🔔",
+   "t": "charm",
+   "s": 400,
+   "rar": "rare",
+   "desc": "+2 to every dice roll while a companion is with you",
+   "fx": {
+    "check:companion": 2
+   }
+  },
+  "charm_trowel": {
+   "n": "Wren's Old Trowel",
+   "i": "🪏",
+   "t": "charm",
+   "s": 900,
+   "rar": "very rare",
+   "desc": "Crops grow 8% faster, +2 to Farming rolls",
+   "fx": {
+    "grow": 8,
+    "check:farming": 2
+   }
+  },
+  "charm_worry": {
+   "n": "Worry Stone",
+   "i": "🪨",
+   "t": "charm",
+   "s": 900,
+   "rar": "very rare",
+   "desc": "Roll again whenever you roll a natural 1",
+   "fx": {
+    "lucky1": 1
+   }
+  },
+  "charm_moss": {
+   "n": "Moss Sprite's Gift",
+   "i": "🌿",
+   "t": "charm",
+   "s": 900,
+   "rar": "very rare",
+   "desc": "Crops grow 5% faster, rare finds 10% more likely",
+   "fx": {
+    "grow": 5,
+    "luck": 10
+   }
+  },
+  "charm_starglass": {
+   "n": "Starglass Locket",
+   "i": "📿",
+   "t": "charm",
+   "s": 2500,
+   "rar": "legendary",
+   "desc": "+1 to every dice roll, +1 max Inspiration",
+   "fx": {
+    "check:all": 1,
+    "insp": 1
+   }
   }
  },
  "crops": [
@@ -1827,44 +2009,12 @@
    ]
   }
  ],
- "rarity": [
-  {
-   "zone": 34,
-   "speed": 0.65,
-   "xp": 2,
-   "n": "common"
-  },
-  {
-   "zone": 26,
-   "speed": 0.85,
-   "xp": 4,
-   "n": "common"
-  },
-  {
-   "zone": 20,
-   "speed": 1.05,
-   "xp": 7,
-   "n": "uncommon"
-  },
-  {
-   "zone": 14,
-   "speed": 1.3,
-   "xp": 12,
-   "n": "rare"
-  },
-  {
-   "zone": 10,
-   "speed": 1.55,
-   "xp": 20,
-   "n": "treasure"
-  },
-  {
-   "zone": 8,
-   "speed": 1.85,
-   "xp": 60,
-   "n": "legendary"
-  }
- ],
+ "rarity": {
+  "common": 20,
+  "uncommon": 100,
+  "rare": 400,
+  "very rare": 1500
+ },
  "recipes": [
   {
    "id": "twine",
@@ -2568,6 +2718,26 @@
     "item": "lemon",
     "qty": 4,
     "price": 300
+   },
+   {
+    "item": "charm_clover",
+    "qty": 1,
+    "price": 650
+   },
+   {
+    "item": "charm_ribbon",
+    "qty": 1,
+    "price": 700
+   },
+   {
+    "item": "charm_thimble",
+    "qty": 1,
+    "price": 300
+   },
+   {
+    "item": "charm_spoon",
+    "qty": 1,
+    "price": 300
    }
   ],
   "wants": [
@@ -3120,6 +3290,58 @@
      "goldacorn": 1
     }
    }
+  },
+  {
+   "id": "crit",
+   "n": "Natural Twenty",
+   "desc": "Roll a natural 20",
+   "stat": "crits",
+   "goal": 1,
+   "give": {
+    "coins": 200
+   }
+  },
+  {
+   "id": "fumble",
+   "n": "It Happens",
+   "desc": "Roll a natural 1",
+   "stat": "fumbles",
+   "goal": 1,
+   "give": {
+    "coins": 50
+   }
+  },
+  {
+   "id": "bestiary",
+   "n": "Friend to All Creatures",
+   "desc": "Befriend every creature in the bestiary",
+   "stat": "creatures",
+   "goal": -1,
+   "give": {
+    "items": {
+     "charm_starglass": 1
+    }
+   }
+  },
+  {
+   "id": "delves",
+   "n": "Deep Delver",
+   "desc": "Finish 4 mine delves",
+   "stat": "delves",
+   "goal": 4,
+   "give": {
+    "coins": 2500
+   }
+  },
+  {
+   "id": "party",
+   "n": "Good Company",
+   "desc": "Finish an adventure with a companion",
+   "stat": "partywins",
+   "goal": 1,
+   "give": {
+    "coins": 300
+   }
   }
  ],
  "workbench": {
@@ -3669,5 +3891,90 @@
     "goldacorn": 1
    }
   }
- ]
+ ],
+ "backgrounds": [
+  {
+   "id": "gardener",
+   "n": "Gardener",
+   "skill": "farming",
+   "blurb": "You grew up with dirt under your nails and a seed packet in every pocket.",
+   "kit": {
+    "items": {
+     "tonic": 2
+    },
+    "coins": 40
+   }
+  },
+  {
+   "id": "angler",
+   "n": "Angler",
+   "skill": "fishing",
+   "blurb": "You can read a river like a book and cast before you could walk.",
+   "kit": {
+    "items": {
+     "lure": 3,
+     "worm": 10
+    }
+   }
+  },
+  {
+   "id": "wanderer",
+   "n": "Wanderer",
+   "skill": "foraging",
+   "blurb": "Every path is an invitation. You have never once taken the short way home.",
+   "kit": {
+    "items": {
+     "trailmix": 2,
+     "charm_compass": 1
+    }
+   }
+  },
+  {
+   "id": "delver",
+   "n": "Delver",
+   "skill": "mining",
+   "blurb": "Caves feel like old friends. You know which stones hum and which ones sulk.",
+   "kit": {
+    "items": {
+     "charm_lantern": 1
+    },
+    "coins": 40
+   }
+  },
+  {
+   "id": "tinker",
+   "n": "Tinker",
+   "skill": "crafting",
+   "blurb": "You fix things. Gates, carts, clocks, the occasional heart.",
+   "kit": {
+    "items": {
+     "plank": 6,
+     "twine": 6
+    }
+   }
+  },
+  {
+   "id": "cook",
+   "n": "Cook",
+   "skill": "cooking",
+   "blurb": "You believe most problems can be solved with something warm from the oven.",
+   "kit": {
+    "items": {
+     "bread": 3,
+     "egg": 4
+    }
+   }
+  }
+ ],
+ "background_bonus": {
+  "check": 2,
+  "xp": 10
+ },
+ "dice": {
+  "levelsPerBonus": 3,
+  "critCoins": 40,
+  "inspirationMax": 3
+ },
+ "companionHearts": 3,
+ "charmSlots": 3
 }

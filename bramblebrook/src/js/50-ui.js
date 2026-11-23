@@ -43,9 +43,9 @@ function updateBadges() {
   set('make', benchReady() + casksReady());
   set('fish', netsReady());
   set('bag', (featureOn('bag:perks') ? perkPointsFree() : 0) + (overflowCount() ? 1 : 0));
-  set('wilds', I.advs.filter(a => !state.advDone[a.id] && reqMet(a.req)).length);
+  set('wilds', 0);
   ensureChores();
-  set('town', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length
+  set('town', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length + (featureOn('town:inn') ? I.advs.filter(a => !state.advDone[a.id] && reqMet(a.req)).length + openDelves().length : 0)
     + (featureOn('town:board') ? state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length : 0) + state.mail.filter(m => !m.read).length
     + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0));
   const st = storyStatus();
@@ -121,7 +121,8 @@ function itemSheet(id) {
   const n = have(id), key = it.t === 'key', t = masteryTier(id);
   const meal = I.meal[id];
   openSheet(`
-    <div class="sheet-head">${pic(id, 56)}<div><h2>${esc(it.n)}</h2><p class="muted">${esc(C.core.types[it.t])} · you have ${n}${key ? '' : `/${fmtN(cap())}`}</p></div></div>
+    <div class="sheet-head">${pic(id, 56)}<div><h2>${esc(it.n)}</h2><p class="muted">${rarity(id) ? `<span class="rar${rarClass(id)}">${esc(rarity(id))}</span> · ` : ''}${esc(C.core.types[it.t])} · you have ${n}${key ? '' : `/${fmtN(cap())}`}</p></div></div>
+    ${it.t === 'charm' ? `<p>${esc(it.desc)}</p>` : ''}
     <dl>${key ? '' : `<dt>Sells for</dt><dd class="num">${priceOf(id)} coins${t ? ` (${'★'.repeat(t)} mastery)` : ''}</dd>`}
       ${meal && edible(id) ? `<dt>Eat it</dt><dd>${esc([meal.stamina ? `+${meal.stamina} stamina` : '', meal.buff ? `${I.buffs[meal.buff].n}: ${I.buffs[meal.buff].desc} (${meal.mins} min)` : ''].filter(Boolean).join(' · '))}</dd>` : ''}
       <dt>Found</dt><dd>${esc([...new Set(where)].join(', ') || (key ? 'A keepsake from the story' : 'Rewards'))}</dd>
@@ -131,6 +132,7 @@ function itemSheet(id) {
     <div class="sheet-btns">
       ${meal && edible(id) && n ? `<button class="btn small sun" data-act="eat" data-id="${id}">Eat one</button>` : ''}
       ${id === 'tonic' && n ? '<button class="btn small sun" data-act="tonic">Use on the farm</button>' : ''}
+      ${it.t === 'charm' && n ? (state.charms.includes(id) ? `<button class="btn small ghost" data-act="charm-off" data-id="${id}">Take it off</button>` : `<button class="btn small sun" data-act="charm-on" data-id="${id}">Wear it</button>`) : ''}
       ${key || !n ? '' : `<button class="btn small" data-act="sell" data-id="${id}" data-n="1">Sell 1 · ${priceOf(id)}c</button>
       <button class="btn small" data-act="sell" data-id="${id}" data-n="all" ${n > 1 && !state.locked[id] ? '' : 'disabled'}>Sell all ${n} · ${fmtN(priceOf(id) * n)}c</button>
       <button class="btn small ghost" data-act="lock" data-id="${id}">${state.locked[id] ? 'Unlock' : 'Lock (keep from Sell all)'}</button>`}
@@ -252,7 +254,11 @@ function handle(act, el, e) {
     case 'dig': dig(el.dataset.n); break;
     case 'descend': descend(); break;
     case 'lift': elevator(+el.dataset.n); break;
-    case 'adventure': { const a = I.adv[id]; if (a && reqMet(a.req)) playAdventure(a, false); return false; }
+    case 'adventure': case 'quest': { const a = findQuest(id); if (a && (a.floor || reqMet(a.req))) startQuest(a); return false; }
+    case 'quest-go': { const a = findQuest(id); closeSheet(); if (a) playAdventure(a, false, el.dataset.c); return false; }
+    case 'charm-pick': charmSheet(); return false;
+    case 'charm-on': if (!wearCharm(id)) return false; closeSheet(); break;
+    case 'charm-off': if (!removeCharm(id)) return false; closeSheet(); toast(`Took off ${itemName(id)}`); break;
     case 'spot': state.spot = id; break;
     case 'bait': state.bait = id; break;
     case 'craft': craft(id, el.dataset.n); break;
@@ -301,6 +307,7 @@ function handle(act, el, e) {
       const h = heartSceneReady(id);
       if (!h) return false;
       state.heartSeen[id] = Object.assign({}, state.heartSeen[id], { [h.at]: now() });
+      gainInsp(1, `time with ${vilShort(id)}`);
       const rewards = applyGive(h.give);
       commit();
       playScene(h.scene, { title: `${h.at} ♥ · ${h.title}`, rewards });

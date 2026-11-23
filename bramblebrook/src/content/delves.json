@@ -1,0 +1,342 @@
+{
+  "delves": [
+    {
+      "id": "delve_5", "floor": 5, "n": "The Old Pump Room",
+      "blurb": "Behind a rusted door on the fifth floor, something is still going clank, clank, clank. Nobody has worked the pumps in years. So who's working them now?",
+      "start": "a",
+      "nodes": {
+        "a": { "say": "A side tunnel ends at an iron door stencilled PUMP ROOM 1. From behind it comes a slow, patient sound: clank... clank... clank.\n\nThe mine was sealed for years. Something in there has been working all on its own the whole time.",
+          "ch": [
+            { "t": "Push the door open", "go": "room" },
+            { "t": "Knock first, politely", "go": "knock" }
+          ] },
+        "knock": { "say": "You knock. The clanking stops.\n\nThere is a long, thoughtful pause. Then, very politely, it starts again: clank... clank.",
+          "ch": [
+            { "t": "Go in", "go": "room" }
+          ] },
+        "room": { "say": "Inside, a great iron beam see-saws over a pit, driven by a little waterwheel in an underground stream. Each stroke works a pump rod that squeals like a gull.\n\nOne of the pins holding the beam has worked nearly loose. Every stroke it slips a little further. A few hundred more, and the whole thing comes down.",
+          "ch": [
+            { "t": "Tap the pin back in", "go": "fixed", "roll": { "skill": "mining", "base": 0.6, "per": 0.03, "max": 0.95 }, "fail": "slip" },
+            { "t": "Wedge it with a plank", "go": "fixed", "cost": { "items": { "plank": 1 } } },
+            { "t": "Let Mira have a look", "go": "mira", "req": { "companion": "mira" } }
+          ] },
+        "slip": { "say": "You swing, miss the pin and hit the beam, which rings like a dinner gong. Every bat on the fifth floor has something to say about it.\n\nThe pin slides out another inch.",
+          "ch": [
+            { "t": "Lash it tight with rope", "go": "fixed", "cost": { "items": { "rope": 1 } } },
+            { "t": "Wedge it with a plank", "go": "fixed", "cost": { "items": { "plank": 1 } } },
+            { "t": "Back away and leave it", "go": "lose" }
+          ] },
+        "mira": { "who": "mira", "say": "Clevis pin's walked. Grandad built these to run a hundred years if somebody greased them now and then. Nobody did.\n\nHold the lamp. One tap. Two, if you breathe on me.",
+          "ch": [
+            { "t": "Hold the lamp very still", "go": "fixed", "give": { "friend": { "mira": 10 } } }
+          ] },
+        "fixed": { "say": "The pin seats home with a clunk, and the pump settles into a smooth, easy rhythm: whoosh... whoosh. The squealing stops.\n\nOn a shelf by the door, under a thick fur of dust, sits the pumpman's tin. Inside: a pencil stub, a lemon drop gone to glass, and a note.",
+          "ch": [
+            { "t": "Read the note", "go": "note" }
+          ] },
+        "note": { "say": "GONE UP FOR THE FLOOD MEETING. BACK BY SIX. SHE'LL KEEP GOING ON HER OWN. GREASE HER TUESDAYS. NED.\n\nNed never came back down; the mine was sealed that night. And the pump kept going on her own, just as he said, keeping the top floors dry all these years with nobody to grease her.",
+          "ch": [
+            { "t": "Grease the rod with candle wax", "go": "win", "cost": { "items": { "candle": 1 } }, "give": { "xp": { "crafting": 15 } } },
+            { "t": "Pat the pump and say well done", "go": "win" }
+          ] },
+        "win": { "say": "You leave the door propped open so the pump can hear the rest of the mine. Whoosh... whoosh. She sounds pleased with herself.\n\nJust outside you find Ned's ore barrow, still half full from his last shift. It seems a shame to waste it.", "end": "win",
+          "give": { "coins": 150, "items": { "copper": 5, "coal": 3 }, "xp": { "mining": 30 } } },
+        "lose": { "say": "This feels like a job for someone with more tools and fewer bats. You back out, and the clanking follows you all the way to the stairs, patient as ever.\n\nIt's waited years. It can wait a little longer.", "end": "lose" }
+      }
+    },
+    {
+      "id": "delve_10", "floor": 10, "n": "The Miners' Chapel",
+      "blurb": "A doorway carved with ivy leaves opens on a little chapel the miners built underground. Half the roof has come down. The other half is waiting to see what you'll do.",
+      "start": "a",
+      "nodes": {
+        "a": { "say": "A doorway carved with ivy leaves opens on a chapel cut from the living rock: three stone benches, a shelf for candles, and a round window carved in the wall where no daylight has ever come.\n\nThe back of the roof has fallen in a long slope of rubble. Something under it catches your lamp and glints.",
+          "ch": [
+            { "t": "Light a candle on the shelf", "go": "lit", "cost": { "items": { "candle": 1 } } },
+            { "t": "Go straight to the rubble", "go": "rubble" },
+            { "t": "Ask Oakley about this place", "go": "oakley", "req": { "companion": "oakley" } }
+          ] },
+        "lit": { "say": "One candle, and the whole chapel glows. The walls are carved all over: names, dates, little pictures. A pick. A loaf. A cat. A baby in a basket.\n\nAnd over and over, in a dozen different hands: HOME BY SIX. Like a wish. Like a promise.",
+          "give": { "xp": { "mining": 15 } },
+          "ch": [
+            { "t": "Turn to the rubble", "go": "rubble" }
+          ] },
+        "oakley": { "who": "oakley", "say": "The Miners' Chapel! It's in the minutes of eighteen eighty-seven! They held a harvest supper down here, with a brass band. The band did not enjoy it.\n\nThe minutes say the roof rests on a king post. Just there, behind the rubble. If we shore that up first... oh, how splendid. I'm being useful.",
+          "ch": [
+            { "t": "Shore up the king post", "go": "box", "give": { "friend": { "oakley": 10 } } }
+          ] },
+        "rubble": { "say": "The rubble is loose, and the roof above it looks... thoughtful. Poking out from under the stones is the corner of a small wooden box.",
+          "ch": [
+            { "t": "Dig it out, stone by stone", "go": "box", "roll": { "skill": "mining", "base": 0.55, "per": 0.03, "max": 0.95 }, "fail": "rumble" },
+            { "t": "Prop the roof with planks first", "go": "box", "cost": { "items": { "plank": 2 } } }
+          ] },
+        "rumble": { "say": "One stone slides. Then three. Then the roof makes a deep, grumbling noise, and dust pours down like flour through a sieve.\n\nYou freeze. The chapel holds its breath with you.",
+          "ch": [
+            { "t": "Prop the roof with planks", "go": "box", "cost": { "items": { "plank": 2 } } },
+            { "t": "Back out, very slowly", "go": "lose" }
+          ] },
+        "box": { "say": "The box comes free. Inside, wrapped in a scrap of blue flannel, is a brass pocket lantern no bigger than an egg, and a card in looping, old-fashioned writing:\n\nFOR WHOEVER COMES NEXT. KEEP IT LIT. HOME BY SIX.",
+          "ch": [
+            { "t": "Light it from your lamp", "go": "win" }
+          ] },
+        "win": { "say": "The little lantern catches at once and burns small and steady, as if it's only been waiting to be asked.\n\nBy the door stands the chapel's ore box, where every miner left a lump from each shift for the harvest supper. Nobody has emptied it in years. You take it up, along with the lantern, and head home. It's nearly six.", "end": "win",
+          "give": { "coins": 350, "items": { "iron": 4, "silver": 2, "charm_lantern": 1 }, "xp": { "mining": 50 } } },
+        "lose": { "say": "You back out of the chapel one careful step at a time. Behind you the roof settles with a long, grumbling sigh, and then goes quiet.\n\nThe box will keep. Whatever's in it has waited this long.", "end": "lose" }
+      }
+    },
+    {
+      "id": "delve_15", "floor": 15, "n": "The Sleeping Bear",
+      "blurb": "On the fifteenth floor, the way to the next good seam runs straight through a cavern with an enormous cave bear asleep in it. Tread lightly.",
+      "start": "a",
+      "nodes": {
+        "a": { "say": "The tunnel opens into a cavern, warm and close and smelling of old hay. Filling most of it, rising and falling like a breathing hill, is a bear.\n\nA cave bear: huge, shaggy, snoring a snore you can feel through your boots. The tunnel you need is on the far side of it.",
+          "ch": [
+            { "t": "Creep along the wall", "go": "paw", "roll": { "skill": "mining", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "crunch" },
+            { "t": "Follow Tobin's lead", "go": "tobin", "req": { "companion": "tobin" } }
+          ] },
+        "tobin": { "who": "tobin", "say": "Bear's dreaming. Fish, I'd say. Look at the paws go.\n\nStep when it snores. Stop when it don't. Same as wading past a heron.",
+          "ch": [
+            { "t": "Step when it snores", "go": "paw", "give": { "friend": { "tobin": 10 } } }
+          ] },
+        "crunch": { "say": "Your boot finds the one dry bone on the whole cavern floor. CRUNCH.\n\nThe snoring stops. One great eye opens, gold as a lamp, and regards you for a long, long moment.",
+          "ch": [
+            { "t": "Offer the honeycomb", "go": "paw", "cost": { "items": { "honeycomb": 1 } } },
+            { "t": "Freeze and hold your breath", "go": "paw", "roll": { "skill": "mining", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "lose" },
+            { "t": "Back away the way you came", "go": "lose" }
+          ] },
+        "paw": { "say": "The bear sleeps on. Close up, you can see why it sleeps so badly: a long splinter of old pit-prop is wedged between two of its toes, and the pad around it is red and sore.\n\nIt whimpers in its sleep, like a dog dreaming of baths.",
+          "ch": [
+            { "t": "Ease the splinter out", "go": "eased", "roll": { "skill": "crafting", "base": 0.5, "per": 0.03, "max": 0.95 }, "fail": "stir" },
+            { "t": "Tiptoe on and let it sleep", "go": "win" }
+          ] },
+        "stir": { "say": "The splinter's in deep. The bear grumbles in its sleep and tucks the paw under its chin, out of reach.\n\nAfter a minute it pushes the paw back out again, as if it's thought better of it.",
+          "ch": [
+            { "t": "Try once more, gently", "go": "eased", "cost": { "stamina": 6 } },
+            { "t": "Tiptoe on and let it sleep", "go": "win" }
+          ] },
+        "eased": { "say": "The splinter slides free. The bear lets out a vast, warm sigh that ruffles your hair and curls up tighter, and its snore changes: softer, slower, almost a purr.\n\nYou'd swear it's smiling.",
+          "give": { "xp": { "crafting": 20 } },
+          "ch": [
+            { "t": "Tiptoe on", "go": "win" }
+          ] },
+        "win": { "say": "Past the bear, the tunnel climbs to a ledge and a fat seam of silver. On the ledge, someone has left a smooth grey stone and a note.\n\nFOR THE NEXT ONE SCARED OF THE BEAR. I WAS TOO. RUB THE STONE. IT HELPS. RUTH, SHIFT BOSS.\n\nYou rub it. It helps.", "end": "win",
+          "give": { "coins": 550, "items": { "silver": 4, "crystal": 2, "amethyst": 1, "charm_worry": 1 }, "xp": { "mining": 70 } } },
+        "lose": { "say": "The bear huffs, rolls over and flops right across the tunnel mouth. Well. That decides that.\n\nYou back out one slow step at a time, until the snoring is just a rumble in the rock behind you. Another day, another way round.", "end": "lose" }
+      }
+    },
+    {
+      "id": "delve_20", "floor": 20, "n": "The Crystal Choir",
+      "blurb": "A cavern of sky crystal where every sound comes back sweeter. The old miners called it the Choir. Its far door won't open for anyone who can't carry a tune.",
+      "start": "a",
+      "nodes": {
+        "a": { "say": "The tunnel opens into a cavern lined with sky crystal, thousands of pale blue points catching your lamp. You say “oh” without meaning to, and the cavern says it back, softer each time, until the last is barely a breath.\n\nA crack runs across the floor, too wide to step. Beyond it stands a round door of solid crystal.",
+          "ch": [
+            { "t": "Hop across on the crystals", "go": "door", "roll": { "skill": "foraging", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "slide" },
+            { "t": "Lay planks across the crack", "go": "door", "cost": { "items": { "plank": 2 } } }
+          ] },
+        "slide": { "say": "Your boot skids, and you sit down hard on a crystal, which rings like a struck glass. The whole cavern rings with it, a great shivering chord, and fine blue dust drifts down.\n\nOw, says the Choir, a hundred times over.",
+          "ch": [
+            { "t": "Get up and try again", "go": "door", "cost": { "stamina": 6 } },
+            { "t": "Retreat before you break anything", "go": "lose" }
+          ] },
+        "door": { "say": "The crystal door has no handle and no keyhole. Carved above it, in miners' capitals: SING HER HOME.\n\nWhen you hum, the door shivers. When you hum higher, it goes still. It's listening for one note in particular.",
+          "ch": [
+            { "t": "Tap the walls to find the note", "go": "win", "roll": { "skill": "mining", "base": 0.45, "per": 0.03, "max": 0.95 }, "fail": "sour" },
+            { "t": "Let Pip have a go", "go": "pip", "req": { "companion": "pip" } }
+          ] },
+        "sour": { "say": "You hum. The door hums back, sourly, like a cat stroked the wrong way. The crystals all around buzz, and somewhere a small one cracks.\n\nThere are scratches on the door you can't quite make out by lamplight. Lines. Maybe writing.",
+          "ch": [
+            { "t": "Light a candle and look closer", "go": "notes", "cost": { "items": { "candle": 1 } } },
+            { "t": "Leave the Choir in peace", "go": "lose" }
+          ] },
+        "notes": { "say": "In the candlelight, the scratches turn into music: five lines, a handful of notes, and underneath, very small: iron from the sky, ring the valley home.\n\nThe old skipping song. Every child in Bramblebrook knows it. Of course.",
+          "ch": [
+            { "t": "Sing the skipping song", "go": "win" }
+          ] },
+        "pip": { "who": "pip", "say": "It's humming the skipping song! Can't you hear it? Dum, dum, de-dum!\n\nIron from the sky, ring the valley HOME! Did it work? It's working! Sir Hopsalot, it's WORKING!",
+          "ch": [
+            { "t": "Sing it with Pip", "go": "win", "give": { "friend": { "pip": 10 } } }
+          ] },
+        "win": { "say": "The note goes into the door, and the door gives it back fuller, deeper, sweeter: the low, round note of a great bell. The crystals take it up until the whole cavern is ringing.\n\nThe door swings open on a small chamber glittering with gold, where the miners stacked the Choir's best finds and, it seems, forgot to come back for them.", "end": "win",
+          "give": { "coins": 850, "items": { "gold": 4, "crystal": 3, "emerald": 1 }, "xp": { "mining": 90 } } },
+        "lose": { "say": "You back out of the Choir on tiptoe. The crystals hum a little after you've gone, then fall quiet, waiting.\n\nThey'll still be listening whenever you come back with the right song.", "end": "lose" }
+      }
+    },
+    {
+      "id": "delve_25", "floor": 25, "n": "The Lower Gallery",
+      "blurb": "The floodwater from Gallery Six had to go somewhere. It went down. Someone went down after it the night of the flood, and left something behind.",
+      "start": "a",
+      "nodes": {
+        "a": { "say": "The floodwater from Gallery Six had to go somewhere. On the twenty-fifth floor you find where it went: a long, low gallery half full of still black water, a rail track running into it, and a stencil on the wall.\n\nGALLERY 6, LOWER. DEEP WORKINGS. MIND THE SLUICE.",
+          "ch": [
+            { "t": "Wade in along the rails", "go": "sluice", "roll": { "skill": "mining", "base": 0.4, "per": 0.03, "max": 0.95 }, "fail": "dunk" },
+            { "t": "Hang a lantern on the old hook", "go": "lit", "cost": { "items": { "lantern": 1 } } },
+            { "t": "Lash a raft together", "go": "sluice", "cost": { "items": { "plank": 3, "rope": 1 } } }
+          ] },
+        "lit": { "say": "The lantern swings on its hook and the gallery wakes up: glowcaps in every crack, old timbers, and a narrow stone ledge along the wall just above the waterline that you'd never have seen in the dark.\n\nSomeone chalked arrows along it, long ago. They all point the same way.",
+          "ch": [
+            { "t": "Follow the arrows", "go": "sluice" }
+          ] },
+        "dunk": { "say": "The rails end. You don't, quite. There's a cold, polite gulp, and you're in up to your neck, spluttering, lamp held high.\n\nYour feet find the rails again a few steps on. Wetter, colder, but still going.",
+          "ch": [
+            { "t": "Squelch onward", "go": "sluice" },
+            { "t": "Climb out and drip home", "go": "lose" }
+          ] },
+        "sluice": { "say": "At the far end, a great iron sluice gate holds back the rest of the water, with a wheel beside it, rusted solid.\n\nChalked on the gate, faded but clear: A.A. WAS HERE. LAMP OUT, WATER RISING. GONE UP. WREN'S TROWEL ON THE SHELF. TELL HER SORRY.\n\nThe shelf is behind the gate.",
+          "ch": [
+            { "t": "Heave the wheel round", "go": "drained", "roll": { "skill": "mining", "base": 0.4, "per": 0.03, "max": 0.95 }, "fail": "jam" },
+            { "t": "Let Mira see to the sluice", "go": "mira", "req": { "companion": "mira" } }
+          ] },
+        "jam": { "say": "The wheel turns a quarter inch and stops dead with a groan that echoes all the way down the gallery. Rust drifts down like red snow.\n\nIt needs more leverage than two arms can give it.",
+          "ch": [
+            { "t": "Lever it round with planks", "go": "drained", "cost": { "items": { "plank": 2 } } },
+            { "t": "Leave it for another day", "go": "lose" }
+          ] },
+        "mira": { "who": "mira", "say": "A.A. That's Abel. Grandad's brother. Family story says he got out the night of the flood and never came down again. Now I know where he was.\n\nRight. Ratchet's seized, but there's a pawl you knock up first. Grandad always hid them. Like so.",
+          "ch": [
+            { "t": "Help Mira turn the wheel", "go": "drained", "give": { "friend": { "mira": 20 } } }
+          ] },
+        "drained": { "say": "The gate lifts. The water slides away with a long, satisfied gurgle, and the gallery floor appears: rails, a toppled barrow, gold glittering in the silt.\n\nOn a high, dry shelf, right where the chalk said, lies a gardener's trowel. A worn ash handle with W.B. burned into the wood.",
+          "ch": [
+            { "t": "Take down the trowel", "go": "win" }
+          ] },
+        "win": { "say": "Under the trowel, folded small, is a note in shaky pencil:\n\nBorrowed this to dig for Wren's humming rock. Lamp went out in the flood and I ran for it. Sorry, Wren. Deeper still, I reckon. Abel.\n\nThe trowel fits your hand as if it's been waiting for it. You fill your pack from the silt and start the long climb up.", "end": "win",
+          "give": { "coins": 1300, "items": { "gold": 5, "obsidian": 3, "emerald": 1, "charm_trowel": 1 }, "xp": { "mining": 110 } } },
+        "lose": { "say": "You climb back to the stairs, dripping, and the gallery settles into its black stillness behind you.\n\nWhatever's on that shelf has stayed dry all these years. It can stay dry a little longer.", "end": "lose" }
+      }
+    },
+    {
+      "id": "delve_30", "floor": 30, "n": "The Star-Iron Vault",
+      "blurb": "Past the deepest of the old workings, a round chamber hums one low, sweet note. This is where the rest of the bell's star came to rest.",
+      "start": "a",
+      "nodes": {
+        "a": { "say": "Past the deepest of the old workings, the tunnel turns smooth. Glassy. As if something very hot came through here very fast, a very long time ago.\n\nIt ends in a round chamber shaped like the inside of a bell. In the middle, half sunk in the floor, sits a lump of dark iron the size of a hay cart. It's humming.",
+          "ch": [
+            { "t": "Walk up to the star-iron", "go": "star" },
+            { "t": "Look round the chamber first", "go": "walls" }
+          ] },
+        "walls": { "say": "By the entrance lie two old picks, rusted to lace, side by side. Someone got this far once, long ago, heard the hum and decided it was none of their business.\n\nScratched into the glassy wall beside them: SHE'S STILL WARM. LEFT HER BE.",
+          "give": { "xp": { "mining": 20 } },
+          "ch": [
+            { "t": "Go to the star-iron", "go": "star" }
+          ] },
+        "star": { "say": "Up close, the star-iron is warm. Not hot: warm, like a loaf an hour out of the oven. The hum goes through your hand, up your arm, and settles somewhere behind your ribs.\n\nIt's the bell's note. The very same. You'd know it anywhere.",
+          "ch": [
+            { "t": "Chip a shard loose", "go": "shard", "roll": { "skill": "mining", "base": 0.35, "per": 0.03, "max": 0.95 }, "fail": "ring" },
+            { "t": "Scatter glowcaps around it", "go": "glow", "cost": { "items": { "glowcap": 3 } } },
+            { "t": "Ask Wren where to strike", "go": "wren", "req": { "companion": "wren" } }
+          ] },
+        "glow": { "say": "The glowcaps pulse in time with the hum: bright, dim, bright. All round the star-iron they shine, except on one side, where they barely glow at all.\n\nThere. That's where the hum runs lowest. That's where it will give.",
+          "ch": [
+            { "t": "Tap it there, gently", "go": "shard" }
+          ] },
+        "ring": { "say": "Your pick strikes, and the whole vault RINGS: one enormous note that shakes dust from the ceiling and rattles every tooth in your head.\n\nFar above, you're fairly sure, Tobin's line goes slack and Hazel's cat sits bolt upright.",
+          "ch": [
+            { "t": "Muffle your pick with rope", "go": "shard", "cost": { "items": { "rope": 1 } } },
+            { "t": "Leave before the roof joins in", "go": "lose" }
+          ] },
+        "wren": { "who": "wren", "say": "Eight winters on a mountain working out where here was. And here it is. Hello, you.\n\nDon't hit it; it'll only sulk. Listen for the flat spot, where it hums lowest. There. Tap it kindly and it'll give you a piece as a present.",
+          "ch": [
+            { "t": "Tap where Wren points", "go": "shard", "give": { "friend": { "wren": 20 } } }
+          ] },
+        "shard": { "say": "A sliver of star-iron comes away in your hand, dark and warm, with a silver shimmer where the lamp catches it. Then a second drops beside it, as if the star has decided you can have two.\n\nThe hum doesn't fade. If anything, it sounds pleased.",
+          "ch": [
+            { "t": "Wrap them up and climb", "go": "win" }
+          ] },
+        "win": { "say": "It's a long climb with star-iron in your pack and the hum still in your bones. Far above, the Bramble Bell hangs over the square, cast from another piece of this very same star.\n\nThey've been apart a long, long time. Tonight they're a little less apart.", "end": "win",
+          "give": { "coins": 1800, "items": { "starshard": 2, "gold": 6, "ruby": 2 }, "xp": { "mining": 140 } } },
+        "lose": { "say": "You back out of the vault, and the hum follows you up the tunnel, patient and unbothered.\n\nIt's been waiting since before there was a valley. Another day won't hurt it.", "end": "lose" }
+      }
+    },
+    {
+      "id": "delve_35", "floor": 35, "n": "The Mirror Lake",
+      "blurb": "Below the star-iron vault, a stair winds down to a still black lake that reflects a sky full of stars. There is half a mile of rock overhead.",
+      "start": "a",
+      "nodes": {
+        "a": { "say": "Below the vault, a stair no miner cut winds down and down until your lamp finds water: a lake, black and perfectly still. In it, reflected, is the night sky. Stars, hundreds of them. There's half a mile of rock over your head.\n\nA little boat is tied to an iron ring at your feet, half full of water. Far out across the lake, something glints.",
+          "ch": [
+            { "t": "Bail the boat and patch it", "go": "row", "roll": { "skill": "crafting", "base": 0.35, "per": 0.03, "max": 0.95 }, "fail": "sink" },
+            { "t": "Mend the leak properly", "go": "row", "cost": { "items": { "plank": 1, "nails": 4 } } },
+            { "t": "Let Tobin take the oars", "go": "tobin", "req": { "companion": "tobin" } }
+          ] },
+        "sink": { "say": "Your patch holds for six strokes. On the seventh, a jet of icy water hits you in the face, and the stars in the lake go wobbly.\n\nYou row back to shore a good deal faster than you rowed out, sitting in a puddle.",
+          "ch": [
+            { "t": "Mend the leak properly", "go": "row", "cost": { "items": { "plank": 1, "nails": 4 } } },
+            { "t": "Leave the lake to its stars", "go": "lose" }
+          ] },
+        "tobin": { "who": "tobin", "say": "Boat's sound. Just thirsty. Wood swells, leak stops. Give her a minute.\n\n...\n\nThere. Ferried forty years. Never a lake with stars in. Sit still. Don't trail your hand.",
+          "ch": [
+            { "t": "Sit still and let him row", "go": "row", "give": { "friend": { "tobin": 15 } } }
+          ] },
+        "row": { "say": "The boat slides out over the stars. Each stroke breaks them into silver ripples, and they settle again behind you. It's very quiet, the kind of quiet you could lean on.\n\nThe glint becomes an island: a flat rock, a stone hut no taller than you, and a brass telescope on a stand, pointing straight down into the water.",
+          "ch": [
+            { "t": "Step ashore", "go": "island" }
+          ] },
+        "island": { "say": "Beside the telescope is a slate: OBSERVATIONS FROM BELOW. Under it run columns of figures in a careful, tiny hand, three hundred years old.\n\nSomeone stood here, long ago, and charted the sky by looking down.",
+          "ch": [
+            { "t": "Look through the telescope", "go": "scope" },
+            { "t": "Show Wren the slate", "go": "wren", "req": { "companion": "wren" } }
+          ] },
+        "scope": { "say": "Through the telescope the reflected sky leaps close: the Bell Star, low and steady, right where Rook always says. And beneath it, small and clear in the water, a pinprick of warm light.\n\nRook's lighthouse. You're looking at the valley's own sky, from underneath.",
+          "ch": [
+            { "t": "Go and look in the hut", "go": "win" }
+          ] },
+        "wren": { "who": "wren", "say": "Good heavens. These are the observatory's numbers. Before there was an observatory.\n\nSomeone tracked the star that fell, followed it all the way down here, and kept watching the sky from underneath. Of course they did. It's what I'd have done, with better knees.",
+          "ch": [
+            { "t": "Go and look in the hut", "go": "win", "give": { "friend": { "wren": 15 } } }
+          ] },
+        "win": { "say": "Inside the hut, wrapped in oilcloth, is a wooden box of stones from the lake bed, gems and star-iron jumbled together, each glowing faintly. On top, a note: FOR THE NEXT STARGAZER. I SUPPOSE THAT'S YOU.\n\nYou row back over the stars with the box on your knees and don't say a word the whole way. It doesn't seem the place.", "end": "win",
+          "give": { "coins": 2400, "items": { "starshard": 1, "gold": 6, "emerald": 2, "ruby": 2 }, "xp": { "mining": 180 } } },
+        "lose": { "say": "You tie the boat back to its ring and climb the long stair, the stars in the water carrying on without you.\n\nThey'll still be there. Down here, nothing much changes, and nothing is in a hurry.", "end": "lose" }
+      }
+    },
+    {
+      "id": "delve_40", "floor": 40, "n": "The Kettle at the Bottom",
+      "blurb": "Forty floors down, past the vault and the lake, there's a light under a door. And, impossibly, the smell of tea.",
+      "start": "a",
+      "nodes": {
+        "a": { "say": "Forty floors down, the tunnel narrows to a crack, then opens over a chasm so deep your lamp can't find the bottom. Across it: a ledge, a round oak door, and a line of warm yellow light underneath.\n\nAlso, faintly, impossibly: the smell of tea.",
+          "ch": [
+            { "t": "Leap for the ledge", "go": "door", "roll": { "skill": "foraging", "base": 0.3, "per": 0.03, "max": 0.95 }, "fail": "balk" },
+            { "t": "Rig a rope across", "go": "door", "cost": { "items": { "rope": 2 } } }
+          ] },
+        "balk": { "say": "You run, you jump, and at the very last moment your legs have a quick word with each other and decide against it. You stop at the edge, windmilling, and sit down hard.\n\nA pebble goes over. You never hear it land.",
+          "ch": [
+            { "t": "Rig a rope across", "go": "door", "cost": { "items": { "rope": 2 } } },
+            { "t": "Go home and think about it", "go": "lose" }
+          ] },
+        "door": { "say": "The door has no handle, only a ring of seven brass dials, each stamped with a little picture: a wheat ear, a fish, a leaf, a pick, a hammer, a spoon and a bell.\n\nAbove them, in old letters: WHAT MENDS A VALLEY?",
+          "ch": [
+            { "t": "Turn only the bell", "go": "jam" },
+            { "t": "Turn every dial, one by one", "go": "room", "roll": { "skill": "crafting", "base": 0.3, "per": 0.03, "max": 0.95 }, "fail": "jam" },
+            { "t": "Let Mira listen to the dials", "go": "mira", "req": { "companion": "mira" } }
+          ] },
+        "jam": { "say": "Click. Whirr. Every dial spins back to the start, and the door gives a small, offended clunk.\n\nFrom behind it, faintly, a kettle begins to sing. Whatever the answer is, somebody in there is very relaxed about it.",
+          "ch": [
+            { "t": "Ease the dials with candle wax", "go": "room", "cost": { "items": { "candle": 2 } } },
+            { "t": "Sit, think, and try again", "go": "door", "cost": { "stamina": 8 } },
+            { "t": "Leave the door to its secrets", "go": "lose" }
+          ] },
+        "mira": { "who": "mira", "say": "Seven tumblers. It doesn't want one answer, it wants all of them. Farming, fishing, the lot. Whoever built this had a sense of humour.\n\nHold the lamp. And don't breathe on my dials.",
+          "ch": [
+            { "t": "Hold the lamp, don't breathe", "go": "room", "give": { "friend": { "mira": 20 } } }
+          ] },
+        "room": { "say": "Click, click, click, and the door swings open on a small round room, warm as a kitchen. In the grate, a lump of star-iron glows like embers, and on it a copper kettle sings. Two armchairs, a shelf of cups, and on the table a fat leather book.\n\nThe book is a guestbook. The first entry is three hundred years old.",
+          "ch": [
+            { "t": "Read the guestbook", "go": "book" },
+            { "t": "Hand Wren the pen", "go": "wren", "req": { "companion": "wren" } }
+          ] },
+        "book": { "say": "Names, in a dozen hands, one every few decades: miners, a stonemason, an astronomer with very small writing. Each left a line. Kettle was on. Kettle on again! STILL ON. Who IS doing this?\n\nNobody ever found out. You check the kettle. It's on.",
+          "ch": [
+            { "t": "Sign your name and pour a cup", "go": "win" }
+          ] },
+        "wren": { "who": "wren", "say": "Oh, I'm going in this book. Stand back.\n\nW. Bramble, gardener. Late, as usual. Tea excellent. There.\n\nYour turn. Then we drink this and never tell Clementine. She'd want to bake down here.",
+          "ch": [
+            { "t": "Sign your name and pour a cup", "go": "win", "give": { "friend": { "wren": 20 } } }
+          ] },
+        "win": { "say": "You write {name} under the last entry, and a line of your own. Then you sit by the star-iron fire with a cup of tea that tastes faintly of honey and thunderstorms.\n\nUnder the table is a chest, and on it a card: FOR THE ROAD BACK UP. TAKE WHAT YOU NEED. LEAVE THE KETTLE ON.\n\nYou do both.", "end": "win",
+          "give": { "coins": 3200, "items": { "gold": 8, "emerald": 3, "ruby": 3, "starshard": 1 }, "stamina": 20, "xp": { "mining": 250 } } },
+        "lose": { "say": "You head back up the long dark way. The smell of tea follows you for three whole floors before it gives up.\n\nWhoever keeps that kettle on will keep it on. There's always another day for tea.", "end": "lose" }
+      }
+    }
+  ]
+}

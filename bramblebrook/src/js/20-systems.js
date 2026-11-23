@@ -11,6 +11,7 @@ function growFactor() {
   if (buffOn('greenthumb')) f *= 0.75;
   if (weather().id === 'rainy') f *= 0.85;
   f *= 1 - perkVal('greenthumb') / 100;
+  f *= 1 - charmFx('grow') / 100;
   return f;
 }
 const seedCost = c => Math.max(1, Math.round(c.seed * (1 - perkVal('thrifty') / 100)));
@@ -134,7 +135,7 @@ function petAnimals() {
 let exploreLog = [];
 function areaOpen(a) { return lvl('foraging') >= a.lvl && unlocked(a.unlock); }
 function exploreTable(drops) {
-  const lucky = (buffOn('lucky') ? 2 : 1) * (1 + perkVal('keeneye') / 100), boost = 1 + lvl('foraging') * 0.03, windy = weather().id === 'windy';
+  const lucky = (buffOn('lucky') ? 2 : 1) * (1 + perkVal('keeneye') / 100) * (1 + charmFx('luck') / 100), boost = 1 + lvl('foraging') * 0.03, windy = weather().id === 'windy';
   return Object.entries(drops).map(([k, w]) => {
     if (k !== 'none' && w < 3) w *= boost * lucky;
     if (windy && (k === 'feather' || k === 'eaglefeather')) w *= 2;
@@ -178,7 +179,7 @@ function explore(n) {
   maybeEncounter(a.id, times);
 }
 function maybeEncounter(where, tries) {
-  const chance = 1 - Math.pow(0.97, tries);
+  const chance = 1 - Math.pow(1 - 0.03 * (1 + charmFx('encounter') / 100), tries);
   if (Math.random() > Math.min(0.35, chance)) return;
   const pool = I.encs.filter(e => e.where.includes(where) && reqMet(e.req) && !(e.once && state.encDone[e.id]));
   if (!pool.length) return;
@@ -198,14 +199,14 @@ function dig(n) {
   const times = n === 'all' ? Math.max(0, state.stamina) : Math.min(+n, state.stamina);
   if (times <= 0) { toast('Out of stamina. Rest, or eat something from the kitchen.'); return; }
   const m = state.mine, band = mineBand(m.floor);
-  const lucky = (buffOn('lucky') ? 2 : 1) * (1 + perkVal('keeneye') / 100) * (m.floor > 30 ? 1 + (m.floor - 30) * 0.05 : 1);
+  const lucky = (buffOn('lucky') ? 2 : 1) * (1 + perkVal('keeneye') / 100) * (1 + charmFx('luck') / 100) * (m.floor > 30 ? 1 + (m.floor - 30) * 0.05 : 1);
   const table = Object.entries(band.drops).map(([k, w]) => [k, k !== 'none' && w < 3 ? w * lucky : w]);
   for (const r of C.core.mine.rare) if (m.floor >= r.from) table.push([r.item, r.w * lucky]);
   const found = {}, full = new Set();
   let stairsAt = 0;
   for (let k = 0; k < times; k++) {
     if (!m.stairs && m.floor < mineMax()) {
-      const p = Math.max(0.04, C.core.mine.stairs + lvl('mining') * 0.004 + (buffOn('miner') ? 0.08 : 0) + perkVal('prospector') / 100 - (m.floor > 30 ? Math.min(0.06, (m.floor - 30) * 0.002) : 0));
+      const p = Math.max(0.04, C.core.mine.stairs + lvl('mining') * 0.004 + (buffOn('miner') ? 0.08 : 0) + perkVal('prospector') / 100 + charmFx('stairs') / 100 - (m.floor > 30 ? Math.min(0.06, (m.floor - 30) * 0.002) : 0));
       if (Math.random() < p) { m.stairs = true; stairsAt = k + 1; }
     }
     let [id] = pickWeighted(table);
@@ -235,7 +236,7 @@ function descend() {
   const next = m.floor + 1, need = mineGate(next);
   if (lvl('mining') < need) { toast(`Hard rock blocks the way. You need Mining ${need} to reach floor ${next}.`); return; }
   m.floor = next; m.stairs = false;
-  if (next > m.deepest) { m.deepest = next; addXP('mining', 8 * next); toast(`New depth: floor ${next}`, 'lvl'); }
+  if (next > m.deepest) { m.deepest = next; addXP('mining', 8 * next); toast(`New depth: floor ${next}`, 'lvl'); maybeDelve(next); }
   mineLog.unshift({ html: `<span>You climb down to floor ${next}.</span>`, when: '' });
   mineLog = mineLog.slice(0, 6);
 }
@@ -293,7 +294,7 @@ function bite() {
   }
   const relaxed = state.opts && state.opts.relaxedFish;
   const R = C.core.rarity[r];
-  const width = Math.min(relaxed ? 72 : 62, R.zone + Math.min(12, fl * 0.5) + (lure ? 8 : 0) + (buffOn('steady') ? 10 : 0) + perkVal('steady') + (relaxed ? 14 : 0));
+  const width = Math.min(relaxed ? 72 : 62, R.zone + Math.min(12, fl * 0.5) + (lure ? 8 : 0) + (buffOn('steady') ? 10 : 0) + perkVal('steady') + charmFx('zone') + (relaxed ? 14 : 0));
   Object.assign(fishing, { fish: { id, r }, zone: [5 + Math.random() * (90 - width), width], speed: R.speed * (relaxed ? 0.55 : 1), offset: Math.random() * 2, start: performance.now(), phase: 'bite' });
   fishing.msg = `<span>Bite!</span><span class="muted">${r === 5 ? 'The line screams. Something enormous!' : r >= 3 ? 'Something big is pulling hard.' : r === 2 ? 'A strong tug.' : 'A nibble.'}</span>`;
   syncFishDom();
@@ -417,6 +418,7 @@ function deliverRequest(vid) {
   addFriend(vid, C.core.friendship.request);
   state.reqs[vid] = (state.reqs[vid] || 0) + 1;
   state.stats.delivered++;
+  if (state.stats.delivered % 3 === 0) gainInsp(1, 'a good neighbour');
   return { v, lines };
 }
 function giftReaction(vid, id) {
@@ -534,12 +536,14 @@ function statValue(kind) {
     case 'legendary': return [...I.legendary].filter(id => state.got[id]).length;
     case 'chapters': return Object.keys(state.story.done).length;
     case 'pets': return Object.keys(state.pets || {}).length;
+    case 'creatures': return Object.keys(state.bestiary || {}).length;
+    case 'delves': return Object.keys(state.delvesDone || {}).length;
     default: return state.stats[kind] || 0;
   }
 }
 function achGoal(a) {
   if (a.goal !== -1) return a.goal;
-  return { adventures: I.advs.length, pages: I.pages.length, fishkinds: I.fishKinds.length, chapters: I.chapters.length }[a.stat] || 1;
+  return { adventures: I.advs.length, pages: I.pages.length, fishkinds: I.fishKinds.length, chapters: I.chapters.length, creatures: (C.bestiary.creatures || []).length }[a.stat] || 1;
 }
 function checkAchievements() {
   for (const a of I.ach) {

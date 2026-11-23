@@ -30,6 +30,7 @@ function freshState() {
     bench: Array.from({ length: k.workbench.slots }, () => null), nets: {}, casks: Array.from({ length: k.cellar.slots }, () => null),
     pets: {}, perks: {}, tokens: 0, festival: null, login: null, exchange: null,
     toursSeen: {}, revealed: {}, visited: {}, opts: { tipsOff: false, relaxedFish: false }, overflow: {}, pity: {},
+    bg: '', face: '', insp: 1, charms: [], bestiary: {}, delvesDone: {},
     stats: { harvested: 0, fish: 0, explores: 0, crafted: 0, cooked: 0, digs: 0, collected: 0, delivered: 0, earned: 0, gifts: 0, bottled: 0, benched: 0, netted: 0, petfinds: 0, tokens: 0, streak: 0 },
     seed: 'wheat', spot: 'pond', bait: 'worm', area: 'meadow',
     tab: 'farm', sub: {},
@@ -39,7 +40,7 @@ function migrate(s) {
   const base = freshState();
   if (!s || typeof s !== 'object' || s.v !== 2) return base;
   const out = Object.assign({}, base, s);
-  for (const key of ['inv', 'locked', 'seen', 'got', 'xp', 'upgrades', 'buffs', 'mine', 'story', 'flags', 'unlocks', 'pages', 'friends', 'gifted', 'chatted', 'reqs', 'heartSeen', 'advDone', 'encDone', 'ach', 'mastery', 'stats', 'animals', 'sub', 'nets', 'pets', 'perks', 'toursSeen', 'revealed', 'visited', 'opts', 'overflow', 'pity']) {
+  for (const key of ['inv', 'locked', 'seen', 'got', 'xp', 'upgrades', 'buffs', 'mine', 'story', 'flags', 'unlocks', 'pages', 'friends', 'gifted', 'chatted', 'reqs', 'heartSeen', 'advDone', 'encDone', 'ach', 'mastery', 'stats', 'animals', 'sub', 'nets', 'pets', 'perks', 'toursSeen', 'revealed', 'visited', 'opts', 'overflow', 'pity', 'bestiary', 'delvesDone']) {
     out[key] = Object.assign({}, base[key], s[key] || {});
   }
   out.story.queue = Array.isArray(out.story.queue) ? out.story.queue : [];
@@ -50,6 +51,7 @@ function migrate(s) {
   if (!Array.isArray(out.mail)) out.mail = [];
   if (!Array.isArray(out.bench) || !out.bench.length) out.bench = base.bench;
   if (!Array.isArray(out.casks) || !out.casks.length) out.casks = base.casks;
+  if (!Array.isArray(out.charms)) out.charms = [];
   if (!I.crop[out.seed]) out.seed = 'wheat';
   if (!I.spot[out.spot]) out.spot = 'pond';
   if (!I.area[out.area]) out.area = 'meadow';
@@ -59,6 +61,7 @@ function migrate(s) {
 /* skills */
 const lvl = sk => levelInfo(state.xp[sk] || 0).lvl;
 function addXP(sk, amount) {
+  if (sk === bgSkill()) amount *= 1 + C.core.background_bonus.xp / 100;
   amount = Math.round(amount);
   if (!amount || !I.skill[sk]) return;
   const before = lvl(sk);
@@ -134,10 +137,10 @@ function checkMastery(id) {
     toast(`Mastery: ${itemName(id)} ${'★'.repeat(t)} · +${fmtN(reward)} coins, sells for more`, 'lvl', 4200);
   }
 }
-const priceOf = id => Math.round(I.items[id].s * (1 + [0, 0.05, 0.1, 0.2][masteryTier(id)]) * (1 + perkVal('haggler') / 100));
+const priceOf = id => Math.round(I.items[id].s * (1 + [0, 0.05, 0.1, 0.2][masteryTier(id)]) * (1 + perkVal('haggler') / 100) * (1 + charmFx('price') / 100));
 
 /* stamina and buffs */
-const maxStamina = () => C.core.stamina.base + lvl('foraging') * C.core.stamina.perLevel + perkVal('trail');
+const maxStamina = () => C.core.stamina.base + lvl('foraging') * C.core.stamina.perLevel + perkVal('trail') + charmFx('stamina');
 const buffOn = id => (state.buffs[id] || 0) > now();
 function setBuff(id, mins = 15) {
   if (!I.buffs[id]) return;
@@ -187,6 +190,7 @@ function reqProblems(r) {
   if (r.chapter && !chapterDone(r.chapter)) out.push(`after "${(I.chapter[r.chapter] || {}).n || r.chapter}"`);
   if (r.started && !chapterStarted(r.started)) out.push(`in "${(I.chapter[r.started] || {}).n || r.started}"`);
   if (r.coins && state.coins < r.coins) out.push(`${fmtN(r.coins)} coins`);
+  if (r.companion && !(advRun && advRun.companion === r.companion)) out.push(`${vilShort(r.companion)} along`);
   return [...new Set(out)];
 }
 const reqMet = r => reqProblems(r).length === 0;
@@ -223,6 +227,8 @@ function applyGive(g) {
   }
   for (const [sk, x] of Object.entries(g.xp || {})) { addXP(sk, x); out.push(`+${x} ${skillName(sk)} XP`); }
   for (const [vid, p] of Object.entries(g.friend || {})) { addFriend(vid, p); out.push(`${p > 0 ? '+' : ''}${p} friendship with ${vilShort(vid)}`); }
+  if (g.inspiration) { gainInsp(g.inspiration); out.push(`+${g.inspiration} Inspiration`); }
+  if (g.befriend) { const b = befriend(g.befriend); if (b) out.push(b); }
   if (g.page && !state.pages[g.page]) { state.pages[g.page] = now(); out.push(`Journal page ${g.page}`); }
   for (const f of [].concat(g.flag || [])) { if (f === 'bell_rung' && !state.flags[f]) { play('bell', 0.3); bloom(); } state.flags[f] = 1; }
   if (g.stamina) { syncStamina(); state.stamina = Math.min(maxStamina() * 2, state.stamina + g.stamina); out.push(`+${g.stamina} stamina`); }
@@ -250,7 +256,7 @@ const hearts = vid => clamp(Math.floor(friendPts(vid) / C.core.friendship.perHea
 function addFriend(vid, p) {
   if (!I.vil[vid]) return;
   const before = hearts(vid);
-  if (p > 0) p = Math.round(p * (1 + perkVal('kind') / 100));
+  if (p > 0) p = Math.round(p * (1 + perkVal('kind') / 100) * (1 + charmFx('friend') / 100));
   state.friends[vid] = clamp(friendPts(vid) + p, 0, C.core.friendship.perHeart * C.core.friendship.maxHearts);
   const after = hearts(vid);
   if (after > before) { toast(`${vilShort(vid)}: ${after} ♥`, 'lvl'); play('heart', 0.2); }

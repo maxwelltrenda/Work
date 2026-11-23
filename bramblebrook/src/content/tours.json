@@ -4,155 +4,453 @@
     "farm-fields": {
       "title": "Your farm",
       "steps": [
-        { "title": "Welcome to the farm", "text": "This is where most days start. Here's a quick look around. Tap Next to keep going, or Skip if you'd rather explore." },
-        { "target": ".coins", "title": "Coins", "text": "Everything you grow, catch and make can be sold for coins. You'll spend them on seeds, animals and upgrades." },
-        { "target": ".stam", "title": "Stamina", "text": "Exploring and mining use stamina. It refills on its own, and meals from the kitchen top it up." },
-        { "target": "#skills", "title": "Your six skills", "text": "Everything you do earns experience. Each new level unlocks seeds, places, recipes or a bonus. Tap one to see how close the next level is." },
-        { "target": ".journal-btn", "title": "Your journal", "text": "The main story lives here, along with Wren's lost journal pages. A red dot means the story needs you." },
-        { "target": ".view .story", "title": "What to do next", "text": "The next story step always shows up here. Tap it to read what's needed or to talk to someone." },
-        { "target": ".packets", "title": "Seed packets", "text": "Pick a packet. Each one shows how long it takes to grow and what the crop sells for. More unlock as your Farming level goes up." },
-        { "target": ".plots", "title": "Your fields", "text": "Tap an empty plot to sow the packet you picked. Crops grow in real time, even while you're away. Tap Ready plots to harvest." },
-        { "target": ".farm-actions", "title": "Do the whole field at once", "text": "Harvest everything that's ready, or sow every empty plot, in one tap." },
-        { "target": ".tabs-in", "title": "The rest of the valley", "text": "The wilds, fishing, crafting, the town and your bag are all down here. Each one shows a quick tour the first time you open it." }
+        {
+          "title": "Welcome to the farm",
+          "text": "This is where most days start. Here's a quick look around. Tap Next to keep going, or Skip if you'd rather explore."
+        },
+        {
+          "target": ".coins",
+          "title": "Coins",
+          "text": "Everything you grow, catch and make can be sold for coins. You'll spend them on seeds, animals and upgrades."
+        },
+        {
+          "target": ".stam",
+          "title": "Stamina",
+          "text": "Exploring and mining use stamina. It refills on its own, and meals from the kitchen top it up."
+        },
+        {
+          "target": "#skills",
+          "title": "Your six skills",
+          "text": "Everything you do earns experience. Each new level unlocks seeds, places, recipes or a bonus. Tap one to see how close the next level is."
+        },
+        {
+          "target": ".journal-btn",
+          "title": "Your journal",
+          "text": "The main story lives here, along with Wren's lost journal pages. A red dot means the story needs you."
+        },
+        {
+          "target": ".view .story",
+          "title": "What to do next",
+          "text": "The next story step always shows up here. Tap it to read what's needed or to talk to someone."
+        },
+        {
+          "target": ".packets",
+          "title": "Seed packets",
+          "text": "Pick a packet. Each one shows how long it takes to grow and what the crop sells for. More unlock as your Farming level goes up."
+        },
+        {
+          "target": ".plots",
+          "title": "Your fields",
+          "text": "Tap an empty plot to sow the packet you picked. Crops grow in real time, even while you're away. Tap Ready plots to harvest."
+        },
+        {
+          "target": ".farm-actions",
+          "title": "Do the whole field at once",
+          "text": "Harvest everything that's ready, or sow every empty plot, in one tap."
+        },
+        {
+          "target": ".tabs-in",
+          "title": "The rest of the valley",
+          "text": "The wilds, fishing, crafting, the town and your bag are all down here. Each one shows a quick tour the first time you open it."
+        }
       ]
     },
     "journal": {
       "title": "Your journal",
       "steps": [
-        { "target": ".sheet .steps, .sheet [data-act='story']", "title": "The story so far", "text": "Each chapter has a few steps. Finished ones get a tick. The current one shows exactly what's still needed." },
-        { "target": ".sheet .inv", "title": "Wren's journal pages", "text": "Every chapter you finish turns up one of Wren's lost pages. Tap a page to read it." }
+        {
+          "target": ".sheet .steps, .sheet [data-act='story']",
+          "title": "The story so far",
+          "text": "Each chapter has a few steps. Finished ones get a tick. The current one shows exactly what's still needed."
+        },
+        {
+          "target": ".sheet .inv",
+          "title": "Wren's journal pages",
+          "text": "Every chapter you finish turns up one of Wren's lost pages. Tap a page to read it."
+        }
       ]
     },
     "farm-orchard": {
       "title": "Orchard",
       "unlock": "orchard",
       "steps": [
-        { "target": ".trees", "title": "Plant once, pick forever", "text": "A tree costs coins once and keeps fruiting. Each one holds two harvests, so check back before it fills up." },
-        { "target": "[data-act='harvest-trees']", "title": "Pick everything", "text": "Pick every ripe tree in one tap." }
+        {
+          "target": ".trees",
+          "title": "Plant once, pick forever",
+          "text": "A tree costs coins once and keeps fruiting. Each one holds two harvests, so check back before it fills up."
+        },
+        {
+          "target": "[data-act='harvest-trees']",
+          "title": "Pick everything",
+          "text": "Pick every ripe tree in one tap."
+        }
       ]
     },
     "farm-animals": {
       "title": "Animals",
       "unlock": "coop",
       "steps": [
-        { "target": ".view .pen", "title": "Your animals", "text": "Each animal makes something on its own: eggs, milk, honey or wool. Collect it before the pen fills up." },
-        { "target": "[data-act='pet']", "title": "Once a day", "text": "Pet everyone once a day for some bonus goods. They like it too." }
+        {
+          "target": ".view .pen",
+          "title": "Your animals",
+          "text": "Each animal makes something on its own: eggs, milk, honey or wool. Collect it before the pen fills up."
+        },
+        {
+          "target": "[data-act='pet']",
+          "title": "Once a day",
+          "text": "Pet everyone once a day for some bonus goods. They like it too."
+        }
       ]
     },
     "farm-pets": {
       "title": "Pets",
       "unlock": "coop",
       "steps": [
-        { "target": ".view .pen", "title": "A friend for the farm", "text": "Pets wander off and bring things home: flowers, fish or shiny stones. Their favourite snack makes them twice as quick for the day." }
+        {
+          "target": ".view .pen",
+          "title": "A friend for the farm",
+          "text": "Pets wander off and bring things home: flowers, fish or shiny stones. Their favourite snack makes them twice as quick for the day."
+        }
       ]
     },
     "wilds-explore": {
       "title": "Exploring",
       "steps": [
-        { "target": ".areas", "title": "Choose a place", "text": "Each place has its own finds. The ones you haven't found yet show as a question mark. New places open with your Foraging level and the story." },
-        { "target": ".trail", "title": "Head out", "text": "Each trip costs 1 stamina and finds something, or nothing. Use ×10 or All to spend your stamina in one go." },
-        { "target": ".log", "title": "What you found", "text": "Your last few trips show up here. Every so often something unexpected happens on the trail." }
+        {
+          "target": ".areas",
+          "title": "Choose a place",
+          "text": "Each place has its own finds. The ones you haven't found yet show as a question mark. New places open with your Foraging level and the story."
+        },
+        {
+          "target": ".trail",
+          "title": "Head out",
+          "text": "Each trip costs 1 stamina and finds something, or nothing. Use ×10 or All to spend your stamina in one go."
+        },
+        {
+          "target": ".log",
+          "title": "What you found",
+          "text": "Your last few trips show up here. Every so often something unexpected happens on the trail."
+        }
       ]
     },
     "wilds-mine": {
       "title": "The Mine",
       "unlock": "mine",
       "steps": [
-        { "target": ".trail.mine", "title": "Dig for ore and gems", "text": "Every dig costs 1 stamina. Deeper floors hide better ore, gems and, very far down, star shards." },
-        { "target": ".trail.mine .depth", "title": "Finding the way down", "text": "Keep digging until you find the way down, then take it. Floors 10, 20 and 25 need a higher Mining level." },
-        { "target": ".view .card:last-child", "title": "The old lift", "text": "Once you reach a landing, the lift can take you straight back to it next time." }
-      ]
-    },
-    "wilds-adventures": {
-      "title": "Adventures",
-      "steps": [
-        { "target": ".view .adv", "title": "Short stories with choices", "text": "Adventures are little stories where you choose what happens. Some choices need a skill, an item or stamina, and some are a gamble. The chance shows under the choice." },
-        { "title": "You can't really lose", "text": "If an adventure goes badly you just head home and try again later. Rewards come when you reach a good ending." }
+        {
+          "target": ".trail.mine",
+          "title": "Dig for ore and gems",
+          "text": "Every dig costs 1 stamina. Deeper floors hide better ore, gems and, very far down, star shards."
+        },
+        {
+          "target": ".trail.mine .depth",
+          "title": "Finding the way down",
+          "text": "Keep digging until you find the way down, then take it. Floors 10, 20 and 25 need a higher Mining level."
+        },
+        {
+          "target": ".view .card:last-child",
+          "title": "The old lift",
+          "text": "Once you reach a landing, the lift can take you straight back to it next time."
+        }
       ]
     },
     "fish": {
       "title": "Fishing",
       "steps": [
-        { "target": ".spots", "title": "Where to fish", "text": "Each spot has its own fish. New waters open with the story and your Fishing level." },
-        { "target": ".bait-row", "title": "Bait", "text": "Every cast uses one bait. Worms are cheap at the store. Lures widen the green zone. Glow grubs tempt the legendary fish." },
-        { "target": "#pond", "title": "Cast and wait", "text": "Tap Cast, then wait for the bobber to dip. When the bar appears, tap again the moment the marker is inside the green zone." },
-        { "target": "#cast-btn", "title": "One button does it all", "text": "This button casts, reels in and casts again. You can also tap the water itself." }
+        {
+          "target": ".spots",
+          "title": "Where to fish",
+          "text": "Each spot has its own fish. New waters open with the story and your Fishing level."
+        },
+        {
+          "target": ".bait-row",
+          "title": "Bait",
+          "text": "Every cast uses one bait. Worms are cheap at the store. Lures widen the green zone. Glow grubs tempt the legendary fish."
+        },
+        {
+          "target": "#pond",
+          "title": "Cast and wait",
+          "text": "Tap Cast, then wait for the bobber to dip. When the bar appears, tap again the moment the marker is inside the green zone."
+        },
+        {
+          "target": "#cast-btn",
+          "title": "One button does it all",
+          "text": "This button casts, reels in and casts again. You can also tap the water itself."
+        }
       ]
     },
     "make-workshop": {
       "title": "Workshop",
       "steps": [
-        { "target": ".view .recipe", "title": "Recipes", "text": "Each recipe turns raw goods into something worth more, or something people need. More unlock as your Crafting level rises." },
-        { "target": ".view .recipe .needs", "title": "What it takes", "text": "These show what you have and what you need. Red means you're short." },
-        { "target": ".view .recipe .row", "title": "Make one, or make lots", "text": "Craft one at a time, or make as many as your materials allow." }
+        {
+          "target": ".view .recipe",
+          "title": "Recipes",
+          "text": "Each recipe turns raw goods into something worth more, or something people need. More unlock as your Crafting level rises."
+        },
+        {
+          "target": ".view .recipe .needs",
+          "title": "What it takes",
+          "text": "These show what you have and what you need. Red means you're short."
+        },
+        {
+          "target": ".view .recipe .row",
+          "title": "Make one, or make lots",
+          "text": "Craft one at a time, or make as many as your materials allow."
+        }
       ]
     },
     "make-kitchen": {
       "title": "Kitchen",
       "unlock": "kitchen",
       "steps": [
-        { "target": ".view .recipe", "title": "Cooking", "text": "Meals are worth a lot more than their ingredients. Many also restore stamina or give a boost for a while." },
-        { "target": "#buffs, .skills", "title": "Boosts", "text": "Active boosts show at the top of the screen with the time left, like Lucky or Steady Hands." }
+        {
+          "target": ".view .recipe",
+          "title": "Cooking",
+          "text": "Meals are worth a lot more than their ingredients. Many also restore stamina or give a boost for a while."
+        },
+        {
+          "target": "#buffs, .skills",
+          "title": "Boosts",
+          "text": "Active boosts show at the top of the screen with the time left, like Lucky or Steady Hands."
+        }
       ]
     },
     "make-bench": {
       "title": "Workbench",
       "unlock": "forge",
       "steps": [
-        { "target": ".view .card", "title": "Crafts while you're away", "text": "Queue up a recipe and the bench makes them one at a time, even with the game closed. It uses the materials up front." },
-        { "title": "Come back and collect", "text": "Take whatever's finished whenever you like. Stopping early gives back the materials for anything not yet made." }
+        {
+          "target": ".view .card",
+          "title": "Crafts while you're away",
+          "text": "Queue up a recipe and the bench makes them one at a time, even with the game closed. It uses the materials up front."
+        },
+        {
+          "title": "Come back and collect",
+          "text": "Take whatever's finished whenever you like. Stopping early gives back the materials for anything not yet made."
+        }
       ]
     },
     "make-cellar": {
       "title": "Cellar",
       "unlock": "kitchen",
       "steps": [
-        { "target": ".view .card", "title": "Patience pays", "text": "Fill a cask and leave it. It's ready to bottle after a while, but leave it longer and it becomes a vintage worth more than twice as much." }
+        {
+          "target": ".view .card",
+          "title": "Patience pays",
+          "text": "Fill a cask and leave it. It's ready to bottle after a while, but leave it longer and it becomes a vintage worth more than twice as much."
+        }
       ]
     },
     "town-people": {
       "title": "The people of Bramblebrook",
       "steps": [
-        { "target": ".view .npc", "title": "Your neighbours", "text": "Everyone in the valley has their own story. More people turn up as you explore further." },
-        { "target": ".view .npc .hearts", "title": "Friendship", "text": "Hearts grow when you help, chat and give gifts. At certain hearts they'll share something personal with you." },
-        { "target": ".view .npc .needs", "title": "Requests", "text": "Each person asks for something in turn. Bring what they need, tap Give items, and they'll pay you back well." },
-        { "target": ".view [data-act='gift']", "title": "One gift a day", "text": "Give each person one gift a day. Everyone has favourites. Finding them out is half the fun." }
+        {
+          "target": ".view .npc",
+          "title": "Your neighbours",
+          "text": "Everyone in the valley has their own story. More people turn up as you explore further."
+        },
+        {
+          "target": ".view .npc .hearts",
+          "title": "Friendship",
+          "text": "Hearts grow when you help, chat and give gifts. At certain hearts they'll share something personal with you."
+        },
+        {
+          "target": ".view .npc .needs",
+          "title": "Requests",
+          "text": "Each person asks for something in turn. Bring what they need, tap Give items, and they'll pay you back well."
+        },
+        {
+          "target": ".view [data-act='gift']",
+          "title": "One gift a day",
+          "text": "Give each person one gift a day. Everyone has favourites. Finding them out is half the fun."
+        }
       ]
     },
     "town-shops": {
       "title": "Shops",
       "steps": [
-        { "target": "[data-tour='store']", "title": "The general store", "text": "Bait, extra farm plots and barn upgrades. A bigger barn holds more of each item." },
-        { "target": "[data-tour='exchange']", "title": "The Valley Exchange", "text": "Prices here change every few hours. Green arrows pay more than usual. Watch for your best crops going up." }
+        {
+          "target": "[data-tour='store']",
+          "title": "The general store",
+          "text": "Bait, extra farm plots and barn upgrades. A bigger barn holds more of each item."
+        },
+        {
+          "target": "[data-tour='exchange']",
+          "title": "The Valley Exchange",
+          "text": "Prices here change every few hours. Green arrows pay more than usual. Watch for your best crops going up."
+        }
       ]
     },
     "town-board": {
       "title": "The board",
       "steps": [
-        { "target": "[data-tour='daily']", "title": "Daily gift", "text": "Open a gift each day you visit. Come back days in a row and the gifts get bigger." },
-        { "target": "[data-tour='festival']", "title": "This season's festival", "text": "Each season brings a festival. Fill its requests for ribbons, and spend them at the stall, including a keepsake you can only get this season." },
-        { "target": "[data-tour='chores']", "title": "Today's chores", "text": "Three small goals that change every midnight. Tap Claim when one is done." }
+        {
+          "target": "[data-tour='daily']",
+          "title": "Daily gift",
+          "text": "Open a gift each day you visit. Come back days in a row and the gifts get bigger."
+        },
+        {
+          "target": "[data-tour='festival']",
+          "title": "This season's festival",
+          "text": "Each season brings a festival. Fill its requests for ribbons, and spend them at the stall, including a keepsake you can only get this season."
+        },
+        {
+          "target": "[data-tour='chores']",
+          "title": "Today's chores",
+          "text": "Three small goals that change every midnight. Tap Claim when one is done."
+        }
       ]
     },
     "town-mail": {
       "title": "Mail",
       "steps": [
-        { "title": "Letters", "text": "Folks write as they get to know you. Some letters come with a small gift inside, so open them all." }
+        {
+          "title": "Letters",
+          "text": "Folks write as they get to know you. Some letters come with a small gift inside, so open them all."
+        }
       ]
     },
     "bag-items": {
       "title": "Your bag",
       "steps": [
-        { "target": ".view .slot", "title": "Everything you own", "text": "Tap any item to sell it, lock it, eat it, or see where it comes from and who loves it." },
-        { "target": ".view [data-act='sell-type']", "title": "Sell all", "text": "Sell a whole group at once. Locked items are always kept." },
-        { "target": ".subtabs", "title": "More in here", "text": "The almanac tracks everything you've found and your mastery stars. Feats are achievements. Perks are bonuses you choose." }
+        {
+          "target": ".view .slot",
+          "title": "Everything you own",
+          "text": "Tap any item to sell it, lock it, eat it, or see where it comes from and who loves it."
+        },
+        {
+          "target": ".view [data-act='sell-type']",
+          "title": "Sell all",
+          "text": "Sell a whole group at once. Locked items are always kept."
+        },
+        {
+          "target": ".subtabs",
+          "title": "More in here",
+          "text": "The almanac tracks everything you've found and your mastery stars. Feats are achievements. Perks are bonuses you choose."
+        }
       ]
     },
     "bag-perks": {
       "title": "Perks",
       "steps": [
-        { "target": ".view .card", "title": "Perk points", "text": "You earn a point for every few skill levels across all six skills." },
-        { "target": ".view .feat", "title": "Pick your bonuses", "text": "Spend points on whatever suits how you play: faster crops, better prices, more stamina and more. You can refund them later for a few coins." }
+        {
+          "target": ".view .card",
+          "title": "Perk points",
+          "text": "You earn a point for every few skill levels across all six skills."
+        },
+        {
+          "target": ".view .feat",
+          "title": "Pick your bonuses",
+          "text": "Spend points on whatever suits how you play: faster crops, better prices, more stamina and more. You can refund them later for a few coins."
+        }
+      ]
+    },
+    "town-inn": {
+      "title": "The Lantern & Ladle",
+      "steps": [
+        {
+          "target": ".view .inn",
+          "title": "The inn",
+          "text": "Tess runs the inn and keeps the quest board. Drop in for a rumor of the day about where to look next."
+        },
+        {
+          "target": ".view .adv",
+          "title": "The quest board",
+          "text": "Quests are short stories with choices. The diamonds show how tricky they are. Some open as the story goes on, and delves turn up when you dig deep enough."
+        },
+        {
+          "target": ".view .adv .btn",
+          "title": "Bring a friend",
+          "text": "Friends at three hearts or more can come along. When a roll matches what they're good at, you roll two dice and keep the better one."
+        },
+        {
+          "title": "Rolling the dice",
+          "text": "Some choices on a quest need a dice roll. The game rolls a 20-sided die for you, adds your bonus, and checks it against a target number. You'll see your chance before you choose, and a friend along makes it easier."
+        }
+      ]
+    },
+    "bag-sheet": {
+      "title": "Your character",
+      "steps": [
+        {
+          "target": ".view .sheet-hero",
+          "title": "Your character sheet",
+          "text": "Your background, level and Inspiration (✦). Inspiration is a second chance: spend one to roll the dice again after a miss."
+        },
+        {
+          "target": ".view .check-row",
+          "title": "Roll bonuses",
+          "text": "When a choice needs a dice roll, this number is added to the die. Bigger numbers make success more likely. Your background gives one skill an extra +2."
+        },
+        {
+          "target": ".view .charm",
+          "title": "Charms",
+          "text": "Wear up to three charms for small, lasting bonuses. Rare ones turn up on quests, in delves and from new creature friends."
+        }
+      ]
+    },
+    "bag-bestiary": {
+      "title": "Bestiary",
+      "steps": [
+        {
+          "target": ".view .beast",
+          "title": "Creatures of the valley",
+          "text": "Gentle creatures live all over the valley. Meet them while exploring or digging, win them over, and they are recorded here."
+        }
+      ]
+    },
+    "dice-choice": {
+      "title": "Dice rolls",
+      "steps": [
+        {
+          "target": "#scene-root .choice small",
+          "title": "This choice needs a dice roll",
+          "text": "Some choices aren't certain. When you pick one, the game rolls a 20-sided die for you: a number from 1 to 20, like flipping a very big coin."
+        },
+        {
+          "target": "#scene-root .choice small",
+          "title": "What the numbers mean",
+          "text": "\"Need 11 or more\" is the target. The die plus your bonus has to reach it. The percentage is your chance of success, already worked out for you."
+        },
+        {
+          "title": "No wrong answers",
+          "text": "Failing a roll never hurts you. The story just goes a different way. Pick whatever sounds fun."
+        }
+      ]
+    },
+    "dice-roll": {
+      "title": "How the roll went",
+      "steps": [
+        {
+          "target": "#scene-root .dice-row",
+          "title": "Your die",
+          "text": "This is a 20-sided die, called a d20. It landed on the number in the middle. Sometimes two dice appear: a friend is helping, so you keep the better one and the other fades out."
+        },
+        {
+          "target": "#scene-root .dice-label",
+          "title": "Your target and your bonus",
+          "text": "Your bonus comes from your skill level, your background and any charms. It gets added to the die, and the total has to reach the target."
+        },
+        {
+          "target": "#dice-result",
+          "title": "The result",
+          "text": "A 20 is the best roll there is. It always works and gives you Inspiration. A 1 always goes a little wrong, but only in a funny way."
+        },
+        {
+          "target": "#dice-btns",
+          "title": "Carry on",
+          "text": "Tap Continue to see what happens next. If you have Inspiration (✦), you can spend it to roll again after a miss."
+        }
+      ]
+    },
+    "dice-reroll": {
+      "title": "A second chance",
+      "steps": [
+        {
+          "target": "#dice-btns [data-dice=\"reroll\"]",
+          "title": "Inspiration",
+          "text": "That roll missed, but you have Inspiration (✦). Spend one to roll again, or tap Continue to see where the story goes. Either way is fine."
+        }
       ]
     }
   }

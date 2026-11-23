@@ -91,6 +91,7 @@ function start(data) {
   renderAll();
   setInterval(tick, 1000);
   if (!state.name) askName();
+  else if (!state.bg) createCharacter(false);
   else storyCheck();
   initCloud();
 }
