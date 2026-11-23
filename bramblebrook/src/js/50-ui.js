@@ -1,0 +1,348 @@
+/* ---------- header, tabs, sheets, input ---------- */
+const TAB_DEFS = [
+  { id: 'farm', n: 'Farm', svg: '<path d="M12 21v-9"/><path d="M12 13c0-4.5-3-7-7.5-7 0 4.5 3 7 7.5 7z"/><path d="M12 11c0-3.6 2.4-6 6.5-6 0 3.6-2.4 6-6.5 6z"/>' },
+  { id: 'wilds', n: 'Wilds', svg: '<path d="M3 20l6-11 4 7 3-4 5 8z"/><circle cx="17" cy="6" r="2"/>' },
+  { id: 'fish', n: 'Fish', svg: '<path d="M15 3v11a4.5 4.5 0 1 1-9 0v-1.5"/><path d="M6 12.5l-2 2"/><path d="M13 3h4"/>' },
+  { id: 'make', n: 'Make', svg: '<path d="M4 20l8.5-8.5"/><path d="M11 6l3-3 7 7-3 3z"/><path d="M14.5 9.5l-2 2"/>' },
+  { id: 'town', n: 'Town', svg: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>' },
+  { id: 'bag', n: 'Bag', svg: '<path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>' },
+];
+const VIEWS = { farm: viewFarm, wilds: viewWilds, fish: viewFish, make: viewMake, town: viewTown, bag: viewBag };
+
+function renderTabs() {
+  $('#tabs').innerHTML = TAB_DEFS.map(t => `<button class="tab" data-act="tab" data-tab="${t.id}" ${t.id === state.tab ? 'aria-current="page"' : ''}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">${t.svg}</svg><span>${t.n}</span><span class="badge" id="badge-${t.id}" hidden></span></button>`).join('');
+}
+function renderView() {
+  if (!state) return;
+  if (state.tab === 'fish' && (fishing.phase === 'waiting' || fishing.phase === 'bite')) { updateBaitCounts(); return; }
+  $('#view').innerHTML = (VIEWS[state.tab] || viewFarm)();
+  if (state.tab === 'fish') syncFishDom();
+}
+function renderAll() { renderTabs(); updateHeader(true); renderView(); updateBadges(); }
+
+function updateBadges() {
+  if (!state) return;
+  const set = (id, n) => { const el = $('#badge-' + id); if (el) { el.hidden = !n; el.textContent = n > 99 ? '99+' : n; } };
+  set('farm', state.plots.filter(p => p.crop && p.ready <= now()).length + orchardReady() + animalsReady());
+  set('wilds', I.advs.filter(a => !state.advDone[a.id] && reqMet(a.req)).length);
+  ensureChores();
+  set('town', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length
+    + state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length + state.mail.filter(m => !m.read).length);
+  const st = storyStatus();
+  const jb = $('#badge-journal');
+  if (jb) { jb.hidden = !st.ready; jb.textContent = '!'; }
+}
+let lastSkillSig = '';
+function updateHeader(force) {
+  syncStamina();
+  $('#coins').textContent = fmtN(state.coins);
+  const max = maxStamina();
+  $('#stam-now').textContent = state.stamina;
+  $('#stam-max').textContent = max;
+  $('#stam-bar').style.setProperty('--p', Math.min(1, state.stamina / max));
+  $('#almanac').textContent = `Day ${dayNumber()} · ${season()} · ${weather().n}`;
+  const buffs = Object.keys(I.buffs).filter(buffOn).map(b => `<span class="buff">${esc(I.buffs[b].n)} ${fmtT((state.buffs[b] - now()) / 1000)}</span>`).join('');
+  const bEl = $('#buffs');
+  bEl.innerHTML = buffs; bEl.hidden = !buffs;
+  const sig = I.skills.map(s => state.xp[s.id]).join(',');
+  if (sig === lastSkillSig && !force) return;
+  lastSkillSig = sig;
+  $('#skills').innerHTML = I.skills.map(s => {
+    const L = levelInfo(state.xp[s.id] || 0);
+    return `<button class="skill" data-act="skill" data-id="${s.id}" aria-label="${esc(s.n)} level ${L.lvl}"><span>${esc(s.short)}</span><b>${L.lvl}</b>${progressBar(L.into, L.need || 1)}</button>`;
+  }).join('');
+}
+
+/* toasts */
+function toast(msg, kind = '', ms = 2800) {
+  const box = $('#toasts');
+  if (!box) return;
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.textContent = msg;
+  box.appendChild(el);
+  while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(() => el.remove(), ms);
+}
+
+/* sheets */
+let sheetFn = null;
+function openSheet(html, refresh) {
+  sheetFn = refresh || null;
+  $('#sheet-root').innerHTML = `<div class="sheet-wrap" data-act="sheet-close"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+  const first = $('#sheet-root .sheet button');
+  if (first) first.focus({ preventScroll: true });
+}
+function closeSheet() { sheetFn = null; $('#sheet-root').innerHTML = ''; }
+const sheetOpen = () => !!$('#sheet-root').innerHTML;
+
+function itemSheet(id) {
+  const it = I.items[id];
+  if (!state.seen[id]) return;
+  const where = [];
+  const crop = I.crop[id];
+  if (crop) where.push(crop.flag ? 'Heirloom seeds' : `Grow it (Farming ${crop.lvl})`);
+  if (I.tree[id]) where.push(`Orchard (${I.tree[id].n})`);
+  I.animals.forEach(a => { if (a.produce === id) where.push(a.n); });
+  I.areas.forEach(a => { if (a.drops[id]) where.push(a.n); });
+  C.core.mine.bands.forEach(b => { if (b.drops[id]) where.push(`Mine floors ${b.from}-${b.to}`); });
+  C.core.mine.rare.forEach(r => { if (r.item === id) where.push(`Mine floor ${r.from}+`); });
+  I.spots.forEach(s => { if (s.fish.some(f => f[0] === id)) where.push(s.n); });
+  if (I.recipe[id]) where.push(`Workshop (Crafting ${I.recipe[id].lvl})`);
+  if (I.meal[id]) where.push(`Kitchen (Cooking ${I.meal[id].lvl})`);
+  if (C.core.store.some(s => s.item === id)) where.push('General store');
+  const uses = [];
+  I.recipes.concat(I.meals).forEach(r => { if (r.need[id]) uses.push(itemName(r.id)); });
+  I.vils.forEach(v => { const q = curRequest(v.id); if (q && q.want[id] && vilAvailable(v)) uses.push(`${vilShort(v.id)} wants ${q.want[id]}`); });
+  const lovers = I.vils.filter(v => (v.loves || []).includes(id) && vilAvailable(v)).map(v => vilShort(v.id));
+  const n = have(id), key = it.t === 'key', t = masteryTier(id);
+  const meal = I.meal[id];
+  openSheet(`
+    <div class="sheet-head">${pic(id, 56)}<div><h2>${esc(it.n)}</h2><p class="muted">${esc(C.core.types[it.t])} · you have ${n}${key ? '' : `/${fmtN(cap())}`}</p></div></div>
+    <dl>${key ? '' : `<dt>Sells for</dt><dd class="num">${priceOf(id)} coins${t ? ` (${'★'.repeat(t)} mastery)` : ''}</dd>`}
+      ${meal && edible(id) ? `<dt>Eat it</dt><dd>${esc([meal.stamina ? `+${meal.stamina} stamina` : '', meal.buff ? `${I.buffs[meal.buff].n}: ${I.buffs[meal.buff].desc} (${meal.mins} min)` : ''].filter(Boolean).join(' · '))}</dd>` : ''}
+      <dt>Found</dt><dd>${esc([...new Set(where)].join(', ') || (key ? 'A keepsake from the story' : 'Rewards'))}</dd>
+      <dt>Used for</dt><dd>${esc(uses.join(', ') || (key ? 'Remembering' : 'Selling'))}</dd>
+      ${lovers.length ? `<dt>Loved by</dt><dd>${esc(lovers.join(', '))}</dd>` : ''}
+      <dt>Gathered</dt><dd class="num">${fmtN(state.got[id] || 0)} in all</dd></dl>
+    <div class="sheet-btns">
+      ${meal && edible(id) && n ? `<button class="btn small sun" data-act="eat" data-id="${id}">Eat one</button>` : ''}
+      ${id === 'tonic' && n ? '<button class="btn small sun" data-act="tonic">Use on the farm</button>' : ''}
+      ${key || !n ? '' : `<button class="btn small" data-act="sell" data-id="${id}" data-n="1">Sell 1 · ${priceOf(id)}c</button>
+      <button class="btn small" data-act="sell" data-id="${id}" data-n="all" ${n > 1 && !state.locked[id] ? '' : 'disabled'}>Sell all ${n} · ${fmtN(priceOf(id) * n)}c</button>
+      <button class="btn small ghost" data-act="lock" data-id="${id}">${state.locked[id] ? 'Unlock' : 'Lock (keep from Sell all)'}</button>`}
+      <button class="btn small ghost" data-act="sheet-close">Close</button>
+    </div>`);
+}
+function giftSheet(vid) {
+  const ids = Object.keys(I.items).filter(id => have(id) > 0 && I.items[id].t !== 'key');
+  const v = I.vil[vid];
+  openSheet(`<div class="sheet-head">${folk(vid, 48)}<div><h2>A gift for ${esc(v.short || v.n)}</h2><p class="muted">One gift a day. Find out what they love.</p></div></div>
+    ${ids.length ? `<div class="gift-grid">${ids.map(id => slotHTML(id, 'gift-pick').replace('data-id=', `data-v="${vid}" data-id=`)).join('')}</div>` : '<p class="muted">Your bag is empty.</p>'}
+    <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
+}
+function letterSheet(mid) {
+  const m = state.mail.find(x => x.id === mid), l = I.letters.find(x => x.id === mid);
+  if (!m || !l) return;
+  m.read = true;
+  openSheet(`<div class="sheet-head">${folk(l.from, 48)}<div><h2>${esc(fill(l.subject))}</h2><p class="muted">From ${esc(vilName(l.from))}</p></div></div>
+    <div class="page-text">${esc(fill(l.body))}</div>
+    <div class="sheet-btns">${l.give && !m.claimed ? `<button class="btn small sun" data-act="letter-gift" data-id="${mid}">Take the gift: ${esc(giveSummary(l.give))}</button>` : ''}
+    <button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
+  commit();
+}
+function journalHTML() {
+  const ch = curChapter(), st = storyStatus();
+  let current = '';
+  if (ch) {
+    const steps = ch.steps.map((s, i) => {
+      const done = state.story.started && i < state.story.si, nowStep = state.story.started && i === state.story.si;
+      if (!done && !nowStep) return `<div class="step"><i>${i + 1}</i><span class="muted">…</span></div>`;
+      let extra = '';
+      if (nowStep) {
+        const [a, b] = stepProgress(s);
+        if (s.type === 'deliver') extra = `<div class="needs" style="margin-top:4px">${Object.entries(s.want).map(([id, n]) => chip(id, `${Math.min(have(id), n)}/${n}`, have(id) >= n ? '' : 'short')).join('')}</div>`;
+        else if (autoStep(s) && s.type !== 'adventure') extra = `<div class="row" style="margin-top:4px"><span class="num sub">${fmtN(Math.min(a, b))}/${fmtN(b)}</span><span style="flex:1">${progressBar(a, b)}</span></div>`;
+        else if (s.type === 'adventure') { const adv = I.adv[s.id]; extra = `<p class="sub">${adv ? (reqMet(adv.req) ? `Ready: ${esc(adv.n)}` : esc(reqProblems(adv.req).join(', '))) : ''}</p>`; }
+      }
+      return `<div class="step ${done ? 'done' : 'now'}"><i>${done ? '✓' : i + 1}</i><div style="flex:1">${esc(fill(s.t))}${extra}</div></div>`;
+    }).join('');
+    current = `<div class="card"><span class="label">${chapterLabel(state.story.ci)} of ${I.chapters.length - 2}</span><h2>${esc(ch.n)}</h2><p class="sub">${esc(fill(ch.blurb))}</p>
+      ${state.story.started ? `<div class="steps">${steps}</div>` : ''}
+      ${st.kind === 'queue' ? '' : `<button class="btn" data-act="story" ${st.kind === 'progress' ? 'disabled' : ''}>${esc(st.kind === 'progress' ? 'Keep going: ' + st.text : st.btn)}</button>`}</div>`;
+  } else current = '<div class="card"><h2>The Bell rings on</h2><p class="sub">You\'ve finished the main story. There is always more to grow, catch and find.</p></div>';
+  const pages = I.pages.map(p => state.pages[p.n] ? `<button class="slot" data-act="page" data-n="${p.n}"><span class="emo" style="--s:28px">📜</span><span class="nm">${esc(p.title)}</span><span class="q">Page ${p.n}</span></button>`
+    : `<div class="slot unseen"><span class="unknown">?</span><span class="nm">Missing</span><span class="q">Page ${p.n}</span></div>`).join('');
+  const past = I.chapters.filter(c => chapterDone(c.id)).map(c => `<div class="store-item"><div class="what"><b>${esc(c.n)}</b><small>${esc(fill(c.blurb))}</small></div><button class="btn small ghost" data-act="replay" data-id="${c.id}">Replay</button></div>`).join('');
+  return `<div class="sheet-head"><span class="emo" style="--s:44px">📖</span><div><h2>${esc(state.name || 'Your')}'s journal</h2><p class="muted">The story of Bramblebrook</p></div></div>
+    ${state.story.queue.length ? `<button class="btn sun wide" data-act="story">Read what happened (${state.story.queue.length})</button>` : ''}
+    ${current}
+    <div class="card"><div class="row between"><h2>Wren's journal pages</h2><span class="chip plain">${Object.keys(state.pages).length}/${I.pages.length}</span></div><div class="inv">${pages}</div></div>
+    ${past ? `<div class="card"><h2>Chapters so far</h2>${past}</div>` : ''}
+    <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`;
+}
+function openJournal() { openSheet(journalHTML(), journalHTML); }
+function pageSheet(n) {
+  const p = I.pages.find(x => x.n === n);
+  if (!p) return;
+  openSheet(`<div class="sheet-head"><span class="emo" style="--s:40px">📜</span><div><h2>${esc(p.title)}</h2><p class="muted">Wren's journal, page ${p.n}</p></div></div>
+    <div class="page-text">${esc(fill(p.text))}</div><div class="sheet-btns"><button class="btn small ghost" data-act="journal">Back to journal</button><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
+}
+
+/* actions */
+function handle(act, el, e) {
+  const id = el.dataset.id;
+  switch (act) {
+    case 'tab':
+      if (state.tab === 'fish' && el.dataset.tab !== 'fish') { clearFishTimers(); fishing.phase = 'idle'; fishing.msg = ''; }
+      state.tab = el.dataset.tab; renderTabs(); renderView(); updateBadges(); window.scrollTo(0, 0); return false;
+    case 'sub': state.sub[el.dataset.tab] = el.dataset.sub; renderView(); return false;
+    case 'skill': {
+      const L = levelInfo(state.xp[id] || 0);
+      toast(L.need ? `${skillName(id)} ${L.lvl}: ${fmtN(L.need - L.into)} XP to level ${L.lvl + 1}` : `${skillName(id)} is maxed`);
+      return false;
+    }
+    case 'journal': openJournal(); return false;
+    case 'story': storyAction(); return false;
+    case 'page': pageSheet(+el.dataset.n); return false;
+    case 'replay': { const c = I.chapter[id]; closeSheet(); playScene(c.intro, { title: c.n }); playScene(c.outro, { title: c.n + ' · ending' }); return false; }
+    case 'seed': state.seed = id; break;
+    case 'plot': {
+      const i = +el.dataset.i, p = state.plots[i];
+      if (!p.crop) { if (!plant(i)) return false; }
+      else if (p.ready <= now()) { if (harvest(i) === -1) { toast(`Barn is full of ${itemName(p.crop)}. Sell some first.`); return false; } }
+      else { toast(`${itemName(p.crop)} is ready in ${fmtT((p.ready - now()) / 1000)}`); return false; }
+      break;
+    }
+    case 'harvest-all': {
+      let n = 0, full = false;
+      state.plots.forEach((p, i) => { const g = harvest(i); if (g > 0) n += g; if (g === -1) full = true; });
+      if (n) toast(`Harvested ${plural(n, 'crop')}`);
+      if (full) toast('Some crops are waiting: your barn is full of them.');
+      break;
+    }
+    case 'sow-all': {
+      let n = 0;
+      state.plots.forEach((p, i) => { if (!p.crop && plant(i, true)) n++; });
+      if (!n) { toast(`You need ${I.crop[state.seed].seed} coins per ${itemName(state.seed)} seed.`); return false; }
+      toast(`Sowed ${n} ${itemName(state.seed)}`);
+      break;
+    }
+    case 'tonic': if (!useTonic()) return false; closeSheet(); break;
+    case 'install': if (!installUpgrade(id)) return false; break;
+    case 'tree-slot': {
+      const i = +el.dataset.i;
+      openSheet(`<h2>Plant a tree</h2><p class="sub">Trees fruit forever once planted.</p>${I.trees.map(t => `<div class="store-item">${pic(t.id, 32)}<div class="what"><b>${esc(t.n)}</b><small>${t.yield} ${esc(itemName(t.id))} every ${fmtT(t.grow)} · Farming ${t.lvl}</small></div>
+        <button class="btn small" data-act="plant-tree" data-i="${i}" data-id="${t.id}" ${lvl('farming') >= t.lvl && state.coins >= t.cost ? '' : 'disabled'}>${fmtN(t.cost)}c</button></div>`).join('')}
+        <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
+      return false;
+    }
+    case 'plant-tree': if (!plantTree(+el.dataset.i, id)) return false; closeSheet(); break;
+    case 'tree': { const g = harvestTree(+el.dataset.i); if (g === -1) { toast('Your barn is full of that fruit.'); return false; } if (!g) { toast('Not ready yet.'); return false; } toast(`Picked ${g} fruit`); break; }
+    case 'harvest-trees': { let n = 0; state.orchard.forEach((s, i) => { const g = harvestTree(i); if (g > 0) n += g; }); if (n) toast(`Picked ${n} fruit`); break; }
+    case 'collect': { const g = collectAnimal(I.animal[id]); if (g === -1) { toast(`Your barn is full of ${itemName(I.animal[id].produce)}.`); return false; } if (g) toast(`Collected ${g} ${itemName(I.animal[id].produce)}`); break; }
+    case 'collect-all': { let n = 0; I.animals.forEach(a => { const g = collectAnimal(a); if (g > 0) n += g; }); if (n) toast(`Collected ${n} goods`); break; }
+    case 'buy-animal': if (!buyAnimal(I.animal[id])) return false; break;
+    case 'pet': if (!petAnimals()) return false; break;
+    case 'area': state.area = id; break;
+    case 'explore': explore(el.dataset.n); break;
+    case 'dig': dig(el.dataset.n); break;
+    case 'descend': descend(); break;
+    case 'lift': elevator(+el.dataset.n); break;
+    case 'adventure': { const a = I.adv[id]; if (a && reqMet(a.req)) playAdventure(a, false); return false; }
+    case 'spot': state.spot = id; break;
+    case 'bait': state.bait = id; break;
+    case 'craft': craft(id, el.dataset.n); break;
+    case 'cook': cook(id, el.dataset.n); break;
+    case 'eat': if (!eat(id)) return false; if (sheetOpen()) closeSheet(); break;
+    case 'item': itemSheet(id); return false;
+    case 'sell': { const c = sell(id, el.dataset.n); if (c) toast(`Sold for ${fmtN(c)} coins`); closeSheet(); break; }
+    case 'sell-type': {
+      let c = 0;
+      Object.keys(state.inv).forEach(iid => { if (I.items[iid].t === el.dataset.t && !state.locked[iid]) c += sell(iid, 'all'); });
+      toast(c ? `Sold for ${fmtN(c)} coins` : 'Nothing to sell (locked items are kept)');
+      break;
+    }
+    case 'lock': if (state.locked[id]) delete state.locked[id]; else state.locked[id] = true; commit(); itemSheet(id); return false;
+    case 'buy': if (!buyStore(id)) return false; break;
+    case 'buy-plot': { const c = plotCost(); if (state.coins < c || state.plots.length >= C.core.plots.max) return false; state.coins -= c; state.plots.push({ crop: null, at: 0, ready: 0 }); toast('New plot tilled'); break; }
+    case 'buy-barn': { const nb = C.core.barn[state.barn + 1]; if (!nb || state.coins < nb.cost) return false; state.coins -= nb.cost; state.barn++; toast(`Your ${nb.n} holds ${fmtN(nb.cap)} of each item`); break; }
+    case 'saffi-buy': if (!merchantBuy(+el.dataset.i)) return false; break;
+    case 'saffi-sell': if (!merchantSell()) return false; break;
+    case 'chore': if (!claimChore(+el.dataset.i)) return false; break;
+    case 'chore-bonus': if (state.chores.bonus || !state.chores.list.every(c => c.claimed)) return false; state.chores.bonus = true; addItem('tonic', 2); toast('Bonus: 2 Grow Tonic'); break;
+    case 'deliver': {
+      const r = deliverRequest(id);
+      if (!r) return false;
+      commit();
+      playScene([{ who: id, say: pickLine([I.vil[id].thanks && I.vil[id].thanks.loved].filter(Boolean)) || 'Thank you, {name}!' }], { title: 'Request filled', rewards: r.lines });
+      return false;
+    }
+    case 'chat': {
+      const first = state.chatted[id] !== dayKey();
+      if (first) { state.chatted[id] = dayKey(); addFriend(id, 5); }
+      commit();
+      playScene([{ who: id, say: pickLineFor(id) }]);
+      return false;
+    }
+    case 'gift': giftSheet(id); return false;
+    case 'gift-pick': {
+      const vid = el.dataset.v, kind = giveGift(vid, id);
+      if (!kind) return false;
+      closeSheet(); commit();
+      const v = I.vil[vid];
+      playScene([{ who: vid, say: (v.thanks && v.thanks[kind]) || 'Thank you!' }], { title: `${itemName(id)} for ${v.short || v.n}` });
+      return false;
+    }
+    case 'heart': {
+      const h = heartSceneReady(id);
+      if (!h) return false;
+      state.heartSeen[id] = Object.assign({}, state.heartSeen[id], { [h.at]: now() });
+      const rewards = applyGive(h.give);
+      commit();
+      playScene(h.scene, { title: `${h.at} ♥ · ${h.title}`, rewards });
+      return false;
+    }
+    case 'letter': letterSheet(id); return false;
+    case 'letter-gift': {
+      const m = state.mail.find(x => x.id === id), l = I.letters.find(x => x.id === id);
+      if (!m || m.claimed || !l || !l.give) return false;
+      m.claimed = true; const lines = applyGive(l.give); toast(lines.join(' · ')); closeSheet(); break;
+    }
+    case 'export': {
+      let code = '';
+      try { code = btoa(unescape(encodeURIComponent(JSON.stringify(state)))); } catch (err) { code = ''; }
+      $('#save-box').innerHTML = `<label class="label" for="save-out">Your save code</label><textarea id="save-out" readonly>${esc(code)}</textarea><div class="row"><button class="btn small" data-act="copy">Copy code</button></div>`;
+      return false;
+    }
+    case 'copy': {
+      const ta = $('#save-out');
+      const fallback = () => { ta.focus(); ta.select(); toast('Code selected. Copy it from here.'); };
+      try { navigator.clipboard.writeText(ta.value).then(() => toast('Save code copied'), fallback); } catch (err) { fallback(); }
+      return false;
+    }
+    case 'import-open':
+      $('#save-box').innerHTML = '<label class="label" for="save-in">Paste a save code</label><textarea id="save-in" placeholder="Paste the code from your other device"></textarea><div class="row"><button class="btn small" data-act="import">Load this farm</button></div>';
+      $('#save-in').focus();
+      return false;
+    case 'import':
+      try {
+        const s = JSON.parse(decodeURIComponent(escape(atob($('#save-in').value.trim()))));
+        if (!s || s.v !== 2) throw new Error('bad');
+        state = migrate(s); state.savedAt = now();
+        toast('Farm loaded');
+        renderAll();
+        break;
+      } catch (err) { toast("That code didn't work. Copy the whole code and try again."); return false; }
+    case 'reset':
+      if (el.dataset.armed !== '1') {
+        el.dataset.armed = '1'; el.textContent = 'Tap again to erase your farm';
+        setTimeout(() => { if (el.isConnected) { el.dataset.armed = ''; el.textContent = 'Start over'; } }, 4000);
+        return false;
+      }
+      state = freshState(); state.savedAt = now(); exploreLog = []; mineLog = []; catchLog = [];
+      renderAll(); commit(); askName();
+      return false;
+    default: return false;
+  }
+  return true;
+}
+
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-act="fish-btn"]');
+  if (!b || e.button > 0 || !state) return;
+  fishButton();   // fishing reacts on press for tight timing; keyboard presses arrive as clicks with detail 0
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sheetOpen()) { closeSheet(); return; }
+  if (state && state.tab === 'fish' && e.key === ' ' && !e.target.closest('button, input, textarea') && !sceneOpen && !advRun) { e.preventDefault(); fishButton(); }
+});
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el || !state) return;
+  const act = el.dataset.act;
+  if (act === 'fish-btn') { if (e.detail === 0) fishButton(); return; }
+  if (act === 'sheet-close') { if (e.target === el || el.tagName === 'BUTTON') closeSheet(); return; }
+  if (handle(act, el, e)) commit();
+});

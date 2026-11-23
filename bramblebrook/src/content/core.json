@@ -1,0 +1,2974 @@
+{
+ "skills": [
+  {
+   "id": "farming",
+   "n": "Farming",
+   "short": "Farm"
+  },
+  {
+   "id": "fishing",
+   "n": "Fishing",
+   "short": "Fish"
+  },
+  {
+   "id": "foraging",
+   "n": "Foraging",
+   "short": "Forage"
+  },
+  {
+   "id": "mining",
+   "n": "Mining",
+   "short": "Mine"
+  },
+  {
+   "id": "crafting",
+   "n": "Crafting",
+   "short": "Craft"
+  },
+  {
+   "id": "cooking",
+   "n": "Cooking",
+   "short": "Cook"
+  }
+ ],
+ "types": {
+  "crop": "Crops",
+  "fruit": "Fruit",
+  "animal": "Animal goods",
+  "forage": "Forage",
+  "ore": "Ore & gems",
+  "fish": "Fish & finds",
+  "bait": "Bait",
+  "crafted": "Crafted goods",
+  "meal": "Meals",
+  "key": "Keepsakes"
+ },
+ "items": {
+  "wheat": {
+   "n": "Wheat",
+   "i": "🌾",
+   "t": "crop",
+   "s": 4
+  },
+  "carrot": {
+   "n": "Carrot",
+   "i": "🥕",
+   "t": "crop",
+   "s": 9
+  },
+  "potato": {
+   "n": "Potato",
+   "i": "🥔",
+   "t": "crop",
+   "s": 18
+  },
+  "cabbage": {
+   "n": "Cabbage",
+   "i": "🥬",
+   "t": "crop",
+   "s": 26
+  },
+  "tomato": {
+   "n": "Tomato",
+   "i": "🍅",
+   "t": "crop",
+   "s": 40
+  },
+  "garlic": {
+   "n": "Garlic",
+   "i": "🧄",
+   "t": "crop",
+   "s": 48
+  },
+  "corn": {
+   "n": "Corn",
+   "i": "🌽",
+   "t": "crop",
+   "s": 58
+  },
+  "onion": {
+   "n": "Onion",
+   "i": "🧅",
+   "t": "crop",
+   "s": 66
+  },
+  "strawberry": {
+   "n": "Strawberry",
+   "i": "🍓",
+   "t": "crop",
+   "s": 82
+  },
+  "cucumber": {
+   "n": "Cucumber",
+   "i": "🥒",
+   "t": "crop",
+   "s": 100
+  },
+  "pepper": {
+   "n": "Chili Pepper",
+   "i": "🌶️",
+   "t": "crop",
+   "s": 120
+  },
+  "pumpkin": {
+   "n": "Pumpkin",
+   "i": "🎃",
+   "t": "crop",
+   "s": 165
+  },
+  "sunflower": {
+   "n": "Sunflower",
+   "i": "🌻",
+   "t": "crop",
+   "s": 205
+  },
+  "eggplant": {
+   "n": "Eggplant",
+   "i": "🍆",
+   "t": "crop",
+   "s": 245
+  },
+  "grapes": {
+   "n": "Grapes",
+   "i": "🍇",
+   "t": "crop",
+   "s": 295
+  },
+  "watermelon": {
+   "n": "Watermelon",
+   "i": "🍉",
+   "t": "crop",
+   "s": 360
+  },
+  "turnip": {
+   "n": "Turnip",
+   "i": "🥔",
+   "t": "crop",
+   "s": 13,
+   "f": "hue-rotate(260deg) brightness(1.2)"
+  },
+  "lettuce": {
+   "n": "Lettuce",
+   "i": "🥬",
+   "t": "crop",
+   "s": 22
+  },
+  "beetroot": {
+   "n": "Beetroot",
+   "i": "🫜",
+   "t": "crop",
+   "s": 33
+  },
+  "greenbeans": {
+   "n": "Green Beans",
+   "i": "🫛",
+   "t": "crop",
+   "s": 52
+  },
+  "broccoli": {
+   "n": "Broccoli",
+   "i": "🥦",
+   "t": "crop",
+   "s": 92
+  },
+  "cauliflower": {
+   "n": "Cauliflower",
+   "i": "🥦",
+   "t": "crop",
+   "s": 110,
+   "f": "grayscale(1) brightness(1.5)"
+  },
+  "leek": {
+   "n": "Leek",
+   "i": "🧅",
+   "t": "crop",
+   "s": 140,
+   "f": "hue-rotate(80deg)"
+  },
+  "asparagus": {
+   "n": "Asparagus",
+   "i": "🌱",
+   "t": "crop",
+   "s": 185
+  },
+  "redpepper": {
+   "n": "Bell Pepper",
+   "i": "🫑",
+   "t": "crop",
+   "s": 270,
+   "f": "hue-rotate(-100deg)"
+  },
+  "celery": {
+   "n": "Celery",
+   "i": "🥬",
+   "t": "crop",
+   "s": 320,
+   "f": "hue-rotate(20deg) brightness(1.2)"
+  },
+  "moonbloom": {
+   "n": "Moonbloom",
+   "i": "🌸",
+   "t": "crop",
+   "s": 640,
+   "f": "hue-rotate(200deg) saturate(1.6)"
+  },
+  "apple": {
+   "n": "Apple",
+   "i": "🍎",
+   "t": "fruit",
+   "s": 14
+  },
+  "pear": {
+   "n": "Pear",
+   "i": "🍐",
+   "t": "fruit",
+   "s": 22
+  },
+  "cherry": {
+   "n": "Cherries",
+   "i": "🍒",
+   "t": "fruit",
+   "s": 26
+  },
+  "peach": {
+   "n": "Peach",
+   "i": "🍑",
+   "t": "fruit",
+   "s": 48
+  },
+  "lemon": {
+   "n": "Lemon",
+   "i": "🍋",
+   "t": "fruit",
+   "s": 70
+  },
+  "egg": {
+   "n": "Egg",
+   "i": "🥚",
+   "t": "animal",
+   "s": 12
+  },
+  "milk": {
+   "n": "Milk",
+   "i": "🥛",
+   "t": "animal",
+   "s": 30
+  },
+  "wool": {
+   "n": "Wool",
+   "i": "☁️",
+   "t": "animal",
+   "s": 24
+  },
+  "honeycomb": {
+   "n": "Honeycomb",
+   "i": "🍯",
+   "t": "animal",
+   "s": 30
+  },
+  "pebble": {
+   "n": "Pebble",
+   "i": "🪨",
+   "t": "forage",
+   "s": 2
+  },
+  "wildflower": {
+   "n": "Wildflower",
+   "i": "🌼",
+   "t": "forage",
+   "s": 3
+  },
+  "clover": {
+   "n": "Clover",
+   "i": "🍀",
+   "t": "forage",
+   "s": 4
+  },
+  "feather": {
+   "n": "Feather",
+   "i": "🪶",
+   "t": "forage",
+   "s": 5
+  },
+  "wood": {
+   "n": "Wood",
+   "i": "🪵",
+   "t": "forage",
+   "s": 4
+  },
+  "mushroom": {
+   "n": "Mushroom",
+   "i": "🍄",
+   "t": "forage",
+   "s": 8
+  },
+  "acorn": {
+   "n": "Acorn",
+   "i": "🌰",
+   "t": "forage",
+   "s": 6
+  },
+  "berries": {
+   "n": "Wild Berries",
+   "i": "🫐",
+   "t": "forage",
+   "s": 10
+  },
+  "sap": {
+   "n": "Tree Sap",
+   "i": "💧",
+   "t": "forage",
+   "s": 9
+  },
+  "fern": {
+   "n": "Fern",
+   "i": "🌿",
+   "t": "forage",
+   "s": 7
+  },
+  "goldacorn": {
+   "n": "Golden Acorn",
+   "i": "🌰",
+   "t": "forage",
+   "s": 150,
+   "f": "sepia(1) saturate(4) brightness(1.15)"
+  },
+  "reed": {
+   "n": "River Reed",
+   "i": "🎋",
+   "t": "forage",
+   "s": 6
+  },
+  "clay": {
+   "n": "Clay",
+   "i": "🟤",
+   "t": "forage",
+   "s": 8
+  },
+  "shell": {
+   "n": "Seashell",
+   "i": "🐚",
+   "t": "forage",
+   "s": 10
+  },
+  "driftwood": {
+   "n": "Driftwood",
+   "i": "🪵",
+   "t": "forage",
+   "s": 6,
+   "f": "grayscale(.6) brightness(1.25)"
+  },
+  "seaweed": {
+   "n": "Seaweed",
+   "i": "🌿",
+   "t": "forage",
+   "s": 7,
+   "f": "hue-rotate(-50deg) brightness(.75)"
+  },
+  "starfish": {
+   "n": "Starfish",
+   "i": "⭐",
+   "t": "forage",
+   "s": 35,
+   "f": "hue-rotate(-30deg) saturate(1.5)"
+  },
+  "seaglass": {
+   "n": "Sea Glass",
+   "i": "🔹",
+   "t": "forage",
+   "s": 40
+  },
+  "thyme": {
+   "n": "Highland Thyme",
+   "i": "🌱",
+   "t": "forage",
+   "s": 16
+  },
+  "heather": {
+   "n": "Heather",
+   "i": "🌸",
+   "t": "forage",
+   "s": 20,
+   "f": "hue-rotate(40deg)"
+  },
+  "eaglefeather": {
+   "n": "Eagle Feather",
+   "i": "🪶",
+   "t": "forage",
+   "s": 60,
+   "f": "sepia(.8) brightness(.7)"
+  },
+  "oldcoin": {
+   "n": "Ancient Coin",
+   "i": "🪙",
+   "t": "forage",
+   "s": 400
+  },
+  "glowcap": {
+   "n": "Glowcap",
+   "i": "🍄",
+   "t": "forage",
+   "s": 30,
+   "f": "hue-rotate(180deg) brightness(1.3)"
+  },
+  "copper": {
+   "n": "Copper Ore",
+   "i": "🪨",
+   "t": "ore",
+   "s": 12,
+   "f": "sepia(1) saturate(5) hue-rotate(-15deg) brightness(.95)"
+  },
+  "coal": {
+   "n": "Coal",
+   "i": "🪨",
+   "t": "ore",
+   "s": 8,
+   "f": "grayscale(1) brightness(.35) contrast(1.4)"
+  },
+  "iron": {
+   "n": "Iron Ore",
+   "i": "🪨",
+   "t": "ore",
+   "s": 18,
+   "f": "grayscale(1) brightness(.78) contrast(1.2)"
+  },
+  "silver": {
+   "n": "Silver Ore",
+   "i": "🪨",
+   "t": "ore",
+   "s": 40,
+   "f": "grayscale(1) brightness(1.55)"
+  },
+  "gold": {
+   "n": "Gold Ore",
+   "i": "🪨",
+   "t": "ore",
+   "s": 70,
+   "f": "sepia(1) saturate(4) brightness(1.2)"
+  },
+  "obsidian": {
+   "n": "Obsidian",
+   "i": "🪨",
+   "t": "ore",
+   "s": 90,
+   "f": "brightness(.3) sepia(1) hue-rotate(220deg) saturate(3)"
+  },
+  "fossil": {
+   "n": "Fossil",
+   "i": "🦴",
+   "t": "ore",
+   "s": 120
+  },
+  "crystal": {
+   "n": "Sky Crystal",
+   "i": "🔮",
+   "t": "ore",
+   "s": 90
+  },
+  "amethyst": {
+   "n": "Amethyst",
+   "i": "💎",
+   "t": "ore",
+   "s": 150,
+   "f": "hue-rotate(70deg)"
+  },
+  "emerald": {
+   "n": "Emerald",
+   "i": "💎",
+   "t": "ore",
+   "s": 220,
+   "f": "hue-rotate(-75deg) saturate(1.4)"
+  },
+  "ruby": {
+   "n": "Ruby",
+   "i": "💎",
+   "t": "ore",
+   "s": 260,
+   "f": "hue-rotate(140deg) saturate(2)"
+  },
+  "starshard": {
+   "n": "Star Shard",
+   "i": "✨",
+   "t": "ore",
+   "s": 600
+  },
+  "worm": {
+   "n": "Worm",
+   "i": "🪱",
+   "t": "bait",
+   "s": 1
+  },
+  "lure": {
+   "n": "Shiny Lure",
+   "i": "🪝",
+   "t": "bait",
+   "s": 40
+  },
+  "glowbait": {
+   "n": "Glow Grub",
+   "i": "🪱",
+   "t": "bait",
+   "s": 25,
+   "f": "hue-rotate(180deg) brightness(1.3)"
+  },
+  "minnow": {
+   "n": "Minnow",
+   "i": "🐟",
+   "t": "fish",
+   "s": 6
+  },
+  "perch": {
+   "n": "Yellow Perch",
+   "i": "🐟",
+   "t": "fish",
+   "s": 10,
+   "f": "hue-rotate(70deg) saturate(1.4)"
+  },
+  "snail": {
+   "n": "Pond Snail",
+   "i": "🐌",
+   "t": "fish",
+   "s": 5
+  },
+  "carp": {
+   "n": "Carp",
+   "i": "🐠",
+   "t": "fish",
+   "s": 16
+  },
+  "bullfrog": {
+   "n": "Bullfrog",
+   "i": "🐸",
+   "t": "fish",
+   "s": 20
+  },
+  "sunfish": {
+   "n": "Sunfish",
+   "i": "🐠",
+   "t": "fish",
+   "s": 24,
+   "f": "hue-rotate(160deg)"
+  },
+  "boot": {
+   "n": "Old Boot",
+   "i": "🥾",
+   "t": "fish",
+   "s": 1
+  },
+  "whiskers": {
+   "n": "Old Whiskers",
+   "i": "🐟",
+   "t": "fish",
+   "s": 800,
+   "f": "sepia(1) saturate(3) brightness(1.1)"
+  },
+  "trout": {
+   "n": "Rainbow Trout",
+   "i": "🐟",
+   "t": "fish",
+   "s": 28,
+   "f": "hue-rotate(150deg) saturate(1.6)"
+  },
+  "salmon": {
+   "n": "River Salmon",
+   "i": "🐟",
+   "t": "fish",
+   "s": 50,
+   "f": "hue-rotate(-40deg) saturate(1.5)"
+  },
+  "catfish": {
+   "n": "Catfish",
+   "i": "🐟",
+   "t": "fish",
+   "s": 36,
+   "f": "grayscale(.7) brightness(.8)"
+  },
+  "crayfish": {
+   "n": "Crayfish",
+   "i": "🦞",
+   "t": "fish",
+   "s": 44
+  },
+  "eel": {
+   "n": "River Eel",
+   "i": "🐍",
+   "t": "fish",
+   "s": 60,
+   "f": "hue-rotate(40deg) brightness(.8)"
+  },
+  "pike": {
+   "n": "Pike",
+   "i": "🐟",
+   "t": "fish",
+   "s": 75,
+   "f": "hue-rotate(250deg)"
+  },
+  "compass": {
+   "n": "Old Compass",
+   "i": "🧭",
+   "t": "fish",
+   "s": 300
+  },
+  "silverjaw": {
+   "n": "Silverjaw",
+   "i": "🐟",
+   "t": "fish",
+   "s": 1200,
+   "f": "grayscale(1) brightness(1.6)"
+  },
+  "shrimp": {
+   "n": "Shrimp",
+   "i": "🦐",
+   "t": "fish",
+   "s": 50
+  },
+  "crab": {
+   "n": "Rock Crab",
+   "i": "🦀",
+   "t": "fish",
+   "s": 70
+  },
+  "squid": {
+   "n": "Squid",
+   "i": "🦑",
+   "t": "fish",
+   "s": 95
+  },
+  "puffer": {
+   "n": "Pufferfish",
+   "i": "🐡",
+   "t": "fish",
+   "s": 120
+  },
+  "octopus": {
+   "n": "Octopus",
+   "i": "🐙",
+   "t": "fish",
+   "s": 160
+  },
+  "bluelobster": {
+   "n": "Blue Lobster",
+   "i": "🦞",
+   "t": "fish",
+   "s": 350,
+   "f": "hue-rotate(200deg)"
+  },
+  "oyster": {
+   "n": "Pearl Oyster",
+   "i": "🦪",
+   "t": "fish",
+   "s": 260
+  },
+  "mossback": {
+   "n": "Old Mossback",
+   "i": "🐢",
+   "t": "fish",
+   "s": 1800
+  },
+  "char": {
+   "n": "Arctic Char",
+   "i": "🐟",
+   "t": "fish",
+   "s": 90,
+   "f": "hue-rotate(300deg) saturate(1.5)"
+  },
+  "grayling": {
+   "n": "Grayling",
+   "i": "🐟",
+   "t": "fish",
+   "s": 110,
+   "f": "grayscale(.85)"
+  },
+  "iceperch": {
+   "n": "Ice Perch",
+   "i": "🐟",
+   "t": "fish",
+   "s": 130,
+   "f": "hue-rotate(190deg) brightness(1.2)"
+  },
+  "ghostminnow": {
+   "n": "Ghost Minnow",
+   "i": "🐟",
+   "t": "fish",
+   "s": 200,
+   "f": "grayscale(1) brightness(1.8)"
+  },
+  "glimmerfin": {
+   "n": "Glimmerfin",
+   "i": "🐠",
+   "t": "fish",
+   "s": 2500,
+   "f": "hue-rotate(260deg) saturate(2)"
+  },
+  "twine": {
+   "n": "Twine",
+   "i": "🧵",
+   "t": "crafted",
+   "s": 16
+  },
+  "plank": {
+   "n": "Plank",
+   "i": "🟫",
+   "t": "crafted",
+   "s": 11
+  },
+  "block": {
+   "n": "Stone Block",
+   "i": "🧱",
+   "t": "crafted",
+   "s": 12
+  },
+  "rope": {
+   "n": "Rope",
+   "i": "🪢",
+   "t": "crafted",
+   "s": 55
+  },
+  "bouquet": {
+   "n": "Bouquet",
+   "i": "💐",
+   "t": "crafted",
+   "s": 45
+  },
+  "candle": {
+   "n": "Beeswax Candle",
+   "i": "🕯️",
+   "t": "crafted",
+   "s": 60
+  },
+  "tonic": {
+   "n": "Grow Tonic",
+   "i": "🧪",
+   "t": "crafted",
+   "s": 35
+  },
+  "copperbar": {
+   "n": "Copper Bar",
+   "i": "🟧",
+   "t": "crafted",
+   "s": 60
+  },
+  "nails": {
+   "n": "Iron Nails",
+   "i": "🔩",
+   "t": "crafted",
+   "s": 8
+  },
+  "ironbar": {
+   "n": "Iron Bar",
+   "i": "⬛",
+   "t": "crafted",
+   "s": 85
+  },
+  "silverbar": {
+   "n": "Silver Bar",
+   "i": "⬜",
+   "t": "crafted",
+   "s": 180
+  },
+  "goldbar": {
+   "n": "Gold Bar",
+   "i": "🟨",
+   "t": "crafted",
+   "s": 320
+  },
+  "basket": {
+   "n": "Woven Basket",
+   "i": "🧺",
+   "t": "crafted",
+   "s": 140
+  },
+  "crate": {
+   "n": "Crate",
+   "i": "📦",
+   "t": "crafted",
+   "s": 150
+  },
+  "bucket": {
+   "n": "Copper Bucket",
+   "i": "🪣",
+   "t": "crafted",
+   "s": 240
+  },
+  "lantern": {
+   "n": "Lantern",
+   "i": "🏮",
+   "t": "crafted",
+   "s": 190
+  },
+  "yarn": {
+   "n": "Yarn",
+   "i": "🧶",
+   "t": "crafted",
+   "s": 90
+  },
+  "chime": {
+   "n": "Shell Wind Chime",
+   "i": "🎐",
+   "t": "crafted",
+   "s": 130
+  },
+  "ring": {
+   "n": "Silver Ring",
+   "i": "💍",
+   "t": "crafted",
+   "s": 380
+  },
+  "necklace": {
+   "n": "Sea Glass Necklace",
+   "i": "📿",
+   "t": "crafted",
+   "s": 420
+  },
+  "lens": {
+   "n": "Lighthouse Lens",
+   "i": "🔍",
+   "t": "crafted",
+   "s": 600
+  },
+  "lamp": {
+   "n": "Crystal Lamp",
+   "i": "💡",
+   "t": "crafted",
+   "s": 650
+  },
+  "bellrope": {
+   "n": "Bell Rope",
+   "i": "🪢",
+   "t": "crafted",
+   "s": 500,
+   "f": "hue-rotate(160deg) saturate(1.6)"
+  },
+  "clapper": {
+   "n": "Star-Iron Clapper",
+   "i": "🔔",
+   "t": "crafted",
+   "s": 2400
+  },
+  "sprinkler1": {
+   "n": "Copper Sprinkler",
+   "i": "💦",
+   "t": "crafted",
+   "s": 200
+  },
+  "sprinkler2": {
+   "n": "Iron Sprinkler",
+   "i": "💦",
+   "t": "crafted",
+   "s": 450,
+   "f": "grayscale(1) brightness(.9)"
+  },
+  "sprinkler3": {
+   "n": "Gold Sprinkler",
+   "i": "💦",
+   "t": "crafted",
+   "s": 1100,
+   "f": "sepia(1) saturate(4) hue-rotate(-10deg)"
+  },
+  "scarecrow": {
+   "n": "Scarecrow",
+   "i": "🧑‍🌾",
+   "t": "crafted",
+   "s": 180
+  },
+  "bread": {
+   "n": "Country Bread",
+   "i": "🍞",
+   "t": "meal",
+   "s": 22
+  },
+  "friedegg": {
+   "n": "Fried Eggs",
+   "i": "🍳",
+   "t": "meal",
+   "s": 32
+  },
+  "trailmix": {
+   "n": "Trail Mix",
+   "i": "🥜",
+   "t": "meal",
+   "s": 40
+  },
+  "salad": {
+   "n": "Garden Salad",
+   "i": "🥗",
+   "t": "meal",
+   "s": 95
+  },
+  "soup": {
+   "n": "Root Soup",
+   "i": "🍲",
+   "t": "meal",
+   "s": 115
+  },
+  "berrypie": {
+   "n": "Berry Pie",
+   "i": "🥧",
+   "t": "meal",
+   "s": 125
+  },
+  "pancakes": {
+   "n": "Pancakes",
+   "i": "🥞",
+   "t": "meal",
+   "s": 135
+  },
+  "cheese": {
+   "n": "Farmhouse Cheese",
+   "i": "🧀",
+   "t": "meal",
+   "s": 110
+  },
+  "platter": {
+   "n": "Fisher's Platter",
+   "i": "🍱",
+   "t": "meal",
+   "s": 105
+  },
+  "tea": {
+   "n": "Forest Tea",
+   "i": "🍵",
+   "t": "meal",
+   "s": 70
+  },
+  "sandwich": {
+   "n": "Miner's Sandwich",
+   "i": "🥪",
+   "t": "meal",
+   "s": 210
+  },
+  "stew": {
+   "n": "River Stew",
+   "i": "🥘",
+   "t": "meal",
+   "s": 270
+  },
+  "jam": {
+   "n": "Strawberry Jam",
+   "i": "🫙",
+   "t": "meal",
+   "s": 420
+  },
+  "cake": {
+   "n": "Celebration Cake",
+   "i": "🎂",
+   "t": "meal",
+   "s": 620
+  },
+  "chowder": {
+   "n": "Cove Chowder",
+   "i": "🥣",
+   "t": "meal",
+   "s": 390
+  },
+  "applepie": {
+   "n": "Apple Pie",
+   "i": "🥧",
+   "t": "meal",
+   "s": 260,
+   "f": "sepia(.6) saturate(1.4)"
+  },
+  "lemonade": {
+   "n": "Lemonade",
+   "i": "🥤",
+   "t": "meal",
+   "s": 230
+  },
+  "feast": {
+   "n": "Harvest Feast",
+   "i": "🍽️",
+   "t": "meal",
+   "s": 1600
+  },
+  "oldkey": {
+   "n": "Wren's Key",
+   "i": "🗝️",
+   "t": "key",
+   "s": 0
+  },
+  "wrenmap": {
+   "n": "Wren's Map",
+   "i": "🗺️",
+   "t": "key",
+   "s": 0
+  },
+  "locket": {
+   "n": "Silver Locket",
+   "i": "📿",
+   "t": "key",
+   "s": 0,
+   "f": "grayscale(1) brightness(1.4)"
+  },
+  "telescope": {
+   "n": "Brass Telescope",
+   "i": "🔭",
+   "t": "key",
+   "s": 0
+  },
+  "seedpouch": {
+   "n": "Heirloom Seed Pouch",
+   "i": "👝",
+   "t": "key",
+   "s": 0
+  },
+  "fairribbon": {
+   "n": "Blue Ribbon",
+   "i": "🎀",
+   "t": "key",
+   "s": 0,
+   "f": "hue-rotate(200deg)"
+  },
+  "logbook": {
+   "n": "Keeper's Logbook",
+   "i": "📔",
+   "t": "key",
+   "s": 0
+  }
+ },
+ "crops": [
+  {
+   "id": "wheat",
+   "seed": 2,
+   "grow": 30,
+   "xp": 2,
+   "lvl": 1,
+   "h": 45
+  },
+  {
+   "id": "carrot",
+   "seed": 4,
+   "grow": 60,
+   "xp": 4,
+   "lvl": 1,
+   "h": 25
+  },
+  {
+   "id": "turnip",
+   "seed": 6,
+   "grow": 90,
+   "xp": 5,
+   "lvl": 2,
+   "h": 290
+  },
+  {
+   "id": "potato",
+   "seed": 8,
+   "grow": 120,
+   "xp": 7,
+   "lvl": 2,
+   "h": 35
+  },
+  {
+   "id": "lettuce",
+   "seed": 10,
+   "grow": 150,
+   "xp": 8,
+   "lvl": 3,
+   "h": 95
+  },
+  {
+   "id": "cabbage",
+   "seed": 12,
+   "grow": 180,
+   "xp": 10,
+   "lvl": 3,
+   "h": 100
+  },
+  {
+   "id": "beetroot",
+   "seed": 14,
+   "grow": 210,
+   "xp": 11,
+   "lvl": 4,
+   "h": 340
+  },
+  {
+   "id": "tomato",
+   "seed": 18,
+   "grow": 240,
+   "xp": 14,
+   "lvl": 4,
+   "h": 5
+  },
+  {
+   "id": "garlic",
+   "seed": 22,
+   "grow": 300,
+   "xp": 16,
+   "lvl": 5,
+   "h": 60
+  },
+  {
+   "id": "greenbeans",
+   "seed": 24,
+   "grow": 330,
+   "xp": 17,
+   "lvl": 6,
+   "h": 110
+  },
+  {
+   "id": "corn",
+   "seed": 26,
+   "grow": 360,
+   "xp": 19,
+   "lvl": 6,
+   "h": 50
+  },
+  {
+   "id": "onion",
+   "seed": 30,
+   "grow": 420,
+   "xp": 22,
+   "lvl": 7,
+   "h": 300
+  },
+  {
+   "id": "strawberry",
+   "seed": 36,
+   "grow": 480,
+   "xp": 26,
+   "lvl": 8,
+   "h": 350
+  },
+  {
+   "id": "broccoli",
+   "seed": 40,
+   "grow": 540,
+   "xp": 28,
+   "lvl": 9,
+   "h": 125
+  },
+  {
+   "id": "cucumber",
+   "seed": 44,
+   "grow": 600,
+   "xp": 31,
+   "lvl": 10,
+   "h": 120
+  },
+  {
+   "id": "cauliflower",
+   "seed": 48,
+   "grow": 660,
+   "xp": 33,
+   "lvl": 11,
+   "h": 60
+  },
+  {
+   "id": "pepper",
+   "seed": 52,
+   "grow": 720,
+   "xp": 36,
+   "lvl": 12,
+   "h": 12
+  },
+  {
+   "id": "leek",
+   "seed": 60,
+   "grow": 780,
+   "xp": 40,
+   "lvl": 13,
+   "h": 90
+  },
+  {
+   "id": "pumpkin",
+   "seed": 70,
+   "grow": 900,
+   "xp": 45,
+   "lvl": 14,
+   "h": 28
+  },
+  {
+   "id": "asparagus",
+   "seed": 78,
+   "grow": 960,
+   "xp": 49,
+   "lvl": 15,
+   "h": 100
+  },
+  {
+   "id": "sunflower",
+   "seed": 85,
+   "grow": 1080,
+   "xp": 54,
+   "lvl": 16,
+   "h": 48
+  },
+  {
+   "id": "eggplant",
+   "seed": 100,
+   "grow": 1320,
+   "xp": 63,
+   "lvl": 18,
+   "h": 280
+  },
+  {
+   "id": "redpepper",
+   "seed": 110,
+   "grow": 1440,
+   "xp": 68,
+   "lvl": 19,
+   "h": 0
+  },
+  {
+   "id": "grapes",
+   "seed": 120,
+   "grow": 1560,
+   "xp": 74,
+   "lvl": 20,
+   "h": 270
+  },
+  {
+   "id": "celery",
+   "seed": 130,
+   "grow": 1680,
+   "xp": 80,
+   "lvl": 21,
+   "h": 80
+  },
+  {
+   "id": "watermelon",
+   "seed": 145,
+   "grow": 1800,
+   "xp": 88,
+   "lvl": 23,
+   "h": 140
+  },
+  {
+   "id": "moonbloom",
+   "seed": 200,
+   "grow": 2400,
+   "xp": 120,
+   "lvl": 12,
+   "h": 260,
+   "flag": "heirloom"
+  }
+ ],
+ "trees": [
+  {
+   "id": "apple",
+   "n": "Apple tree",
+   "cost": 300,
+   "grow": 1200,
+   "yield": 3,
+   "lvl": 4,
+   "xp": 10
+  },
+  {
+   "id": "pear",
+   "n": "Pear tree",
+   "cost": 600,
+   "grow": 1500,
+   "yield": 3,
+   "lvl": 7,
+   "xp": 14
+  },
+  {
+   "id": "cherry",
+   "n": "Cherry tree",
+   "cost": 1000,
+   "grow": 1800,
+   "yield": 4,
+   "lvl": 10,
+   "xp": 18
+  },
+  {
+   "id": "peach",
+   "n": "Peach tree",
+   "cost": 1600,
+   "grow": 2100,
+   "yield": 3,
+   "lvl": 14,
+   "xp": 24
+  },
+  {
+   "id": "lemon",
+   "n": "Lemon tree",
+   "cost": 2500,
+   "grow": 2400,
+   "yield": 3,
+   "lvl": 18,
+   "xp": 30
+  }
+ ],
+ "orchardSlots": 6,
+ "animals": [
+  {
+   "id": "chicken",
+   "n": "Chickens",
+   "one": "Chicken",
+   "i": "🐔",
+   "produce": "egg",
+   "every": 600,
+   "cost": 250,
+   "max": 10,
+   "unlock": "coop",
+   "home": "Coop",
+   "xp": 3
+  },
+  {
+   "id": "cow",
+   "n": "Cows",
+   "one": "Cow",
+   "i": "🐄",
+   "produce": "milk",
+   "every": 1200,
+   "cost": 900,
+   "max": 6,
+   "unlock": "barnyard",
+   "home": "Barnyard",
+   "xp": 6
+  },
+  {
+   "id": "bee",
+   "n": "Beehives",
+   "one": "Beehive",
+   "i": "🐝",
+   "produce": "honeycomb",
+   "every": 1800,
+   "cost": 1000,
+   "max": 6,
+   "unlock": "apiary",
+   "home": "Apiary",
+   "xp": 7
+  },
+  {
+   "id": "sheep",
+   "n": "Sheep",
+   "one": "Sheep",
+   "i": "🐑",
+   "produce": "wool",
+   "every": 1500,
+   "cost": 1200,
+   "max": 6,
+   "unlock": "pasture",
+   "home": "Pasture",
+   "xp": 7
+  }
+ ],
+ "animalStore": 3,
+ "areas": [
+  {
+   "id": "meadow",
+   "n": "Sunny Meadow",
+   "lvl": 1,
+   "xp": 2,
+   "blurb": "Tall grass behind the farmhouse.",
+   "drops": {
+    "none": 14,
+    "pebble": 26,
+    "wildflower": 22,
+    "clover": 16,
+    "worm": 12,
+    "feather": 8,
+    "honeycomb": 2
+   },
+   "empty": [
+    "You chased a butterfly and found nothing else.",
+    "Just grass and sunshine.",
+    "A rabbit watched you leave empty-handed."
+   ]
+  },
+  {
+   "id": "woods",
+   "n": "Mossy Woods",
+   "lvl": 3,
+   "xp": 3,
+   "blurb": "Old oaks, soft ground, quiet birds.",
+   "drops": {
+    "none": 12,
+    "wood": 30,
+    "mushroom": 18,
+    "acorn": 16,
+    "berries": 12,
+    "sap": 10,
+    "fern": 8,
+    "feather": 4,
+    "goldacorn": 0.6
+   },
+   "empty": [
+    "The path looped back on itself.",
+    "You sat on a stump for a while.",
+    "A squirrel got there first."
+   ]
+  },
+  {
+   "id": "banks",
+   "n": "Willow Banks",
+   "lvl": 4,
+   "xp": 3,
+   "unlock": "banks",
+   "blurb": "Muddy banks past the new footbridge.",
+   "drops": {
+    "none": 12,
+    "reed": 26,
+    "clay": 18,
+    "worm": 16,
+    "pebble": 12,
+    "wildflower": 10,
+    "amethyst": 0.8
+   },
+   "empty": [
+    "Your boot got stuck in the mud.",
+    "A heron ignored you completely.",
+    "The willows whispered. Nothing else."
+   ]
+  },
+  {
+   "id": "quarry",
+   "n": "Old Quarry",
+   "lvl": 5,
+   "xp": 4,
+   "blurb": "Abandoned cuts in the hillside.",
+   "drops": {
+    "none": 12,
+    "pebble": 24,
+    "copper": 22,
+    "coal": 18,
+    "iron": 12,
+    "clay": 6,
+    "fossil": 1.5,
+    "amethyst": 1.2
+   },
+   "empty": [
+    "Dust, and more dust.",
+    "The rock face kept its secrets.",
+    "Your pick bounced off granite."
+   ]
+  },
+  {
+   "id": "beach",
+   "n": "Saltspray Beach",
+   "lvl": 7,
+   "xp": 5,
+   "unlock": "beach",
+   "blurb": "Wide sand below the lighthouse.",
+   "drops": {
+    "none": 10,
+    "shell": 26,
+    "driftwood": 22,
+    "seaweed": 20,
+    "starfish": 8,
+    "seaglass": 6,
+    "crab": 2
+   },
+   "empty": [
+    "A wave washed your footprints away.",
+    "Gulls laughed at you.",
+    "Only sand in your shoes."
+   ]
+  },
+  {
+   "id": "highlands",
+   "n": "Windy Highlands",
+   "lvl": 10,
+   "xp": 6,
+   "unlock": "highlands",
+   "blurb": "Sheep tracks up past the tree line.",
+   "drops": {
+    "none": 10,
+    "wool": 22,
+    "thyme": 20,
+    "heather": 16,
+    "eaglefeather": 6,
+    "silver": 10,
+    "crystal": 5,
+    "oldcoin": 0.6
+   },
+   "empty": [
+    "The wind took your hat. You got it back.",
+    "Fog rolled in and you turned around.",
+    "Sheep stared. Nothing found."
+   ]
+  }
+ ],
+ "mine": {
+  "floors": 30,
+  "checkpoints": [
+   1,
+   5,
+   10,
+   15,
+   20,
+   25
+  ],
+  "gates": {
+   "10": 4,
+   "20": 10,
+   "25": 14
+  },
+  "stairs": 0.11,
+  "bands": [
+   {
+    "from": 1,
+    "to": 9,
+    "drops": {
+     "none": 10,
+     "pebble": 28,
+     "copper": 25,
+     "coal": 22,
+     "iron": 12,
+     "clay": 6,
+     "fossil": 1
+    }
+   },
+   {
+    "from": 10,
+    "to": 19,
+    "drops": {
+     "none": 10,
+     "coal": 20,
+     "iron": 24,
+     "silver": 16,
+     "crystal": 8,
+     "glowcap": 10,
+     "amethyst": 3,
+     "fossil": 2
+    }
+   },
+   {
+    "from": 20,
+    "to": 30,
+    "drops": {
+     "none": 8,
+     "iron": 16,
+     "silver": 20,
+     "gold": 18,
+     "obsidian": 12,
+     "crystal": 10,
+     "emerald": 2,
+     "ruby": 2
+    }
+   }
+  ],
+  "rare": [
+   {
+    "item": "starshard",
+    "from": 25,
+    "w": 1.2
+   }
+  ],
+  "empty": [
+   "Just rock.",
+   "Your lamp flickered. Nothing here.",
+   "A drip of water, then silence.",
+   "Rubble, and more rubble."
+  ]
+ },
+ "spots": [
+  {
+   "id": "pond",
+   "n": "Lily Pond",
+   "lvl": 1,
+   "fish": [
+    [
+     "minnow",
+     30,
+     0
+    ],
+    [
+     "perch",
+     22,
+     1
+    ],
+    [
+     "snail",
+     12,
+     0
+    ],
+    [
+     "carp",
+     14,
+     1
+    ],
+    [
+     "bullfrog",
+     8,
+     1
+    ],
+    [
+     "sunfish",
+     8,
+     2
+    ],
+    [
+     "boot",
+     10,
+     0
+    ],
+    [
+     "whiskers",
+     0.4,
+     5
+    ]
+   ]
+  },
+  {
+   "id": "river",
+   "n": "Willow River",
+   "lvl": 3,
+   "unlock": "river",
+   "fish": [
+    [
+     "trout",
+     24,
+     1
+    ],
+    [
+     "salmon",
+     16,
+     1
+    ],
+    [
+     "catfish",
+     18,
+     1
+    ],
+    [
+     "crayfish",
+     14,
+     1
+    ],
+    [
+     "eel",
+     10,
+     2
+    ],
+    [
+     "pike",
+     7,
+     3
+    ],
+    [
+     "boot",
+     7,
+     0
+    ],
+    [
+     "compass",
+     1,
+     4
+    ],
+    [
+     "silverjaw",
+     0.3,
+     5
+    ]
+   ]
+  },
+  {
+   "id": "cove",
+   "n": "Saltspray Cove",
+   "lvl": 6,
+   "unlock": "cove",
+   "fish": [
+    [
+     "shrimp",
+     24,
+     1
+    ],
+    [
+     "crab",
+     20,
+     1
+    ],
+    [
+     "squid",
+     14,
+     2
+    ],
+    [
+     "puffer",
+     11,
+     2
+    ],
+    [
+     "octopus",
+     7,
+     3
+    ],
+    [
+     "bluelobster",
+     3,
+     3
+    ],
+    [
+     "oyster",
+     3,
+     4
+    ],
+    [
+     "boot",
+     5,
+     0
+    ],
+    [
+     "mossback",
+     0.3,
+     5
+    ]
+   ]
+  },
+  {
+   "id": "tarn",
+   "n": "Highland Tarn",
+   "lvl": 10,
+   "unlock": "tarn",
+   "fish": [
+    [
+     "char",
+     24,
+     2
+    ],
+    [
+     "grayling",
+     20,
+     2
+    ],
+    [
+     "iceperch",
+     16,
+     2
+    ],
+    [
+     "ghostminnow",
+     8,
+     3
+    ],
+    [
+     "crystal",
+     3,
+     4
+    ],
+    [
+     "glimmerfin",
+     0.3,
+     5
+    ]
+   ]
+  }
+ ],
+ "rarity": [
+  {
+   "zone": 34,
+   "speed": 0.65,
+   "xp": 2,
+   "n": "common"
+  },
+  {
+   "zone": 26,
+   "speed": 0.85,
+   "xp": 4,
+   "n": "common"
+  },
+  {
+   "zone": 20,
+   "speed": 1.05,
+   "xp": 7,
+   "n": "uncommon"
+  },
+  {
+   "zone": 14,
+   "speed": 1.3,
+   "xp": 12,
+   "n": "rare"
+  },
+  {
+   "zone": 10,
+   "speed": 1.55,
+   "xp": 20,
+   "n": "treasure"
+  },
+  {
+   "zone": 8,
+   "speed": 1.85,
+   "xp": 60,
+   "n": "legendary"
+  }
+ ],
+ "recipes": [
+  {
+   "id": "twine",
+   "out": 1,
+   "need": {
+    "wheat": 3
+   },
+   "lvl": 1,
+   "xp": 4
+  },
+  {
+   "id": "plank",
+   "out": 1,
+   "need": {
+    "wood": 2
+   },
+   "lvl": 1,
+   "xp": 4
+  },
+  {
+   "id": "block",
+   "out": 1,
+   "need": {
+    "pebble": 4
+   },
+   "lvl": 2,
+   "xp": 5
+  },
+  {
+   "id": "rope",
+   "out": 1,
+   "need": {
+    "twine": 3
+   },
+   "lvl": 2,
+   "xp": 8
+  },
+  {
+   "id": "bouquet",
+   "out": 1,
+   "need": {
+    "wildflower": 4,
+    "twine": 1
+   },
+   "lvl": 3,
+   "xp": 10
+  },
+  {
+   "id": "candle",
+   "out": 1,
+   "need": {
+    "honeycomb": 1,
+    "twine": 1
+   },
+   "lvl": 3,
+   "xp": 12
+  },
+  {
+   "id": "tonic",
+   "out": 1,
+   "need": {
+    "sap": 2,
+    "clover": 2
+   },
+   "lvl": 4,
+   "xp": 10
+  },
+  {
+   "id": "copperbar",
+   "out": 1,
+   "need": {
+    "copper": 3,
+    "coal": 1
+   },
+   "lvl": 4,
+   "xp": 14,
+   "unlock": "forge"
+  },
+  {
+   "id": "basket",
+   "out": 1,
+   "need": {
+    "twine": 5,
+    "plank": 2
+   },
+   "lvl": 5,
+   "xp": 24
+  },
+  {
+   "id": "nails",
+   "out": 5,
+   "need": {
+    "iron": 1,
+    "coal": 1
+   },
+   "lvl": 6,
+   "xp": 12,
+   "unlock": "forge"
+  },
+  {
+   "id": "lure",
+   "out": 2,
+   "need": {
+    "feather": 2,
+    "copperbar": 1
+   },
+   "lvl": 6,
+   "xp": 14
+  },
+  {
+   "id": "sprinkler1",
+   "out": 1,
+   "need": {
+    "copperbar": 2,
+    "plank": 2
+   },
+   "lvl": 6,
+   "xp": 30,
+   "upgrade": "sprinkler"
+  },
+  {
+   "id": "ironbar",
+   "out": 1,
+   "need": {
+    "iron": 3,
+    "coal": 2
+   },
+   "lvl": 7,
+   "xp": 20,
+   "unlock": "forge"
+  },
+  {
+   "id": "crate",
+   "out": 1,
+   "need": {
+    "plank": 4,
+    "nails": 6
+   },
+   "lvl": 8,
+   "xp": 30
+  },
+  {
+   "id": "bucket",
+   "out": 1,
+   "need": {
+    "copperbar": 3,
+    "plank": 1
+   },
+   "lvl": 8,
+   "xp": 36
+  },
+  {
+   "id": "chime",
+   "out": 1,
+   "need": {
+    "shell": 4,
+    "twine": 2
+   },
+   "lvl": 8,
+   "xp": 26
+  },
+  {
+   "id": "lantern",
+   "out": 1,
+   "need": {
+    "copperbar": 1,
+    "candle": 1
+   },
+   "lvl": 8,
+   "xp": 40
+  },
+  {
+   "id": "silverbar",
+   "out": 1,
+   "need": {
+    "silver": 3,
+    "coal": 2
+   },
+   "lvl": 8,
+   "xp": 30,
+   "unlock": "forge"
+  },
+  {
+   "id": "lens",
+   "out": 1,
+   "need": {
+    "crystal": 2,
+    "silverbar": 1
+   },
+   "lvl": 8,
+   "xp": 60
+  },
+  {
+   "id": "scarecrow",
+   "out": 1,
+   "need": {
+    "plank": 3,
+    "wheat": 10,
+    "rope": 1
+   },
+   "lvl": 9,
+   "xp": 40,
+   "upgrade": "scarecrow"
+  },
+  {
+   "id": "yarn",
+   "out": 1,
+   "need": {
+    "wool": 3
+   },
+   "lvl": 9,
+   "xp": 18
+  },
+  {
+   "id": "glowbait",
+   "out": 3,
+   "need": {
+    "worm": 3,
+    "glowcap": 1
+   },
+   "lvl": 9,
+   "xp": 16
+  },
+  {
+   "id": "sprinkler2",
+   "out": 1,
+   "need": {
+    "ironbar": 3,
+    "copperbar": 1
+   },
+   "lvl": 10,
+   "xp": 60,
+   "upgrade": "sprinkler"
+  },
+  {
+   "id": "bellrope",
+   "out": 1,
+   "need": {
+    "rope": 3,
+    "yarn": 2
+   },
+   "lvl": 11,
+   "xp": 70
+  },
+  {
+   "id": "ring",
+   "out": 1,
+   "need": {
+    "silverbar": 1,
+    "amethyst": 1
+   },
+   "lvl": 12,
+   "xp": 55
+  },
+  {
+   "id": "necklace",
+   "out": 1,
+   "need": {
+    "seaglass": 3,
+    "silverbar": 1
+   },
+   "lvl": 12,
+   "xp": 60
+  },
+  {
+   "id": "goldbar",
+   "out": 1,
+   "need": {
+    "gold": 3,
+    "coal": 3
+   },
+   "lvl": 12,
+   "xp": 45,
+   "unlock": "forge"
+  },
+  {
+   "id": "lamp",
+   "out": 1,
+   "need": {
+    "crystal": 1,
+    "lantern": 1,
+    "silverbar": 1
+   },
+   "lvl": 14,
+   "xp": 80
+  },
+  {
+   "id": "clapper",
+   "out": 1,
+   "need": {
+    "goldbar": 2,
+    "ironbar": 2,
+    "starshard": 1
+   },
+   "lvl": 14,
+   "xp": 150
+  },
+  {
+   "id": "sprinkler3",
+   "out": 1,
+   "need": {
+    "goldbar": 2,
+    "ironbar": 2
+   },
+   "lvl": 16,
+   "xp": 120,
+   "upgrade": "sprinkler"
+  }
+ ],
+ "upgrades": {
+  "sprinkler": {
+   "n": "Sprinklers",
+   "tiers": [
+    {
+     "item": "sprinkler1",
+     "pct": 10
+    },
+    {
+     "item": "sprinkler2",
+     "pct": 20
+    },
+    {
+     "item": "sprinkler3",
+     "pct": 30
+    }
+   ],
+   "desc": "Crops grow {pct}% faster"
+  },
+  "scarecrow": {
+   "n": "Scarecrow",
+   "tiers": [
+    {
+     "item": "scarecrow",
+     "pct": 10
+    }
+   ],
+   "desc": "+{pct}% chance of an extra crop"
+  }
+ },
+ "meals": [
+  {
+   "id": "bread",
+   "need": {
+    "wheat": 4
+   },
+   "lvl": 1,
+   "xp": 4,
+   "stamina": 6
+  },
+  {
+   "id": "friedegg",
+   "need": {
+    "egg": 2
+   },
+   "lvl": 1,
+   "xp": 5,
+   "stamina": 8
+  },
+  {
+   "id": "trailmix",
+   "need": {
+    "acorn": 3,
+    "berries": 2
+   },
+   "lvl": 2,
+   "xp": 7,
+   "stamina": 10
+  },
+  {
+   "id": "berrypie",
+   "need": {
+    "berries": 4,
+    "wheat": 3,
+    "egg": 1
+   },
+   "lvl": 2,
+   "xp": 18,
+   "buff": "lucky",
+   "mins": 10
+  },
+  {
+   "id": "salad",
+   "need": {
+    "cabbage": 1,
+    "tomato": 1,
+    "carrot": 2
+   },
+   "lvl": 3,
+   "xp": 12,
+   "stamina": 15
+  },
+  {
+   "id": "soup",
+   "need": {
+    "potato": 2,
+    "carrot": 2,
+    "mushroom": 2
+   },
+   "lvl": 3,
+   "xp": 15,
+   "stamina": 20
+  },
+  {
+   "id": "pancakes",
+   "need": {
+    "wheat": 3,
+    "egg": 2,
+    "milk": 1
+   },
+   "lvl": 4,
+   "xp": 20,
+   "stamina": 25
+  },
+  {
+   "id": "cheese",
+   "need": {
+    "milk": 3
+   },
+   "lvl": 4,
+   "xp": 14
+  },
+  {
+   "id": "platter",
+   "need": {
+    "minnow": 3,
+    "perch": 2
+   },
+   "lvl": 5,
+   "xp": 16,
+   "buff": "steady",
+   "mins": 10
+  },
+  {
+   "id": "tea",
+   "need": {
+    "fern": 2,
+    "honeycomb": 1
+   },
+   "lvl": 5,
+   "xp": 16,
+   "buff": "refreshed",
+   "mins": 15
+  },
+  {
+   "id": "sandwich",
+   "need": {
+    "bread": 1,
+    "cheese": 1,
+    "tomato": 1
+   },
+   "lvl": 6,
+   "xp": 28,
+   "buff": "miner",
+   "mins": 15
+  },
+  {
+   "id": "stew",
+   "need": {
+    "onion": 1,
+    "garlic": 1,
+    "potato": 2,
+    "catfish": 1
+   },
+   "lvl": 7,
+   "xp": 34,
+   "buff": "greenthumb",
+   "mins": 15
+  },
+  {
+   "id": "jam",
+   "need": {
+    "strawberry": 4,
+    "honeycomb": 1
+   },
+   "lvl": 8,
+   "xp": 36
+  },
+  {
+   "id": "cake",
+   "need": {
+    "wheat": 5,
+    "egg": 3,
+    "milk": 2,
+    "strawberry": 3
+   },
+   "lvl": 9,
+   "xp": 50,
+   "stamina": 50
+  },
+  {
+   "id": "chowder",
+   "need": {
+    "crab": 1,
+    "potato": 2,
+    "milk": 1
+   },
+   "lvl": 9,
+   "xp": 40,
+   "stamina": 40
+  },
+  {
+   "id": "applepie",
+   "need": {
+    "apple": 4,
+    "wheat": 3,
+    "egg": 1
+   },
+   "lvl": 10,
+   "xp": 42,
+   "stamina": 35,
+   "buff": "lucky",
+   "mins": 15
+  },
+  {
+   "id": "lemonade",
+   "need": {
+    "lemon": 2,
+    "honeycomb": 1
+   },
+   "lvl": 12,
+   "xp": 44,
+   "buff": "refreshed",
+   "mins": 30
+  },
+  {
+   "id": "feast",
+   "need": {
+    "pumpkin": 1,
+    "grapes": 3,
+    "cheese": 2,
+    "bread": 2
+   },
+   "lvl": 15,
+   "xp": 120,
+   "stamina": 100,
+   "buff": "lucky",
+   "mins": 30
+  }
+ ],
+ "buffs": {
+  "lucky": {
+   "n": "Lucky",
+   "desc": "Rare finds twice as likely when exploring and mining"
+  },
+  "steady": {
+   "n": "Steady Hands",
+   "desc": "Fishing catch zone is 10% wider"
+  },
+  "refreshed": {
+   "n": "Refreshed",
+   "desc": "Stamina refills twice as fast"
+  },
+  "miner": {
+   "n": "Miner's Nose",
+   "desc": "Better odds of finding stairs in the mine"
+  },
+  "greenthumb": {
+   "n": "Green Thumb",
+   "desc": "Crops you sow grow 25% faster"
+  }
+ },
+ "barn": [
+  {
+   "cap": 50,
+   "cost": 0,
+   "n": "Shed"
+  },
+  {
+   "cap": 100,
+   "cost": 400,
+   "n": "Small barn"
+  },
+  {
+   "cap": 250,
+   "cost": 1500,
+   "n": "Barn"
+  },
+  {
+   "cap": 500,
+   "cost": 5000,
+   "n": "Big barn"
+  },
+  {
+   "cap": 999,
+   "cost": 15000,
+   "n": "Grand barn"
+  },
+  {
+   "cap": 2500,
+   "cost": 45000,
+   "n": "Warehouse"
+  }
+ ],
+ "plots": {
+  "start": 6,
+  "max": 24,
+  "base": 150,
+  "growth": 1.42
+ },
+ "stamina": {
+  "base": 28,
+  "perLevel": 2,
+  "regenMs": 20000
+ },
+ "store": [
+  {
+   "id": "worm5",
+   "item": "worm",
+   "qty": 5,
+   "price": 10
+  },
+  {
+   "id": "worm25",
+   "item": "worm",
+   "qty": 25,
+   "price": 45
+  },
+  {
+   "id": "lure2",
+   "item": "lure",
+   "qty": 2,
+   "price": 120,
+   "unlock": "river"
+  },
+  {
+   "id": "tonic1",
+   "item": "tonic",
+   "qty": 1,
+   "price": 80,
+   "unlock": "forge"
+  }
+ ],
+ "merchant": {
+  "pool": [
+   {
+    "item": "lure",
+    "qty": 4,
+    "price": 140
+   },
+   {
+    "item": "glowbait",
+    "qty": 3,
+    "price": 180
+   },
+   {
+    "item": "tonic",
+    "qty": 3,
+    "price": 150
+   },
+   {
+    "item": "goldacorn",
+    "qty": 1,
+    "price": 420
+   },
+   {
+    "item": "amethyst",
+    "qty": 1,
+    "price": 380
+   },
+   {
+    "item": "fossil",
+    "qty": 1,
+    "price": 300
+   },
+   {
+    "item": "starfish",
+    "qty": 3,
+    "price": 140
+   },
+   {
+    "item": "crystal",
+    "qty": 2,
+    "price": 260
+   },
+   {
+    "item": "oldcoin",
+    "qty": 1,
+    "price": 1100
+   },
+   {
+    "item": "eaglefeather",
+    "qty": 2,
+    "price": 160
+   },
+   {
+    "item": "glowcap",
+    "qty": 3,
+    "price": 120
+   },
+   {
+    "item": "lemon",
+    "qty": 4,
+    "price": 300
+   }
+  ],
+  "wants": [
+   "bouquet",
+   "candle",
+   "jam",
+   "cheese",
+   "chime",
+   "ring",
+   "necklace",
+   "basket",
+   "lantern",
+   "cake",
+   "applepie",
+   "yarn"
+  ]
+ },
+ "chores": [
+  {
+   "id": "harvest",
+   "text": "Harvest {n} crops",
+   "n": 25,
+   "coins": 60,
+   "stat": "harvested"
+  },
+  {
+   "id": "fish",
+   "text": "Catch {n} fish",
+   "n": 6,
+   "coins": 60,
+   "items": {
+    "worm": 5
+   },
+   "stat": "fish"
+  },
+  {
+   "id": "explore",
+   "text": "Explore {n} times",
+   "n": 40,
+   "coins": 60,
+   "stat": "explores"
+  },
+  {
+   "id": "craft",
+   "text": "Craft {n} items",
+   "n": 8,
+   "coins": 60,
+   "stat": "crafted"
+  },
+  {
+   "id": "sell",
+   "text": "Earn {n} coins from selling",
+   "n": 300,
+   "coins": 50,
+   "stat": "earned"
+  },
+  {
+   "id": "deliver",
+   "text": "Fill {n} townsfolk requests",
+   "n": 1,
+   "coins": 80,
+   "stat": "delivered"
+  },
+  {
+   "id": "cook",
+   "text": "Cook {n} meals",
+   "n": 4,
+   "coins": 80,
+   "unlock": "kitchen",
+   "stat": "cooked"
+  },
+  {
+   "id": "dig",
+   "text": "Dig {n} times in the mine",
+   "n": 25,
+   "coins": 80,
+   "unlock": "mine",
+   "stat": "digs"
+  },
+  {
+   "id": "collect",
+   "text": "Collect {n} animal goods",
+   "n": 8,
+   "coins": 70,
+   "unlock": "coop",
+   "stat": "collected"
+  },
+  {
+   "id": "gift",
+   "text": "Give {n} gifts to townsfolk",
+   "n": 2,
+   "coins": 50,
+   "stat": "gifts"
+  }
+ ],
+ "weather": [
+  {
+   "id": "sunny",
+   "n": "Sunny",
+   "w": 50,
+   "desc": "Clear skies over the valley."
+  },
+  {
+   "id": "rainy",
+   "n": "Rainy",
+   "w": 22,
+   "desc": "Rain waters your fields. Crops sown today grow 15% faster."
+  },
+  {
+   "id": "windy",
+   "n": "Windy",
+   "w": 16,
+   "desc": "Feathers on the wind. More feathers when exploring."
+  },
+  {
+   "id": "foggy",
+   "n": "Foggy",
+   "w": 12,
+   "desc": "Fog on the water. Rare fish bite more often."
+  }
+ ],
+ "seasons": [
+  "Spring",
+  "Summer",
+  "Autumn",
+  "Winter"
+ ],
+ "friendship": {
+  "perHeart": 100,
+  "maxHearts": 10,
+  "loved": 40,
+  "liked": 20,
+  "neutral": 8,
+  "disliked": -10,
+  "request": 45
+ },
+ "mastery": {
+  "crop": [
+   100,
+   1000,
+   5000
+  ],
+  "fruit": [
+   50,
+   500,
+   2500
+  ],
+  "animal": [
+   50,
+   500,
+   2500
+  ],
+  "fish": [
+   10,
+   50,
+   250
+  ],
+  "forage": [
+   100,
+   500,
+   2500
+  ],
+  "ore": [
+   100,
+   500,
+   2500
+  ]
+ },
+ "achievements": [
+  {
+   "id": "sprout",
+   "n": "First Sprout",
+   "desc": "Harvest your first crop",
+   "stat": "harvested",
+   "goal": 1,
+   "give": {
+    "coins": 20
+   }
+  },
+  {
+   "id": "harvest100",
+   "n": "Green Fingers",
+   "desc": "Harvest 100 crops",
+   "stat": "harvested",
+   "goal": 100,
+   "give": {
+    "coins": 150
+   }
+  },
+  {
+   "id": "harvest1000",
+   "n": "Breadbasket",
+   "desc": "Harvest 1,000 crops",
+   "stat": "harvested",
+   "goal": 1000,
+   "give": {
+    "coins": 1000,
+    "items": {
+     "tonic": 5
+    }
+   }
+  },
+  {
+   "id": "harvest10000",
+   "n": "Valley Provider",
+   "desc": "Harvest 10,000 crops",
+   "stat": "harvested",
+   "goal": 10000,
+   "give": {
+    "coins": 8000
+   }
+  },
+  {
+   "id": "fish1",
+   "n": "Nibble",
+   "desc": "Catch your first fish",
+   "stat": "fish",
+   "goal": 1,
+   "give": {
+    "items": {
+     "worm": 10
+    }
+   }
+  },
+  {
+   "id": "fish100",
+   "n": "Angler",
+   "desc": "Catch 100 fish",
+   "stat": "fish",
+   "goal": 100,
+   "give": {
+    "coins": 400,
+    "items": {
+     "lure": 4
+    }
+   }
+  },
+  {
+   "id": "fish1000",
+   "n": "Master Angler",
+   "desc": "Catch 1,000 fish",
+   "stat": "fish",
+   "goal": 1000,
+   "give": {
+    "coins": 4000
+   }
+  },
+  {
+   "id": "legend1",
+   "n": "Fish Story",
+   "desc": "Catch a legendary fish",
+   "stat": "legendary",
+   "goal": 1,
+   "give": {
+    "coins": 1500
+   }
+  },
+  {
+   "id": "legend4",
+   "n": "Tall Tales Are True",
+   "desc": "Catch all four legendary fish",
+   "stat": "legendary",
+   "goal": 4,
+   "give": {
+    "coins": 10000
+   }
+  },
+  {
+   "id": "explore100",
+   "n": "Wanderer",
+   "desc": "Explore 100 times",
+   "stat": "explores",
+   "goal": 100,
+   "give": {
+    "coins": 150
+   }
+  },
+  {
+   "id": "explore2000",
+   "n": "Pathfinder",
+   "desc": "Explore 2,000 times",
+   "stat": "explores",
+   "goal": 2000,
+   "give": {
+    "coins": 2500
+   }
+  },
+  {
+   "id": "craft50",
+   "n": "Handy",
+   "desc": "Craft 50 items",
+   "stat": "crafted",
+   "goal": 50,
+   "give": {
+    "coins": 200
+   }
+  },
+  {
+   "id": "craft1000",
+   "n": "Artisan",
+   "desc": "Craft 1,000 items",
+   "stat": "crafted",
+   "goal": 1000,
+   "give": {
+    "coins": 3000
+   }
+  },
+  {
+   "id": "cook25",
+   "n": "Home Cook",
+   "desc": "Cook 25 meals",
+   "stat": "cooked",
+   "goal": 25,
+   "give": {
+    "coins": 300
+   }
+  },
+  {
+   "id": "cook500",
+   "n": "Valley Chef",
+   "desc": "Cook 500 meals",
+   "stat": "cooked",
+   "goal": 500,
+   "give": {
+    "coins": 4000
+   }
+  },
+  {
+   "id": "deliver10",
+   "n": "Good Neighbor",
+   "desc": "Fill 10 requests",
+   "stat": "delivered",
+   "goal": 10,
+   "give": {
+    "coins": 300
+   }
+  },
+  {
+   "id": "deliver50",
+   "n": "Pillar of the Valley",
+   "desc": "Fill 50 requests",
+   "stat": "delivered",
+   "goal": 50,
+   "give": {
+    "coins": 3000
+   }
+  },
+  {
+   "id": "rich",
+   "n": "Nest Egg",
+   "desc": "Earn 10,000 coins from selling",
+   "stat": "earned",
+   "goal": 10000,
+   "give": {
+    "items": {
+     "goldacorn": 1
+    }
+   }
+  },
+  {
+   "id": "richer",
+   "n": "Valley Tycoon",
+   "desc": "Earn 250,000 coins from selling",
+   "stat": "earned",
+   "goal": 250000,
+   "give": {
+    "items": {
+     "oldcoin": 2
+    }
+   }
+  },
+  {
+   "id": "deep10",
+   "n": "Down Under",
+   "desc": "Reach floor 10 of the mine",
+   "stat": "deepest",
+   "goal": 10,
+   "give": {
+    "coins": 300
+   }
+  },
+  {
+   "id": "deep20",
+   "n": "Deep Delver",
+   "desc": "Reach floor 20 of the mine",
+   "stat": "deepest",
+   "goal": 20,
+   "give": {
+    "coins": 1200
+   }
+  },
+  {
+   "id": "deep30",
+   "n": "Heart of the Mountain",
+   "desc": "Reach floor 30 of the mine",
+   "stat": "deepest",
+   "goal": 30,
+   "give": {
+    "coins": 5000
+   }
+  },
+  {
+   "id": "friend5",
+   "n": "Friendly Face",
+   "desc": "Reach 5 hearts with anyone",
+   "stat": "besthearts",
+   "goal": 5,
+   "give": {
+    "coins": 400
+   }
+  },
+  {
+   "id": "friend10",
+   "n": "Best of Friends",
+   "desc": "Reach 10 hearts with anyone",
+   "stat": "besthearts",
+   "goal": 10,
+   "give": {
+    "coins": 3000
+   }
+  },
+  {
+   "id": "adv3",
+   "n": "Adventurer",
+   "desc": "Finish 3 adventures",
+   "stat": "adventures",
+   "goal": 3,
+   "give": {
+    "coins": 500
+   }
+  },
+  {
+   "id": "advall",
+   "n": "Teller of Tales",
+   "desc": "Finish every adventure",
+   "stat": "adventures",
+   "goal": -1,
+   "give": {
+    "coins": 6000
+   }
+  },
+  {
+   "id": "pages",
+   "n": "Wren's Journal",
+   "desc": "Find every journal page",
+   "stat": "pages",
+   "goal": -1,
+   "give": {
+    "coins": 2000
+   }
+  },
+  {
+   "id": "skill10",
+   "n": "Journeyman",
+   "desc": "Reach level 10 in any skill",
+   "stat": "bestskill",
+   "goal": 10,
+   "give": {
+    "coins": 500
+   }
+  },
+  {
+   "id": "skill25",
+   "n": "Expert",
+   "desc": "Reach level 25 in any skill",
+   "stat": "bestskill",
+   "goal": 25,
+   "give": {
+    "coins": 4000
+   }
+  },
+  {
+   "id": "allfish",
+   "n": "Full Creel",
+   "desc": "Catch every kind of fish",
+   "stat": "fishkinds",
+   "goal": -1,
+   "give": {
+    "coins": 8000
+   }
+  },
+  {
+   "id": "story",
+   "n": "The Bell Rings",
+   "desc": "Finish the main story",
+   "stat": "chapters",
+   "goal": -1,
+   "give": {
+    "coins": 5000
+   }
+  }
+ ]
+}

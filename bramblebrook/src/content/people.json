@@ -1,0 +1,1304 @@
+{
+  "villagers": [
+    {
+      "id": "oakley",
+      "n": "Mayor Oakley",
+      "short": "Oakley",
+      "role": "Mayor, and chair of nearly every committee",
+      "mono": "MO",
+      "h": 175,
+      "req": {},
+      "loves": ["oldcoin","bellrope","candle","cake"],
+      "likes": ["bouquet","tea","bread","pancakes","apple","lantern","block"],
+      "dislikes": ["worm","seaweed","boot"],
+      "greet": [
+        "Ah, {name}! Splendid timing. I was just about to start a meeting with myself.",
+        "Good morning! The Committee for Mornings has declared this one adequate.",
+        "Every week something in this valley mends itself. Well. You mend it. I take the minutes.",
+        "I've misplaced my reading glasses. They're on my head, aren't they? Splendid.",
+        "The square sounds different lately. Busier. I keep stopping just to listen.",
+        "Did you know the town charter is two hundred and twelve pages? I've read it eleven times. For fun.",
+        "Mind the puddle by the notice board. It has been tabled for discussion.",
+        "Bramblebrook is waking up, {name}. I can feel it. I've started a committee about the feeling."
+      ],
+      "thanks": {
+        "loved": "Oh! Oh, this is splendid. Truly splendid. I'm entering it into the minutes as a historic gift.",
+        "liked": "How thoughtful! The town thanks you. Well, I thank you, on behalf of the town.",
+        "neutral": "Ah, a gift! I'll find it a place. Possibly a filing cabinet.",
+        "disliked": "That is... certainly a thing. I'll refer it to a subcommittee. A distant one."
+      },
+      "requests": [
+        {
+          "say": "The Committee for Tidy Verges wants the square's planters filled. Six wildflowers would be splendid. It's been on the agenda for eight years.",
+          "want": {"wildflower":6},
+          "give": {"coins":40,"xp":{"foraging":8}}
+        },
+        {
+          "say": "I promised Gran Clementine wheat for the Founders' Loaf. I promised it last week. Ten wheat would save my reputation.",
+          "want": {"wheat":10},
+          "give": {"coins":80,"xp":{"farming":14}}
+        },
+        {
+          "say": "A loose flagstone ambushed me outside the town hall. Four stone blocks, please, before it strikes again.",
+          "want": {"block":4},
+          "give": {"coins":105,"xp":{"crafting":19}},
+          "req": {"skill":{"crafting":2}}
+        },
+        {
+          "say": "The notice board fell over mid-vote. The motion carried. The board did not. Ten planks, please.",
+          "want": {"plank":10},
+          "give": {"coins":220,"xp":{"crafting":44}},
+          "req": {"chapter":"prologue","skill":{"foraging":3}}
+        },
+        {
+          "say": "For the bridge celebrations I'd like reed garlands, like in the old photographs. Twelve river reeds. It's in the minutes!",
+          "want": {"reed":12},
+          "give": {"coins":150,"xp":{"foraging":18}},
+          "req": {"chapter":"bridge","skill":{"foraging":4}}
+        },
+        {
+          "say": "Splendid news: the council has voted you the old allotment by the hedge! I only need two crates for the town archive. It lives in shoeboxes.",
+          "want": {"crate":2},
+          "give": {"coins":570,"xp":{"crafting":85},"plots":1},
+          "req": {"chapter":"forge","skill":{"crafting":8}}
+        },
+        {
+          "say": "The Fair committee wants a centerpiece for Founders' Day. One Celebration Cake. I've written CAKE on the agenda in capitals.",
+          "want": {"cake":1},
+          "give": {"coins":1365,"xp":{"cooking":205}},
+          "req": {"chapter":"fair","skill":{"cooking":12,"farming":8}}
+        },
+        {
+          "say": "The town hall door needs a chime. Visitors knock, I panic, and I hide under the desk. Two shell chimes would help.",
+          "want": {"chime":2},
+          "give": {"coins":520,"xp":{"crafting":75}},
+          "req": {"chapter":"lighthouse","skill":{"crafting":9,"foraging":9}}
+        },
+        {
+          "say": "When the bell rings again it deserves a new rope, and the vigil needs candles. One bell rope, four candles. History is watching, {name}!",
+          "want": {"bellrope":1,"candle":4},
+          "give": {"coins":1330,"xp":{"crafting":215}},
+          "req": {"chapter":"highlands","skill":{"crafting":12}}
+        }
+      ],
+      "hearts": [
+        {
+          "at": 2,
+          "title": "Minutes of Everything",
+          "scene": [
+            {"who":"oakley","say":"Ah, {name}. You've caught me minuting."},
+            {"say":"Oakley's desk is buried in notebooks. Every spine is labeled with a date, in very tidy handwriting."},
+            {"who":"oakley","say":"Every meeting since I took office. Even the ones where only I turned up."},
+            {"who":"oakley","say":"Especially those, actually. Somebody has to write down that we tried."},
+            {"who":"you","say":"What happens at a meeting of one?"},
+            {"who":"oakley","say":"Mostly I second my own motions. It's very efficient. Slightly lonely."},
+            {"who":"oakley","say":"But now there are actual events to minute! Splendid. Pass me that pencil."}
+          ]
+        },
+        {
+          "at": 5,
+          "title": "The Empty Frame",
+          "scene": [
+            {"say":"In the town hall corridor hang portraits of every mayor of Bramblebrook. The last frame is empty."},
+            {"who":"oakley","say":"Mayor Thistlewood built the square. Mayor Pell dug the well. Mayor Ashby had a truly magnificent mustache."},
+            {"who":"oakley","say":"And Mayor Oakley presided over eight years of things quietly falling down."},
+            {"who":"oakley","say":"I'd rather that frame stayed empty than said 'He meant well.'"},
+            {"who":"you","say":"You kept the town together."},
+            {"who":"oakley","say":"Did I? I kept the minutes together. It's not quite the same."},
+            {"who":"oakley","say":"Still. Since you arrived, the minutes have been rather exciting to write."},
+            {
+              "choices": [
+                {
+                  "t": "You'll get your portrait.",
+                  "reply": [
+                    {"who":"oakley","say":"Then I'll need to stand up straighter. Splendid. Terrifying, but splendid."}
+                  ]
+                },
+                {
+                  "t": "Hard to beat that mustache.",
+                  "reply": [{"who":"oakley","say":"Mayor Ashby's mustache had its own committee. I cannot compete."}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 8,
+          "title": "A Good Tuesday",
+          "scene": [
+            {"who":"oakley","say":"{name}, I've been rereading the old minutes. The ones from before the bell went quiet."},
+            {"who":"oakley","say":"Do you know what nobody ever wrote down? Who the mayor was. Not once."},
+            {"who":"oakley","say":"They wrote who brought the pie. Who mended the gate. Whose goat ate the agenda."},
+            {"who":"oakley","say":"A town doesn't remember its mayors, it turns out. It remembers its Tuesdays."},
+            {"who":"oakley","say":"So I've decided to be a good Tuesday. A splendid, ordinary, well-minuted Tuesday."},
+            {"who":"you","say":"That sounds like a fine thing to be."},
+            {"who":"oakley","say":"Doesn't it? I've minuted that you agreed. Unanimous!"}
+          ]
+        },
+        {
+          "at": 10,
+          "title": "The Portrait",
+          "give": {"coins":800},
+          "scene": [
+            {"say":"The empty frame in the town hall isn't empty anymore."},
+            {"say":"Inside is a crayon drawing by Pip: the whole valley at the Fair. In one corner, very small, a man holds a notebook."},
+            {"who":"oakley","say":"I asked Pip for a portrait and got a town. I think that's correct, actually."},
+            {"who":"oakley","say":"Look, there you are, by the bridge. You're in the minutes now, {name}. Permanently."},
+            {"who":"oakley","say":"The council has also voted you a small token of thanks. Unanimously. I was the council. Splendid!"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hazel",
+      "n": "Hazel Pennywhistle",
+      "short": "Hazel",
+      "role": "Runs Pennywhistle's General Store",
+      "mono": "HP",
+      "h": 40,
+      "req": {},
+      "loves": ["jam","bouquet","salmon","basket"],
+      "likes": ["egg","milk","minnow","strawberry","cherry","candle","tea"],
+      "dislikes": ["coal","clay","snail"],
+      "greet": [
+        "Morning, {name}! I've counted eleven customers already. Well, nine. Ledger came in twice.",
+        "Did you hear? No? Come closer. Oh, I've forgotten. It'll come back to me!",
+        "Ledger's asleep on the till again. That's where the warm coins are.",
+        "Sales are up, gossip is up, and Ledger is up on the top shelf. Good day all round!",
+        "There's more chatter in the square than there's been in years. I'm writing it all down.",
+        "Funny how a valley goes quiet so long you forget it ever hummed. Listen to it now!",
+        "If you're buying, I'm smiling. If you're browsing, I'm still smiling. Slightly less.",
+        "Ledger says hello. He says it with his eyes. Very expressive, for a cat."
+      ],
+      "thanks": {
+        "loved": "Oh, {name}! That's going straight in the ledger under 'Best Things That Happened Today'!",
+        "liked": "How lovely! One gift, received with thanks. I'm writing it down.",
+        "neutral": "Oh, a gift! I'll put it on the shelf. Ledger may sit on it.",
+        "disliked": "Ah. Hmm. I'll file that under 'Miscellaneous', page ninety."
+      },
+      "requests": [
+        {
+          "say": "Customers keep asking for carrots and I keep saying 'tomorrow'. Six carrots would make an honest woman of me.",
+          "want": {"carrot":6},
+          "give": {"coins":95,"xp":{"farming":11}}
+        },
+        {
+          "say": "Ledger has been staring at me. It's a fish stare. Four minnows, please, before he files a complaint.",
+          "want": {"minnow":4},
+          "give": {"coins":50,"xp":{"fishing":8}}
+        },
+        {
+          "say": "I'm out of parcel twine and tying things up with my hair ribbons. Five rolls of twine, please!",
+          "want": {"twine":5},
+          "give": {"coins":160,"xp":{"crafting":24}}
+        },
+        {
+          "say": "Mossy Woods hampers are my bestseller, when I have any. Eight wild berries and five mushrooms, please!",
+          "want": {"berries":8,"mushroom":5},
+          "give": {"coins":265,"xp":{"foraging":37}},
+          "req": {"skill":{"foraging":3}}
+        },
+        {
+          "say": "Fresh eggs! Everyone's asking. Bring me six and I'll write your name in the ledger in gold ink.",
+          "want": {"egg":6},
+          "give": {"coins":145,"xp":{"farming":23}},
+          "req": {"chapter":"prologue"}
+        },
+        {
+          "say": "My shopping baskets have gone missing. One was last seen with Ledger inside it. Three woven baskets, please.",
+          "want": {"basket":3},
+          "give": {"coins":880,"xp":{"crafting":165},"items":{"tonic":2}},
+          "req": {"chapter":"forge","skill":{"crafting":5}}
+        },
+        {
+          "say": "Strawberries are back! People will queue. People will gossip in the queue. Six strawberries, please.",
+          "want": {"strawberry":6},
+          "give": {"coins":935,"xp":{"farming":160}},
+          "req": {"chapter":"forge","skill":{"farming":8}}
+        },
+        {
+          "say": "Two jars of strawberry jam for the front window. Not for sale. Just for making people come inside.",
+          "want": {"jam":2},
+          "give": {"coins":1850,"xp":{"cooking":335}},
+          "req": {"chapter":"lighthouse","skill":{"cooking":11,"farming":8}}
+        },
+        {
+          "say": "I'd love a sea glass necklace for the display case. It's for looking at. And maybe for wearing on Sundays.",
+          "want": {"necklace":1},
+          "give": {"coins":840,"xp":{"crafting":170}},
+          "req": {"chapter":"lighthouse","skill":{"crafting":14,"foraging":9,"mining":5}}
+        }
+      ],
+      "hearts": [
+        {
+          "at": 2,
+          "title": "The Birthday Ledger",
+          "scene": [
+            {"say":"Behind the counter, Hazel keeps a second ledger. It's older than the shop's, with a red ribbon for a bookmark."},
+            {"who":"hazel","say":"Don't tell anyone. This is the important one."},
+            {"who":"hazel","say":"Every birthday in Bramblebrook. Tobin's, Oakley's, Pip's. Even Ledger's, though he lies about his age."},
+            {"who":"hazel","say":"Nobody should have a birthday that nobody notices. So I notice. Professionally."},
+            {"who":"hazel","say":"Now then. When's yours, {name}? Don't fib. I'll find out anyway."},
+            {
+              "choices": [
+                {
+                  "t": "Tell Hazel the date.",
+                  "reply": [
+                    {"who":"hazel","say":"Written in pen! You're official now. Expect cake, and a great deal of fuss."}
+                  ]
+                },
+                {
+                  "t": "That's a secret.",
+                  "reply": [{"who":"hazel","say":"Oh, I do love a challenge. I'll have it by Friday."}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "title": "A Candle Every Year",
+          "scene": [
+            {"who":"hazel","say":"{name}, can I show you something sad? Only a little sad. Tea-sized."},
+            {"say":"Hazel opens the birthday ledger to a page with one name circled twice: Wren Bramble."},
+            {"who":"hazel","say":"I've marked eight of her birthdays since she left. I still buy a candle every year."},
+            {"who":"hazel","say":"Silly, isn't it? Lighting a candle for someone who isn't there to blow it out."},
+            {"who":"you","say":"It doesn't sound silly."},
+            {"who":"hazel","say":"No. It doesn't, does it? Thank you."},
+            {"who":"hazel","say":"Right! Enough of that. Ledger, stop eating the receipts."}
+          ]
+        },
+        {
+          "at": 8,
+          "title": "Why Hazel Counts",
+          "scene": [
+            {"who":"hazel","say":"People think I count things because I'm nosy. I am. But that's not why."},
+            {"who":"hazel","say":"The winter the bell cracked, the shop nearly closed. Nobody came in. Nobody needed anything."},
+            {"who":"hazel","say":"So I counted. Jars, buttons, raindrops on the window. If I'd counted it, the day had happened."},
+            {"who":"hazel","say":"Then you turned up, {name}, and I had to buy a bigger ledger."},
+            {"who":"hazel","say":"I don't count raindrops anymore. I count customers. It's much nicer."},
+            {
+              "choices": [
+                {
+                  "t": "What number am I?",
+                  "reply": [{"who":"hazel","say":"Number one, obviously. Don't tell Oakley. He thinks he is."}]
+                },
+                {
+                  "t": "Count me in.",
+                  "reply": [{"who":"hazel","say":"Oh, that's dreadful. I love it. I'm writing it down."}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 10,
+          "title": "Balancing the Books",
+          "give": {"coins":400,"items":{"tonic":5}},
+          "scene": [
+            {"say":"Hazel slides a small parcel across the counter, wrapped in old ledger paper."},
+            {"who":"hazel","say":"I've kept a page for you since the day you arrived. Every gift, every favor."},
+            {"who":"hazel","say":"The totals came out very lopsided. In your favor. That won't do at all."},
+            {"who":"hazel","say":"So, a little something to balance the books. Ledger helped wrap it. That's why it's hairy."},
+            {"who":"hazel","say":"Friends, {name}. Written in pen."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tobin",
+      "n": "Old Tobin",
+      "short": "Tobin",
+      "role": "Retired ferryman and river fisher",
+      "mono": "OT",
+      "h": 200,
+      "req": {},
+      "loves": ["boot","pike","catfish","stew"],
+      "likes": ["trout","salmon","eel","crayfish","worm","lure","rope"],
+      "dislikes": ["salad","bouquet"],
+      "greet": [
+        "Mornin'.",
+        "River's talking today. Mostly about you.",
+        "Caught a pike once the size of a rowboat. Small rowboat. Still counts.",
+        "Water's clearer than it was. Fish noticed first. They always do.",
+        "Boot garden's coming on. Planted a wellington. Should flower by spring.",
+        "Sit if you like. Don't talk. Fish can hear.",
+        "Valley's remembering itself. Slow. Like a river after a dry summer.",
+        "Wind's from the west. Means nothing. Thought you'd want to know."
+      ],
+      "thanks": {
+        "loved": "Hm. Well. That's a fine thing, {name}. A fine thing.",
+        "liked": "Good. That'll do nicely.",
+        "neutral": "Hm. Thanks.",
+        "disliked": "...Wouldn't feed that to a rabbit. Wouldn't give it to one, neither. Thanks, though."
+      },
+      "requests": [
+        {
+          "say": "Need bait for the morning. Five minnows. Pike like a minnow. So do I, fried.",
+          "want": {"minnow":5},
+          "give": {"coins":55,"xp":{"fishing":7},"items":{"worm":5}}
+        },
+        {
+          "say": "Boot garden's got two empty beds. Two old boots, please. And three perch for my supper. Not the boots' supper.",
+          "want": {"boot":2,"perch":3},
+          "give": {"coins":65,"xp":{"fishing":10}}
+        },
+        {
+          "say": "Smoking carp tonight. Two of 'em. And a sunfish, for the color. My wife liked the color.",
+          "want": {"carp":2,"sunfish":1},
+          "give": {"coins":110,"xp":{"fishing":17}}
+        },
+        {
+          "say": "River's open again. Haven't had a trout in eight years. Four, if you'd be so kind.",
+          "want": {"trout":4},
+          "give": {"coins":245,"xp":{"fishing":34}},
+          "req": {"chapter":"bridge","skill":{"fishing":3}}
+        },
+        {
+          "say": "Old ferry's mooring line rotted through. Two ropes. Not going anywhere. Just like her tied up proper.",
+          "want": {"rope":2},
+          "give": {"coins":220,"xp":{"crafting":35}},
+          "req": {"chapter":"bridge","skill":{"crafting":2}}
+        },
+        {
+          "say": "Ferryman's supper. Three catfish, three crayfish. Don't ask what's in it. It's catfish and crayfish.",
+          "want": {"catfish":3,"crayfish":3},
+          "give": {"coins":505,"xp":{"fishing":95}},
+          "req": {"chapter":"bridge","skill":{"fishing":3}}
+        },
+        {
+          "say": "Lost my lucky lure to a pike. Pike's still out there, wearing it. Four new lures, please.",
+          "want": {"lure":4},
+          "give": {"coins":305,"xp":{"crafting":50}},
+          "req": {"chapter":"forge","skill":{"crafting":6}}
+        },
+        {
+          "say": "Two pike, two eels. For the river tally. Kept it forty years. Don't like gaps.",
+          "want": {"pike":2,"eel":2},
+          "give": {"coins":595,"xp":{"fishing":105}},
+          "req": {"chapter":"forge","skill":{"fishing":8}}
+        },
+        {
+          "say": "River Stew. Two pots. It was Nell's recipe. Mine never tastes right. Maybe yours will.",
+          "want": {"stew":2},
+          "give": {"coins":1080,"xp":{"cooking":215}},
+          "req": {"chapter":"fair","skill":{"cooking":10,"farming":7,"fishing":3}}
+        }
+      ],
+      "hearts": [
+        {
+          "at": 2,
+          "title": "The Boot Garden",
+          "give": {"items":{"worm":10}},
+          "scene": [
+            {"say":"Behind Tobin's cottage, a row of old boots sits in the sun. Each one is full of soil, and something green grows in every one."},
+            {"who":"tobin","say":"Boot garden."},
+            {"who":"you","say":"Why boots?"},
+            {"who":"tobin","say":"River gives me boots. Never asked for 'em. Seemed rude to throw 'em back."},
+            {"who":"tobin","say":"That one's a fisherman's. That one's a girl's riding boot. Each one walked somewhere, once."},
+            {"who":"tobin","say":"Now they grow mint. Good retirement, for a boot. Here. Worms. Garden's full of 'em."}
+          ]
+        },
+        {
+          "at": 5,
+          "title": "Nell's Wellington",
+          "scene": [
+            {"who":"tobin","say":"See the green one at the end? With the marigolds?"},
+            {"who":"tobin","say":"That's Nell's. My wife. Wore it down to the ferry every morning for thirty years."},
+            {"who":"tobin","say":"Lost it in the river the spring she passed. Gone, I thought."},
+            {"who":"tobin","say":"Three years later it comes up on my line. Same boot. Same muddy heel."},
+            {"who":"tobin","say":"So I planted marigolds in it. Her favorite. Then I couldn't stop. That's the whole tale."},
+            {"who":"tobin","say":"Not a tall one, that. Only true one I've got."},
+            {
+              "choices": [
+                {
+                  "t": "Nell would love the garden.",
+                  "reply": [{"who":"tobin","say":"She'd say it was daft. Then she'd water it."}]
+                },
+                {
+                  "t": "Thank you for telling me.",
+                  "reply": [{"who":"tobin","say":"Hm. Don't make a fuss. ...Thank you for listening."}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 8,
+          "title": "Next Year Is a Liar",
+          "scene": [
+            {"who":"tobin","say":"Ran the ferry forty years. Bridge put me out of work. Didn't mind. Liked the bridge."},
+            {"who":"tobin","say":"But there's one crossing I never made. Nell wanted to see the sea. We kept saying next year."},
+            {"who":"tobin","say":"Next year's a liar, {name}. Sly old thing."},
+            {"who":"tobin","say":"So here's a tall tale for you, and it's true: tomorrow, I'm going somewhere."},
+            {"who":"tobin","say":"Don't know where. Downriver. Further than the ferry ever went. Nell would laugh."},
+            {"who":"tobin","say":"Don't wait for next year. That's the advice. Took me seventy years to learn it."},
+            {
+              "choices": [
+                {"t":"Want company?","reply":[{"who":"tobin","say":"...Aye. Bring worms."}]},
+                {
+                  "t": "Send me a postcard.",
+                  "reply": [{"who":"tobin","say":"Never sent one in my life. Might start. Pip'll show me how."}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 10,
+          "title": "Nell's Tackle Box",
+          "give": {"items":{"lure":5},"xp":{"fishing":200},"buff":"steady"},
+          "scene": [
+            {"say":"Tobin hands over a battered tackle box. A faded marigold is painted on the lid."},
+            {"who":"tobin","say":"Forty years of hooks. Most of 'em lucky. Some of 'em very lucky."},
+            {"who":"tobin","say":"Nell painted the lid. Said a box should look cheerful even if the fisherman doesn't."},
+            {"who":"tobin","say":"You fish like you listen, {name}. Quiet. Patient. River likes that."},
+            {"who":"tobin","say":"Go on. Take it before I make a speech."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mira",
+      "n": "Mira Ashgrove",
+      "short": "Mira",
+      "role": "Tinker, keeper of the old forge",
+      "mono": "MA",
+      "h": 15,
+      "req": {},
+      "loves": ["ironbar","silverbar","goldbar","obsidian"],
+      "likes": ["copperbar","copper","iron","coal","nails","crystal","sandwich"],
+      "dislikes": ["sap","seaweed"],
+      "greet": [
+        "Hey, {name}. Mind the soot. Actually, don't bother. It's everywhere.",
+        "Fixed a clock this morning. It now runs perfectly, eleven minutes fast. Progress.",
+        "If it's broken, I can fix it. If it's not broken, give me a minute.",
+        "Hear that? Hammering. Not mine, for once. The whole valley's mending things.",
+        "Grandad used to say a cold forge is just a warm one waiting. Took me years to get it.",
+        "Coffee's on the anvil. Don't drink it. It's for the anvil.",
+        "This valley's starting to sound like a workshop. Highest compliment I've got.",
+        "Lost a screw. Found three. Net gain. Good day."
+      ],
+      "thanks": {
+        "loved": "Oh, that's... yeah. That's really good. Thank you, {name}.",
+        "liked": "Useful. I like useful. Thanks.",
+        "neutral": "Huh. I'll find a use for it. I always do. Eventually.",
+        "disliked": "It's sticky. Why is it sticky? Why do people keep giving me sticky things?"
+      },
+      "requests": [
+        {
+          "say": "I'm testing a rock tumbler. Don't ask what for. I don't know yet either. Twelve pebbles, please.",
+          "want": {"pebble":12},
+          "give": {"coins":50,"xp":{"foraging":8}}
+        },
+        {
+          "say": "The forge bellows need a new frame. Fifteen wood. Oak if you can, but I'm not fussy.",
+          "want": {"wood":15},
+          "give": {"coins":110,"xp":{"foraging":21}},
+          "req": {"skill":{"foraging":3}}
+        },
+        {
+          "say": "I'm rebuilding the forge chimney one stone block at a time. Six more and it might stop leaning.",
+          "want": {"block":6},
+          "give": {"coins":150,"xp":{"crafting":26}},
+          "req": {"skill":{"crafting":2}}
+        },
+        {
+          "say": "If the forge is going to breathe again, it needs coal. And copper to practice on. Ten coal, six copper ore.",
+          "want": {"coal":10,"copper":6},
+          "give": {"coins":305,"xp":{"mining":55}},
+          "req": {"chapter":"bridge","skill":{"foraging":5}}
+        },
+        {
+          "say": "Grandad's anvil is iron, so I trust iron. Eight iron ore from the quarry, please.",
+          "want": {"iron":8},
+          "give": {"coins":315,"xp":{"mining":65},"items":{"nails":5}},
+          "req": {"chapter":"bridge","skill":{"foraging":5}}
+        },
+        {
+          "say": "Twenty iron nails. I could make them myself, but then who would I complain to?",
+          "want": {"nails":20},
+          "give": {"coins":320,"xp":{"crafting":38}},
+          "req": {"chapter":"forge","skill":{"crafting":6}}
+        },
+        {
+          "say": "My quench bucket sprang a leak. Ironic, for a tinker. One copper bucket and two iron bars, please.",
+          "want": {"bucket":1,"ironbar":2},
+          "give": {"coins":860,"xp":{"crafting":130}},
+          "req": {"chapter":"forge","skill":{"crafting":8}}
+        },
+        {
+          "say": "I want to try silversmithing. Grandad never did. Six silver ore and two sky crystals from the deep mine.",
+          "want": {"silver":6,"crystal":2},
+          "give": {"coins":800,"xp":{"mining":120}},
+          "req": {"chapter":"mine","skill":{"mining":5}}
+        },
+        {
+          "say": "Six gold ore and two obsidian. I'm making something for the bell tower. Don't ask. It's a surprise.",
+          "want": {"gold":6,"obsidian":2},
+          "give": {"coins":1320,"xp":{"mining":185}},
+          "req": {"chapter":"highlands","skill":{"mining":12}}
+        }
+      ],
+      "hearts": [
+        {
+          "at": 2,
+          "title": "Grandad's Anvil",
+          "scene": [
+            {"say":"In the middle of the forge sits an anvil, worn smooth as a river stone."},
+            {"who":"mira","say":"Grandad's. He shod every horse in the valley on this. Mended every gate."},
+            {"who":"mira","say":"When the forge went cold, people told me to sell it. Good iron, they said."},
+            {"who":"mira","say":"It is good iron. That's exactly why I didn't."},
+            {"who":"you","say":"It's beautiful."},
+            {"who":"mira","say":"It's a lump. But it's my lump."}
+          ]
+        },
+        {
+          "at": 5,
+          "title": "The Dent",
+          "scene": [
+            {"who":"mira","say":"See that dent on the horn? Most people think it's a flaw."},
+            {"who":"mira","say":"I was six. Dropped a hammer on it. Cried for an hour because I thought I'd broken it."},
+            {"who":"mira","say":"Grandad just laughed and said, 'Now it's got your mark on it too.'"},
+            {"who":"mira","say":"Every time I work on the horn, I hit that dent. Like he's still checking my work."},
+            {"who":"mira","say":"Don't tell anyone I said something sentimental. I have a reputation."},
+            {
+              "choices": [
+                {
+                  "t": "Your secret's safe.",
+                  "reply": [{"who":"mira","say":"Good. I'd hate to have to make you a thank-you present."}]
+                },
+                {
+                  "t": "Too late. Telling Hazel.",
+                  "reply": [{"who":"mira","say":"You wouldn't. ...You would. Ugh. Fine."}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 8,
+          "title": "Who Comes Through the Door",
+          "scene": [
+            {"who":"mira","say":"Can I tell you something, {name}? I nearly left. The year before you came."},
+            {"who":"mira","say":"Had a job lined up in the city. Fixing machines nobody would ever thank me for."},
+            {"who":"mira","say":"Packed my tools. Got as far as the door. Then I looked back at the anvil."},
+            {"who":"mira","say":"Couldn't do it. Felt like leaving someone alone in the dark."},
+            {"who":"mira","say":"Now the forge is lit and I know why I stayed. It was never about the metal. It's who comes through the door."},
+            {"who":"mira","say":"Which is mostly you. Covered in mud. Asking for nails."}
+          ]
+        },
+        {
+          "at": 10,
+          "title": "The Ashgrove Mark",
+          "give": {"items":{"sprinkler2":1}},
+          "scene": [
+            {"say":"Mira presses something into your hands. It's still warm from the forge."},
+            {"who":"mira","say":"Iron sprinkler. Made it on Grandad's anvil. Hit the dent twice, for luck."},
+            {"who":"mira","say":"Stamped the Ashgrove mark on the bottom. And next to it, yours. I made one up."},
+            {"who":"mira","say":"It's a turnip. Don't argue. You're very turnip-shaped as a person, {name}. Dependable."},
+            {"who":"mira","say":"That's a compliment. It's the best one I've got."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "clem",
+      "n": "Gran Clementine",
+      "short": "Gran",
+      "role": "Baker, and the valley's grandmother",
+      "mono": "GC",
+      "h": 330,
+      "req": {},
+      "loves": ["honeycomb","cherry","pear","strawberry"],
+      "likes": ["egg","milk","wheat","berries","apple","tea","thyme"],
+      "dislikes": ["eel","coal"],
+      "greet": [
+        "Come in, come in. The kettle's just boiled. It always has, when you arrive.",
+        "Flour on my nose? I know. I leave it there. It keeps people honest.",
+        "You look peaky, {name}. Have a scone. Have two. I'm not asking.",
+        "Ovens warm and the valley waking. That's all an old woman needs.",
+        "I've seen this valley sleep before, dear. It always wakes up. Usually hungry.",
+        "My knees say rain. My knees are right about half the time, same as the almanac.",
+        "Wren always said you can tell a gardener by their fingernails. Let's see yours. Hm. Passable.",
+        "Mind the cat on the step. It's Hazel's. It thinks it's mine."
+      ],
+      "thanks": {
+        "loved": "Oh, my dear. You remembered. Come here and let me pinch your cheek.",
+        "liked": "Lovely. That'll go into something delicious. Thank you, pet.",
+        "neutral": "How kind. I'll find a use for it. I always do.",
+        "disliked": "Hm. My mother taught me to say thank you for everything. So: thank you."
+      },
+      "requests": [
+        {
+          "say": "My flour bin's emptier than a Sunday street. Twelve wheat, dear, and there's a warm loaf in it for you.",
+          "want": {"wheat":12},
+          "give": {"coins":95,"xp":{"farming":15},"items":{"bread":1}}
+        },
+        {
+          "say": "Clover tea for my knees and wildflowers for the counter. Six clover and four wildflowers. The knees are the urgent part.",
+          "want": {"clover":6,"wildflower":4},
+          "give": {"coins":65,"xp":{"foraging":12}}
+        },
+        {
+          "say": "Thursday is pasty day. Five potatoes and four carrots, and I'll save you the crimpiest one.",
+          "want": {"potato":5,"carrot":4},
+          "give": {"coins":265,"xp":{"farming":45}},
+          "req": {"skill":{"farming":2}}
+        },
+        {
+          "say": "Ten wild berries from Mossy Woods. Wren and I used to eat more than we picked. Don't you dare.",
+          "want": {"berries":10},
+          "give": {"coins":200,"xp":{"foraging":36}},
+          "req": {"skill":{"foraging":3}}
+        },
+        {
+          "say": "Ten eggs, please. I've a sponge to make, and Hazel's hens have gone on strike.",
+          "want": {"egg":10},
+          "give": {"coins":265,"xp":{"farming":55}},
+          "req": {"chapter":"prologue"}
+        },
+        {
+          "say": "Custard! Four milk and six eggs. Don't tell Hazel. She'll want the recipe, and then she'll want to sell it.",
+          "want": {"milk":4,"egg":6},
+          "give": {"coins":385,"xp":{"farming":46},"items":{"berrypie":1}},
+          "req": {"chapter":"forge"}
+        },
+        {
+          "say": "The orchard's fruiting again! Eight apples and six pears. I want to bake until the windows steam.",
+          "want": {"apple":8,"pear":6},
+          "give": {"coins":510,"xp":{"farming":75}},
+          "req": {"chapter":"fair","skill":{"farming":7}}
+        },
+        {
+          "say": "Honey and cherries. Four combs and six cherries. There's a tart I haven't made in eight years. It's time.",
+          "want": {"honeycomb":4,"cherry":6},
+          "give": {"coins":525,"xp":{"farming":80}},
+          "req": {"chapter":"lighthouse","skill":{"farming":10}}
+        },
+        {
+          "say": "Two apple pies, made by you. Wren always called my pie 'adequate'. I'd like to know what she'd say about yours.",
+          "want": {"applepie":2},
+          "give": {"coins":1145,"xp":{"cooking":160}},
+          "req": {"chapter":"highlands","skill":{"cooking":14,"farming":4}}
+        }
+      ],
+      "hearts": [
+        {
+          "at": 2,
+          "title": "Two Girls, One Bicycle",
+          "give": {"items":{"bread":2}},
+          "scene": [
+            {"say":"Gran sets down a faded photograph: two girls on one bicycle, both laughing. One wears a flowerpot for a hat."},
+            {"who":"clem","say":"That's me in front, pedaling. That's Wren behind, steering. Badly."},
+            {"who":"clem","say":"We rode it into Lily Pond the summer we were nine. Twice. The second time on purpose."},
+            {"who":"clem","say":"She wore that flowerpot all summer. Said it was a helmet for her ideas."},
+            {"who":"you","say":"What happened to the bicycle?"},
+            {"who":"clem","say":"Still in the pond. Tobin's fished out half of it. He's waiting on the other wheel."},
+            {"say":"Gran presses two warm rolls into your hands, as if the story needed a snack."}
+          ]
+        },
+        {
+          "at": 5,
+          "title": "The First Loaf",
+          "scene": [
+            {"who":"clem","say":"Sit with me a minute, {name}. My hands want kneading and my mouth wants talking."},
+            {"who":"clem","say":"When we were girls, Wren grew the wheat and I baked it. First loaf of every harvest, split down the middle."},
+            {"who":"clem","say":"Sixty-odd years, we never missed one. Then she went off to listen for that bell."},
+            {"who":"clem","say":"I still bake the first loaf every harvest. I still cut it in two."},
+            {"who":"clem","say":"Half for me. Half wrapped up on the shelf. Just in case."},
+            {"who":"you","say":"Just in case of what?"},
+            {"who":"clem","say":"Oh, you know. Just in case."}
+          ]
+        },
+        {
+          "at": 8,
+          "title": "Old Friends Leave Crumbs",
+          "scene": [
+            {"who":"clem","say":"You're a clever one, {name}. So I'll tell you something I haven't said aloud."},
+            {"who":"clem","say":"Wren never once went anywhere without telling me where. Not once in seventy years."},
+            {"who":"clem","say":"'Gone to listen for the bell.' That's not a goodbye, dear. That's a riddle. That's Wren all over."},
+            {"who":"clem","say":"I had a feeling, all these years. Old friends leave crumbs, if you know where to look."},
+            {"who":"clem","say":"So I kept her half of the loaf on the shelf. Never let it go stale for long."},
+            {"who":"clem","say":"Now eat your scone. It's getting sentimental in here."}
+          ]
+        },
+        {
+          "at": 10,
+          "title": "The Recipe Tin",
+          "give": {"items":{"cake":1},"xp":{"cooking":200}},
+          "scene": [
+            {"say":"Gran hands you a tin box, its lid soft with flour and fingerprints."},
+            {"who":"clem","say":"Every recipe I know. Some I made up. Some I pinched from Wren's mother. She'd want them used."},
+            {"who":"clem","say":"The tart on the last card has no name. Wren and I never could agree on one."},
+            {"who":"clem","say":"You name it, {name}. You've earned that, and a great deal more."},
+            {"who":"clem","say":"And a cake for the road. Don't argue with an old woman holding a rolling pin."},
+            {
+              "choices": [
+                {
+                  "t": "Call it Bramble Tart.",
+                  "reply": [{"who":"clem","say":"Ha! Wren would pretend to hate that. Then she'd eat three slices."}]
+                },
+                {
+                  "t": "Call it Clementine's.",
+                  "reply": [{"who":"clem","say":"Oh, go on with you. ...Write it in pen."}]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pip",
+      "n": "Pip",
+      "short": "Pip",
+      "role": "Explorer and mapmaker, age ten and a half",
+      "mono": "P",
+      "h": 265,
+      "req": {},
+      "loves": ["fossil","feather","bullfrog","compass"],
+      "likes": ["eaglefeather","starfish","shell","acorn","berries","amethyst","trailmix"],
+      "dislikes": ["cabbage","garlic","eggplant"],
+      "greet": [
+        "{name}! I mapped the whole meadow! Well, most of it. Sir Hopsalot sat on a corner.",
+        "Sir Hopsalot says good morning. He says it with his throat. It's very loud.",
+        "Did you know snails have four noses? I didn't either. I made it up. But they COULD.",
+        "My map has way fewer 'HERE BE DRAGONS' bits now. You keep fixing them!",
+        "Explorers don't have bedtimes. Mum disagrees. Mum is wrong.",
+        "Everything's getting un-broken! I have to redraw my map every week. It's the BEST.",
+        "Sir Hopsalot is a real knight, you know. I did it with a spoon.",
+        "Got a postcard from Dad! It has a whale on it. A drawing of a whale. Still counts."
+      ],
+      "thanks": {
+        "loved": "WHOA! For me?! This is going in the Museum of Pip! Sir Hopsalot, LOOK!",
+        "liked": "Ooh, nice! Thanks, {name}! It's going on my shelf of good stuff.",
+        "neutral": "Oh! Um, thanks! I'll find out what it's for. That's what explorers do.",
+        "disliked": "Ew. Um. Sir Hopsalot says thank you. I'm not saying anything."
+      },
+      "requests": [
+        {
+          "say": "Every explorer needs a cairn! Eight pebbles to mark the edge of my map. That's where the Unknown starts!",
+          "want": {"pebble":8},
+          "give": {"coins":35,"xp":{"foraging":7}}
+        },
+        {
+          "say": "Sir Hopsalot refused his breakfast. He's very particular. Four worms and two snails, for a tasting menu!",
+          "want": {"worm":4,"snail":2},
+          "give": {"coins":30,"xp":{"fishing":4}}
+        },
+        {
+          "say": "My explorer hat needs feathers. Three of them! A hat with no feathers is just a hat.",
+          "want": {"feather":3},
+          "give": {"coins":30,"xp":{"foraging":5}}
+        },
+        {
+          "say": "I want Sir Hopsalot to meet a bullfrog. For diplomacy. I'll let it go after. Pinky promise!",
+          "want": {"bullfrog":1},
+          "give": {"coins":40,"xp":{"fishing":6}}
+        },
+        {
+          "say": "I'm mapping Mossy Woods and I need specimens! Six acorns and three ferns. For SCIENCE.",
+          "want": {"acorn":6,"fern":3},
+          "give": {"coins":115,"xp":{"foraging":16}},
+          "req": {"skill":{"foraging":3}}
+        },
+        {
+          "say": "Is it true there are dinosaur bones in the Old Quarry?! Bring me a fossil. Any size. A tiny dinosaur still counts.",
+          "want": {"fossil":1},
+          "give": {"coins":265,"xp":{"foraging":42},"items":{"feather":2}},
+          "req": {"chapter":"bridge","skill":{"foraging":5}}
+        },
+        {
+          "say": "Hazel says there are glowing mushrooms down the mine. I'm not allowed in. So you have to bring me three. Please!",
+          "want": {"glowcap":3},
+          "give": {"coins":180,"xp":{"mining":34}},
+          "req": {"chapter":"mine","skill":{"mining":5}}
+        },
+        {
+          "say": "Dad always sends me things from the sea. I want to send him something from OUR sea. Two starfish and six shells!",
+          "want": {"starfish":2,"shell":6},
+          "give": {"coins":275,"xp":{"foraging":47}},
+          "req": {"chapter":"lighthouse","skill":{"foraging":9}}
+        },
+        {
+          "say": "Eagle feathers would make my hat a proper expedition hat. Two, in case Sir Hopsalot wants one.",
+          "want": {"eaglefeather":2},
+          "give": {"coins":230,"xp":{"foraging":41}},
+          "req": {"chapter":"highlands","skill":{"foraging":12}}
+        }
+      ],
+      "hearts": [
+        {
+          "at": 2,
+          "title": "The Map of Everything",
+          "scene": [
+            {"say":"Pip unrolls a map almost as tall as Pip. Every inch is labeled in wobbly capitals."},
+            {"who":"pip","say":"This is the whole valley! I drew it. That's the farm. That's you, the stick person with the hoe."},
+            {"who":"pip","say":"And that's Lily Pond. It's Sir Hopsalot's country. He's in charge. Well, he's a knight. He's working up."},
+            {"who":"pip","say":"All the gray bits are broken places. I'm gonna color them in when they're fixed."},
+            {"who":"you","say":"That's a lot of gray."},
+            {"who":"pip","say":"Not as much as before! You keep giving me coloring to do!"}
+          ]
+        },
+        {
+          "at": 5,
+          "title": "Postcards from Dad",
+          "give": {"items":{"feather":1}},
+          "scene": [
+            {"say":"Pip's bedroom wall is covered in postcards. Lighthouses, whales, one very surprised-looking seal."},
+            {"who":"pip","say":"My dad's a sailor. He's on a big ship that goes everywhere. He sends a postcard from every port."},
+            {"who":"pip","say":"Forty-one so far! I mark every port on my map, so I always know where he's been."},
+            {"who":"pip","say":"I don't mind that he's away. Explorers have to explore. I get it. I'm one too."},
+            {"who":"pip","say":"Only sometimes I wish the postcards were longer. Like, two sentences longer."},
+            {"who":"you","say":"What would you want them to say?"},
+            {"who":"pip","say":"Dunno. Maybe 'I saw a map shop and thought of you.' Here, have a feather. I'm being brave."}
+          ]
+        },
+        {
+          "at": 8,
+          "title": "The Postcard Pip Sent",
+          "scene": [
+            {"who":"pip","say":"{name}, I did a brave thing. I wrote Dad a postcard back. A long one."},
+            {"who":"pip","say":"I told him about the bridge and the forge and the mine and you. It took both sides AND the stamp bit."},
+            {"who":"pip","say":"I said I'm a real explorer now, because I have a real friend to explore with."},
+            {"who":"pip","say":"And he wrote back already! It says, 'Coming home for the winter. Draw me a map of everywhere.'"},
+            {"who":"pip","say":"So I have to finish the map! All of it! You have to help!"},
+            {
+              "choices": [
+                {"t":"Let's map everything.","reply":[{"who":"pip","say":"YES! Sir Hopsalot, get your helmet!"}]},
+                {
+                  "t": "Sir Hopsalot can navigate.",
+                  "reply": [{"who":"pip","say":"He can't. He hops in circles. But he's very confident about it."}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 10,
+          "title": "The Finished Map",
+          "give": {"items":{"compass":1},"xp":{"foraging":150}},
+          "scene": [
+            {"say":"Pip's map is finished. Every gray bit is colored in, some of them twice."},
+            {"who":"pip","say":"Dad says it's the best map he's ever seen. And he's seen LOADS. He's a sailor."},
+            {"who":"pip","say":"I put a star on your farm. Explorers always mark where the treasure is."},
+            {"who":"pip","say":"And I want you to have this. My lucky compass. It points north. Mostly. Sometimes at snacks."},
+            {"who":"pip","say":"You're my best expedition partner ever, {name}."},
+            {"who":"pip","say":"Sir Hopsalot is second. He knows. He's fine about it."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rook",
+      "n": "Captain Rook",
+      "short": "Rook",
+      "role": "Keeper of the lighthouse on the Point",
+      "mono": "CR",
+      "h": 220,
+      "req": {"flag":"met_rook"},
+      "loves": ["lens","seaglass","chowder","lantern"],
+      "likes": ["driftwood","shell","crab","squid","tea","candle","rope"],
+      "dislikes": ["lemonade","sunflower"],
+      "greet": [
+        "Tide's turning. So's the day. So, it seems, are you.",
+        "The sea said your name this morning. Mostly it says 'hush'. You're an improvement.",
+        "Fog on the water. The gulls are gossiping. Worse than Hazel.",
+        "Wind from the north. Smells of snow and old promises.",
+        "Every night I write the weather in the log. The weather never writes back.",
+        "The valley's brighter from up here than it was. I notice. Not much else to do but notice.",
+        "Sit. Watch the horizon with me. Only show in town that never repeats."
+      ],
+      "thanks": {
+        "loved": "...Well. You've a keeper's eye, {name}. That's rare as calm water.",
+        "liked": "Kind of you. The sea's stingy with gifts. You're not.",
+        "neutral": "Hm. I'll put it on the shelf with the other mysteries.",
+        "disliked": "Too bright. Too cheerful. Give it to someone with less weather in their soul."
+      },
+      "requests": [
+        {
+          "say": "The stair rail's gone soft as bread. Two ropes and six planks. I'd rather not meet the rocks the quick way.",
+          "want": {"rope":2,"plank":6},
+          "give": {"coins":350,"xp":{"crafting":55}},
+          "req": {"skill":{"crafting":2,"foraging":3}}
+        },
+        {
+          "say": "Driftwood for the stove. Seaweed for the garden I pretend I don't keep. Eight and six.",
+          "want": {"driftwood":8,"seaweed":6},
+          "give": {"coins":160,"xp":{"foraging":30}},
+          "req": {"chapter":"lighthouse","skill":{"foraging":9}}
+        },
+        {
+          "say": "Haven't fished the cove in years. Pride, mostly. Three crabs and four shrimp, and we'll say no more about it.",
+          "want": {"crab":3,"shrimp":4},
+          "give": {"coins":860,"xp":{"fishing":145},"items":{"lure":2}},
+          "req": {"chapter":"lighthouse","skill":{"fishing":8}}
+        },
+        {
+          "say": "Two lanterns for the gallery. Small lights. But a small light is still a promise to someone out there.",
+          "want": {"lantern":2},
+          "give": {"coins":760,"xp":{"crafting":135}},
+          "req": {"chapter":"lighthouse","skill":{"crafting":10}}
+        },
+        {
+          "say": "Cove Chowder, two bowls. One for me. One for whoever climbs all those stairs to visit. You, usually.",
+          "want": {"chowder":2},
+          "give": {"coins":1715,"xp":{"cooking":345}},
+          "req": {"chapter":"lighthouse","skill":{"cooking":13,"fishing":8}}
+        },
+        {
+          "say": "A crystal lamp for the log desk. Some nights my eyes feel older than the sea.",
+          "want": {"lamp":1},
+          "give": {"coins":1300,"xp":{"crafting":155}},
+          "req": {"chapter":"highlands","skill":{"crafting":16}}
+        }
+      ],
+      "hearts": [
+        {
+          "at": 2,
+          "title": "Ships in the Log",
+          "scene": [
+            {"say":"Rook's log lies open on the desk. Neat columns: date, weather, ships seen."},
+            {"who":"rook","say":"Every ship that's passed the Point in thirty years. Names, if I could read them. Guesses, if I couldn't."},
+            {"who":"rook","say":"'The Gull's Regret.' 'Persistence.' That one I called 'Dumpling'. It was round."},
+            {"who":"you","say":"Did any of them know you were watching?"},
+            {"who":"rook","say":"No. That's the job. Watch, so nobody else has to worry."},
+            {"who":"rook","say":"Lonely work. Good work. Both at once, like most things worth doing."}
+          ]
+        },
+        {
+          "at": 5,
+          "title": "The Lost Lens",
+          "scene": [
+            {"who":"rook","say":"You want to know why the light went dark? Not the storm. Me."},
+            {"who":"rook","say":"The night the bell cracked, the wind took the gallery windows. I went up to save the lens."},
+            {"who":"rook","say":"Had it in my arms. Then the floor tilted, and I had a choice: the lens or the railing."},
+            {"who":"rook","say":"I chose the railing. The lens went into the cove. I heard it sing on the rocks."},
+            {"who":"rook","say":"Eight years I've blamed myself for being alive instead of brave."},
+            {"who":"you","say":"You chose right."},
+            {"who":"rook","say":"Aye. That's what the sea keeps telling me. I'm a slow listener."}
+          ]
+        },
+        {
+          "at": 8,
+          "title": "Three Flashes",
+          "scene": [
+            {"who":"rook","say":"People ask why I stayed when the light went out. Hazel asks weekly. With biscuits."},
+            {"who":"rook","say":"A keeper doesn't keep a light, {name}. A keeper keeps watch. The light's just the loud part."},
+            {"who":"rook","say":"Some nights I'd see a lamp moving, far up in the highlands. Never knew whose."},
+            {"who":"rook","say":"I'd flash my hand lantern back. Three times. Old sailor's hello."},
+            {"who":"rook","say":"And sometimes, I swear, it flashed back."},
+            {
+              "choices": [
+                {
+                  "t": "Someone else was keeping watch.",
+                  "reply": [
+                    {"who":"rook","say":"Maybe. Two keepers, two hills, one dark valley. Not so lonely, put like that."}
+                  ]
+                },
+                {
+                  "t": "Did you ever find out who?",
+                  "reply": [{"who":"rook","say":"Some questions are better as lights than answers. ...But I've a guess."}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 10,
+          "title": "What the Sea Gave Back",
+          "give": {"items":{"seaglass":6},"coins":400},
+          "scene": [
+            {"say":"Rook opens an old tea tin. Inside are pale, frosted pieces of glass, worn smooth by the tide."},
+            {"who":"rook","say":"Pieces of the old lens. The sea's been giving them back, one tide at a time."},
+            {"who":"rook","say":"Took eight years to turn my worst night into something pretty. Patient, the sea."},
+            {"who":"rook","say":"I want you to have them. You helped me stop listening to the rocks, {name}."},
+            {"who":"rook","say":"Make something that catches the light. It's all glass ever wanted."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ingrid",
+      "n": "Ingrid",
+      "short": "Ingrid",
+      "role": "Shepherd of the Windy Highlands",
+      "mono": "IN",
+      "h": 110,
+      "req": {"flag":"met_ingrid"},
+      "loves": ["heather","yarn","cheese","tea"],
+      "likes": ["wool","thyme","bread","apple","carrot","milk","iceperch"],
+      "dislikes": ["puffer","pepper"],
+      "greet": [
+        "Mm. Morning.",
+        "Sheep are well. I'm well. That's the news.",
+        "Wind's up. Good. Keeps the flies honest.",
+        "You walk louder than a lamb. Getting quieter, though.",
+        "Valley's lighter than it was. You can see it from the ridge. More lamps at night.",
+        "Brought you nothing. Came to say hello. That's the gift.",
+        "Fog on the tops today. Sheep don't mind. Neither do I."
+      ],
+      "thanks": {
+        "loved": "...Oh. Thank you. Truly.",
+        "liked": "Good. That's kind.",
+        "neutral": "Thanks.",
+        "disliked": "Mm. No. But thank you for thinking of me."
+      },
+      "requests": [
+        {
+          "say": "Carrots. Fifteen. The flock pretend they don't like them. Sheep are liars.",
+          "want": {"carrot":15},
+          "give": {"coins":285,"xp":{"farming":55}}
+        },
+        {
+          "say": "Thyme for the cheese. Eight sprigs. From the upper slopes. The lower ones taste of goat.",
+          "want": {"thyme":8},
+          "give": {"coins":255,"xp":{"foraging":43},"items":{"wool":3}},
+          "req": {"chapter":"highlands","skill":{"foraging":12}}
+        },
+        {
+          "say": "Ten heather. For a friend who misses color. Don't ask who.",
+          "want": {"heather":10},
+          "give": {"coins":440,"xp":{"foraging":80}},
+          "req": {"chapter":"highlands","skill":{"foraging":12}}
+        },
+        {
+          "say": "Three yarn. Winters are long up top. Long enough to knit a whole sheep, nearly.",
+          "want": {"yarn":3},
+          "give": {"coins":540,"xp":{"crafting":110}},
+          "req": {"chapter":"highlands","skill":{"crafting":10}}
+        },
+        {
+          "say": "Two ice perch, three char. The tarn's generous if you're patient. I've no patience left this week.",
+          "want": {"iceperch":2,"char":3},
+          "give": {"coins":1115,"xp":{"fishing":135}},
+          "req": {"chapter":"highlands","skill":{"fishing":14}}
+        },
+        {
+          "say": "A picnic on the ridge. Wren, Clementine and me, first in eight years. Two cheeses and four loaves, please.",
+          "want": {"cheese":2,"bread":4},
+          "give": {"coins":585,"xp":{"cooking":90}},
+          "req": {"flag":"found_wren","skill":{"cooking":6}}
+        }
+      ],
+      "hearts": [
+        {
+          "at": 2,
+          "title": "Every Sheep Has a Name",
+          "scene": [
+            {"say":"Ingrid walks the flock along the ridge, touching each sheep on the head as it passes."},
+            {"who":"ingrid","say":"Thistle. Old Mags. Pudding. Biscuit. Small Biscuit."},
+            {"who":"you","say":"You've named them all?"},
+            {"who":"ingrid","say":"Course. You don't leave a thing unnamed up here. Wind would take it."},
+            {"who":"ingrid","say":"That one's Stubborn. She is."},
+            {"who":"ingrid","say":"...You can name the next lamb. If you like."},
+            {
+              "choices": [
+                {"t":"Sir Woolsalot.","reply":[{"who":"ingrid","say":"Pip's been at you. ...Fine. Sir Woolsalot."}]},
+                {"t":"Clover.","reply":[{"who":"ingrid","say":"Clover. Good. Plain. She'll wear it well."}]}
+              ]
+            }
+          ]
+        },
+        {
+          "at": 5,
+          "title": "The Storm Lamb",
+          "scene": [
+            {"who":"ingrid","say":"Lost a lamb once. Storm like the one that cracked the bell. Couldn't see my own hands."},
+            {"who":"ingrid","say":"Shouting didn't help. Wind ate it. So I stopped. Stood still. Listened."},
+            {"who":"ingrid","say":"Took an hour. Then, one small bleat, under a ledge. Right below my boots."},
+            {"who":"ingrid","say":"Most things you lose, you find by going quiet. Took me years to learn it."},
+            {"who":"you","say":"Is that why you live up here?"},
+            {"who":"ingrid","say":"Mm. Up here it's quiet enough to hear what matters."}
+          ]
+        },
+        {
+          "at": 8,
+          "title": "A Promise Kept",
+          "scene": [
+            {"who":"ingrid","say":"{name}. Sit. I owe you a story. Short one. I'm no good at long."},
+            {"who":"ingrid","say":"Eight winters back, a friend went up the Highland Road. Then the slide came down behind."},
+            {"who":"ingrid","say":"Couldn't come back. Wouldn't, maybe. Asked me to tell no one. Not until the bell could ring."},
+            {"who":"ingrid","say":"I kept that promise. Through every worried face in the valley. Every one."},
+            {"who":"ingrid","say":"Some nights I hated it. Some nights I was proud. Mostly both."},
+            {"who":"ingrid","say":"Maybe you know who I mean by now. If not, you will. Either way, I'm sorry I couldn't say."},
+            {
+              "choices": [
+                {
+                  "t": "You kept your word. That matters.",
+                  "reply": [{"who":"ingrid","say":"...Mm. Thank you. That helps more than you'd think."}]
+                },
+                {
+                  "t": "I'd have done the same.",
+                  "reply": [
+                    {"who":"ingrid","say":"No. You'd have told everyone by teatime. That's why you're good for this valley."}
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 10,
+          "title": "Dropped Stitches",
+          "give": {"items":{"wool":10,"yarn":2}},
+          "scene": [
+            {"say":"Ingrid hands you a folded bundle: a scarf, thick and slightly lopsided, the color of heather."},
+            {"who":"ingrid","say":"Knitted it on the long nights. Dropped a stitch or ten. Didn't unpick them."},
+            {"who":"ingrid","say":"Mistakes make it warmer. That's what I tell myself."},
+            {"who":"ingrid","say":"Wool and yarn too. For your own long nights. You'll have them. Everyone does."},
+            {"who":"ingrid","say":"You're welcome on the ridge, {name}. Any time. That's not a thing I say."}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wren",
+      "n": "Wren Bramble",
+      "short": "Wren",
+      "role": "Gardener, stargazer, your great-aunt",
+      "mono": "WB",
+      "h": 140,
+      "req": {"flag":"found_wren"},
+      "loves": ["moonbloom","sunflower","pumpkin","tonic"],
+      "likes": ["crystal","fern","mushroom","thyme","heather","cucumber","tea"],
+      "dislikes": ["scarecrow","sprinkler1"],
+      "greet": [
+        "Ah. The heir. Your carrots are slouching, {name}. Have a word with them.",
+        "Eight years of mountain air and I come home to find you've done all my chores. Rude.",
+        "Morning. The tomatoes and I have been talking. They have notes.",
+        "Clementine has fed me four times today. I'm hiding in the potato patch.",
+        "Funny thing about a valley. You leave it dim and come back to find it humming.",
+        "Don't fuss. I'm old, not fragile. Fragile things don't last eight winters on a mountain.",
+        "Sky's clear tonight. I've mapped it twice already. Still there. Good.",
+        "You've done well with the place. Don't let it go to your head. Let it go to the soil."
+      ],
+      "thanks": {
+        "loved": "Now that's a proper gift. You've been paying attention. Dangerous habit. Keep it up.",
+        "liked": "Very nice. I'll pretend I'm not pleased. I'm pleased.",
+        "neutral": "Hm. Thank you, {name}. It'll find a use, or a compost heap.",
+        "disliked": "Absolutely not. I'll give it to Clementine. She'll pretend to like it. She's better at that than me."
+      },
+      "requests": [
+        {
+          "say": "My old herb beds have been sulking for eight years. Three grow tonics and a stern word should sort them out.",
+          "want": {"tonic":3},
+          "give": {"coins":210,"xp":{"farming":34}},
+          "req": {"skill":{"crafting":4,"foraging":3}}
+        },
+        {
+          "say": "Two pumpkins. One for Clementine's pie. One to sit on. I've missed a good garden seat.",
+          "want": {"pumpkin":2},
+          "give": {"coins":595,"xp":{"farming":115}},
+          "req": {"skill":{"farming":14}}
+        },
+        {
+          "say": "Up there I grew herbs in teacups. I want a proper bed again: six thyme, six heather, six fern. The east bed's yours too.",
+          "want": {"thyme":6,"heather":6,"fern":6},
+          "give": {"coins":540,"xp":{"foraging":90},"plots":1},
+          "req": {"skill":{"foraging":12}}
+        },
+        {
+          "say": "Three sunflowers. They follow the sun all day. I spent eight years following stars. We understand each other.",
+          "want": {"sunflower":3},
+          "give": {"coins":1230,"xp":{"farming":220},"items":{"tonic":3}},
+          "req": {"skill":{"farming":16}}
+        },
+        {
+          "say": "Pip's taking over the observatory star charts, and the old glass is cracked. One good lens, please. The lighthouse kind will do.",
+          "want": {"lens":1},
+          "give": {"coins":1320,"xp":{"crafting":265}},
+          "req": {"skill":{"crafting":10,"mining":5}}
+        },
+        {
+          "say": "Moonbloom. My mother's flower. Grow me three and I'll admit you're a better gardener than me. Nearly.",
+          "want": {"moonbloom":3},
+          "give": {"coins":3840,"xp":{"farming":460}},
+          "req": {"chapter":"bell","flag":"heirloom","skill":{"farming":25}}
+        }
+      ],
+      "hearts": [
+        {
+          "at": 2,
+          "title": "Step One: Shut Up",
+          "scene": [
+            {"who":"wren","say":"Come here. No, closer. Kneel. Your knees will survive."},
+            {"who":"wren","say":"Put your hand flat on the soil. Now hush. Not your mouth. Your head."},
+            {"say":"You wait. A breeze moves through the beans. Somewhere, a leaf turns over."},
+            {"who":"wren","say":"Hear that? The beans are thirsty. They're being polite about it. Beans are polite."},
+            {"who":"you","say":"I didn't hear anything."},
+            {"who":"wren","say":"Good. That's step one. Most people only hear themselves. Step two takes about forty years."}
+          ]
+        },
+        {
+          "at": 5,
+          "title": "Plants Lean",
+          "scene": [
+            {"who":"wren","say":"Plants don't talk, {name}. Don't look at me like I'm mad. They don't talk. They lean."},
+            {"who":"wren","say":"Toward the light. Away from the wind. Toward each other when the ground is poor."},
+            {"who":"wren","say":"Learn to read a lean and you'll know a garden better than its gardener does."},
+            {"who":"wren","say":"Took me eight years on a mountain to notice people lean too."},
+            {"who":"wren","say":"This whole valley's been leaning toward you since you came. Did you notice?"},
+            {
+              "choices": [
+                {"t":"I noticed.","reply":[{"who":"wren","say":"Liar. But a kind one. You'll learn."}]},
+                {
+                  "t": "I thought it leaned toward cake.",
+                  "reply": [{"who":"wren","say":"Also true. Clementine's cake has its own gravity."}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": 8,
+          "title": "Somebody Listening",
+          "scene": [
+            {"who":"wren","say":"Everyone asks why I left. Nobody asks why I stayed up there. You haven't either. I like that."},
+            {"who":"wren","say":"I went for star-iron. Practical. Then the road came down and I had to be patient. I'm dreadful at patient."},
+            {"who":"wren","say":"So I listened. To the sky, mostly. Turns out stars lean too. Very slowly."},
+            {"who":"wren","say":"At night I'd look down at the valley and count the lights. Fewer every year."},
+            {"who":"wren","say":"Then one spring, a new one. Out at the old farm. Somebody had moved in."},
+            {"who":"wren","say":"That's when I knew I could wait a bit longer. Somebody was listening down there."},
+            {"who":"wren","say":"Don't you dare cry. I'll start, and I haven't the eyelashes for it."}
+          ]
+        },
+        {
+          "at": 10,
+          "title": "Bramble Roots",
+          "give": {"items":{"tonic":5},"xp":{"farming":300},"buff":"greenthumb"},
+          "scene": [
+            {"say":"Wren walks you to the old east bed. The soil is dark, and the morning is very quiet."},
+            {"who":"wren","say":"One day, many years from now, and I do mean many, this farm will be yours. Truthfully? It already is."},
+            {"who":"wren","say":"Every plant here knows your footsteps. That doesn't happen to just anybody."},
+            {"who":"wren","say":"Here. Tonics, my own recipe. Don't tell Hazel. She'll put a price on them."},
+            {"who":"wren","say":"Now go and listen to something, {name}. I've a nap to take, and the beans won't wait."}
+          ]
+        }
+      ]
+    }
+  ],
+  "merchant": {
+    "greet": [
+      "Saffi's Wandering Wares! Everything priced to move, darling. Mostly because I move.",
+      "Ah, my favorite customer! I say that to everyone. This time I very nearly mean it.",
+      "Fresh from over the hills! Well. Over some hills. Hills are hills.",
+      "Today's bargain: everything. Tomorrow's bargain: also everything. Buy today anyway.",
+      "The cart's freshly painted and the prices are freshly fair. Look closely. Fair-ish.",
+      "This valley gets brighter every time I roll through. Bright valleys buy more. I'm a fan."
+    ],
+    "sold": [
+      "Sold! A pleasure doing business. Mostly my pleasure, but some of it's yours.",
+      "Excellent choice! I'd have bought it myself if I didn't already own it.",
+      "Wrapped, done, yours! No refunds, but plenty of compliments.",
+      "You drive a hard bargain. Well, you paid full price. But you LOOKED like you'd haggle."
+    ],
+    "bought": [
+      "Ooh, quality goods! I'll sell these in the next valley for... well. That's my business.",
+      "Done and done! A fair price, give or take a take.",
+      "I'll take them! You've an eye for things that sell. Ever thought of getting a cart?",
+      "Lovely work! Next time bring twice as many. I'll pretend to be surprised."
+    ]
+  }
+}

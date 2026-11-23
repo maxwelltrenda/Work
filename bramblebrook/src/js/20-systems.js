@@ -1,0 +1,518 @@
+/* ---------- game systems ---------- */
+
+/* Fields */
+function growFactor() {
+  let f = 1;
+  const sp = state.upgrades.sprinkler;
+  if (sp) f *= 1 - C.core.upgrades.sprinkler.tiers[sp - 1].pct / 100;
+  if (buffOn('greenthumb')) f *= 0.75;
+  if (weather().id === 'rainy') f *= 0.85;
+  return f;
+}
+function cropOpen(c) { return lvl('farming') >= c.lvl && (!c.flag || state.flags[c.flag]); }
+function plant(i, quiet) {
+  const p = state.plots[i];
+  if (!p || p.crop) return false;
+  const c = I.crop[state.seed];
+  if (!c || !cropOpen(c)) return false;
+  if (state.coins < c.seed) { if (!quiet) toast(`You need ${c.seed} coins for ${itemName(c.id)} seeds.`); return false; }
+  state.coins -= c.seed;
+  const t = now();
+  state.plots[i] = { crop: c.id, at: t, ready: t + Math.round(c.grow * 1000 * growFactor()) };
+  return true;
+}
+function harvest(i) {
+  const p = state.plots[i];
+  if (!p || !p.crop || p.ready > now()) return 0;
+  const c = I.crop[p.crop];
+  const sc = state.upgrades.scarecrow ? C.core.upgrades.scarecrow.tiers[0].pct / 100 : 0;
+  const bonus = Math.random() < lvl('farming') * 0.02 + sc ? 1 : 0;
+  const got = addItem(c.id, 1 + bonus);
+  if (!got) return -1;
+  state.plots[i] = { crop: null, at: 0, ready: 0 };
+  addXP('farming', c.xp);
+  state.stats.harvested += got;
+  return got;
+}
+function plotState(p) {
+  const t = now();
+  const total = Math.max(1, p.ready - p.at), left = Math.max(0, p.ready - t);
+  const g = Math.min(1, 1 - left / total);
+  return { g, left, ready: left <= 0, stage: left <= 0 ? 4 : g < 0.2 ? 1 : g < 0.55 ? 2 : g < 0.85 ? 3 : 4 };
+}
+function useTonic() {
+  const t = now(); let n = 0;
+  state.plots.forEach(p => { if (p.crop && p.ready > t) { p.ready = t + (p.ready - t) / 2; n++; } });
+  if (!n) { toast('Nothing is growing right now. Sow something first.'); return false; }
+  takeItem('tonic', 1);
+  toast(`Grow Tonic sped up ${plural(n, 'plot')}`);
+  return true;
+}
+function installUpgrade(kind) {
+  const u = C.core.upgrades[kind];
+  const next = u.tiers[state.upgrades[kind]];
+  if (!next || !have(next.item)) return false;
+  takeItem(next.item, 1);
+  state.upgrades[kind]++;
+  toast(`${itemName(next.item)} installed: ${u.desc.replace('{pct}', next.pct)}`, 'lvl');
+  return true;
+}
+
+/* Orchard */
+function treeState(slot) {
+  const t = I.tree[slot.tree];
+  const cycles = Math.floor((now() - slot.at) / (t.grow * 1000));
+  const ready = Math.min(2, cycles);
+  return { t, ready, next: ready >= 2 ? 0 : (t.grow * 1000 - ((now() - slot.at) % (t.grow * 1000))) / 1000 };
+}
+function harvestTree(i) {
+  const slot = state.orchard[i];
+  if (!slot) return 0;
+  const { t, ready } = treeState(slot);
+  if (!ready) return 0;
+  const got = addItem(t.id, ready * t.yield);
+  if (!got) return -1;
+  const el = now() - slot.at, per = t.grow * 1000;
+  slot.at = ready >= 2 ? now() : now() - (el % per);
+  addXP('farming', t.xp * ready);
+  return got;
+}
+function plantTree(i, id) {
+  const t = I.tree[id];
+  if (!t || state.orchard[i] || lvl('farming') < t.lvl || state.coins < t.cost) return false;
+  state.coins -= t.cost;
+  state.orchard[i] = { tree: id, at: now() };
+  toast(`Planted a ${t.n.toLowerCase()}`);
+  return true;
+}
+
+/* Animals */
+function animalState(a) {
+  const rec = animalRec(a.id);
+  if (!rec.n) return { rec, ready: 0, next: 0 };
+  const per = a.every * 1000;
+  const cycles = Math.min(C.core.animalStore, Math.floor((now() - rec.at) / per));
+  return { rec, ready: cycles * rec.n, cycles, next: cycles >= C.core.animalStore ? 0 : (per - ((now() - rec.at) % per)) / 1000 };
+}
+function collectAnimal(a) {
+  const s = animalState(a);
+  if (!s.ready) return 0;
+  const got = addItem(a.produce, s.ready);
+  if (!got) return -1;
+  const per = a.every * 1000;
+  s.rec.at = s.cycles >= C.core.animalStore ? now() : now() - ((now() - s.rec.at) % per);
+  addXP('farming', a.xp * s.cycles);
+  state.stats.collected += got;
+  return got;
+}
+function buyAnimal(a) {
+  const rec = animalRec(a.id);
+  if (!unlocked(a.unlock) || rec.n >= a.max || state.coins < a.cost) return false;
+  state.coins -= a.cost;
+  if (!rec.n) rec.at = now();
+  rec.n++;
+  toast(`A new ${a.one.toLowerCase()} joins the farm`);
+  return true;
+}
+function petAnimals() {
+  if (state.petDay === dayKey()) return false;
+  let n = 0;
+  for (const a of I.animals) { const rec = animalRec(a.id); if (rec.n) n += addItem(a.produce, rec.n); }
+  if (!n) { toast('No animals to pet yet.'); return false; }
+  state.petDay = dayKey();
+  state.stats.collected += n;
+  toast(`Your animals loved the attention: +${n} goods`);
+  return true;
+}
+
+/* Explore */
+let exploreLog = [];
+function areaOpen(a) { return lvl('foraging') >= a.lvl && unlocked(a.unlock); }
+function exploreTable(drops) {
+  const lucky = buffOn('lucky') ? 2 : 1, boost = 1 + lvl('foraging') * 0.03, windy = weather().id === 'windy';
+  return Object.entries(drops).map(([k, w]) => {
+    if (k !== 'none' && w < 3) w *= boost * lucky;
+    if (windy && (k === 'feather' || k === 'eaglefeather')) w *= 2;
+    return [k, w];
+  });
+}
+function explore(n) {
+  syncStamina();
+  const a = I.area[state.area];
+  if (!a || !areaOpen(a)) return;
+  const times = n === 'all' ? Math.max(0, state.stamina) : Math.min(+n, state.stamina);
+  if (times <= 0) { toast('Out of stamina. It refills over time, or eat a meal.'); return; }
+  const found = {}, full = new Set();
+  let empty = 0;
+  const table = exploreTable(a.drops);
+  for (let k = 0; k < times; k++) {
+    const [id] = pickWeighted(table);
+    if (id === 'none') { empty++; continue; }
+    if (addItem(id, 1)) found[id] = (found[id] || 0) + 1; else full.add(id);
+  }
+  spendStamina(times);
+  addXP('foraging', a.xp * times);
+  state.stats.explores += times;
+  const parts = Object.entries(found).map(([id, q]) => chip(id, q > 1 ? q + '×' : null));
+  let html;
+  if (times === 1 && !parts.length) html = `<span>${esc(a.empty[Math.floor(Math.random() * a.empty.length)])}</span>`;
+  else html = `${parts.join('') || '<span>Nothing this time.</span>'}${empty && times > 1 ? `<span class="muted">${empty} empty</span>` : ''}`;
+  exploreLog.unshift({ html, when: times > 1 ? `${times} trips` : '1 trip' });
+  exploreLog = exploreLog.slice(0, 6);
+  if (full.size) toast(`Barn is full of ${[...full].map(itemName).join(', ')}. Sell some or upgrade the barn.`);
+  const rare = Object.keys(found).filter(id => (a.drops[id] || 99) < 3);
+  if (rare.length) toast(`Rare find: ${rare.map(itemName).join(', ')}!`, 'lvl');
+  maybeEncounter(a.id, times);
+}
+function maybeEncounter(where, tries) {
+  const chance = 1 - Math.pow(0.97, tries);
+  if (Math.random() > Math.min(0.35, chance)) return;
+  const pool = I.encs.filter(e => e.where.includes(where) && reqMet(e.req) && !(e.once && state.encDone[e.id]));
+  if (!pool.length) return;
+  const [e] = pickWeighted(pool.map(x => [x, x.weight]));
+  setTimeout(() => playAdventure(e, true), 350);
+}
+
+/* Mine */
+let mineLog = [];
+function mineBand(floor) { return C.core.mine.bands.find(b => floor >= b.from && floor <= b.to) || C.core.mine.bands[0]; }
+function mineGate(floor) { return C.core.mine.gates[floor] || 0; }
+function dig(n) {
+  if (!unlocked('mine')) return;
+  syncStamina();
+  const times = n === 'all' ? Math.max(0, state.stamina) : Math.min(+n, state.stamina);
+  if (times <= 0) { toast('Out of stamina. Rest, or eat something from the kitchen.'); return; }
+  const m = state.mine, band = mineBand(m.floor);
+  const lucky = buffOn('lucky') ? 2 : 1;
+  const table = Object.entries(band.drops).map(([k, w]) => [k, k !== 'none' && w < 3 ? w * lucky : w]);
+  for (const r of C.core.mine.rare) if (m.floor >= r.from) table.push([r.item, r.w * lucky]);
+  const found = {}, full = new Set();
+  let stairsAt = 0;
+  for (let k = 0; k < times; k++) {
+    if (!m.stairs && m.floor < C.core.mine.floors) {
+      const p = C.core.mine.stairs + lvl('mining') * 0.004 + (buffOn('miner') ? 0.08 : 0);
+      if (Math.random() < p) { m.stairs = true; stairsAt = k + 1; }
+    }
+    const [id] = pickWeighted(table);
+    if (id === 'none') continue;
+    if (addItem(id, 1)) found[id] = (found[id] || 0) + 1; else full.add(id);
+  }
+  spendStamina(times);
+  addXP('mining', times * (2 + m.floor * 0.25));
+  state.stats.digs += times;
+  const parts = Object.entries(found).map(([id, q]) => chip(id, q > 1 ? q + '×' : null));
+  let html = parts.join('') || `<span>${esc(C.core.mine.empty[Math.floor(Math.random() * C.core.mine.empty.length)])}</span>`;
+  if (stairsAt) html += '<span class="chip gold plain">Found the way down!</span>';
+  mineLog.unshift({ html, when: `Floor ${m.floor} · ${times} dig${times > 1 ? 's' : ''}` });
+  mineLog = mineLog.slice(0, 6);
+  if (full.size) toast(`Barn is full of ${[...full].map(itemName).join(', ')}.`);
+  if (found.starshard) toast('A Star Shard! It hums faintly in your hand.', 'lvl', 4200);
+  maybeEncounter('mine', times);
+}
+function descend() {
+  const m = state.mine;
+  if (!m.stairs || m.floor >= C.core.mine.floors) return;
+  const next = m.floor + 1, need = mineGate(next);
+  if (lvl('mining') < need) { toast(`Hard rock blocks the way. You need Mining ${need} to reach floor ${next}.`); return; }
+  m.floor = next; m.stairs = false;
+  if (next > m.deepest) { m.deepest = next; addXP('mining', 8 * next); toast(`New depth: floor ${next}`, 'lvl'); }
+  mineLog.unshift({ html: `<span>You climb down to floor ${next}.</span>`, when: '' });
+  mineLog = mineLog.slice(0, 6);
+}
+function elevator(floor) {
+  if (floor > state.mine.deepest || !C.core.mine.checkpoints.includes(floor)) return;
+  state.mine.floor = floor; state.mine.stairs = false;
+  mineLog.unshift({ html: `<span>The old lift creaks down to floor ${floor}.</span>`, when: '' });
+}
+
+/* Fishing */
+const fishing = { phase: 'idle', fish: null, zone: [0, 0], speed: 1, start: 0, offset: 0, timers: [], raf: 0, msg: '', bait: 'worm' };
+let catchLog = [];
+const BAITS = ['worm', 'lure', 'glowbait'];
+function spotOpen(s) { return lvl('fishing') >= s.lvl && unlocked(s.unlock); }
+function clearFishTimers() { fishing.timers.forEach(clearTimeout); fishing.timers = []; cancelAnimationFrame(fishing.raf); }
+function fishButton() {
+  if (fishing.phase === 'idle' || fishing.phase === 'result') return cast();
+  if (fishing.phase === 'waiting') { clearFishTimers(); fishing.phase = 'result'; fishing.msg = 'Too soon. The fish spooked and swam off.'; syncFishDom(); return; }
+  if (fishing.phase === 'bite') return reel();
+}
+function cast() {
+  const sp = I.spot[state.spot];
+  if (!spotOpen(sp)) return;
+  let bait = state.bait;
+  if (!have(bait)) {
+    const other = BAITS.find(b => have(b));
+    if (other) { bait = state.bait = other; renderView(); }
+    else { toast("You're out of bait. Buy worms in Town, or dig them up in the Sunny Meadow."); return; }
+  }
+  takeItem(bait, 1);
+  fishing.bait = bait;
+  clearFishTimers();
+  fishing.phase = 'waiting';
+  fishing.msg = 'Waiting for a bite…';
+  syncFishDom(); updateBaitCounts();
+  fishing.timers.push(setTimeout(bite, 900 + Math.random() * 1700));
+  commit();
+}
+function bite() {
+  const sp = I.spot[state.spot], fl = lvl('fishing');
+  const lure = fishing.bait === 'lure', glow = fishing.bait === 'glowbait', fog = weather().id === 'foggy';
+  const table = sp.fish.map(([id, w, r]) => {
+    if (r >= 2) w *= (lure ? 2 : 1) * (1 + fl * 0.02) * (fog ? 1.4 : 1);
+    if (r >= 3 && glow) w *= 1.5;
+    if (r === 5 && glow) w *= 4;
+    return [id, w, r];
+  });
+  const [id, , r] = pickWeighted(table);
+  const R = C.core.rarity[r];
+  const width = Math.min(62, R.zone + Math.min(12, fl * 0.5) + (lure ? 8 : 0) + (buffOn('steady') ? 10 : 0));
+  Object.assign(fishing, { fish: { id, r }, zone: [5 + Math.random() * (90 - width), width], speed: R.speed, offset: Math.random() * 2, start: performance.now(), phase: 'bite' });
+  fishing.msg = `<span>Bite!</span><span class="muted">${r === 5 ? 'The line screams. Something enormous!' : r >= 3 ? 'Something big is pulling hard.' : r === 2 ? 'A strong tug.' : 'A nibble.'}</span>`;
+  syncFishDom();
+  animateNeedle();
+  fishing.timers.push(setTimeout(() => {
+    if (fishing.phase !== 'bite') return;
+    clearFishTimers(); fishing.phase = 'result'; fishing.msg = 'It got away.'; syncFishDom();
+  }, 4200));
+}
+function needlePos() {
+  const t = (performance.now() - fishing.start) / 1000 * fishing.speed + fishing.offset;
+  const x = t % 2;
+  return x < 1 ? x : 2 - x;
+}
+function animateNeedle() {
+  const n = $('#needle');
+  if (!n || fishing.phase !== 'bite') return;
+  n.style.left = (needlePos() * 100) + '%';
+  fishing.raf = requestAnimationFrame(animateNeedle);
+}
+function reel() {
+  const pos = needlePos() * 100;
+  const [left, width] = fishing.zone;
+  clearFishTimers();
+  fishing.phase = 'result';
+  if (pos >= left - 1 && pos <= left + width + 1) {
+    const { id, r } = fishing.fish;
+    const name = itemName(id);
+    const firstLegend = I.legendary.has(id) && !state.got[id];
+    const got = addItem(id, 1);
+    if (!got) {
+      fishing.msg = `You caught ${/^[AEIOU]/.test(name) ? 'an' : 'a'} ${esc(name)}, but your barn is full of them. You let it go.`;
+    } else {
+      const xp = id === 'boot' ? 1 : C.core.rarity[r].xp;
+      addXP('fishing', xp);
+      if (I.items[id].t === 'fish' && id !== 'boot') state.stats.fish++;
+      const article = r === 5 ? 'the legendary ' : r >= 3 ? 'a rare ' : /^[AEIOU]/.test(name) ? 'an ' : 'a ';
+      fishing.msg = `${pic(id, 32)}<span>Caught ${article}${esc(name)}!</span><span class="muted">+${xp} XP</span>`;
+      catchLog.unshift(`${pic(id, 24)}<span>${esc(name)}</span><span class="t">${esc(I.spot[state.spot].n)}</span>`);
+      catchLog = catchLog.slice(0, 5);
+      if (firstLegend) toast(`Legendary catch: ${name}! Tobin will never believe this.`, 'lvl', 5000);
+    }
+    syncFishDom();
+    commit();
+  } else {
+    fishing.msg = 'Missed. The line went slack.';
+    syncFishDom();
+  }
+}
+
+/* Workshop and kitchen */
+const recipeOpen = r => lvl('crafting') >= r.lvl && unlocked(r.unlock);
+const mealOpen = m => lvl('cooking') >= m.lvl;
+function maxMake(r) {
+  let m = Infinity;
+  for (const [id, q] of Object.entries(r.need)) m = Math.min(m, Math.floor(have(id) / q));
+  const out = r.out || 1;
+  const room = Math.floor((cap() - have(r.id)) / out);
+  return Math.max(0, Math.min(m, room));
+}
+function craft(id, n) {
+  const r = I.recipe[id];
+  if (!r || !recipeOpen(r)) return;
+  const m = maxMake(r), times = n === 'max' ? m : Math.min(+n, m);
+  if (times <= 0) { toast('Not enough materials, or your barn is full of these.'); return; }
+  for (const [nid, q] of Object.entries(r.need)) takeItem(nid, q * times);
+  addItem(r.id, r.out * times);
+  addXP('crafting', r.xp * times);
+  state.stats.crafted += r.out * times;
+  toast(`Made ${r.out * times}× ${itemName(r.id)}`);
+}
+function cook(id, n) {
+  const r = I.meal[id];
+  if (!r || !mealOpen(r) || !unlocked('kitchen')) return;
+  const m = maxMake(r), times = n === 'max' ? m : Math.min(+n, m);
+  if (times <= 0) { toast('Not enough ingredients, or your pantry is full of these.'); return; }
+  for (const [nid, q] of Object.entries(r.need)) takeItem(nid, q * times);
+  addItem(r.id, times);
+  addXP('cooking', r.xp * times);
+  state.stats.cooked += times;
+  toast(`Cooked ${times}× ${itemName(r.id)}`);
+}
+const edible = id => { const m = I.meal[id]; return !!m && (m.stamina || m.buff); };
+function eat(id) {
+  const m = I.meal[id];
+  if (!m || !have(id) || !edible(id)) return false;
+  syncStamina();
+  if (m.stamina && state.stamina >= maxStamina() * 2 && !m.buff) { toast("You're too full to eat another bite."); return false; }
+  takeItem(id, 1);
+  const bits = [];
+  if (m.stamina) { state.stamina = Math.min(maxStamina() * 2, state.stamina + m.stamina); bits.push(`+${m.stamina} stamina`); }
+  if (m.buff) { setBuff(m.buff, m.mins || 15); bits.push(`${I.buffs[m.buff].n} for ${m.mins || 15} min`); }
+  toast(`${itemName(id)}: ${bits.join(', ')}`);
+  return true;
+}
+
+/* Selling */
+function sell(id, n) {
+  if (!I.items[id] || I.items[id].t === 'key') return 0;
+  const q = n === 'all' ? have(id) : Math.min(+n, have(id));
+  if (q <= 0) return 0;
+  takeItem(id, q);
+  const c = q * priceOf(id);
+  state.coins += c;
+  state.stats.earned += c;
+  return c;
+}
+
+/* Townsfolk */
+function curRequest(vid) { const v = I.vil[vid]; return v && v.requests ? v.requests[state.reqs[vid] || 0] || null : null; }
+function canDeliver(vid) { const q = curRequest(vid); return !!q && reqMet(q.req) && hasAll(q.want) && vilAvailable(I.vil[vid]); }
+function deliverRequest(vid) {
+  const v = I.vil[vid], q = curRequest(vid);
+  if (!q || !canDeliver(vid)) return null;
+  takeAll(q.want);
+  const lines = applyGive(q.give);
+  addFriend(vid, C.core.friendship.request);
+  state.reqs[vid] = (state.reqs[vid] || 0) + 1;
+  state.stats.delivered++;
+  return { v, lines };
+}
+function giftReaction(vid, id) {
+  const v = I.vil[vid], f = C.core.friendship;
+  if ((v.loves || []).includes(id)) return ['loved', f.loved];
+  if ((v.likes || []).includes(id)) return ['liked', f.liked];
+  if ((v.dislikes || []).includes(id)) return ['disliked', f.disliked];
+  return ['neutral', f.neutral];
+}
+function giveGift(vid, id) {
+  if (state.gifted[vid] === dayKey() || !have(id) || I.items[id].t === 'key') return null;
+  takeItem(id, 1);
+  const [kind, pts] = giftReaction(vid, id);
+  addFriend(vid, pts);
+  state.gifted[vid] = dayKey();
+  state.stats.gifts++;
+  return kind;
+}
+function heartSceneReady(vid) {
+  const v = I.vil[vid];
+  return (v.hearts || []).find(h => hearts(vid) >= h.at && !(state.heartSeen[vid] || {})[h.at]) || null;
+}
+
+/* Store and merchant */
+function plotCost() { const p = C.core.plots; return Math.round(p.base * Math.pow(p.growth, state.plots.length - p.start) / 10) * 10; }
+function buyStore(id) {
+  const s = C.core.store.find(x => x.id === id);
+  if (!s || !unlocked(s.unlock) || state.coins < s.price) return false;
+  const got = addItem(s.item, s.qty);
+  if (!got) { toast(`Your barn is full of ${itemName(s.item)}.`); return false; }
+  state.coins -= s.price;
+  toast(`Bought ${got}× ${itemName(s.item)}`);
+  return true;
+}
+function ensureMerchant() {
+  if (!unlocked('merchant')) return;
+  const key = dayKey();
+  if (state.merchant && state.merchant.day === key) return;
+  const rnd = seeded('saffi-' + key);
+  const pool = C.core.merchant.pool.slice().sort(() => rnd() - 0.5).slice(0, 4);
+  const wants = C.core.merchant.wants;
+  state.merchant = { day: key, stock: pool.map(p => Object.assign({ sold: false }, p)), want: wants[Math.floor(rnd() * wants.length)], sold: 0 };
+}
+function merchantBuy(i) {
+  ensureMerchant();
+  const s = state.merchant.stock[i];
+  if (!s || s.sold || state.coins < s.price) return false;
+  const got = addItem(s.item, s.qty);
+  if (!got) { toast('Your barn has no room for that.'); return false; }
+  state.coins -= s.price; s.sold = true;
+  toast(pickLine(I.merchant.sold) || 'Pleasure doing business!');
+  return true;
+}
+function merchantSell() {
+  ensureMerchant();
+  const id = state.merchant.want;
+  const n = Math.min(have(id), 10 - (state.merchant.sold || 0));
+  if (n <= 0) return 0;
+  takeItem(id, n);
+  const c = n * priceOf(id) * 2;
+  state.coins += c; state.stats.earned += c; state.merchant.sold = (state.merchant.sold || 0) + n;
+  toast(`${pickLine(I.merchant.bought) || 'A fine trade.'} +${fmtN(c)} coins`);
+  return c;
+}
+const pickLine = arr => (arr && arr.length ? fill(arr[Math.floor(Math.random() * arr.length)]) : '');
+
+/* Daily chores */
+function ensureChores() {
+  const key = dayKey();
+  if (state.chores && state.chores.day === key) return;
+  const rnd = seeded('chores-' + key);
+  const pool = C.core.chores.filter(c => unlocked(c.unlock)).sort(() => rnd() - 0.5).slice(0, 3);
+  const scale = 1 + Math.floor(Object.values(state.xp).reduce((a, x) => a + levelInfo(x).lvl, 0) / 15) * 0.5;
+  state.chores = { day: key, bonus: false, list: pool.map(c => ({ id: c.id, n: Math.ceil(c.n * (c.id === 'deliver' || c.id === 'gift' ? 1 : scale)), coins: Math.round(c.coins * scale), base: state.stats[c.stat] || 0, claimed: false })) };
+}
+function choreProgress(c) { const d = C.core.chores.find(x => x.id === c.id); return Math.min(c.n, (state.stats[d.stat] || 0) - c.base); }
+function claimChore(i) {
+  ensureChores();
+  const c = state.chores.list[i], d = C.core.chores.find(x => x.id === c.id);
+  if (!c || c.claimed || choreProgress(c) < c.n) return false;
+  c.claimed = true; state.coins += c.coins;
+  for (const [id, n] of Object.entries(d.items || {})) addItem(id, n);
+  toast(`Chore done: +${c.coins} coins`);
+  return true;
+}
+
+/* Mail */
+function letterDue(l) {
+  const w = l.when || {};
+  if (w.chapter && !chapterDone(w.chapter)) return false;
+  if (w.started && !chapterStarted(w.started)) return false;
+  if (w.day && dayNumber() < w.day) return false;
+  if (w.flag && !state.flags[w.flag]) return false;
+  for (const [vid, n] of Object.entries(w.hearts || {})) if (hearts(vid) < n) return false;
+  return true;
+}
+function checkMail() {
+  const known = new Set(state.mail.map(m => m.id));
+  for (const l of I.letters) {
+    if (known.has(l.id) || !letterDue(l)) continue;
+    state.mail.unshift({ id: l.id, read: false, claimed: false, at: now() });
+    toast(`New letter from ${vilShort(l.from)}`);
+  }
+}
+
+/* Achievements */
+function statValue(kind) {
+  switch (kind) {
+    case 'deepest': return state.mine.deepest;
+    case 'besthearts': return Math.max(0, ...I.vils.map(v => hearts(v.id)));
+    case 'adventures': return I.advs.filter(a => state.advDone[a.id]).length;
+    case 'pages': return Object.keys(state.pages).length;
+    case 'bestskill': return Math.max(...I.skills.map(s => lvl(s.id)));
+    case 'fishkinds': return I.fishKinds.filter(id => state.got[id]).length;
+    case 'legendary': return [...I.legendary].filter(id => state.got[id]).length;
+    case 'chapters': return Object.keys(state.story.done).length;
+    default: return state.stats[kind] || 0;
+  }
+}
+function achGoal(a) {
+  if (a.goal !== -1) return a.goal;
+  return { adventures: I.advs.length, pages: I.pages.length, fishkinds: I.fishKinds.length, chapters: I.chapters.length }[a.stat] || 1;
+}
+function checkAchievements() {
+  for (const a of I.ach) {
+    if (state.ach[a.id] || statValue(a.stat) < achGoal(a)) continue;
+    state.ach[a.id] = now();
+    applyGive(a.give);
+    toast(`Feat unlocked: ${a.n}`, 'lvl', 4200);
+  }
+}
