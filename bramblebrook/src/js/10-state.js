@@ -27,7 +27,9 @@ function freshState() {
     friends: {}, gifted: {}, chatted: {}, reqs: {}, heartSeen: {},
     advDone: {}, encDone: {},
     mail: [], chores: null, merchant: null, ach: {}, mastery: {},
-    stats: { harvested: 0, fish: 0, explores: 0, crafted: 0, cooked: 0, digs: 0, collected: 0, delivered: 0, earned: 0, gifts: 0 },
+    bench: Array.from({ length: k.workbench.slots }, () => null), nets: {}, casks: Array.from({ length: k.cellar.slots }, () => null),
+    pets: {}, perks: {}, tokens: 0, festival: null, login: null, exchange: null,
+    stats: { harvested: 0, fish: 0, explores: 0, crafted: 0, cooked: 0, digs: 0, collected: 0, delivered: 0, earned: 0, gifts: 0, bottled: 0, benched: 0, netted: 0, petfinds: 0, tokens: 0, streak: 0 },
     seed: 'wheat', spot: 'pond', bait: 'worm', area: 'meadow',
     tab: 'farm', sub: {},
   };
@@ -36,7 +38,7 @@ function migrate(s) {
   const base = freshState();
   if (!s || typeof s !== 'object' || s.v !== 2) return base;
   const out = Object.assign({}, base, s);
-  for (const key of ['inv', 'locked', 'seen', 'got', 'xp', 'upgrades', 'buffs', 'mine', 'story', 'flags', 'unlocks', 'pages', 'friends', 'gifted', 'chatted', 'reqs', 'heartSeen', 'advDone', 'encDone', 'ach', 'mastery', 'stats', 'animals', 'sub']) {
+  for (const key of ['inv', 'locked', 'seen', 'got', 'xp', 'upgrades', 'buffs', 'mine', 'story', 'flags', 'unlocks', 'pages', 'friends', 'gifted', 'chatted', 'reqs', 'heartSeen', 'advDone', 'encDone', 'ach', 'mastery', 'stats', 'animals', 'sub', 'nets', 'pets', 'perks']) {
     out[key] = Object.assign({}, base[key], s[key] || {});
   }
   out.story.queue = Array.isArray(out.story.queue) ? out.story.queue : [];
@@ -45,6 +47,8 @@ function migrate(s) {
   if (!Array.isArray(out.orchard)) out.orchard = base.orchard;
   while (out.orchard.length < C.core.orchardSlots) out.orchard.push(null);
   if (!Array.isArray(out.mail)) out.mail = [];
+  if (!Array.isArray(out.bench) || !out.bench.length) out.bench = base.bench;
+  if (!Array.isArray(out.casks) || !out.casks.length) out.casks = base.casks;
   if (!I.crop[out.seed]) out.seed = 'wheat';
   if (!I.spot[out.spot]) out.spot = 'pond';
   if (!I.area[out.area]) out.area = 'meadow';
@@ -76,7 +80,7 @@ function unlocksAt(sk, l) {
 }
 
 /* inventory */
-const cap = () => C.core.barn[state.barn].cap;
+const cap = () => Math.floor(C.core.barn[state.barn].cap * (1 + perkVal('deep') / 100));
 const have = id => state.inv[id] || 0;
 function addItem(id, n) {
   if (!I.items[id] || n <= 0) return 0;
@@ -114,16 +118,16 @@ function checkMastery(id) {
     toast(`Mastery: ${itemName(id)} ${'★'.repeat(t)} · +${fmtN(reward)} coins, sells for more`, 'lvl', 4200);
   }
 }
-const priceOf = id => Math.round(I.items[id].s * (1 + [0, 0.05, 0.1, 0.2][masteryTier(id)]));
+const priceOf = id => Math.round(I.items[id].s * (1 + [0, 0.05, 0.1, 0.2][masteryTier(id)]) * (1 + perkVal('haggler') / 100));
 
 /* stamina and buffs */
-const maxStamina = () => C.core.stamina.base + lvl('foraging') * C.core.stamina.perLevel;
+const maxStamina = () => C.core.stamina.base + lvl('foraging') * C.core.stamina.perLevel + perkVal('trail');
 const buffOn = id => (state.buffs[id] || 0) > now();
 function setBuff(id, mins = 15) {
   if (!I.buffs[id]) return;
   state.buffs[id] = Math.max(state.buffs[id] || 0, now()) + mins * 60000;
 }
-function regenMs() { return C.core.stamina.regenMs / (buffOn('refreshed') ? 2 : 1); }
+function regenMs() { return C.core.stamina.regenMs / (buffOn('refreshed') ? 2 : 1) / (1 + perkVal('rest') / 100); }
 function syncStamina() {
   const max = maxStamina(), t = now();
   if (state.stamina >= max) { state.staminaAt = t; return; }
@@ -230,6 +234,7 @@ const hearts = vid => clamp(Math.floor(friendPts(vid) / C.core.friendship.perHea
 function addFriend(vid, p) {
   if (!I.vil[vid]) return;
   const before = hearts(vid);
+  if (p > 0) p = Math.round(p * (1 + perkVal('kind') / 100));
   state.friends[vid] = clamp(friendPts(vid) + p, 0, C.core.friendship.perHeart * C.core.friendship.maxHearts);
   const after = hearts(vid);
   if (after > before) toast(`${vilShort(vid)}: ${after} ♥`, 'lvl');

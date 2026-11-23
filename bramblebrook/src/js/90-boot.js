@@ -74,13 +74,16 @@ function tick() {
     $$('[data-stam-line]').forEach(el => { el.textContent = staminaLine(); });
     $$('[data-need]').forEach(b => { b.disabled = state.stamina < +b.dataset.need; });
   }
-  if (ticks % 30 === 0) { checkMail(); ensureChores(); }
+  if (ticks % 30 === 0) { checkMail(); ensureChores(); checkLogin(); }
+  if (state.tab === 'make' && ['bench', 'cellar'].includes(sub('make')) && ticks % 5 === 0 && !sheetOpen()) renderView();
+  if (state.tab === 'fish' && fishing.phase !== 'waiting' && fishing.phase !== 'bite' && ticks % 10 === 0 && !sheetOpen()) renderView();
   updateBadges();
 }
 function start(data) {
   const fromHot = data && data.state;
   state = migrate(fromHot ? data.state : loadLocal());
   ensureChores();
+  checkLogin();
   renderAll();
   setInterval(tick, 1000);
   if (!state.name) askName();

@@ -24,11 +24,14 @@ function renderAll() { renderTabs(); updateHeader(true); renderView(); updateBad
 function updateBadges() {
   if (!state) return;
   const set = (id, n) => { const el = $('#badge-' + id); if (el) { el.hidden = !n; el.textContent = n > 99 ? '99+' : n; } };
-  set('farm', state.plots.filter(p => p.crop && p.ready <= now()).length + orchardReady() + animalsReady());
+  set('farm', state.plots.filter(p => p.crop && p.ready <= now()).length + orchardReady() + animalsReady() + petsReady());
+  set('make', benchReady() + casksReady());
+  set('fish', netsReady());
+  set('bag', perkPointsFree());
   set('wilds', I.advs.filter(a => !state.advDone[a.id] && reqMet(a.req)).length);
   ensureChores();
   set('town', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length
-    + state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length + state.mail.filter(m => !m.read).length);
+    + state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length + state.mail.filter(m => !m.read).length + (loginReady() ? 1 : 0) + festivalOpenCount());
   const st = storyStatus();
   const jb = $('#badge-journal');
   if (jb) { jb.hidden = !st.ready; jb.textContent = '!'; }
@@ -324,6 +327,26 @@ function handle(act, el, e) {
       state = freshState(); state.savedAt = now(); exploreLog = []; mineLog = []; catchLog = [];
       renderAll(); commit(); askName();
       return false;
+    case 'perk': if (!buyPerk(id)) return false; break;
+    case 'perk-reset': if (!resetPerks()) return false; break;
+    case 'bench-slot': benchSheet(+el.dataset.i); return false;
+    case 'bench-queue': if (!benchQueue(+el.dataset.i, id, el.dataset.n)) return false; closeSheet(); break;
+    case 'bench-collect': { const g = benchCollect(+el.dataset.i); if (g === -1) { toast('Your barn is full of that.'); return false; } if (g) toast(`Took ${g} from the workbench`); break; }
+    case 'bench-cancel': benchCancel(+el.dataset.i); break;
+    case 'bench-buy': if (state.bench.length >= C.core.workbench.maxSlots || state.coins < C.core.workbench.slotCost) return false; state.coins -= C.core.workbench.slotCost; state.bench.push(null); toast('A second pair of hands at the workbench'); break;
+    case 'net-set': if (!setNet(id)) return false; break;
+    case 'net-collect': { const g = collectNet(id); if (g) toast(`Hauled in ${g} from the net`); else return false; break; }
+    case 'cask-slot': caskSheet(+el.dataset.i); return false;
+    case 'cask-fill': if (!fillCask(+el.dataset.i, id)) return false; closeSheet(); break;
+    case 'cask-bottle': if (bottleCask(+el.dataset.i) === -1) { toast('No room in the barn for that bottle.'); return false; } break;
+    case 'cask-buy': if (!buyCask()) return false; break;
+    case 'ex-sell': { const c = exchangeSell(id); if (!c) return false; toast(`Sold on the Exchange for ${fmtN(c)} coins`); break; }
+    case 'pet-adopt': if (!adoptPet(id)) return false; break;
+    case 'pet-feed': if (!feedPet(id)) return false; break;
+    case 'pet-collect': if (!collectPet(id)) return false; break;
+    case 'fest-deliver': if (!festivalDeliver(+el.dataset.i)) return false; break;
+    case 'fest-buy': if (!festivalBuy(+el.dataset.i)) return false; break;
+    case 'login-claim': if (!claimLogin()) return false; break;
     default: return false;
   }
   return true;

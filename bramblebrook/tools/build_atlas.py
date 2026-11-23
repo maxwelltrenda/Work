@@ -73,6 +73,10 @@ ITEMS = {
     'soup': (HOUSE.format(85), None), 'stew': (HOUSE.format(63), None), 'chowder': (HOUSE.format(57), None),
     'platter': (FISH.format(109), None), 'tea': (HOUSE.format(40), None), 'lemonade': (HOUSE.format(46), None),
     'jam': (HOUSE.format(95), None), 'feast': (HOUSE.format(80), None),
+    'net': (FISH.format(92), None), 'wine': (HOUSE.format(88), 'hue-rotate(250deg) saturate(1.4)'),
+    'vintagewine': (HOUSE.format(88), 'hue-rotate(250deg) saturate(1.4) sepia(.35)'), 'mead': (HOUSE.format(87), None),
+    'vintagemead': (HOUSE.format(87), 'sepia(.5) saturate(1.6)'), 'cider': (HOUSE.format(86), 'sepia(.7) saturate(2)'),
+    'vintagecider': (HOUSE.format(86), 'sepia(1) saturate(2.4) brightness(.9)'),
     'oldkey': (MINE.format(32), None), 'seedpouch': ('crops-seeds-signs-items/high-res sunflower seeds 1.png', 'hue-rotate(200deg)'),
 }
 
@@ -113,6 +117,8 @@ for gid, name in CROPS.items():
         cells.append((f'stage:{gid}:{s}', to32(load(rel)), 2, 'hue-rotate(200deg) saturate(1.5)' if gid == 'moonbloom' else None))
 for iid, (rel, flt) in ITEMS.items():
     cells.append((f'item:{iid}', to32(load(rel)), 1, flt))
+cells.append(('ui:cask', to32(load(HOUSE.format(91))), 1, None))
+cells.append(('ui:bench', to32(load(ORE.format(3))), 1, None))
 for vid, (folder, stem) in FOLKS.items():
     sheet = load(FOLK.format(folder, stem))
     cells.append((f'folk:{vid}', sheet.crop((32, 0, 64, 32)), 1, None))

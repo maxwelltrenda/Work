@@ -7,16 +7,18 @@ function growFactor() {
   if (sp) f *= 1 - C.core.upgrades.sprinkler.tiers[sp - 1].pct / 100;
   if (buffOn('greenthumb')) f *= 0.75;
   if (weather().id === 'rainy') f *= 0.85;
+  f *= 1 - perkVal('greenthumb') / 100;
   return f;
 }
+const seedCost = c => Math.max(1, Math.round(c.seed * (1 - perkVal('thrifty') / 100)));
 function cropOpen(c) { return lvl('farming') >= c.lvl && (!c.flag || state.flags[c.flag]); }
 function plant(i, quiet) {
   const p = state.plots[i];
   if (!p || p.crop) return false;
   const c = I.crop[state.seed];
   if (!c || !cropOpen(c)) return false;
-  if (state.coins < c.seed) { if (!quiet) toast(`You need ${c.seed} coins for ${itemName(c.id)} seeds.`); return false; }
-  state.coins -= c.seed;
+  if (state.coins < seedCost(c)) { if (!quiet) toast(`You need ${seedCost(c)} coins for ${itemName(c.id)} seeds.`); return false; }
+  state.coins -= seedCost(c);
   const t = now();
   state.plots[i] = { crop: c.id, at: t, ready: t + Math.round(c.grow * 1000 * growFactor()) };
   return true;
@@ -26,7 +28,7 @@ function harvest(i) {
   if (!p || !p.crop || p.ready > now()) return 0;
   const c = I.crop[p.crop];
   const sc = state.upgrades.scarecrow ? C.core.upgrades.scarecrow.tiers[0].pct / 100 : 0;
-  const bonus = Math.random() < lvl('farming') * 0.02 + sc ? 1 : 0;
+  const bonus = Math.random() < lvl('farming') * 0.02 + sc + perkVal('bumper') / 100 ? 1 : 0;
   const got = addItem(c.id, 1 + bonus);
   if (!got) return -1;
   state.plots[i] = { crop: null, at: 0, ready: 0 };
@@ -129,7 +131,7 @@ function petAnimals() {
 let exploreLog = [];
 function areaOpen(a) { return lvl('foraging') >= a.lvl && unlocked(a.unlock); }
 function exploreTable(drops) {
-  const lucky = buffOn('lucky') ? 2 : 1, boost = 1 + lvl('foraging') * 0.03, windy = weather().id === 'windy';
+  const lucky = (buffOn('lucky') ? 2 : 1) * (1 + perkVal('keeneye') / 100), boost = 1 + lvl('foraging') * 0.03, windy = weather().id === 'windy';
   return Object.entries(drops).map(([k, w]) => {
     if (k !== 'none' && w < 3) w *= boost * lucky;
     if (windy && (k === 'feather' || k === 'eaglefeather')) w *= 2;
@@ -175,7 +177,9 @@ function maybeEncounter(where, tries) {
 
 /* Mine */
 let mineLog = [];
-function mineBand(floor) { return C.core.mine.bands.find(b => floor >= b.from && floor <= b.to) || C.core.mine.bands[0]; }
+function mineBand(floor) { const b = C.core.mine.bands; return b.find(x => floor >= x.from && floor <= x.to) || (floor > b[b.length - 1].to ? b[b.length - 1] : b[0]); }
+const mineMax = () => (C.core.mine.endless ? 999 : C.core.mine.floors);
+function mineCheckpoints() { const out = C.core.mine.checkpoints.slice(); for (let f = 30; f <= state.mine.deepest; f += 10) if (!out.includes(f)) out.push(f); return out; }
 function mineGate(floor) { return C.core.mine.gates[floor] || 0; }
 function dig(n) {
   if (!unlocked('mine')) return;
@@ -183,14 +187,14 @@ function dig(n) {
   const times = n === 'all' ? Math.max(0, state.stamina) : Math.min(+n, state.stamina);
   if (times <= 0) { toast('Out of stamina. Rest, or eat something from the kitchen.'); return; }
   const m = state.mine, band = mineBand(m.floor);
-  const lucky = buffOn('lucky') ? 2 : 1;
+  const lucky = (buffOn('lucky') ? 2 : 1) * (1 + perkVal('keeneye') / 100) * (m.floor > 30 ? 1 + (m.floor - 30) * 0.05 : 1);
   const table = Object.entries(band.drops).map(([k, w]) => [k, k !== 'none' && w < 3 ? w * lucky : w]);
   for (const r of C.core.mine.rare) if (m.floor >= r.from) table.push([r.item, r.w * lucky]);
   const found = {}, full = new Set();
   let stairsAt = 0;
   for (let k = 0; k < times; k++) {
-    if (!m.stairs && m.floor < C.core.mine.floors) {
-      const p = C.core.mine.stairs + lvl('mining') * 0.004 + (buffOn('miner') ? 0.08 : 0);
+    if (!m.stairs && m.floor < mineMax()) {
+      const p = Math.max(0.04, C.core.mine.stairs + lvl('mining') * 0.004 + (buffOn('miner') ? 0.08 : 0) + perkVal('prospector') / 100 - (m.floor > 30 ? Math.min(0.06, (m.floor - 30) * 0.002) : 0));
       if (Math.random() < p) { m.stairs = true; stairsAt = k + 1; }
     }
     const [id] = pickWeighted(table);
@@ -211,7 +215,7 @@ function dig(n) {
 }
 function descend() {
   const m = state.mine;
-  if (!m.stairs || m.floor >= C.core.mine.floors) return;
+  if (!m.stairs || m.floor >= mineMax()) return;
   const next = m.floor + 1, need = mineGate(next);
   if (lvl('mining') < need) { toast(`Hard rock blocks the way. You need Mining ${need} to reach floor ${next}.`); return; }
   m.floor = next; m.stairs = false;
@@ -220,7 +224,7 @@ function descend() {
   mineLog = mineLog.slice(0, 6);
 }
 function elevator(floor) {
-  if (floor > state.mine.deepest || !C.core.mine.checkpoints.includes(floor)) return;
+  if (floor > state.mine.deepest || !mineCheckpoints().includes(floor)) return;
   state.mine.floor = floor; state.mine.stairs = false;
   mineLog.unshift({ html: `<span>The old lift creaks down to floor ${floor}.</span>`, when: '' });
 }
@@ -261,11 +265,12 @@ function bite() {
     if (r >= 2) w *= (lure ? 2 : 1) * (1 + fl * 0.02) * (fog ? 1.4 : 1);
     if (r >= 3 && glow) w *= 1.5;
     if (r === 5 && glow) w *= 4;
+    if (r === 5) w *= 1 + perkVal('luckyhook') / 100;
     return [id, w, r];
   });
   const [id, , r] = pickWeighted(table);
   const R = C.core.rarity[r];
-  const width = Math.min(62, R.zone + Math.min(12, fl * 0.5) + (lure ? 8 : 0) + (buffOn('steady') ? 10 : 0));
+  const width = Math.min(62, R.zone + Math.min(12, fl * 0.5) + (lure ? 8 : 0) + (buffOn('steady') ? 10 : 0) + perkVal('steady'));
   Object.assign(fishing, { fish: { id, r }, zone: [5 + Math.random() * (90 - width), width], speed: R.speed, offset: Math.random() * 2, start: performance.now(), phase: 'bite' });
   fishing.msg = `<span>Bite!</span><span class="muted">${r === 5 ? 'The line screams. Something enormous!' : r >= 3 ? 'Something big is pulling hard.' : r === 2 ? 'A strong tug.' : 'A nibble.'}</span>`;
   syncFishDom();
@@ -501,6 +506,7 @@ function statValue(kind) {
     case 'fishkinds': return I.fishKinds.filter(id => state.got[id]).length;
     case 'legendary': return [...I.legendary].filter(id => state.got[id]).length;
     case 'chapters': return Object.keys(state.story.done).length;
+    case 'pets': return Object.keys(state.pets || {}).length;
     default: return state.stats[kind] || 0;
   }
 }

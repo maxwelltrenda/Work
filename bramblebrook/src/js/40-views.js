@@ -1,10 +1,10 @@
 /* ---------- views ---------- */
 const SUBS = {
-  farm: [['fields', 'Fields'], ['orchard', 'Orchard'], ['animals', 'Animals']],
+  farm: [['fields', 'Fields'], ['orchard', 'Orchard'], ['animals', 'Animals'], ['pets', 'Pets']],
   wilds: [['explore', 'Explore'], ['mine', 'Mine'], ['adventures', 'Adventures']],
-  make: [['workshop', 'Workshop'], ['kitchen', 'Kitchen']],
+  make: [['workshop', 'Workshop'], ['kitchen', 'Kitchen'], ['bench', 'Bench'], ['cellar', 'Cellar']],
   town: [['people', 'People'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
-  bag: [['items', 'Items'], ['almanac', 'Almanac'], ['feats', 'Feats'], ['settings', 'Settings']],
+  bag: [['items', 'Items'], ['almanac', 'Almanac'], ['feats', 'Feats'], ['perks', 'Perks'], ['settings', 'Settings']],
 };
 const sub = t => state.sub[t] || SUBS[t][0][0];
 function subtabs(t, dots = {}) {
@@ -25,10 +25,11 @@ function storyBanner() {
 /* ---- Farm ---- */
 function viewFarm() {
   const s = sub('farm');
-  const dots = { orchard: orchardReady() > 0, animals: animalsReady() > 0 };
+  const dots = { orchard: orchardReady() > 0, animals: animalsReady() > 0, pets: petsReady() > 0 };
   const head = `<div class="view-head"><h1>Your farm</h1><p>${esc(weather().n)} · ${esc(weather().desc)}</p></div>${subtabs('farm', dots)}`;
   if (s === 'orchard') return head + (unlocked('orchard') ? viewOrchard() : lockedCard('The orchard', 'orchard'));
   if (s === 'animals') return head + viewAnimals();
+  if (s === 'pets') return head + viewPets();
   return head + storyBanner() + viewFields();
 }
 function plotHTML(p, i) {
@@ -48,7 +49,7 @@ function viewFields() {
     const it = I.items[c.id], locked = !cropOpen(c);
     return `<button class="packet${locked ? ' locked' : ''}" style="--h:${c.h}" ${locked ? 'disabled' : `data-act="seed" data-id="${c.id}"`} aria-pressed="${state.seed === c.id}">
       <span class="band">${esc(it.n)}</span><span class="pic">${pic(c.id, 40)}</span>
-      <span class="facts">${locked ? `<span>Farming Lv ${c.lvl}</span><span>&nbsp;</span>` : `<span>Grows ${fmtT(c.grow * growFactor())}</span><span>Seed ${c.seed}c · sells ${priceOf(c.id)}c</span>`}</span></button>`;
+      <span class="facts">${locked ? `<span>Farming Lv ${c.lvl}</span><span>&nbsp;</span>` : `<span>Grows ${fmtT(c.grow * growFactor())}</span><span>Seed ${seedCost(c)}c · sells ${priceOf(c.id)}c</span>`}</span></button>`;
   }).join('');
   const ups = Object.entries(C.core.upgrades).map(([k, u]) => {
     const tier = state.upgrades[k], next = u.tiers[tier], cur = u.tiers[tier - 1];
@@ -61,7 +62,7 @@ function viewFields() {
     <div class="plots">${state.plots.map(plotHTML).join('')}</div>
     <div class="farm-actions">
       <button class="btn" data-act="harvest-all" ${ready ? '' : 'disabled'}>Harvest all${ready ? ` (${ready})` : ''}</button>
-      <button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${empty || ''} ${esc(itemName(seed.id))}${empty ? ` · ${empty * seed.seed}c` : ''}</button>
+      <button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${empty || ''} ${esc(itemName(seed.id))}${empty ? ` · ${empty * seedCost(seed)}c` : ''}</button>
     </div>
     ${have('tonic') ? `<button class="btn sun" data-act="tonic">${pic('tonic', 24)} Use Grow Tonic (${have('tonic')}) · halves growing time</button>` : ''}
     <div class="card"><h2>Farm improvements</h2><div class="upgrades">${ups}</div>
@@ -147,14 +148,14 @@ function viewExplore() {
 function viewMine() {
   const m = state.mine, k = C.core.mine;
   const need = mineGate(m.floor + 1);
-  const depth = Array.from({ length: k.floors }, (_, i) => `<i class="${i < m.floor ? 'on' : ''} ${k.checkpoints.includes(i + 1) ? 'cp' : ''}"></i>`).join('');
+  const depth = m.floor > k.floors ? `<span class="chip plain gold">The Deep · ${m.floor - k.floors} below the vault</span>` : Array.from({ length: k.floors }, (_, i) => `<i class="${i < m.floor ? 'on' : ''} ${k.checkpoints.includes(i + 1) ? 'cp' : ''}"></i>`).join('');
   const band = mineBand(m.floor);
   const drops = Object.keys(band.drops).filter(x => x !== 'none').concat(m.floor >= 25 ? ['starshard'] : []).map(x => state.seen[x] ? pic(x, 24) : '<span class="unknown">?</span>').join('');
   const s = state.stamina;
-  const down = m.floor >= k.floors ? '<span class="chip plain">The deepest vault</span>'
+  const down = m.floor >= mineMax() ? '<span class="chip plain">The bottom</span>'
     : m.stairs ? `<button class="btn sun" data-act="descend" ${lvl('mining') >= need ? '' : 'disabled'}>Go down to floor ${m.floor + 1}${need && lvl('mining') < need ? ` (Mining ${need})` : ''}</button>`
     : '<span class="sub">Keep digging to find the way down.</span>';
-  const lifts = k.checkpoints.filter(f => f <= m.deepest && f !== m.floor).map(f => `<button class="btn small ghost" data-act="lift" data-n="${f}">Floor ${f}</button>`).join('');
+  const lifts = mineCheckpoints().filter(f => f <= m.deepest && f !== m.floor).map(f => `<button class="btn small ghost" data-act="lift" data-n="${f}">Floor ${f}</button>`).join('');
   const log = mineLog.length ? mineLog.map(l => `<div class="log-line">${l.html}<span class="t">${esc(l.when)}</span></div>`).join('') : '<p class="muted">Every dig costs 1 stamina and might turn up ore, gems or the way down.</p>';
   return `<div class="card trail mine"><div class="row between"><h2>Floor ${m.floor}</h2><span class="sub">Deepest: ${m.deepest}</span></div>
       <div class="depth" aria-label="Floor ${m.floor} of ${k.floors}">${depth}</div>
@@ -203,7 +204,7 @@ function viewFish() {
     </div>
     <div class="bait-row">${bait('worm', 'Worms', 'basic')}${bait('lure', 'Lures', 'bigger zone')}${bait('glowbait', 'Glow grubs', 'legends')}</div>
     <button class="btn big" id="cast-btn" data-act="fish-btn">Cast line</button>
-    <div class="card"><div class="row between"><div class="label">In these waters</div><div class="drops">${pool}</div></div><div class="log">${logHTML}</div></div>`;
+    <div class="card"><div class="row between"><div class="label">In these waters</div><div class="drops">${pool}</div></div><div class="log">${logHTML}</div></div>${viewNets()}`;
 }
 function updateBaitCounts() {
   const notes = { worm: 'basic', lure: 'bigger zone', glowbait: 'legends' };
@@ -222,7 +223,10 @@ function syncFishDom() {
 /* ---- Make ---- */
 function viewMake() {
   const s = sub('make');
-  const head = `<div class="view-head"><h1>${s === 'kitchen' ? "Gran's kitchen" : 'Workshop'}</h1><p>${s === 'kitchen' ? 'Meals restore stamina or give a boost' : 'Turn raw goods into things worth more'}</p></div>${subtabs('make')}`;
+  const titles = { workshop: ['Workshop', 'Turn raw goods into things worth more'], kitchen: ["Gran's kitchen", 'Meals restore stamina or give a boost'], bench: ['Workbench', 'Crafts while you are away'], cellar: ['Cellar', 'Patience pays: age goods into vintages'] };
+  const head = `<div class="view-head"><h1>${titles[s][0]}</h1><p>${titles[s][1]}</p></div>${subtabs('make', { bench: benchReady() > 0, cellar: casksReady() > 0 })}`;
+  if (s === 'bench') return head + viewBench();
+  if (s === 'cellar') return head + viewCellar();
   if (s === 'kitchen') return head + (unlocked('kitchen') ? recipeList(I.meals, mealOpen, 'cook', 'cooking') : lockedCard("Gran's kitchen", 'kitchen'));
   return head + recipeList(I.recipes, recipeOpen, 'craft', 'crafting');
 }
@@ -250,7 +254,7 @@ function viewTown() {
   const s = sub('town');
   ensureChores();
   const unread = state.mail.filter(m => !m.read).length;
-  const choresReady = state.chores.list.some(c => !c.claimed && choreProgress(c) >= c.n);
+  const choresReady = state.chores.list.some(c => !c.claimed && choreProgress(c) >= c.n) || loginReady() || festivalOpenCount() > 0;
   const people = I.vils.some(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id)));
   const head = `<div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>${subtabs('town', { mail: unread > 0, board: choresReady, people })}`;
   if (s === 'shops') return head + viewShops();
@@ -317,7 +321,7 @@ function viewShops() {
       ${state.plots.length < C.core.plots.max ? `<button class="btn small" data-act="buy-plot" ${state.coins >= pc ? '' : 'disabled'}>${fmtN(pc)}c</button>` : '<span class="chip plain">All bought</span>'}</div>
     <div class="store-item"><span class="emo" style="--s:32px">🛖</span><div class="what"><b>${nextBarn ? `Upgrade to ${esc(nextBarn.n)}` : esc(C.core.barn[state.barn].n)}</b><small>Holds ${fmtN(cap())} of each item${nextBarn ? ` → ${fmtN(nextBarn.cap)}` : ''}</small></div>
       ${nextBarn ? `<button class="btn small" data-act="buy-barn" ${state.coins >= nextBarn.cost ? '' : 'disabled'}>${fmtN(nextBarn.cost)}c</button>` : '<span class="chip plain">Maxed</span>'}</div>
-  </div>${saffi || (I.unlockAt.merchant != null ? lockedCard("Saffi's cart", 'merchant') : '')}`;
+  </div>${viewExchange()}${saffi || (I.unlockAt.merchant != null ? lockedCard("Saffi's cart", 'merchant') : '')}`;
 }
 function viewBoard() {
   ensureChores();
@@ -328,7 +332,7 @@ function viewBoard() {
   }).join('');
   const all = state.chores.list.every(c => c.claimed);
   const w = weather();
-  return `<div class="card"><div class="row between"><h2>Today's chores</h2><span class="chip plain">New list at midnight</span></div>${chores}
+  return `${viewDaily()}${viewFestival()}<div class="card"><div class="row between"><h2>Today's chores</h2><span class="chip plain">New list at midnight</span></div>${chores}
       ${all && !state.chores.bonus ? '<button class="btn sun" data-act="chore-bonus">All done! Claim bonus: 2 Grow Tonic</button>' : ''}</div>
     <div class="card"><h2>Valley almanac</h2><p>Day ${dayNumber()} · ${esc(season())}</p><p class="sub">Weather: ${esc(w.n)}. ${esc(w.desc)}</p>
       <p class="sub">Seasons turn every seven days. Weather changes at midnight.</p></div>`;
@@ -345,9 +349,10 @@ function viewMail() {
 /* ---- Bag ---- */
 function viewBag() {
   const s = sub('bag');
-  const head = `<div class="view-head"><h1>${{ items: 'Bag', almanac: 'Almanac', feats: 'Feats', settings: 'Settings' }[s]}</h1><p>${s === 'items' ? `Barn holds ${fmtN(cap())} of each item` : s === 'almanac' ? `${Object.keys(state.seen).length} of ${Object.keys(I.items).length} found` : s === 'feats' ? `${Object.keys(state.ach).length} of ${I.ach.length} earned` : ''}</p></div>${subtabs('bag')}`;
+  const head = `<div class="view-head"><h1>${{ items: 'Bag', almanac: 'Almanac', feats: 'Feats', perks: 'Perks', settings: 'Settings' }[s]}</h1><p>${s === 'items' ? `Barn holds ${fmtN(cap())} of each item` : s === 'almanac' ? `${Object.keys(state.seen).length} of ${Object.keys(I.items).length} found` : s === 'feats' ? `${Object.keys(state.ach).length} of ${I.ach.length} earned` : ''}</p></div>${subtabs('bag')}`;
   if (s === 'almanac') return head + viewAlmanac();
   if (s === 'feats') return head + viewFeats();
+  if (s === 'perks') return head + viewPerks();
   if (s === 'settings') return head + viewSettings();
   return head + viewItems();
 }
