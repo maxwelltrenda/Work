@@ -1,0 +1,1451 @@
+<title>Bramblebrook Farm</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap">
+<style>
+/* Layout: one phone-width column. Sticky ledger header, one swappable view, fixed tab bar at the bottom. */
+:root {
+  --bg: #E7ECDC;
+  --surface: #F5F7EE;
+  --surface-2: #DCE4CE;
+  --ink: #1D2819;
+  --muted: #58664F;
+  --line: #C3CEB2;
+  --accent: #2D6838;
+  --accent-ink: #F5F7EE;
+  --sun: #B97C06;
+  --sun-soft: #F2DEA6;
+  --berry: #A8304A;
+  --soil: #8A5D3B;
+  --soil-dark: #66432A;
+  --water: #2C6F96;
+  --water-soft: #CDE1EA;
+  --pk-l: 84%;
+  --pk-band: 40%;
+  --display: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --r: 14px;
+  --r-sm: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111912; --surface: #19241B; --surface-2: #223024; --ink: #E4ECDA; --muted: #9AAA92; --line: #2E3E30;
+    --accent: #7CC189; --accent-ink: #0E1A10; --sun: #EDB440; --sun-soft: #3A2F14; --berry: #EC7C95;
+    --soil: #5E412B; --soil-dark: #46301F; --water: #5FA6CF; --water-soft: #16303D; --pk-l: 24%; --pk-band: 46%;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111912; --surface: #19241B; --surface-2: #223024; --ink: #E4ECDA; --muted: #9AAA92; --line: #2E3E30;
+  --accent: #7CC189; --accent-ink: #0E1A10; --sun: #EDB440; --sun-soft: #3A2F14; --berry: #EC7C95;
+  --soil: #5E412B; --soil-dark: #46301F; --water: #5FA6CF; --water-soft: #16303D; --pk-l: 24%; --pk-band: 46%;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--body); font-size: 15px; line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+button { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+.app {
+  max-width: 600px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 calc(104px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 12px 10px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+.brand-row { display: flex; align-items: center; gap: 12px; }
+.brand { display: grid; line-height: 1; min-width: 0; }
+.brand b { font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: -0.02em; font-variation-settings: "opsz" 48; }
+.brand small { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.purse { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.coins { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 16px; }
+.coin { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, var(--sun-soft), var(--sun) 70%); box-shadow: inset 0 0 0 2px var(--sun); flex: none; }
+.stam { display: grid; gap: 3px; width: 104px; }
+.stam-top { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.stam-top b { color: var(--ink); }
+.bar { display: block; height: 7px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+.bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: var(--accent); border-radius: inherit; transition: width .3s; }
+@media (max-width: 390px) { .brand b { font-size: 19px; } .stam { width: 84px; } .purse { gap: 8px; } }
+.skills { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.skill { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-sm); padding: 5px 8px 6px; text-align: left; cursor: pointer; display: grid; gap: 4px; min-width: 0; }
+.skill span { font-size: 11px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.skill b { font-family: var(--display); font-size: 15px; line-height: 1; font-variant-numeric: tabular-nums; }
+.skill .bar { height: 4px; }
+
+/* Views */
+.view { display: grid; gap: 16px; padding-top: 16px; }
+.view-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.view-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
+.view-head p { color: var(--muted); font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.card h2 { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.card .sub { color: var(--muted); font-size: 13px; }
+.label { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+.btn { border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--accent-ink); display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; touch-action: manipulation; }
+.btn:disabled { opacity: .42; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+.btn.sun { background: var(--sun); color: var(--accent-ink); }
+.btn.small { padding: 6px 12px; min-height: 34px; font-size: 13px; }
+.btn.danger { background: transparent; color: var(--berry); box-shadow: inset 0 0 0 1.5px var(--berry); }
+.btn.big { width: 100%; min-height: 54px; font-size: 18px; font-family: var(--display); font-weight: 800; letter-spacing: -0.01em; }
+
+.ico { display: inline-block; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 99px; background: var(--surface-2); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chip.short { background: transparent; box-shadow: inset 0 0 0 1.5px var(--berry); color: var(--berry); }
+.chip.ok { background: var(--surface-2); }
+
+/* Farm */
+.welcome { background: var(--surface-2); border: 0; }
+.welcome p { font-size: 14px; }
+.packets { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x proximity; }
+.packet { --h: 100; flex: none; width: 104px; scroll-snap-align: start; border: 0; cursor: pointer; text-align: left; padding: 0; background: hsl(var(--h) 40% var(--pk-l)); border-radius: 6px 6px 10px 10px; display: grid; position: relative; clip-path: polygon(0 6px, 8% 0, 16% 6px, 25% 0, 33% 6px, 41% 0, 50% 6px, 58% 0, 66% 6px, 75% 0, 83% 6px, 91% 0, 100% 6px, 100% 100%, 0 100%); transition: transform .15s; }
+.packet .band { background: hsl(var(--h) 50% var(--pk-band)); color: #fff; font-family: var(--display); font-weight: 800; font-size: 13px; padding: 12px 8px 5px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.packet .pic { font-size: 34px; text-align: center; padding: 8px 0 2px; }
+.packet .facts { font-size: 11px; padding: 0 8px 8px; display: grid; gap: 1px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.packet[aria-pressed="true"] { transform: translateY(-4px); box-shadow: inset 0 0 0 3px var(--ink); }
+.packet[aria-pressed="true"]::after { content: "Selected"; position: absolute; right: 6px; top: 34px; font-size: 10px; font-weight: 700; background: var(--ink); color: var(--bg); border-radius: 99px; padding: 1px 6px; }
+.packet.locked { filter: grayscale(1); opacity: .6; cursor: default; }
+
+.plots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 520px) { .plots { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.plot { --g: 0; position: relative; aspect-ratio: 1; max-width: 100%; border: 0; border-radius: 12px; cursor: pointer; overflow: hidden; display: grid; place-items: center; padding: 0;
+  background: repeating-linear-gradient(180deg, var(--soil) 0 10px, var(--soil-dark) 10px 14px); box-shadow: inset 0 -4px 0 rgba(0,0,0,.14); }
+.plot.empty { background: transparent; box-shadow: inset 0 0 0 2px var(--line); border: 2px dashed var(--soil); }
+.plot-empty { font-family: var(--display); font-weight: 800; color: var(--soil); font-size: 15px; }
+.sprout { font-size: 40px; transform: scale(calc(.5 + var(--g) * .5)); transform-origin: 50% 80%; transition: transform .6s; margin-top: -10px; }
+.plot-label { position: absolute; left: 6px; right: 6px; bottom: 12px; text-align: center; font-size: 12px; font-weight: 700; color: #FFF8EC; font-variant-numeric: tabular-nums; text-shadow: 0 1px 2px rgba(0,0,0,.5); }
+.plot-bar { position: absolute; left: 8px; right: 8px; bottom: 6px; height: 4px; border-radius: 99px; background: rgba(0,0,0,.28); overflow: hidden; }
+.plot-bar i { display: block; height: 100%; width: calc(var(--g) * 100%); background: #CDEB9E; }
+.plot.ready { box-shadow: inset 0 0 0 3px var(--sun), inset 0 -4px 0 rgba(0,0,0,.14); }
+.plot.ready .sprout { transform: none; animation: bob 1.6s ease-in-out infinite; }
+.plot.ready .plot-label { color: var(--accent-ink); background: var(--sun); border-radius: 99px; left: 50%; right: auto; transform: translateX(-50%); padding: 1px 10px; text-shadow: none; bottom: 8px; }
+.plot.ready .plot-bar { display: none; }
+@keyframes bob { 50% { transform: translateY(-4px) rotate(-4deg); } }
+.farm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.farm-actions .btn { width: 100%; }
+
+/* Explore */
+.areas { display: grid; gap: 10px; }
+.area { text-align: left; cursor: pointer; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 6px; width: 100%; }
+.area[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.area.locked { opacity: .55; cursor: default; }
+.area-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.area-top b { font-family: var(--display); font-size: 17px; font-weight: 800; }
+.drops { display: flex; flex-wrap: wrap; gap: 4px; font-size: 20px; }
+.drops .unknown { font-family: var(--display); font-size: 13px; width: 24px; height: 24px; display: inline-grid; place-items: center; border-radius: 6px; background: var(--surface-2); color: var(--muted); }
+.trail { background: var(--accent); color: var(--accent-ink); border: 0; display: grid; gap: 12px; }
+.trail h2 { font-size: 22px; }
+.trail .sub { color: inherit; opacity: .8; }
+.trail .btn { background: var(--accent-ink); color: var(--accent); }
+.trail .btn.ghost { background: transparent; color: var(--accent-ink); box-shadow: inset 0 0 0 1.5px var(--accent-ink); }
+.trail-btns { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; }
+.log { display: grid; gap: 6px; font-size: 14px; }
+.log-line { display: flex; gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.log-line:last-child { border-bottom: 0; }
+.log-line .t { color: var(--muted); font-size: 12px; margin-left: auto; white-space: nowrap; }
+
+/* Fishing */
+.spots { display: flex; gap: 8px; flex-wrap: wrap; }
+.spot { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 8px 14px; cursor: pointer; font-weight: 700; }
+.spot[aria-pressed="true"] { background: var(--water); color: var(--accent-ink); border-color: var(--water); }
+.spot.locked { opacity: .5; cursor: default; font-weight: 400; }
+.pond { position: relative; border-radius: 18px; min-height: 220px; overflow: hidden; display: grid; align-content: end; gap: 12px; padding: 16px; cursor: pointer; user-select: none; touch-action: manipulation;
+  background: var(--water-soft);
+  background:
+    repeating-radial-gradient(ellipse at 30% 40%, transparent 0 22px, color-mix(in srgb, var(--water) 18%, transparent) 22px 24px),
+    linear-gradient(180deg, var(--water-soft), color-mix(in srgb, var(--water) 45%, var(--water-soft))); }
+.bobber { position: absolute; left: 50%; top: 36%; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%; background: linear-gradient(180deg, var(--berry) 0 50%, #FFF8EC 50%); box-shadow: 0 2px 0 rgba(0,0,0,.2); transition: transform .2s; }
+.pond[data-phase="idle"] .bobber { opacity: 0; }
+.pond[data-phase="waiting"] .bobber { animation: float 1.8s ease-in-out infinite; }
+.pond[data-phase="bite"] .bobber { animation: tug .22s ease-in-out infinite; }
+@keyframes float { 50% { transform: translateY(5px); } }
+@keyframes tug { 50% { transform: translateY(9px) scale(.9); } }
+.fish-status { position: relative; background: var(--surface); border-radius: 12px; padding: 10px 12px; font-weight: 700; min-height: 44px; display: flex; align-items: center; gap: 8px; }
+.reel { position: relative; height: 26px; border-radius: 99px; background: var(--surface); box-shadow: inset 0 0 0 2px var(--ink); overflow: hidden; }
+.zone { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: .85; }
+.needle { position: absolute; top: -2px; bottom: -2px; width: 4px; margin-left: -2px; background: var(--ink); border-radius: 2px; }
+.bait-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bait { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-sm); padding: 10px 12px; text-align: left; cursor: pointer; display: flex; gap: 10px; align-items: center; }
+.bait[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); }
+.bait .ico { font-size: 24px; }
+.bait small { display: block; color: var(--muted); font-size: 12px; }
+
+/* Craft */
+.recipes { display: grid; gap: 10px; }
+.recipe { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 4px 12px; align-items: start; }
+.recipe .big-ico { font-size: 34px; grid-row: span 3; text-align: center; padding-top: 2px; }
+.recipe-name { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.recipe-name b { font-family: var(--display); font-size: 16px; font-weight: 800; }
+.needs { display: flex; flex-wrap: wrap; gap: 6px; }
+.recipe.locked { opacity: .5; }
+
+/* Town */
+.npc { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px 12px; }
+.mono { --h: 30; width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 18px; background: hsl(var(--h) 45% var(--pk-l)); color: hsl(var(--h) 50% var(--pk-band)); box-shadow: inset 0 0 0 2px hsl(var(--h) 45% var(--pk-band)); color: var(--ink); }
+.npc-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.npc-head b { font-family: var(--display); font-size: 17px; font-weight: 800; }
+.hearts { color: var(--berry); letter-spacing: 1px; font-size: 13px; white-space: nowrap; }
+.quote { font-size: 14px; }
+.npc-body { display: grid; gap: 8px; min-width: 0; }
+.reward { font-size: 13px; color: var(--muted); }
+.store-grid { display: grid; gap: 8px; }
+.store-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.store-item:last-child { border-bottom: 0; }
+.store-item .ico { font-size: 26px; width: 32px; text-align: center; }
+.store-item .what { min-width: 0; flex: 1; }
+.store-item .what small { display: block; color: var(--muted); font-size: 12px; }
+.chore { display: flex; gap: 10px; align-items: center; }
+.chore .what { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.chore.done .what b { text-decoration: line-through; color: var(--muted); }
+
+/* Bag */
+.inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.slot { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 8px 6px; cursor: pointer; display: grid; justify-items: center; gap: 2px; position: relative; min-width: 0; }
+.slot .ico { font-size: 28px; }
+.slot .nm { font-size: 11px; color: var(--muted); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slot .q { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 13px; }
+.slot.full .q { color: var(--berry); }
+.slot .lock { position: absolute; top: 4px; right: 6px; font-size: 11px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.stat b { display: block; font-family: var(--display); font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+textarea { width: 100%; min-height: 70px; resize: vertical; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px; }
+
+/* Tab bar */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: max(6px, env(safe-area-inset-left, 0px)); padding-right: max(6px, env(safe-area-inset-right, 0px)); }
+.tabs-in { max-width: 600px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.tab { border: 0; background: transparent; cursor: pointer; display: grid; justify-items: center; gap: 2px; padding: 9px 0 8px; color: var(--muted); font-size: 11px; font-weight: 700; position: relative; }
+.tab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tab[aria-current="page"] { color: var(--accent); }
+.tab[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 3px 3px; background: var(--accent); }
+.badge { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 4px; border-radius: 99px; background: var(--berry); color: var(--accent-ink); font-size: 10px; line-height: 17px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* Toasts and sheet */
+.toasts { position: fixed; left: 0; right: 0; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 8; display: grid; justify-items: center; gap: 6px; pointer-events: none; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.toast { background: var(--ink); color: var(--bg); border-radius: 12px; padding: 9px 14px; font-size: 14px; font-weight: 700; max-width: 520px; box-shadow: 0 6px 18px rgba(0,0,0,.18); animation: rise .25s ease-out; }
+.toast.lvl { background: var(--sun); color: var(--accent-ink); }
+@keyframes rise { from { transform: translateY(8px); opacity: 0; } }
+.sheet-wrap { position: fixed; inset: 0; z-index: 9; background: rgba(10, 16, 10, .45); display: grid; align-items: end; }
+.sheet { background: var(--surface); width: 100%; max-width: 600px; margin: 0 auto; border-radius: 20px 20px 0 0; display: grid; gap: 12px;
+  padding-block: 18px calc(18px + env(safe-area-inset-bottom, 0px)); padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); max-height: 86vh; overflow-y: auto; }
+.sheet-head { display: flex; gap: 14px; align-items: center; }
+.sheet-head .ico { font-size: 46px; }
+.sheet-head h2 { font-size: 22px; font-weight: 800; }
+.sheet dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+.sheet dt { color: var(--muted); }
+.sheet dd { margin: 0; }
+.sheet-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="app">
+  <header class="top" id="top">
+    <div class="brand-row">
+      <div class="brand"><b>Bramblebrook</b><small id="almanac">Day 1 · Spring</small></div>
+      <div class="purse">
+        <div class="stam" title="Stamina refills 1 point every 20 seconds">
+          <div class="stam-top"><span>Stamina</span><span><b id="stam-now">0</b>/<span id="stam-max">0</span></span></div>
+          <div class="bar"><i id="stam-bar"></i></div>
+        </div>
+        <span class="coins" aria-label="Coins"><span class="coin" aria-hidden="true"></span><span id="coins">0</span></span>
+      </div>
+    </div>
+    <div class="skills" id="skills"></div>
+  </header>
+  <main id="view" class="view"></main>
+</div>
+
+<nav class="tabs" aria-label="Game sections">
+  <div class="tabs-in" id="tabs"></div>
+</nav>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<div id="sheet-root"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ------------------------------------------------------------------ *
+ *  Game data. Everything you can grow, find, catch or make lives here.
+ *  Swap an `i` (icon) for your own art later without touching logic.
+ * ------------------------------------------------------------------ */
+const F = {
+  copper: 'sepia(1) saturate(5) hue-rotate(-15deg) brightness(.95)',
+  coal: 'grayscale(1) brightness(.35) contrast(1.4)',
+  iron: 'grayscale(1) brightness(.78) contrast(1.2)',
+  silver: 'grayscale(1) brightness(1.55)',
+  gold: 'sepia(1) saturate(4) brightness(1.15)',
+};
+const ITEMS = {
+  wheat: { n: 'Wheat', i: '🌾', t: 'crop', s: 4 },
+  carrot: { n: 'Carrot', i: '🥕', t: 'crop', s: 9 },
+  potato: { n: 'Potato', i: '🥔', t: 'crop', s: 18 },
+  cabbage: { n: 'Cabbage', i: '🥬', t: 'crop', s: 26 },
+  tomato: { n: 'Tomato', i: '🍅', t: 'crop', s: 40 },
+  corn: { n: 'Corn', i: '🌽', t: 'crop', s: 55 },
+  strawberry: { n: 'Strawberry', i: '🍓', t: 'crop', s: 80 },
+  pepper: { n: 'Chili Pepper', i: '🌶️', t: 'crop', s: 115 },
+  pumpkin: { n: 'Pumpkin', i: '🎃', t: 'crop', s: 170 },
+  sunflower: { n: 'Sunflower', i: '🌻', t: 'crop', s: 220 },
+  watermelon: { n: 'Watermelon', i: '🍉', t: 'crop', s: 300 },
+
+  pebble: { n: 'Pebble', i: '🪨', t: 'forage', s: 2 },
+  wildflower: { n: 'Wildflower', i: '🌼', t: 'forage', s: 3 },
+  clover: { n: 'Clover', i: '🍀', t: 'forage', s: 4 },
+  feather: { n: 'Feather', i: '🪶', t: 'forage', s: 5 },
+  honeycomb: { n: 'Honeycomb', i: '🍯', t: 'forage', s: 30 },
+  wood: { n: 'Wood', i: '🪵', t: 'forage', s: 4 },
+  mushroom: { n: 'Mushroom', i: '🍄', t: 'forage', s: 8 },
+  acorn: { n: 'Acorn', i: '🌰', t: 'forage', s: 6 },
+  berries: { n: 'Wild Berries', i: '🫐', t: 'forage', s: 10 },
+  sap: { n: 'Tree Sap', i: '💧', t: 'forage', s: 9 },
+  goldacorn: { n: 'Golden Acorn', i: '🌰', t: 'forage', s: 150, f: F.gold },
+  copper: { n: 'Copper Ore', i: '🪨', t: 'forage', s: 12, f: F.copper },
+  coal: { n: 'Coal', i: '🪨', t: 'forage', s: 8, f: F.coal },
+  iron: { n: 'Iron Ore', i: '🪨', t: 'forage', s: 18, f: F.iron },
+  fossil: { n: 'Fossil', i: '🦴', t: 'forage', s: 120 },
+  amethyst: { n: 'Amethyst', i: '💎', t: 'forage', s: 150, f: 'hue-rotate(70deg)' },
+  wool: { n: 'Wool Tuft', i: '☁️', t: 'forage', s: 14 },
+  thyme: { n: 'Highland Thyme', i: '🌱', t: 'forage', s: 16 },
+  silver: { n: 'Silver Ore', i: '🪨', t: 'forage', s: 40, f: F.silver },
+  crystal: { n: 'Sky Crystal', i: '🔮', t: 'forage', s: 90 },
+  oldcoin: { n: 'Ancient Coin', i: '🪙', t: 'forage', s: 400 },
+
+  worm: { n: 'Worm', i: '🪱', t: 'bait', s: 1 },
+  lure: { n: 'Shiny Lure', i: '🪝', t: 'bait', s: 40 },
+
+  minnow: { n: 'Minnow', i: '🐟', t: 'fish', s: 6 },
+  perch: { n: 'Yellow Perch', i: '🐟', t: 'fish', s: 10, f: 'hue-rotate(70deg) saturate(1.4)' },
+  snail: { n: 'Pond Snail', i: '🐌', t: 'fish', s: 5 },
+  carp: { n: 'Carp', i: '🐠', t: 'fish', s: 16 },
+  sunfish: { n: 'Sunfish', i: '🐠', t: 'fish', s: 24, f: 'hue-rotate(160deg)' },
+  boot: { n: 'Old Boot', i: '🥾', t: 'fish', s: 1 },
+  trout: { n: 'Rainbow Trout', i: '🐟', t: 'fish', s: 28, f: 'hue-rotate(150deg) saturate(1.6)' },
+  catfish: { n: 'Catfish', i: '🐟', t: 'fish', s: 36, f: 'grayscale(.7) brightness(.8)' },
+  crayfish: { n: 'Crayfish', i: '🦞', t: 'fish', s: 44 },
+  eel: { n: 'River Eel', i: '🐍', t: 'fish', s: 60, f: 'hue-rotate(40deg) brightness(.8)' },
+  pike: { n: 'Pike', i: '🐟', t: 'fish', s: 75, f: 'hue-rotate(250deg)' },
+  compass: { n: 'Old Compass', i: '🧭', t: 'fish', s: 300 },
+  shrimp: { n: 'Shrimp', i: '🦐', t: 'fish', s: 50 },
+  crab: { n: 'Rock Crab', i: '🦀', t: 'fish', s: 70 },
+  squid: { n: 'Squid', i: '🦑', t: 'fish', s: 95 },
+  puffer: { n: 'Pufferfish', i: '🐡', t: 'fish', s: 120 },
+  octopus: { n: 'Octopus', i: '🐙', t: 'fish', s: 160 },
+  oyster: { n: 'Pearl Oyster', i: '🦪', t: 'fish', s: 260 },
+
+  twine: { n: 'Twine', i: '🧵', t: 'crafted', s: 16 },
+  plank: { n: 'Plank', i: '🟫', t: 'crafted', s: 11 },
+  block: { n: 'Stone Block', i: '🧱', t: 'crafted', s: 12 },
+  bouquet: { n: 'Bouquet', i: '💐', t: 'crafted', s: 45 },
+  candle: { n: 'Beeswax Candle', i: '🕯️', t: 'crafted', s: 60 },
+  tonic: { n: 'Grow Tonic', i: '🧪', t: 'crafted', s: 35 },
+  copperbar: { n: 'Copper Bar', i: '🟧', t: 'crafted', s: 60 },
+  nails: { n: 'Iron Nails', i: '🔩', t: 'crafted', s: 8 },
+  basket: { n: 'Woven Basket', i: '🧺', t: 'crafted', s: 140 },
+  bucket: { n: 'Copper Bucket', i: '🪣', t: 'crafted', s: 240 },
+  crate: { n: 'Crate', i: '📦', t: 'crafted', s: 150 },
+  lantern: { n: 'Lantern', i: '🏮', t: 'crafted', s: 190 },
+  yarn: { n: 'Yarn', i: '🧶', t: 'crafted', s: 60 },
+  ring: { n: 'Silver Ring', i: '💍', t: 'crafted', s: 330 },
+  lamp: { n: 'Crystal Lamp', i: '💡', t: 'crafted', s: 480 },
+};
+const TYPE_LABEL = { crop: 'Crops', forage: 'Forage & ore', fish: 'Fish & finds', bait: 'Bait', crafted: 'Crafted goods' };
+
+// Crops: seed cost, grow time (seconds), farming XP, farming level needed, packet hue.
+const CROPS = [
+  { id: 'wheat', seed: 2, grow: 20, xp: 2, lvl: 1, h: 45 },
+  { id: 'carrot', seed: 4, grow: 45, xp: 4, lvl: 1, h: 25 },
+  { id: 'potato', seed: 8, grow: 90, xp: 7, lvl: 2, h: 35 },
+  { id: 'cabbage', seed: 12, grow: 120, xp: 10, lvl: 3, h: 100 },
+  { id: 'tomato', seed: 18, grow: 180, xp: 14, lvl: 4, h: 5 },
+  { id: 'corn', seed: 25, grow: 240, xp: 18, lvl: 5, h: 50 },
+  { id: 'strawberry', seed: 35, grow: 300, xp: 24, lvl: 7, h: 350 },
+  { id: 'pepper', seed: 50, grow: 420, xp: 32, lvl: 9, h: 12 },
+  { id: 'pumpkin', seed: 70, grow: 600, xp: 45, lvl: 11, h: 28 },
+  { id: 'sunflower', seed: 90, grow: 720, xp: 55, lvl: 13, h: 48 },
+  { id: 'watermelon', seed: 120, grow: 900, xp: 70, lvl: 15, h: 140 },
+];
+const CROP = Object.fromEntries(CROPS.map(c => [c.id, c]));
+
+// Explore areas: weighted drops ('none' = came back empty-handed).
+const AREAS = [
+  { id: 'meadow', n: 'Sunny Meadow', lvl: 1, xp: 2, blurb: 'Tall grass behind the farmhouse.',
+    drops: { none: 14, pebble: 26, wildflower: 22, clover: 16, worm: 12, feather: 8, honeycomb: 2 },
+    empty: ['You chased a butterfly and found nothing else.', 'Just grass and sunshine.', 'A rabbit watched you leave empty-handed.'] },
+  { id: 'woods', n: 'Mossy Woods', lvl: 3, xp: 3, blurb: 'Old oaks, soft ground, quiet birds.',
+    drops: { none: 12, wood: 30, mushroom: 18, acorn: 16, berries: 12, sap: 10, feather: 4, goldacorn: 0.6 },
+    empty: ['The path looped back on itself.', 'You sat on a stump for a while.', 'A squirrel got there first.'] },
+  { id: 'quarry', n: 'Old Quarry', lvl: 6, xp: 4, blurb: 'Abandoned cuts in the hillside.',
+    drops: { none: 12, pebble: 24, copper: 22, coal: 18, iron: 14, fossil: 1.5, amethyst: 1.5 },
+    empty: ['Dust, and more dust.', 'The rock face held on to its secrets.', 'Your pick bounced off granite.'] },
+  { id: 'highlands', n: 'Windy Highlands', lvl: 10, xp: 5, blurb: 'Sheep tracks up past the tree line.',
+    drops: { none: 10, wool: 24, thyme: 22, silver: 14, crystal: 6, feather: 10, oldcoin: 0.5 },
+    empty: ['The wind took your hat. You got it back.', 'Fog rolled in. You turned around.', 'Sheep stared. Nothing found.'] },
+];
+const AREA = Object.fromEntries(AREAS.map(a => [a.id, a]));
+
+// Fishing spots: [item, weight, rarity 0-4].
+const SPOTS = [
+  { id: 'pond', n: 'Lily Pond', lvl: 1, fish: [['minnow', 30, 0], ['perch', 22, 1], ['snail', 14, 0], ['carp', 14, 1], ['sunfish', 8, 2], ['boot', 12, 0]] },
+  { id: 'river', n: 'Willow River', lvl: 4, fish: [['trout', 26, 1], ['catfish', 20, 1], ['crayfish', 18, 1], ['eel', 12, 2], ['pike', 8, 3], ['boot', 8, 0], ['compass', 1, 4]] },
+  { id: 'cove', n: 'Saltspray Cove', lvl: 8, fish: [['shrimp', 26, 1], ['crab', 22, 1], ['squid', 16, 2], ['puffer', 12, 2], ['octopus', 8, 3], ['oyster', 3, 4], ['boot', 6, 0]] },
+];
+const SPOT = Object.fromEntries(SPOTS.map(s => [s.id, s]));
+const RARITY = [
+  { zone: 34, speed: 0.65, xp: 2 },
+  { zone: 26, speed: 0.85, xp: 4 },
+  { zone: 20, speed: 1.05, xp: 7 },
+  { zone: 14, speed: 1.3, xp: 12 },
+  { zone: 10, speed: 1.55, xp: 20 },
+];
+
+const RECIPES = [
+  { id: 'twine', out: 1, need: { wheat: 3 }, lvl: 1, xp: 4 },
+  { id: 'plank', out: 1, need: { wood: 2 }, lvl: 1, xp: 4 },
+  { id: 'block', out: 1, need: { pebble: 4 }, lvl: 2, xp: 5 },
+  { id: 'bouquet', out: 1, need: { wildflower: 4, twine: 1 }, lvl: 2, xp: 10 },
+  { id: 'candle', out: 1, need: { honeycomb: 1, twine: 1 }, lvl: 3, xp: 12 },
+  { id: 'tonic', out: 1, need: { sap: 2, clover: 2 }, lvl: 3, xp: 10 },
+  { id: 'copperbar', out: 1, need: { copper: 3, coal: 1 }, lvl: 4, xp: 14 },
+  { id: 'nails', out: 5, need: { iron: 1, coal: 1 }, lvl: 5, xp: 12 },
+  { id: 'basket', out: 1, need: { twine: 5, plank: 2 }, lvl: 6, xp: 26 },
+  { id: 'lure', out: 2, need: { feather: 2, copperbar: 1 }, lvl: 6, xp: 14 },
+  { id: 'crate', out: 1, need: { plank: 4, nails: 6 }, lvl: 7, xp: 30 },
+  { id: 'bucket', out: 1, need: { copperbar: 3, plank: 1 }, lvl: 8, xp: 36 },
+  { id: 'lantern', out: 1, need: { copperbar: 1, candle: 1 }, lvl: 9, xp: 40 },
+  { id: 'yarn', out: 1, need: { wool: 3 }, lvl: 9, xp: 18 },
+  { id: 'ring', out: 1, need: { silver: 2, amethyst: 1 }, lvl: 11, xp: 55 },
+  { id: 'lamp', out: 1, need: { crystal: 1, lantern: 1, silver: 1 }, lvl: 13, xp: 80 },
+];
+const RECIPE = Object.fromEntries(RECIPES.map(r => [r.id, r]));
+
+// Townsfolk and their request chains.
+const VILLAGERS = [
+  { id: 'hazel', short: 'Hazel', n: 'Hazel Pennywhistle', role: 'Runs the general store', h: 40, mono: 'HP', reqs: [
+    { say: 'The bakery keeps asking me for wheat. Could you bring some by?', want: { wheat: 10 }, coins: 40, xp: { farming: 10 } },
+    { say: 'Carrots are flying off my shelves this week.', want: { carrot: 15 }, coins: 80, xp: { farming: 15 } },
+    { say: 'I\'m putting together harvest boxes for the fair.', want: { potato: 10, cabbage: 6 }, coins: 200, xp: { farming: 30 }, plot: 1 },
+    { say: 'Salad season! Tomatoes and corn, please.', want: { tomato: 12, corn: 8 }, coins: 400, xp: { farming: 50 } },
+    { say: 'A basket of strawberries would sell in an hour.', want: { strawberry: 10, basket: 1 }, coins: 800, xp: { farming: 80 }, items: { tonic: 3 } },
+    { say: 'Autumn display for the front window. Go big.', want: { pumpkin: 8, sunflower: 6 }, coins: 1500, xp: { farming: 140 }, plot: 1 },
+  ] },
+  { id: 'tobin', short: 'Tobin', n: 'Old Tobin', role: 'Fishes Willow River every morning', h: 200, mono: 'OT', reqs: [
+    { say: 'Catch me a few minnows. I\'ll trade you some of my worms.', want: { minnow: 5 }, coins: 50, xp: { fishing: 10 }, items: { worm: 10 } },
+    { say: 'Perch and carp for a fish fry tonight.', want: { perch: 4, carp: 2 }, coins: 120, xp: { fishing: 20 } },
+    { say: 'I collect old boots. Don\'t ask why.', want: { boot: 3 }, coins: 90, xp: { fishing: 20 }, items: { lure: 2 } },
+    { say: 'River fish. Trout and catfish, if you can manage.', want: { trout: 5, catfish: 3 }, coins: 300, xp: { fishing: 45 } },
+    { say: 'The eels are running. Bring me the big ones.', want: { eel: 3, pike: 1 }, coins: 600, xp: { fishing: 80 } },
+    { say: 'Haven\'t been to the cove in years. Bring me a taste of it.', want: { crab: 4, squid: 2 }, coins: 900, xp: { fishing: 120 } },
+  ] },
+  { id: 'mira', short: 'Mira', n: 'Mira Ashgrove', role: 'Tinker at the old forge', h: 15, mono: 'MA', reqs: [
+    { say: 'I need pebbles to test my new stone cutter.', want: { pebble: 20 }, coins: 40, xp: { crafting: 10 } },
+    { say: 'Planks and twine. I\'m fixing the forge roof.', want: { plank: 6, twine: 4 }, coins: 120, xp: { crafting: 25 } },
+    { say: 'Stone blocks and copper ore for a new chimney.', want: { block: 10, copper: 6 }, coins: 220, xp: { crafting: 40 } },
+    { say: 'Copper bars and nails. Big order from the mayor.', want: { copperbar: 4, nails: 10 }, coins: 420, xp: { crafting: 70 } },
+    { say: 'Crates and a bucket for the new well.', want: { crate: 2, bucket: 1 }, coins: 900, xp: { crafting: 120 } },
+    { say: 'Something beautiful for the forge window.', want: { lantern: 2, ring: 1 }, coins: 1800, xp: { crafting: 200 } },
+  ] },
+  { id: 'clem', short: 'Gran Clementine', n: 'Gran Clementine', role: 'Bakes for the whole valley', h: 330, mono: 'GC', reqs: [
+    { say: 'Flour\'s running low, dear. Twenty wheat should do.', want: { wheat: 20 }, coins: 60, xp: { farming: 15 } },
+    { say: 'Berry tarts need berries. And a little honey.', want: { berries: 8, honeycomb: 1 }, coins: 140, xp: { foraging: 25 } },
+    { say: 'Strawberry shortcake for the Sunday social.', want: { strawberry: 6, wheat: 30 }, coins: 260, xp: { farming: 40 } },
+    { say: 'Mushroom and thyme pies. My late husband\'s recipe.', want: { mushroom: 10, thyme: 6 }, coins: 350, xp: { foraging: 60 } },
+    { say: 'Pumpkin bread, and candles for the table.', want: { pumpkin: 5, candle: 2 }, coins: 700, xp: { farming: 90 } },
+  ] },
+  { id: 'pip', short: 'Pip', n: 'Pip', role: 'Wants to be an explorer', h: 265, mono: 'P', reqs: [
+    { say: 'I\'m making a hat. It needs feathers!', want: { feather: 5 }, coins: 25, xp: { foraging: 10 } },
+    { say: 'Can you help me with my nature collection?', want: { acorn: 8, wildflower: 10 }, coins: 90, xp: { foraging: 25 } },
+    { say: 'It\'s Mum\'s birthday. Flowers and lucky clover!', want: { bouquet: 1, clover: 12 }, coins: 150, xp: { foraging: 35 } },
+    { say: 'Have you ever found a real fossil?', want: { fossil: 1 }, coins: 300, xp: { foraging: 60 } },
+    { say: 'The rarest things in the valley. For my museum.', want: { goldacorn: 1, amethyst: 1 }, coins: 800, xp: { foraging: 120 } },
+    { say: 'They say there are old coins up in the highlands...', want: { oldcoin: 1 }, coins: 1500, xp: { foraging: 200 } },
+  ] },
+  { id: 'oakley', short: 'Mayor Oakley', n: 'Mayor Oakley', role: 'Keeps Bramblebrook running', h: 175, mono: 'MO', reqs: [
+    { say: 'The footbridge to the river is rotten. We need planks.', want: { plank: 20 }, coins: 300, xp: { crafting: 40 } },
+    { say: 'Now the town wall. Stone blocks and nails.', want: { block: 25, nails: 20 }, coins: 600, xp: { crafting: 70 } },
+    { say: 'Decorations for the spring fair!', want: { bouquet: 4, candle: 4 }, coins: 700, xp: { crafting: 80 } },
+    { say: 'Lantern Night is coming. Light up the square.', want: { lantern: 4 }, coins: 1200, xp: { crafting: 140 } },
+    { say: 'A crystal lamp for the town hall. Our crown jewel.', want: { lamp: 1, crate: 3 }, coins: 3000, xp: { crafting: 250 } },
+  ] },
+];
+const VILLAGER = Object.fromEntries(VILLAGERS.map(v => [v.id, v]));
+
+const CHORES = [
+  { id: 'harvest', text: n => `Harvest ${n} crops`, n: 25, coins: 60 },
+  { id: 'fish', text: n => `Catch ${n} fish`, n: 6, coins: 60, items: { worm: 5 } },
+  { id: 'explore', text: n => `Explore ${n} times`, n: 40, coins: 60 },
+  { id: 'craft', text: n => `Craft ${n} items`, n: 8, coins: 60 },
+  { id: 'sell', text: n => `Earn ${n} coins from selling`, n: 250, coins: 50 },
+  { id: 'deliver', text: n => `Fill ${n} townsfolk request${n > 1 ? 's' : ''}`, n: 1, coins: 80 },
+];
+const CHORE = Object.fromEntries(CHORES.map(c => [c.id, c]));
+
+const SKILLS = [
+  { id: 'farming', n: 'Farming' },
+  { id: 'fishing', n: 'Fishing' },
+  { id: 'foraging', n: 'Foraging' },
+  { id: 'crafting', n: 'Crafting' },
+];
+const BARN = [
+  { cap: 50, cost: 0, n: 'Shed' },
+  { cap: 100, cost: 400, n: 'Small barn' },
+  { cap: 250, cost: 1500, n: 'Barn' },
+  { cap: 500, cost: 5000, n: 'Big barn' },
+  { cap: 999, cost: 15000, n: 'Grand barn' },
+];
+const START_PLOTS = 6, MAX_PLOTS = 18;
+const plotCost = owned => Math.round(150 * Math.pow(1.55, owned - START_PLOTS) / 10) * 10;
+const REGEN_MS = 20000;
+const MAX_LVL = 60;
+const SAVE_KEY = 'bramblebrook-save-v1';
+
+/* --------------------------- helpers --------------------------- */
+const $ = (s, r = document) => r.querySelector(s);
+const now = () => Date.now();
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmtN = n => Math.floor(n).toLocaleString('en-US');
+function fmtT(sec) {
+  sec = Math.max(0, Math.ceil(sec));
+  if (sec < 60) return sec + 's';
+  const m = Math.floor(sec / 60), s = sec % 60;
+  if (m < 60) return s ? `${m}m ${s}s` : `${m}m`;
+  const h = Math.floor(m / 60);
+  return `${h}h ${m % 60}m`;
+}
+function ico(id, extra = '') {
+  const it = ITEMS[id];
+  return `<span class="ico ${extra}"${it.f ? ` style="filter:${it.f}"` : ''} aria-hidden="true">${it.i}</span>`;
+}
+function dayKey(t = now()) {
+  const d = new Date(t);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function seeded(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function pickWeighted(entries) {
+  const total = entries.reduce((a, e) => a + e[1], 0);
+  let r = Math.random() * total;
+  for (const e of entries) { r -= e[1]; if (r <= 0) return e; }
+  return entries[entries.length - 1];
+}
+const xpToNext = l => Math.floor(18 * Math.pow(l, 1.65));
+function levelInfo(xp) {
+  let l = 1, rest = xp;
+  while (l < MAX_LVL && rest >= xpToNext(l)) { rest -= xpToNext(l); l++; }
+  return { lvl: l, into: rest, need: l < MAX_LVL ? xpToNext(l) : 0 };
+}
+
+/* --------------------------- state --------------------------- */
+let state = null;
+let tab = 'farm';
+let exploreArea = 'meadow';
+let exploreLog = [];
+let catchLog = [];
+let cloud = { ref: null, ready: false, busy: false, again: false, timer: 0 };
+let localTimer = 0;
+
+function freshState() {
+  const t = now();
+  const plots = Array.from({ length: START_PLOTS }, () => ({ crop: null, at: 0, ready: 0 }));
+  plots[0] = { crop: 'wheat', at: t - 20000, ready: t };
+  plots[1] = { crop: 'wheat', at: t - 8000, ready: t + 12000 };
+  return {
+    v: 1, created: t, savedAt: 0,
+    coins: 60, plots, barn: 0,
+    inv: { worm: 6 }, locked: {}, seen: { wheat: 1, worm: 1 },
+    xp: { farming: 0, fishing: 0, foraging: 0, crafting: 0 },
+    stamina: 30, staminaAt: t,
+    quests: {}, chores: null,
+    stats: { harvested: 0, fish: 0, explores: 0, crafted: 0, earned: 0, delivered: 0 },
+    seed: 'wheat', spot: 'pond', bait: 'worm', welcome: true,
+  };
+}
+function migrate(s) {
+  const base = freshState();
+  if (!s || typeof s !== 'object') return base;
+  const out = Object.assign({}, base, s);
+  out.inv = Object.assign({}, s.inv || {});
+  out.locked = Object.assign({}, s.locked || {});
+  out.seen = Object.assign({}, base.seen, s.seen || {});
+  out.xp = Object.assign({}, base.xp, s.xp || {});
+  out.stats = Object.assign({}, base.stats, s.stats || {});
+  out.quests = Object.assign({}, s.quests || {});
+  if (!Array.isArray(out.plots) || !out.plots.length) out.plots = base.plots;
+  for (const id of Object.keys(out.inv)) if (!ITEMS[id] || !(out.inv[id] > 0)) delete out.inv[id];
+  if (!CROP[out.seed]) out.seed = 'wheat';
+  if (!SPOT[out.spot]) out.spot = 'pond';
+  return out;
+}
+
+const lvl = sk => levelInfo(state.xp[sk] || 0).lvl;
+const cap = () => BARN[state.barn].cap;
+const have = id => state.inv[id] || 0;
+const maxStamina = () => 28 + lvl('foraging') * 2;
+
+function addItem(id, n) {
+  const room = Math.max(0, cap() - have(id));
+  const got = Math.min(room, n);
+  if (got > 0) { state.inv[id] = have(id) + got; state.seen[id] = 1; }
+  return got;
+}
+function takeItem(id, n) {
+  const left = have(id) - n;
+  if (left > 0) state.inv[id] = left; else delete state.inv[id];
+}
+function addXP(sk, amount) {
+  if (!amount) return;
+  const before = lvl(sk);
+  state.xp[sk] = (state.xp[sk] || 0) + amount;
+  const after = lvl(sk);
+  if (after > before) {
+    const name = SKILLS.find(s => s.id === sk).n;
+    const un = unlocksAt(sk, after);
+    toast(`${name} level ${after}!${un ? ' Unlocked: ' + un : ''}`, 'lvl', 4200);
+  }
+}
+function unlocksAt(sk, l) {
+  const list = [];
+  if (sk === 'farming') CROPS.filter(c => c.lvl === l).forEach(c => list.push(ITEMS[c.id].n + ' seeds'));
+  if (sk === 'foraging') AREAS.filter(a => a.lvl === l).forEach(a => list.push(a.n));
+  if (sk === 'fishing') SPOTS.filter(s => s.lvl === l).forEach(s => list.push(s.n));
+  if (sk === 'crafting') RECIPES.filter(r => r.lvl === l).forEach(r => list.push(ITEMS[r.id].n));
+  if (sk === 'foraging') list.push('+2 max stamina');
+  return list.join(', ');
+}
+function syncStamina() {
+  const max = maxStamina(), t = now();
+  if (state.stamina >= max) { state.staminaAt = t; return; }
+  const gained = Math.floor((t - state.staminaAt) / REGEN_MS);
+  if (gained > 0) {
+    state.stamina = Math.min(max, state.stamina + gained);
+    state.staminaAt = state.stamina >= max ? t : state.staminaAt + gained * REGEN_MS;
+  }
+}
+function ensureChores() {
+  const key = dayKey();
+  if (state.chores && state.chores.day === key) return;
+  const rnd = seeded('chores-' + key);
+  const pool = CHORES.map(c => c.id).sort(() => rnd() - 0.5).slice(0, 3);
+  state.chores = { day: key, list: pool.map(id => ({ id, p: 0, claimed: false })), bonus: false };
+}
+function bump(kind, n = 1) {
+  ensureChores();
+  for (const c of state.chores.list) if (c.id === kind && !c.claimed) c.p = Math.min(CHORE[c.id].n, c.p + n);
+}
+
+/* --------------------------- saving --------------------------- */
+function commit() {
+  state.savedAt = now();
+  clearTimeout(localTimer);
+  localTimer = setTimeout(saveLocal, 300);
+  if (cloud.ready) { clearTimeout(cloud.timer); cloud.timer = setTimeout(saveCloud, 4000); }
+  updateHeader();
+  renderView();
+  updateBadges();
+}
+function saveLocal() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) { /* storage blocked: the cloud copy or this session still holds it */ }
+}
+function loadLocal() {
+  try { const raw = localStorage.getItem(SAVE_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+}
+async function saveCloud() {
+  if (!cloud.ready || !cloud.ref) return;
+  if (cloud.busy) { cloud.again = true; return; }
+  cloud.busy = true;
+  try {
+    await cloud.ref.set({ json: JSON.stringify(state), savedAt: state.savedAt });
+  } catch (e) {
+    if (e && (e.code === 'invalid_argument' || e.code === 'revoked' || e.code === 'not_granted')) { cloud.ready = false; renderView(); }
+  }
+  cloud.busy = false;
+  if (cloud.again) { cloud.again = false; saveCloud(); }
+}
+async function initCloud() {
+  const c = window.claude;
+  if (!c || typeof c.use !== 'function') return;
+  try {
+    const [db, user] = await Promise.all([c.use('db'), c.use('user')]);
+    if (!db || !user) return;
+    const uid = await user.id();
+    if (!uid) return;
+    const ref = db.doc('data/users/' + uid + '/save');
+    const snap = await ref.get();
+    if (snap.exists) {
+      const d = snap.data();
+      if (d && typeof d.json === 'string') {
+        const remote = JSON.parse(d.json);
+        if ((remote.savedAt || 0) > (state.savedAt || 0)) {
+          state = migrate(remote);
+          saveLocal();
+          updateHeader(true); renderView(); updateBadges();
+          toast('Loaded your farm from your Claude account');
+        }
+      }
+    }
+    cloud.ref = ref; cloud.ready = true;
+    if (tab === 'bag') renderView();
+    if (!snap.exists && state.savedAt) saveCloud();
+  } catch (e) { /* keep playing on this device only */ }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && state) {
+    saveLocal();
+    if (cloud.ready && cloud.timer) { clearTimeout(cloud.timer); cloud.timer = 0; saveCloud(); }
+  }
+});
+
+/* --------------------------- toasts & sheet --------------------------- */
+function toast(msg, kind = '', ms = 2600) {
+  const box = $('#toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.textContent = msg;
+  box.appendChild(el);
+  while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(() => el.remove(), ms);
+}
+function openSheet(html) {
+  $('#sheet-root').innerHTML = `<div class="sheet-wrap" data-act="sheet-close"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+  const first = $('#sheet-root .sheet button');
+  if (first) first.focus();
+}
+function closeSheet() { $('#sheet-root').innerHTML = ''; }
+
+/* --------------------------- header & tabs --------------------------- */
+const TAB_DEFS = [
+  { id: 'farm', n: 'Farm', svg: '<path d="M12 21v-9"/><path d="M12 13c0-4.5-3-7-7.5-7 0 4.5 3 7 7.5 7z"/><path d="M12 11c0-3.6 2.4-6 6.5-6 0 3.6-2.4 6-6.5 6z"/>' },
+  { id: 'explore', n: 'Explore', svg: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>' },
+  { id: 'fish', n: 'Fish', svg: '<path d="M15 3v11a4.5 4.5 0 1 1-9 0v-1.5"/><path d="M6 12.5l-2 2"/><path d="M13 3h4"/>' },
+  { id: 'craft', n: 'Craft', svg: '<path d="M4 20l8.5-8.5"/><path d="M11 6l3-3 7 7-3 3z"/><path d="M14.5 9.5l-2 2"/>' },
+  { id: 'town', n: 'Town', svg: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>' },
+  { id: 'bag', n: 'Bag', svg: '<path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>' },
+];
+function renderTabs() {
+  $('#tabs').innerHTML = TAB_DEFS.map(t => `<button class="tab" data-act="tab" data-tab="${t.id}" ${t.id === tab ? 'aria-current="page"' : ''}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">${t.svg}</svg><span>${t.n}</span><span class="badge" id="badge-${t.id}" hidden></span></button>`).join('');
+  updateBadges();
+}
+function updateBadges() {
+  const ready = state.plots.filter(p => p.crop && p.ready <= now()).length;
+  setBadge('farm', ready);
+  ensureChores();
+  let town = VILLAGERS.filter(v => canDeliver(v.id)).length;
+  town += state.chores.list.filter(c => !c.claimed && c.p >= CHORE[c.id].n).length;
+  setBadge('town', town);
+}
+function setBadge(id, n) {
+  const el = $('#badge-' + id);
+  if (!el) return;
+  el.hidden = !n;
+  el.textContent = n > 99 ? '99+' : n;
+}
+let lastSkillSig = '';
+function updateHeader(force) {
+  syncStamina();
+  $('#coins').textContent = fmtN(state.coins);
+  const max = maxStamina();
+  $('#stam-now').textContent = state.stamina;
+  $('#stam-max').textContent = max;
+  $('#stam-bar').style.setProperty('--p', Math.min(1, state.stamina / max));
+  const day = Math.floor((now() - state.created) / 86400000) + 1;
+  const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+  $('#almanac').textContent = `Day ${day} · ${seasons[Math.floor((day - 1) / 7) % 4]}`;
+  const sig = SKILLS.map(s => state.xp[s.id]).join(',');
+  if (sig === lastSkillSig && !force) return;
+  lastSkillSig = sig;
+  $('#skills').innerHTML = SKILLS.map(s => {
+    const L = levelInfo(state.xp[s.id] || 0);
+    const p = L.need ? L.into / L.need : 1;
+    return `<button class="skill" data-act="skill" data-skill="${s.id}" aria-label="${s.n} level ${L.lvl}">
+      <span>${s.n}</span><b>${L.lvl}</b><span class="bar"><i style="--p:${p.toFixed(3)}"></i></span></button>`;
+  }).join('');
+}
+
+/* --------------------------- views --------------------------- */
+function renderView() {
+  if (tab === 'fish' && fishing.phase !== 'idle' && fishing.phase !== 'result') { updateBaitCounts(); return; }
+  const v = $('#view');
+  v.innerHTML = ({ farm: viewFarm, explore: viewExplore, fish: viewFish, craft: viewCraft, town: viewTown, bag: viewBag })[tab]();
+  if (tab === 'fish') syncFishDom();
+}
+
+/* Farm */
+function plotParts(p) {
+  const t = now();
+  if (!p.crop) return null;
+  const c = CROP[p.crop], it = ITEMS[c.id];
+  const total = Math.max(1, p.ready - p.at), left = Math.max(0, p.ready - t);
+  const g = Math.min(1, 1 - left / total);
+  const ready = left <= 0;
+  const icon = ready || g >= 0.66 ? it.i : g >= 0.33 ? '🌿' : '🌱';
+  const filter = (ready || g >= 0.66) && it.f ? it.f : '';
+  return { g, ready, icon, filter, label: ready ? 'Ready' : fmtT(left / 1000), name: it.n };
+}
+function plotHTML(p, i) {
+  if (!p.crop) {
+    const seed = ITEMS[state.seed].n;
+    return `<button class="plot empty" data-act="plot" data-i="${i}" aria-label="Empty plot ${i + 1}. Sow ${esc(seed)}"><span class="plot-empty">Sow</span></button>`;
+  }
+  const q = plotParts(p);
+  return `<button class="plot${q.ready ? ' ready' : ''}" data-act="plot" data-i="${i}" data-plot="${i}" style="--g:${q.g.toFixed(3)}" aria-label="${esc(q.name)}: ${q.ready ? 'ready to harvest' : q.label + ' left'}">
+    <span class="sprout ico"${q.filter ? ` style="filter:${q.filter}"` : ''}>${q.icon}</span>
+    <span class="plot-label">${q.label}</span><span class="plot-bar"><i></i></span></button>`;
+}
+function viewFarm() {
+  const fl = lvl('farming');
+  const ready = state.plots.filter(p => p.crop && p.ready <= now()).length;
+  const empty = state.plots.filter(p => !p.crop).length;
+  const seed = CROP[state.seed];
+  const sowCost = empty * seed.seed;
+  const nextLocked = CROPS.find(c => c.lvl > fl);
+  const packets = CROPS.filter(c => c.lvl <= fl).concat(nextLocked ? [nextLocked] : []).map(c => {
+    const it = ITEMS[c.id], locked = c.lvl > fl;
+    return `<button class="packet${locked ? ' locked' : ''}" style="--h:${c.h}" ${locked ? 'disabled' : `data-act="seed" data-id="${c.id}"`} aria-pressed="${state.seed === c.id}">
+      <span class="band">${esc(it.n)}</span><span class="pic ico"${it.f ? ` style="filter:${it.f}"` : ''}>${it.i}</span>
+      <span class="facts">${locked ? `<span>Farming Lv ${c.lvl}</span><span>&nbsp;</span>` : `<span>Grows in ${fmtT(c.grow)}</span><span>Seed ${c.seed}c · sells ${it.s}c</span>`}</span></button>`;
+  }).join('');
+  const tonics = have('tonic');
+  return `
+    <div class="view-head"><h1>Your farm</h1><p>${state.plots.length} plots · ${ready} ready</p></div>
+    ${state.welcome ? `<div class="card welcome"><p><b>Welcome to Bramblebrook.</b> Pick a seed packet, tap an empty plot to sow it, and come back when it's ready. Sell your harvest in the Bag, and check the Town for people who need things.</p><div class="row"><button class="btn small ghost" data-act="welcome-off">Got it</button></div></div>` : ''}
+    <div>
+      <div class="label">Seed packets</div>
+      <div class="packets">${packets}</div>
+    </div>
+    <div class="plots">${state.plots.map(plotHTML).join('')}</div>
+    <div class="farm-actions">
+      <button class="btn" data-act="harvest-all" ${ready ? '' : 'disabled'}>Harvest all${ready ? ` (${ready})` : ''}</button>
+      <button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${empty || ''} ${esc(ITEMS[seed.id].n)}${empty ? ` · ${sowCost}c` : ''}</button>
+    </div>
+    ${tonics ? `<button class="btn sun" data-act="tonic">${ico('tonic')} Use Grow Tonic (${tonics} left) · halves growing time</button>` : ''}
+  `;
+}
+function tickFarm() {
+  let changed = false;
+  document.querySelectorAll('[data-plot]').forEach(el => {
+    const p = state.plots[+el.dataset.plot];
+    if (!p || !p.crop) return;
+    const q = plotParts(p);
+    const wasReady = el.classList.contains('ready');
+    if (q.ready && !wasReady) changed = true;
+    el.style.setProperty('--g', q.g.toFixed(3));
+    const sp = el.querySelector('.sprout'), lb = el.querySelector('.plot-label');
+    if (sp.textContent !== q.icon) { sp.textContent = q.icon; sp.style.filter = q.filter; }
+    if (lb.textContent !== q.label) lb.textContent = q.label;
+  });
+  if (changed) { renderView(); updateBadges(); }
+}
+function plant(i, quiet) {
+  const p = state.plots[i];
+  if (!p || p.crop) return false;
+  const c = CROP[state.seed];
+  if (lvl('farming') < c.lvl) return false;
+  if (state.coins < c.seed) { if (!quiet) toast(`You need ${c.seed} coins for ${ITEMS[c.id].n} seeds.`); return false; }
+  state.coins -= c.seed;
+  const t = now();
+  state.plots[i] = { crop: c.id, at: t, ready: t + c.grow * 1000 };
+  return true;
+}
+function harvest(i) {
+  const p = state.plots[i];
+  if (!p || !p.crop || p.ready > now()) return 0;
+  const c = CROP[p.crop];
+  const bonus = Math.random() < lvl('farming') * 0.03 ? 1 : 0;
+  const got = addItem(c.id, 1 + bonus);
+  if (!got) return -1;
+  state.plots[i] = { crop: null, at: 0, ready: 0 };
+  addXP('farming', c.xp);
+  state.stats.harvested += got;
+  bump('harvest', got);
+  return got;
+}
+
+/* Explore */
+function viewExplore() {
+  syncStamina();
+  const fl = lvl('foraging');
+  if (AREA[exploreArea].lvl > fl) exploreArea = 'meadow';
+  const a = AREA[exploreArea];
+  const cards = AREAS.map(x => {
+    const locked = x.lvl > fl;
+    const drops = Object.keys(x.drops).filter(k => k !== 'none').map(k => state.seen[k] ? `<span title="${esc(ITEMS[k].n)}">${ico(k)}</span>` : '<span class="unknown" title="Not found yet">?</span>').join('');
+    return `<button class="area${locked ? ' locked' : ''}" ${locked ? 'disabled' : `data-act="area" data-id="${x.id}"`} aria-pressed="${x.id === exploreArea}">
+      <span class="area-top"><b>${esc(x.n)}</b><span class="chip">${locked ? `Foraging Lv ${x.lvl}` : `${x.xp} XP per trip`}</span></span>
+      <span class="sub muted">${esc(x.blurb)}</span><span class="drops">${drops}</span></button>`;
+  }).join('');
+  const s = state.stamina;
+  const nextIn = s >= maxStamina() ? '' : ` · +1 in ${fmtT((REGEN_MS - (now() - state.staminaAt)) / 1000)}`;
+  const log = exploreLog.length ? exploreLog.map(l => `<div class="log-line">${l.html}<span class="t">${esc(l.when)}</span></div>`).join('') : '<p class="muted">Nothing found yet. Each trip costs 1 stamina.</p>';
+  return `
+    <div class="view-head"><h1>Explore</h1><p>Stamina refills 1 every 20s</p></div>
+    <div class="card trail">
+      <div><h2>${esc(a.n)}</h2><p class="sub" id="trail-stam">${s} stamina${nextIn}</p></div>
+      <div class="trail-btns">
+        <button class="btn" data-act="explore" data-n="1" ${s >= 1 ? '' : 'disabled'}>Explore</button>
+        <button class="btn ghost" data-act="explore" data-n="10" ${s >= 10 ? '' : 'disabled'}>×10</button>
+        <button class="btn ghost" data-act="explore" data-n="all" ${s >= 1 ? '' : 'disabled'}>All</button>
+      </div>
+    </div>
+    <div class="card"><div class="label">Trail log</div><div class="log">${log}</div></div>
+    <div class="label">Places</div>
+    <div class="areas">${cards}</div>`;
+}
+function tickExplore() {
+  const el = $('#trail-stam');
+  if (!el) return;
+  const s = state.stamina;
+  const nextIn = s >= maxStamina() ? '' : ` · +1 in ${fmtT((REGEN_MS - (now() - state.staminaAt)) / 1000)}`;
+  el.textContent = `${s} stamina${nextIn}`;
+  document.querySelectorAll('[data-act="explore"]').forEach(b => {
+    const need = b.dataset.n === '10' ? 10 : 1;
+    b.disabled = s < need;
+  });
+}
+function explore(n) {
+  syncStamina();
+  const a = AREA[exploreArea];
+  if (lvl('foraging') < a.lvl) return;
+  const times = n === 'all' ? state.stamina : Math.min(+n, state.stamina);
+  if (times <= 0) { toast('Out of stamina. It refills 1 point every 20 seconds.'); return; }
+  const found = {}, full = new Set();
+  let empty = 0;
+  const boost = 1 + lvl('foraging') * 0.03;
+  const table = Object.entries(a.drops).map(([k, w]) => [k, k !== 'none' && w < 3 ? w * boost : w]);
+  for (let k = 0; k < times; k++) {
+    const [id] = pickWeighted(table);
+    if (id === 'none') { empty++; continue; }
+    if (addItem(id, 1)) found[id] = (found[id] || 0) + 1; else full.add(id);
+  }
+  state.stamina -= times;
+  if (state.stamina < maxStamina() && times > 0 && state.staminaAt > now() - 50) state.staminaAt = now();
+  addXP('foraging', a.xp * times);
+  state.stats.explores += times;
+  bump('explore', times);
+  const parts = Object.entries(found).map(([id, q]) => `<span class="chip">${ico(id)} ${q > 1 ? q + '× ' : ''}${esc(ITEMS[id].n)}</span>`);
+  let html;
+  if (times === 1 && !parts.length) html = `<span>${esc(a.empty[Math.floor(Math.random() * a.empty.length)])}</span>`;
+  else html = `<span class="row">${parts.join('') || '<span>Nothing this time.</span>'}${empty && times > 1 ? `<span class="muted">${empty} empty</span>` : ''}</span>`;
+  exploreLog.unshift({ html, when: times > 1 ? `${times} trips` : '1 trip' });
+  exploreLog = exploreLog.slice(0, 6);
+  if (full.size) toast(`Barn is full of ${[...full].map(id => ITEMS[id].n).join(', ')}. Sell some or upgrade the barn.`);
+  const rare = Object.keys(found).filter(id => (a.drops[id] || 99) < 3);
+  if (rare.length) toast(`Rare find: ${rare.map(id => ITEMS[id].n).join(', ')}!`, 'lvl');
+}
+
+/* Fishing */
+const fishing = { phase: 'idle', fish: null, zone: [0, 0], speed: 1, start: 0, offset: 0, timers: [], raf: 0, msg: '' };
+function clearFishTimers() { fishing.timers.forEach(clearTimeout); fishing.timers = []; cancelAnimationFrame(fishing.raf); }
+function viewFish() {
+  const fl = lvl('fishing');
+  if (SPOT[state.spot].lvl > fl) state.spot = 'pond';
+  const spots = SPOTS.map(s => {
+    const locked = s.lvl > fl;
+    return `<button class="spot${locked ? ' locked' : ''}" ${locked ? 'disabled' : `data-act="spot" data-id="${s.id}"`} aria-pressed="${state.spot === s.id}">${esc(s.n)}${locked ? ` · Lv ${s.lvl}` : ''}</button>`;
+  }).join('');
+  const sp = SPOT[state.spot];
+  const pool = sp.fish.map(([id]) => state.seen[id] ? ico(id) : '<span class="unknown" title="Not caught yet">?</span>').join('');
+  const logHTML = catchLog.length ? catchLog.map(l => `<div class="log-line">${l}</div>`).join('') : '<p class="muted">Cast your line, wait for the bobber to dip, then tap when the marker is in the green.</p>';
+  return `
+    <div class="view-head"><h1>Fishing</h1><p>${esc(sp.n)}</p></div>
+    <div class="spots">${spots}</div>
+    <div class="pond" id="pond" data-act="fish-btn" data-phase="idle">
+      <div class="bobber" aria-hidden="true"></div>
+      <div class="fish-status" id="fish-status">Pick your bait and cast.</div>
+      <div class="reel" id="reel" hidden><div class="zone" id="zone"></div><div class="needle" id="needle"></div></div>
+    </div>
+    <div class="bait-row">
+      <button class="bait" data-act="bait" data-id="worm" aria-pressed="${state.bait === 'worm'}">${ico('worm')}<span><b>Worms</b><small id="bait-worm">${have('worm')} in bag</small></span></button>
+      <button class="bait" data-act="bait" data-id="lure" aria-pressed="${state.bait === 'lure'}">${ico('lure')}<span><b>Shiny lures</b><small id="bait-lure">${have('lure')} · bigger zone, rarer fish</small></span></button>
+    </div>
+    <button class="btn big" id="cast-btn" data-act="fish-btn">Cast line</button>
+    <div class="card"><div class="row" style="justify-content:space-between"><div class="label">In these waters</div><div class="drops">${pool}</div></div><div class="log">${logHTML}</div></div>`;
+}
+function updateBaitCounts() {
+  const w = $('#bait-worm'), l = $('#bait-lure');
+  if (w) w.textContent = `${have('worm')} in bag`;
+  if (l) l.textContent = `${have('lure')} · bigger zone, rarer fish`;
+}
+function syncFishDom() {
+  const pond = $('#pond'), btn = $('#cast-btn'), st = $('#fish-status'), reel = $('#reel');
+  if (!pond) return;
+  pond.dataset.phase = fishing.phase;
+  const labels = { idle: 'Cast line', waiting: 'Reel in!', bite: 'Reel in!', result: 'Cast again' };
+  btn.textContent = labels[fishing.phase];
+  if (fishing.msg) st.innerHTML = fishing.msg;
+  reel.hidden = fishing.phase !== 'bite';
+  if (fishing.phase === 'bite') {
+    $('#zone').style.left = fishing.zone[0] + '%';
+    $('#zone').style.width = fishing.zone[1] + '%';
+  }
+}
+function needlePos() {
+  const t = (performance.now() - fishing.start) / 1000 * fishing.speed + fishing.offset;
+  const x = t % 2;
+  return x < 1 ? x : 2 - x;
+}
+function animateNeedle() {
+  const n = $('#needle');
+  if (!n || fishing.phase !== 'bite') return;
+  n.style.left = (needlePos() * 100) + '%';
+  fishing.raf = requestAnimationFrame(animateNeedle);
+}
+function fishButton() {
+  if (fishing.phase === 'idle' || fishing.phase === 'result') return cast();
+  if (fishing.phase === 'waiting') {
+    clearFishTimers();
+    fishing.phase = 'result';
+    fishing.msg = 'Too soon. The fish spooked and swam off.';
+    syncFishDom();
+    return;
+  }
+  if (fishing.phase === 'bite') return reel();
+}
+function cast() {
+  const sp = SPOT[state.spot];
+  if (lvl('fishing') < sp.lvl) return;
+  let bait = state.bait;
+  if (!have(bait)) {
+    const other = bait === 'worm' ? 'lure' : 'worm';
+    if (have(other)) { bait = state.bait = other; renderView(); }
+    else { toast('You\'re out of bait. Buy worms at the store in Town, or find them in the Sunny Meadow.'); return; }
+  }
+  takeItem(bait, 1);
+  fishing.bait = bait;
+  clearFishTimers();
+  fishing.phase = 'waiting';
+  fishing.msg = 'Waiting for a bite…';
+  syncFishDom(); updateBaitCounts();
+  fishing.timers.push(setTimeout(bite, 900 + Math.random() * 1700));
+  commit();
+}
+function bite() {
+  const sp = SPOT[state.spot];
+  const fl = lvl('fishing');
+  const lure = fishing.bait === 'lure';
+  const table = sp.fish.map(([id, w, r]) => [id, r >= 2 ? w * (lure ? 2 : 1) * (1 + fl * 0.02) : w, r]);
+  const [id, , r] = pickWeighted(table);
+  const R = RARITY[r];
+  const width = Math.min(60, R.zone + Math.min(12, fl * 0.5) + (lure ? 8 : 0));
+  fishing.fish = { id, r };
+  fishing.zone = [5 + Math.random() * (90 - width), width];
+  fishing.speed = R.speed;
+  fishing.offset = Math.random() * 2;
+  fishing.start = performance.now();
+  fishing.phase = 'bite';
+  fishing.msg = `<span>Bite!</span><span class="muted">${r >= 3 ? 'Something big is pulling hard.' : r === 2 ? 'A strong tug.' : 'A nibble.'}</span>`;
+  syncFishDom();
+  animateNeedle();
+  fishing.timers.push(setTimeout(() => {
+    if (fishing.phase !== 'bite') return;
+    clearFishTimers();
+    fishing.phase = 'result';
+    fishing.msg = 'It got away.';
+    syncFishDom();
+  }, 4200));
+}
+function reel() {
+  const pos = needlePos() * 100;
+  const [left, width] = fishing.zone;
+  clearFishTimers();
+  fishing.phase = 'result';
+  if (pos >= left - 1 && pos <= left + width + 1) {
+    const { id, r } = fishing.fish;
+    const got = addItem(id, 1);
+    if (!got) {
+      fishing.msg = `You caught ${/^[AEIOU]/.test(ITEMS[id].n) ? 'an' : 'a'} ${esc(ITEMS[id].n)}, but your barn is full of them. You let it go.`;
+    } else {
+      const xp = id === 'boot' ? 1 : RARITY[r].xp;
+      addXP('fishing', xp);
+      if (id !== 'boot') { state.stats.fish++; bump('fish', 1); }
+      const name = ITEMS[id].n, article = r >= 3 ? 'a rare ' : /^[AEIOU]/.test(name) ? 'an ' : 'a ';
+      fishing.msg = `${ico(id)}<span>Caught ${article}${esc(name)}!</span><span class="muted">+${xp} XP</span>`;
+      catchLog.unshift(`${ico(id)}<span>${esc(ITEMS[id].n)}</span><span class="t">${esc(SPOT[state.spot].n)}</span>`);
+      catchLog = catchLog.slice(0, 5);
+    }
+    syncFishDom();
+    commit();
+  } else {
+    fishing.msg = 'Missed. The line went slack.';
+    syncFishDom();
+  }
+}
+
+/* Craft */
+function maxCraft(r) {
+  let m = Infinity;
+  for (const [id, q] of Object.entries(r.need)) m = Math.min(m, Math.floor(have(id) / q));
+  const room = Math.floor((cap() - have(r.id)) / r.out);
+  return Math.max(0, Math.min(m, room));
+}
+function viewCraft() {
+  const cl = lvl('crafting');
+  const open = RECIPES.filter(r => r.lvl <= cl);
+  const next = RECIPES.filter(r => r.lvl > cl).slice(0, 2);
+  const card = (r, locked) => {
+    const it = ITEMS[r.id];
+    const m = locked ? 0 : maxCraft(r);
+    const needs = Object.entries(r.need).map(([id, q]) => `<span class="chip ${have(id) >= q ? 'ok' : 'short'}">${ico(id)} ${have(id)}/${q} ${esc(ITEMS[id].n)}</span>`).join('');
+    return `<div class="card recipe${locked ? ' locked' : ''}">
+      <span class="big-ico ico"${it.f ? ` style="filter:${it.f}"` : ''}>${it.i}</span>
+      <div class="recipe-name"><b>${r.out > 1 ? r.out + '× ' : ''}${esc(it.n)}</b><span class="muted num">${locked ? `Crafting Lv ${r.lvl}` : `sells ${it.s}c · ${r.xp} XP`}</span></div>
+      <div class="needs">${needs}</div>
+      ${locked ? '' : `<div class="row"><button class="btn small" data-act="craft" data-id="${r.id}" data-n="1" ${m ? '' : 'disabled'}>Craft</button><button class="btn small ghost" data-act="craft" data-id="${r.id}" data-n="max" ${m > 1 ? '' : 'disabled'}>Craft ${m > 1 ? m : 'max'}</button><span class="muted num" style="font-size:13px">You have ${have(r.id)}</span></div>`}
+    </div>`;
+  };
+  return `
+    <div class="view-head"><h1>Workshop</h1><p>Turn raw goods into things worth more</p></div>
+    <div class="recipes">${open.map(r => card(r, false)).join('')}${next.map(r => card(r, true)).join('')}</div>`;
+}
+function craft(id, n) {
+  const r = RECIPE[id];
+  if (!r || lvl('crafting') < r.lvl) return;
+  const m = maxCraft(r);
+  const times = n === 'max' ? m : Math.min(+n, m);
+  if (times <= 0) { toast('Not enough materials, or your barn is full of these.'); return; }
+  for (const [nid, q] of Object.entries(r.need)) takeItem(nid, q * times);
+  addItem(r.id, r.out * times);
+  addXP('crafting', r.xp * times);
+  state.stats.crafted += r.out * times;
+  bump('craft', r.out * times);
+  toast(`Made ${r.out * times}× ${ITEMS[r.id].n}`);
+}
+
+/* Town */
+function questOf(vid) { const v = VILLAGER[vid]; return v.reqs[state.quests[vid] || 0] || null; }
+function canDeliver(vid) {
+  const q = questOf(vid);
+  return !!q && Object.entries(q.want).every(([id, n]) => have(id) >= n);
+}
+function rewardText(q) {
+  const bits = [`${fmtN(q.coins)} coins`];
+  for (const [sk, x] of Object.entries(q.xp || {})) bits.push(`${x} ${SKILLS.find(s => s.id === sk).n} XP`);
+  for (const [id, n] of Object.entries(q.items || {})) bits.push(`${n}× ${ITEMS[id].n}`);
+  if (q.plot) bits.push('a free farm plot');
+  return bits.join(' · ');
+}
+function viewTown() {
+  ensureChores();
+  const owned = state.plots.length;
+  const pc = plotCost(owned);
+  const nextBarn = BARN[state.barn + 1];
+  const store = `
+    <div class="card">
+      <div><h2>Pennywhistle's General Store</h2><p class="sub">Seeds are bought as you sow. Sell goods from your Bag.</p></div>
+      <div class="store-grid">
+        <div class="store-item">${ico('worm')}<div class="what"><b>Worms ×5</b><small>Fishing bait · you have ${have('worm')}</small></div><button class="btn small" data-act="buy-worms" data-n="5" ${state.coins >= 10 ? '' : 'disabled'}>10c</button></div>
+        <div class="store-item">${ico('worm')}<div class="what"><b>Worms ×25</b><small>Bulk tin</small></div><button class="btn small" data-act="buy-worms" data-n="25" ${state.coins >= 45 ? '' : 'disabled'}>45c</button></div>
+        <div class="store-item"><span class="ico" aria-hidden="true">🟩</span><div class="what"><b>New farm plot</b><small>${owned}/${MAX_PLOTS} plots</small></div>${owned < MAX_PLOTS ? `<button class="btn small" data-act="buy-plot" ${state.coins >= pc ? '' : 'disabled'}>${fmtN(pc)}c</button>` : '<span class="chip">All bought</span>'}</div>
+        <div class="store-item"><span class="ico" aria-hidden="true">🛖</span><div class="what"><b>${nextBarn ? `Upgrade to ${nextBarn.n}` : BARN[state.barn].n}</b><small>Holds ${cap()} of each item${nextBarn ? ` → ${nextBarn.cap}` : ''}</small></div>${nextBarn ? `<button class="btn small" data-act="buy-barn" ${state.coins >= nextBarn.cost ? '' : 'disabled'}>${fmtN(nextBarn.cost)}c</button>` : '<span class="chip">Maxed</span>'}</div>
+      </div>
+    </div>`;
+  const chores = state.chores.list.map((c, i) => {
+    const d = CHORE[c.id];
+    const done = c.p >= d.n;
+    return `<div class="chore${c.claimed ? ' done' : ''}"><div class="what"><b>${esc(d.text(d.n))}</b><div class="bar"><i style="--p:${(c.p / d.n).toFixed(3)}"></i></div><small class="muted num">${fmtN(c.p)}/${fmtN(d.n)} · ${d.coins} coins${d.items ? ' + bait' : ''}</small></div>
+      ${c.claimed ? '<span class="chip">Claimed</span>' : `<button class="btn small" data-act="chore" data-i="${i}" ${done ? '' : 'disabled'}>Claim</button>`}</div>`;
+  }).join('');
+  const allClaimed = state.chores.list.every(c => c.claimed);
+  const npcs = VILLAGERS.map(v => {
+    const step = state.quests[v.id] || 0;
+    const q = v.reqs[step];
+    const hearts = '♥'.repeat(step) + '♡'.repeat(v.reqs.length - step);
+    const body = q ? `
+        <p class="quote">"${esc(q.say)}"</p>
+        <div class="needs">${Object.entries(q.want).map(([id, n]) => `<span class="chip ${have(id) >= n ? 'ok' : 'short'}">${ico(id)} ${Math.min(have(id), n)}/${n} ${esc(ITEMS[id].n)}</span>`).join('')}</div>
+        <p class="reward">Reward: ${esc(rewardText(q))}</p>
+        <div><button class="btn small" data-act="deliver" data-id="${v.id}" ${canDeliver(v.id) ? '' : 'disabled'}>Give items</button></div>`
+      : `<p class="quote muted">"You've done so much for me. Come say hello any time."</p>`;
+    return `<div class="card npc"><div class="mono" style="--h:${v.h}" aria-hidden="true">${esc(v.mono)}</div>
+      <div class="npc-body"><div class="npc-head"><b>${esc(v.n)}</b><span class="hearts" aria-label="Friendship ${step} of ${v.reqs.length}">${hearts}</span></div><p class="sub muted">${esc(v.role)}</p>${body}</div></div>`;
+  }).join('');
+  return `
+    <div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>
+    <div class="card"><div class="row" style="justify-content:space-between"><h2>Today's chores</h2><span class="chip">New list at midnight</span></div>${chores}
+      ${allClaimed && !state.chores.bonus ? '<button class="btn sun" data-act="chore-bonus">All done! Claim bonus: 2 Grow Tonic</button>' : ''}</div>
+    ${store}
+    <div class="label">Townsfolk requests</div>
+    ${npcs}`;
+}
+function deliver(vid) {
+  const v = VILLAGER[vid], q = questOf(vid);
+  if (!q || !canDeliver(vid)) return;
+  for (const [id, n] of Object.entries(q.want)) takeItem(id, n);
+  state.coins += q.coins;
+  for (const [sk, x] of Object.entries(q.xp || {})) addXP(sk, x);
+  for (const [id, n] of Object.entries(q.items || {})) addItem(id, n);
+  if (q.plot && state.plots.length < MAX_PLOTS) state.plots.push({ crop: null, at: 0, ready: 0 });
+  state.quests[vid] = (state.quests[vid] || 0) + 1;
+  state.stats.delivered++;
+  bump('deliver', 1);
+  toast(`${v.short}: "Thank you!" +${fmtN(q.coins)} coins${q.plot ? ' and a new plot' : ''}`);
+}
+
+/* Bag */
+function viewBag() {
+  const ids = Object.keys(ITEMS).filter(id => have(id) > 0);
+  const groups = Object.keys(TYPE_LABEL).map(t => {
+    const list = ids.filter(id => ITEMS[id].t === t);
+    if (!list.length) return '';
+    return `<div class="card"><div class="row" style="justify-content:space-between"><h2>${TYPE_LABEL[t]}</h2>
+      ${t === 'crop' || t === 'fish' ? `<button class="btn small ghost" data-act="sell-type" data-t="${t}">Sell all ${t === 'crop' ? 'crops' : 'fish'}</button>` : ''}</div>
+      <div class="inv">${list.map(id => `<button class="slot${have(id) >= cap() ? ' full' : ''}" data-act="item" data-id="${id}">
+        ${state.locked[id] ? '<span class="lock" aria-label="Locked">🔒</span>' : ''}${ico(id)}<span class="nm">${esc(ITEMS[id].n)}</span><span class="q">${have(id)}/${cap()}</span></button>`).join('')}</div></div>`;
+  }).join('');
+  const s = state.stats;
+  const day = Math.floor((now() - state.created) / 86400000) + 1;
+  const saveWhere = cloud.ready ? 'Saved to your Claude account and this device.' : 'Saved on this device. Use a save code to move your farm to another device.';
+  return `
+    <div class="view-head"><h1>Bag</h1><p>Barn holds ${cap()} of each item</p></div>
+    ${groups || '<div class="card"><p class="muted">Your bag is empty. Harvest, explore or fish to fill it.</p></div>'}
+    <div class="card"><h2>Your farmer</h2><div class="stats">
+      <div class="stat"><b>${day}</b><span>days in the valley</span></div>
+      <div class="stat"><b>${fmtN(s.harvested)}</b><span>crops harvested</span></div>
+      <div class="stat"><b>${fmtN(s.fish)}</b><span>fish caught</span></div>
+      <div class="stat"><b>${fmtN(s.explores)}</b><span>trips explored</span></div>
+      <div class="stat"><b>${fmtN(s.crafted)}</b><span>items crafted</span></div>
+      <div class="stat"><b>${fmtN(s.earned)}</b><span>coins from sales</span></div>
+    </div></div>
+    <div class="card"><h2>Save &amp; settings</h2><p class="sub">${saveWhere}</p>
+      <div class="row"><button class="btn small ghost" data-act="export">Show save code</button><button class="btn small ghost" data-act="import-open">Load a save code</button><button class="btn small danger" data-act="reset" id="reset-btn">Start over</button></div>
+      <div id="save-box"></div></div>`;
+}
+function itemSheet(id) {
+  const it = ITEMS[id];
+  const where = [];
+  if (CROP[id]) where.push(`Grow it (Farming Lv ${CROP[id].lvl})`);
+  AREAS.forEach(a => { if (a.drops[id]) where.push(a.n); });
+  SPOTS.forEach(s => { if (s.fish.some(f => f[0] === id)) where.push(s.n); });
+  if (RECIPE[id]) where.push(`Workshop (Crafting Lv ${RECIPE[id].lvl})`);
+  if (id === 'worm') where.push('General store');
+  const uses = [];
+  RECIPES.forEach(r => { if (r.need[id]) uses.push(ITEMS[r.id].n); });
+  VILLAGERS.forEach(v => { const q = questOf(v.id); if (q && q.want[id]) uses.push(`${v.short} wants ${q.want[id]}`); });
+  const n = have(id);
+  openSheet(`
+    <div class="sheet-head">${ico(id)}<div><h2>${esc(it.n)}</h2><p class="muted">${TYPE_LABEL[it.t]} · you have ${n}/${cap()}</p></div></div>
+    <dl><dt>Sells for</dt><dd class="num">${it.s} coins each</dd>
+      <dt>Found at</dt><dd>${esc(where.join(', ') || 'Rewards')}</dd>
+      <dt>Used for</dt><dd>${esc(uses.join(', ') || 'Selling')}</dd></dl>
+    <div class="sheet-btns">
+      <button class="btn small" data-act="sell" data-id="${id}" data-n="1" ${n ? '' : 'disabled'}>Sell 1 · ${it.s}c</button>
+      <button class="btn small" data-act="sell" data-id="${id}" data-n="all" ${n > 1 && !state.locked[id] ? '' : 'disabled'}>Sell all ${n} · ${fmtN(it.s * n)}c</button>
+      <button class="btn small ghost" data-act="lock" data-id="${id}">${state.locked[id] ? 'Unlock' : 'Lock (keep from Sell all)'}</button>
+      <button class="btn small ghost" data-act="sheet-close">Close</button>
+    </div>`);
+}
+function sell(id, n) {
+  const q = n === 'all' ? have(id) : Math.min(+n, have(id));
+  if (q <= 0) return 0;
+  takeItem(id, q);
+  const c = q * ITEMS[id].s;
+  state.coins += c;
+  state.stats.earned += c;
+  bump('sell', c);
+  return c;
+}
+
+/* --------------------------- input --------------------------- */
+// Fishing reacts on press (pointerdown) for tight timing; keyboard presses arrive as clicks with detail 0.
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-act="fish-btn"]');
+  if (!b || e.button > 0) return;
+  fishButton();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('#sheet-root').innerHTML) { closeSheet(); return; }
+  if (tab === 'fish' && e.key === ' ' && !e.target.closest('button, input, textarea')) { e.preventDefault(); fishButton(); }
+});
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act;
+  if (act === 'fish-btn') { if (e.detail === 0) fishButton(); return; }
+  if (act === 'sheet-close') { if (e.target === el || el.tagName === 'BUTTON') closeSheet(); return; }
+  const id = el.dataset.id;
+  switch (act) {
+    case 'tab':
+      if (tab === 'fish' && el.dataset.tab !== 'fish') { clearFishTimers(); fishing.phase = 'idle'; fishing.msg = ''; }
+      tab = el.dataset.tab; renderTabs(); renderView(); window.scrollTo(0, 0); return;
+    case 'skill': {
+      const L = levelInfo(state.xp[el.dataset.skill] || 0);
+      const name = SKILLS.find(s => s.id === el.dataset.skill).n;
+      toast(L.need ? `${name} Lv ${L.lvl}: ${fmtN(L.need - L.into)} XP to level ${L.lvl + 1}` : `${name} is maxed`);
+      return;
+    }
+    case 'welcome-off': state.welcome = false; break;
+    case 'seed': state.seed = id; break;
+    case 'plot': {
+      const i = +el.dataset.i, p = state.plots[i];
+      if (!p.crop) { if (!plant(i)) return; }
+      else if (p.ready <= now()) { const g = harvest(i); if (g === -1) { toast(`Barn is full of ${ITEMS[p.crop].n}. Sell some first.`); return; } }
+      else { toast(`${ITEMS[p.crop].n} is ready in ${fmtT((p.ready - now()) / 1000)}`); return; }
+      break;
+    }
+    case 'harvest-all': {
+      let n = 0, full = false;
+      state.plots.forEach((p, i) => { const g = harvest(i); if (g > 0) n += g; if (g === -1) full = true; });
+      if (n) toast(`Harvested ${n} crop${n > 1 ? 's' : ''}`);
+      if (full) toast('Some crops are waiting: your barn is full of them.');
+      break;
+    }
+    case 'sow-all': {
+      let n = 0;
+      state.plots.forEach((p, i) => { if (!p.crop && plant(i, true)) n++; });
+      if (!n) { toast(`You need ${CROP[state.seed].seed} coins per ${ITEMS[state.seed].n} seed.`); return; }
+      toast(`Sowed ${n} ${ITEMS[state.seed].n}`);
+      break;
+    }
+    case 'tonic': {
+      const t = now(); let n = 0;
+      state.plots.forEach(p => { if (p.crop && p.ready > t) { p.ready = t + (p.ready - t) / 2; p.at = Math.min(p.at, t); n++; } });
+      if (!n) { toast('Nothing is growing right now. Sow something first.'); return; }
+      takeItem('tonic', 1);
+      toast(`Grow Tonic sped up ${n} plot${n > 1 ? 's' : ''}`);
+      break;
+    }
+    case 'area': exploreArea = id; renderView(); return;
+    case 'explore': explore(el.dataset.n); break;
+    case 'spot': state.spot = id; break;
+    case 'bait': state.bait = id; break;
+    case 'craft': craft(id, el.dataset.n); break;
+    case 'buy-worms': {
+      const n = +el.dataset.n, cost = n === 25 ? 45 : 10;
+      if (state.coins < cost) return;
+      const got = addItem('worm', n);
+      if (!got) { toast('Your barn is full of worms.'); return; }
+      state.coins -= cost; toast(`Bought ${got} worms`);
+      break;
+    }
+    case 'buy-plot': {
+      const c = plotCost(state.plots.length);
+      if (state.coins < c || state.plots.length >= MAX_PLOTS) return;
+      state.coins -= c; state.plots.push({ crop: null, at: 0, ready: 0 }); toast('New plot tilled on your farm');
+      break;
+    }
+    case 'buy-barn': {
+      const nb = BARN[state.barn + 1];
+      if (!nb || state.coins < nb.cost) return;
+      state.coins -= nb.cost; state.barn++; toast(`Your ${nb.n} holds ${nb.cap} of each item`);
+      break;
+    }
+    case 'chore': {
+      const c = state.chores.list[+el.dataset.i], d = CHORE[c.id];
+      if (c.claimed || c.p < d.n) return;
+      c.claimed = true; state.coins += d.coins;
+      for (const [iid, n] of Object.entries(d.items || {})) addItem(iid, n);
+      toast(`Chore done: +${d.coins} coins`);
+      break;
+    }
+    case 'chore-bonus':
+      if (state.chores.bonus || !state.chores.list.every(c => c.claimed)) return;
+      state.chores.bonus = true; addItem('tonic', 2); toast('Bonus: 2 Grow Tonic');
+      break;
+    case 'deliver': deliver(id); break;
+    case 'item': itemSheet(id); return;
+    case 'sell': {
+      const c = sell(id, el.dataset.n);
+      if (c) toast(`Sold for ${fmtN(c)} coins`);
+      closeSheet();
+      break;
+    }
+    case 'sell-type': {
+      let c = 0;
+      Object.keys(state.inv).forEach(iid => { if (ITEMS[iid].t === el.dataset.t && !state.locked[iid]) c += sell(iid, 'all'); });
+      toast(c ? `Sold for ${fmtN(c)} coins` : 'Nothing to sell (locked items are kept)');
+      break;
+    }
+    case 'lock':
+      if (state.locked[id]) delete state.locked[id]; else state.locked[id] = true;
+      commit(); itemSheet(id); return;
+    case 'export': {
+      let code = '';
+      try { code = btoa(unescape(encodeURIComponent(JSON.stringify(state)))); } catch (err) { code = ''; }
+      $('#save-box').innerHTML = `<label class="label" for="save-out">Your save code</label><textarea id="save-out" readonly>${esc(code)}</textarea><div class="row"><button class="btn small" data-act="copy">Copy code</button></div>`;
+      return;
+    }
+    case 'copy': {
+      const ta = $('#save-out');
+      const done = () => toast('Save code copied');
+      const fallback = () => { ta.focus(); ta.select(); toast('Code selected. Copy it from here.'); };
+      try { navigator.clipboard.writeText(ta.value).then(done, fallback); } catch (err) { fallback(); }
+      return;
+    }
+    case 'import-open':
+      $('#save-box').innerHTML = `<label class="label" for="save-in">Paste a save code</label><textarea id="save-in" placeholder="Paste the code from your other device"></textarea><div class="row"><button class="btn small" data-act="import">Load this farm</button></div>`;
+      $('#save-in').focus();
+      return;
+    case 'import': {
+      try {
+        const s = JSON.parse(decodeURIComponent(escape(atob($('#save-in').value.trim()))));
+        if (!s || !s.xp || !Array.isArray(s.plots)) throw new Error('bad');
+        state = migrate(s); state.savedAt = now();
+        toast('Farm loaded');
+        updateHeader(true); renderTabs();
+        break;
+      } catch (err) { toast('That code didn\'t work. Copy the whole code and try again.'); return; }
+    }
+    case 'reset':
+      if (el.dataset.armed !== '1') {
+        el.dataset.armed = '1'; el.textContent = 'Tap again to erase your farm';
+        setTimeout(() => { if (el.isConnected) { el.dataset.armed = ''; el.textContent = 'Start over'; } }, 4000);
+        return;
+      }
+      state = freshState(); state.savedAt = now(); exploreLog = []; catchLog = [];
+      toast('A fresh start in Bramblebrook');
+      updateHeader(true);
+      break;
+    default: return;
+  }
+  commit();
+});
+
+/* --------------------------- boot --------------------------- */
+function tick() {
+  if (!state) return;
+  ensureChores();
+  updateHeader();
+  if (tab === 'farm') tickFarm();
+  if (tab === 'explore') tickExplore();
+  updateBadges();
+}
+function start(data) {
+  const fromHot = data && data.state;
+  state = migrate(fromHot ? data.state : loadLocal());
+  if (data && data.tab) tab = data.tab;
+  ensureChores();
+  renderTabs();
+  updateHeader(true);
+  renderView();
+  setInterval(tick, 1000);
+  initCloud();
+}
+const hot = window.claude && window.claude.hot;
+if (hot && typeof hot.snapshot === 'function') hot.snapshot(() => ({ state, tab }));
+if (hot && typeof hot.ready === 'function') hot.ready(start); else start((hot && hot.data) || {});
+})();
+</script>
