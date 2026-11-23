@@ -2009,7 +2009,45 @@
    ]
   }
  ],
- "rarity": {
+ "rarity": [
+  {
+   "zone": 34,
+   "speed": 0.65,
+   "xp": 2,
+   "n": "common"
+  },
+  {
+   "zone": 26,
+   "speed": 0.85,
+   "xp": 4,
+   "n": "common"
+  },
+  {
+   "zone": 20,
+   "speed": 1.05,
+   "xp": 7,
+   "n": "uncommon"
+  },
+  {
+   "zone": 14,
+   "speed": 1.3,
+   "xp": 12,
+   "n": "rare"
+  },
+  {
+   "zone": 10,
+   "speed": 1.55,
+   "xp": 20,
+   "n": "treasure"
+  },
+  {
+   "zone": 8,
+   "speed": 1.85,
+   "xp": 60,
+   "n": "legendary"
+  }
+ ],
+ "rarity_tiers": {
   "common": 20,
   "uncommon": 100,
   "rare": 400,

@@ -23,6 +23,11 @@ const CREATURES = new Set(((beasts || {}).creatures || []).map(c => c.id));
 if (!core) { console.log('core.json missing'); process.exit(1); }
 
 const ITEMS = new Set(Object.keys(core.items));
+// core.rarity is the fishing table (one row per fish rarity, 0-5); core.rarity_tiers holds the sell-price thresholds.
+if (!Array.isArray(core.rarity) || core.rarity.length < 6 || core.rarity.some(r => !(r.zone > 0 && r.speed > 0 && r.xp > 0)))
+  errors.push('core.json: "rarity" must be the fishing table, six rows of {zone, speed, xp}. Item colour tiers belong in "rarity_tiers".');
+if (!(core.rarity_tiers && typeof core.rarity_tiers === 'object') || !['common', 'uncommon', 'rare', 'very rare'].every(k => core.rarity_tiers[k] > 0))
+  errors.push('core.json: "rarity_tiers" needs common, uncommon, rare and very rare price thresholds.');
 const SKILLS = new Set(core.skills.map(s => s.id));
 const VILLAGERS = new Set(['oakley', 'hazel', 'tobin', 'mira', 'clem', 'pip', 'rook', 'ingrid', 'wren']);
 const SPEAKERS = new Set([...VILLAGERS, 'you']);

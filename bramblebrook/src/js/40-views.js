@@ -223,7 +223,7 @@ function syncFishDom() {
   const pond = $('#pond'), btn = $('#cast-btn'), st = $('#fish-status'), reelEl = $('#reel');
   if (!pond) return;
   pond.dataset.phase = fishing.phase;
-  btn.textContent = { idle: 'Cast line', waiting: 'Reel in!', bite: 'Reel in!', result: 'Cast again' }[fishing.phase];
+  btn.textContent = { idle: 'Cast line', waiting: 'Wait for a bite…', bite: 'Reel in!', result: 'Cast again' }[fishing.phase];
   if (fishing.msg) st.innerHTML = fishing.msg;
   reelEl.hidden = fishing.phase !== 'bite';
   if (fishing.phase === 'bite') { $('#zone').style.left = fishing.zone[0] + '%'; $('#zone').style.width = fishing.zone[1] + '%'; }

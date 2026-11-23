@@ -254,7 +254,7 @@ function spotOpen(s) { return lvl('fishing') >= s.lvl && unlocked(s.unlock); }
 function clearFishTimers() { fishing.timers.forEach(clearTimeout); fishing.timers = []; cancelAnimationFrame(fishing.raf); }
 function fishButton() {
   if (fishing.phase === 'idle' || fishing.phase === 'result') return cast();
-  if (fishing.phase === 'waiting') { clearFishTimers(); fishing.phase = 'result'; fishing.msg = 'Too soon. The fish spooked and swam off.'; syncFishDom(); play('miss'); return; }
+  if (fishing.phase === 'waiting') { fishing.msg = 'Not yet. Wait for the bobber to dip…'; syncFishDom(); return; }   // an early tap costs nothing
   if (fishing.phase === 'bite') return reel();
 }
 function cast() {
@@ -273,7 +273,7 @@ function cast() {
   fishing.msg = 'Waiting for a bite…';
   syncFishDom(); updateBaitCounts();
   play('cast'); setTimeout(() => ripple($('#pond')), 220);
-  fishing.timers.push(setTimeout(bite, 900 + Math.random() * 1700));
+  fishing.timers.push(setTimeout(bite, 500 + Math.random() * 900));
   commit();
 }
 function bite() {

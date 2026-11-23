@@ -7,7 +7,7 @@ function rarity(id) {
   if (!it || it.t === 'key') return '';
   if (it.rar) return it.rar;
   if (I.legendary.has(id)) return 'legendary';
-  const r = C.core.rarity;
+  const r = C.core.rarity_tiers;   // sell-price thresholds; C.core.rarity is the fishing table
   return it.s < r.common ? 'common' : it.s < r.uncommon ? 'uncommon' : it.s < r.rare ? 'rare' : it.s < r['very rare'] ? 'very rare' : 'legendary';
 }
 const rarClass = id => { const r = rarity(id); return r && r !== 'common' ? ' r-' + r.replace(' ', '') : ''; };
