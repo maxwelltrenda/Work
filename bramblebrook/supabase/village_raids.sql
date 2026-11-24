@@ -1,3 +1,4 @@
+-- Applied to the Bramblebrook project on 2026-11-24 as migration "village_raids" (then resized by raid_scale_small_villages.sql).
 -- Village bosses: an elder summons a boss; for the next two days every neighbour attacks it, from the website
 -- or from Claude. Each phase has two bars: Might (fighters, rogues and rangers hit it hardest) and Magic
 -- (wizards, clerics and bards). Fill both to move on; beat the last phase to win. Courage pays for attacks
