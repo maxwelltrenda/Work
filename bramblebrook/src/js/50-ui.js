@@ -360,6 +360,10 @@ function handle(act, el, e) {
       m.claimed = true; const lines = applyGive(l.give); toast(lines.join(' · ')); closeSheet(); break;
     }
     case 'online-open': onlineSheet(id === 'signin' ? 'signin' : 'signup'); return false;
+    case 'play-offline': askName.skip = true; askName(); return false;
+    case 'start-over': openSheet(`<h2>Start a new farm?</h2><p class="sub">This throws away ${esc(state.name || 'this')}'s farm and starts again from the letter.${online ? ' Your online copy is reset too, on every device.' : ''} It can't be undone.</p>
+      <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Keep my farm</button><button class="btn small danger" data-act="start-over-yes">Start over</button></div>`); return false;
+    case 'start-over-yes': startOver(); return false;
     case 'online-link-make': makeLink(); return false;
     case 'vil-found': foundSheet(); return false;
     case 'class-pick': classPickSheet(); return false;
@@ -404,15 +408,6 @@ function handle(act, el, e) {
         renderAll();
         break;
       } catch (err) { toast("That code didn't work. Copy the whole code and try again."); return false; }
-    case 'reset':
-      if (el.dataset.armed !== '1') {
-        el.dataset.armed = '1'; el.textContent = 'Tap again to erase your farm';
-        setTimeout(() => { if (el.isConnected) { el.dataset.armed = ''; el.textContent = 'Start over'; } }, 4000);
-        return false;
-      }
-      state = freshState(); state.savedAt = now(); exploreLog = []; mineLog = []; catchLog = [];
-      renderAll(); commit(); askName();
-      return false;
     case 'perk': if (!buyPerk(id)) return false; break;
     case 'perk-reset': if (!resetPerks()) return false; break;
     case 'bench-slot': benchSheet(+el.dataset.i); return false;

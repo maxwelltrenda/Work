@@ -161,7 +161,7 @@ function maybeDelve(floor) {
 }
 const openDelves = () => ((C.delves || {}).list || []).filter(d => d.floor <= state.mine.deepest && !state.delvesDone[d.id]);
 
-/* Character creation: name, background and look. Runs once; older saves get the last two steps. */
+/* Character creation: name, background, look and class. Runs once; older saves get the steps after the name. */
 const FACES = () => Object.keys(I.art).filter(k => k.startsWith('face:')).map(k => k.slice(5));
 function createCharacter(isNew) {
   const step2 = () => {
@@ -176,16 +176,25 @@ function createCharacter(isNew) {
     $('#scene-root').innerHTML = sceneShell({ title: 'Your look' }, `
       <div class="say">And how do folks in Bramblebrook see you?</div>
       <div class="face-grid">${faces.map(f => `<button class="face" data-face="${f}" aria-label="Portrait option">${artCell('face:' + f, 48)}</button>`).join('')}</div>`);
-    $$('[data-face]').forEach(btn => btn.addEventListener('click', () => {
-      state.face = btn.dataset.face;
-      const kit = background().kit;
-      applyGive(kit);
-      play('chime');
-      $('#scene-root').innerHTML = '';
-      toast(`${state.name} the ${background().n}. Welcome to Bramblebrook.`, 'lvl');
-      commit();
-      if (isNew) beginChapter();
-    }));
+    $$('[data-face]').forEach(btn => btn.addEventListener('click', () => { state.face = btn.dataset.face; play('pick'); (C.classes.classes.length && !state.combat.cls ? step4 : finish)(); }));
+  };
+  // D&D-style class: how you fight in battles later on
+  const step4 = () => {
+    $('#scene-root').innerHTML = sceneShell({ title: 'How you fight' }, `
+      <div class="say">One more thing. When trouble finds you, how do you deal with it?</div>
+      <p class="sub">Your class is how you fight in battles: your hit points, your armour and your special moves. You can change it any time on your character sheet.</p>
+      <div class="bg-grid">${C.classes.classes.map(c => { const b = statBlock(c.id, 1);
+        return `<button class="bg-card" data-cls="${c.id}"><b>${c.icon} ${esc(c.n)}</b><small class="bg-skill">${c.role === 'front' ? 'Front row' : 'Back row'} · ${b.hp} hit points · armour ${b.ac}</small><span>${esc(c.blurb)}</span><small class="muted">Moves: ${c.moves.map(m => esc(C.classes.moves[m].n)).join(', ')}</small></button>`; }).join('')}</div>`);
+    $$('[data-cls]').forEach(btn => btn.addEventListener('click', () => { state.combat.cls = btn.dataset.cls; finish(); }));
+  };
+  const finish = () => {
+    applyGive(background().kit);
+    play('chime');
+    $('#scene-root').innerHTML = '';
+    const c = myClass();
+    toast(`${state.name}, ${background().n}${c ? ` and ${c.n}` : ''}. Welcome to Bramblebrook.`, 'lvl');
+    commit();
+    if (isNew) beginChapter();
   };
   step2();
 }

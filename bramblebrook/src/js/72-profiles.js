@@ -12,7 +12,7 @@ function publicCard() {
   for (const s of I.skills) if (skillOn(s.id)) levels[s.id] = lvl(s.id);
   return { name: state.name || '', face: state.face || '', bg: state.bg || '', title: `Level ${charLevel()} ${bg ? bg.n : 'Farmer'}`, levels, chapter: state.story ? state.story.ci : 0, day: dayNumber() };
 }
-const signedInWeb = () => !!(online && online.via !== 'mcp' && online.user);
+const signedInWeb = () => !!(ONLINE.social && online && online.via !== 'mcp' && online.user);
 
 async function touchPresence() {
   if (!signedInWeb() || document.visibilityState === 'hidden') return;

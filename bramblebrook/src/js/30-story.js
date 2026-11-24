@@ -288,6 +288,17 @@ function finishAdventure() {
 
 /* First launch: ask for a name, then open the prologue. */
 function askName() {
+  if (onlineAvailable() && !online && !askName.skip) {   // on the website: make an account before anything else
+    $('#scene-root').innerHTML = sceneShell({ title: 'Bramblebrook' }, `
+      <div class="say">A letter came for you, sealed with a pressed clover. Your great-aunt Wren's farm in Bramblebrook is yours now, if you want it.</div>
+      <p class="sub">First, make a free account. Your farm saves online, follows you to any device, and lets you team up with other players.</p>
+      <div class="choices" id="welcome">
+        <button class="btn big" data-act="online-open" data-id="signup">Create an account</button>
+        <button class="btn ghost" data-act="online-open" data-id="signin">I already have an account</button>
+      </div>
+      <p class="sub" style="text-align:center"><button class="linkish" data-act="play-offline">Play without an account</button></p>`);
+    return;
+  }
   $('#scene-root').innerHTML = sceneShell({ title: 'Bramblebrook' }, `
     <div class="say">A letter came for you, sealed with a pressed clover. Your great-aunt Wren's farm in Bramblebrook is yours now, if you want it.</div>
     <form id="name-form" class="choices">
@@ -295,7 +306,7 @@ function askName() {
       <input type="text" id="name-in" maxlength="20" autocomplete="nickname" placeholder="Your name">
       <button class="btn big" type="submit">Head to the valley</button>
     </form>
-    ${onlineAvailable() ? '<p class="sub" style="text-align:center">Already have a farm online? <button class="linkish" data-act="online-open" data-id="signin">Sign in</button></p>' : ''}`);
+    <p class="sub" id="name-online" style="text-align:center">${nameOnlineLine()}</p>`);
   $('#name-in').focus();
   $('#name-form').addEventListener('submit', e => {
     e.preventDefault();

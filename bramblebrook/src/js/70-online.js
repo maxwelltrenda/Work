@@ -6,6 +6,7 @@ const ONLINE = {
   url: 'https://rsjzatmbkrquzfczywsz.supabase.co',
   key: 'sb_publishable_ecWCRes8YT9knvVJyEULkw_B4l393GE',   // publishable: safe in the page, row-level security guards the data
   domain: 'players.bramblebrook.invalid',                   // sign-in address for a username; no mail is ever sent
+  social: false,                                            // profiles and villages: on once their database tables are in
 };
 const ONLINE_STORE = 'bramblebrook-online';
 const LINK_STORE = 'bramblebrook-link';          // inside Claude: syncing through the player's own connector
@@ -70,6 +71,40 @@ function farmSummary(s) {
 }
 // only a device that has not started a farm yet (still on the name screen) is replaced without asking
 const freshFarm = s => !s || !s.name;
+// "Start over" leaves this marker online in place of the farm: farms begun before it are wiped, newer ones kept
+const isReset = row => !!(row && row.data && row.data.reset && !row.data.name);
+function takeReset(row) {
+  online.cloudAt = row.updated_at; online.dirty = false; storeOnline();
+  if (state.name && (state.created || 0) < row.data.reset) { wipeFarm('Your farm was reset. A fresh start!'); return; }
+  if (state.name) pushCloud();
+}
+/* A brand-new farm on this device. The old one is gone for good. */
+function wipeFarm(msg) {
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* storage blocked */ }
+  if (typeof bt !== 'undefined') bt = null;
+  state = migrate(null);
+  state.savedAt = now(); exploreLog = []; mineLog = []; catchLog = [];
+  saveLocal();
+  if (cloud.ready) saveCloud();
+  closeSheet(); $('#scene-root').innerHTML = '';
+  renderAll();
+  askName();
+  if (msg) toast(msg);
+}
+async function startOver() {
+  if (online) {
+    const mark = { reset: Date.now() };
+    try {
+      if (online.via === 'mcp') { const r = await linkCall('save_farm', { data: mark, summary: mark }); online.cloudAt = r.updated_at; }
+      else {
+        const rows = await onlineApi('/rest/v1/saves', { method: 'POST', auth: true, headers: { Prefer: 'resolution=merge-duplicates,return=representation' }, body: { user_id: online.user, data: mark, summary: mark, device: 'start over' } });
+        online.cloudAt = rows && rows[0] ? rows[0].updated_at : null;
+      }
+      online.dirty = false; storeOnline();
+    } catch (e) { toast('Could not reach your account, so nothing was reset. Try again when you are online.'); return; }
+  }
+  wipeFarm('A fresh start. Your old farm is gone.');
+}
 
 async function onlineSignUp(username, password) {
   const u = String(username || '').trim().toLowerCase();
@@ -125,7 +160,7 @@ async function pushCloud(keepalive) {
       if (r && r.conflict) {   // played on the website since: never overwrite it, ask instead
         onl.busy = false;
         const row = await fetchCloud();
-        if (row) chooseFarm(row);
+        if (row) (isReset(row) ? takeReset(row) : chooseFarm(row));
         return;
       }
       online.cloudAt = r.updated_at; online.syncedAt = Date.now(); online.dirty = false; onl.err = '';
@@ -146,7 +181,7 @@ async function pushCloud(keepalive) {
       if (!rows || !rows.length) {
         const row = await fetchCloud();
         onl.busy = false;
-        if (row) { chooseFarm(row); return; }
+        if (row) { isReset(row) ? takeReset(row) : chooseFarm(row); return; }
         online.cloudAt = null;   // nothing online any more: fall through to a fresh save next time
         pushCloud();
         return;
@@ -200,6 +235,7 @@ function agoText(t) {
 }
 async function afterSignIn(isNew) {
   const row = await fetchCloud();
+  if (isReset(row)) { takeReset(row); toast(isNew ? 'Account made.' : 'Signed in.'); return; }
   if (!row) { await pushCloud(); toast(isNew ? 'Account made. Your farm is saved online.' : 'Signed in. Your farm is saved online.'); return; }
   if (freshFarm(state)) { useCloud(row); return; }
   if (JSON.stringify(row.data) === JSON.stringify(state)) { online.cloudAt = row.updated_at; storeOnline(); toast('Signed in.'); return; }
@@ -210,6 +246,7 @@ async function syncOnOpen() {
   if (!online.cloudAt) return afterSignIn(false);   // first sync on this device: ask before replacing a started farm
   const row = await fetchCloud();
   if (!row) { if (state.name) pushCloud(); return; }
+  if (isReset(row)) { if (new Date(row.updated_at) > new Date(online.cloudAt)) takeReset(row); else if (online.dirty && state.name) pushCloud(); return; }
   const newerOnline = new Date(row.updated_at) > new Date(online.cloudAt);
   if (!newerOnline) { if (online.dirty) pushCloud(); return; }
   if (!online.dirty || freshFarm(state)) useCloud(row);
@@ -237,7 +274,13 @@ async function initLink() {
   }
   refreshOnlineCard();
 }
-function refreshOnlineCard() { if (state && state.tab === 'bag' && !sheetOpen()) renderView(); }
+function refreshOnlineCard() { const n = $('#name-online'); if (n) n.innerHTML = nameOnlineLine(); if (state && state.tab === 'bag' && !sheetOpen()) renderView(); }
+/* The line under the name box: who you are signed in as, or a way to sign in. */
+function nameOnlineLine() {
+  if (online && online.username) return `Playing online as <b>${esc(online.username)}</b>. Your farm saves to your account.`;
+  if (onlineAvailable()) return 'Already have a farm online? <button class="linkish" data-act="online-open" data-id="signin">Sign in</button>';
+  return '';
+}
 async function initOnline() {
   if (!(await probeOnline())) { if (inClaude()) await initLink(); return; }
   online = readOnline();
@@ -279,8 +322,8 @@ function onlineCard() {
       <div class="row"><button class="btn small" data-act="online-open" data-id="signup">Create account</button><button class="btn small ghost" data-act="online-open" data-id="signin">Sign in</button></div></div>`;
   return `<div class="card"><h2>Online</h2>${inClaude() ? '<p class="sub muted" style="font-size:12px">Connection test: reached the online server from inside Claude.</p>' : ''}<p class="sub">Signed in as <b>${esc(online.username)}</b>. ${onl.busy ? 'Saving…' : online.syncedAt ? `Saved online ${agoText(online.syncedAt)}.` : ''}</p>
       ${onl.err ? `<p class="sub" style="color:var(--berry)">${esc(onl.err)}</p>` : ''}
-      ${inClaude() ? '' : `<p class="sub">${prof.me && prof.me.show_online === false ? 'Your online status is private.' : 'Other players can see when you are online.'}</p>`}
-      <div class="row">${inClaude() ? '' : '<button class="btn small" data-act="online-profile">My profile</button>'}<button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-signout">Sign out</button></div>
+      ${inClaude() || !ONLINE.social ? '' : `<p class="sub">${prof.me && prof.me.show_online === false ? 'Your online status is private.' : 'Other players can see when you are online.'}</p>`}
+      <div class="row">${inClaude() || !ONLINE.social ? '' : '<button class="btn small" data-act="online-profile">My profile</button>'}<button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-signout">Sign out</button></div>
       ${inClaude() ? '' : `<p class="sub" style="margin-top:6px">Play this same farm inside Claude too.</p><div class="row"><button class="btn small ghost" data-act="online-link-make">Link Claude</button></div>`}</div>`;
 }
 /* Website: make a private connector address for this account and show the three steps. */
@@ -332,6 +375,7 @@ function onlineSheet(mode, err) {
       if (isNew) await onlineSignUp(u, p); else await onlineSignIn(u, p);
       if ($('#online-form')) closeSheet();
       renderView();
+      if (state && !state.name && $('#welcome')) askName();   // from the first screen: on to naming the farmer
     } catch (err2) {
       if (!$('#online-form')) return;
       errEl.textContent = navigator.onLine === false ? 'You seem to be offline.' : String(err2.message || err2);

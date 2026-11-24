@@ -426,7 +426,7 @@ function viewSettings() {
       <div class="toggle"><div class="what"><b>Type out story text</b><small>Lines appear letter by letter. Turn off to show each line at once</small></div><button class="switch" role="switch" aria-label="Type out story text" aria-checked="${!state.opts.instantText}" data-act="opt" data-id="instantText"></button></div>
       <div class="row"><button class="btn small ghost" data-act="replay-tours">Show all tutorials again</button></div></div>
     <div class="card"><h2>Save</h2><p class="sub">${where}</p>
-      <div class="row"><button class="btn small ghost" data-act="export">Show save code</button><button class="btn small ghost" data-act="import-open">Load a save code</button><button class="btn small danger" data-act="reset">Start over</button></div>
+      <div class="row"><button class="btn small ghost" data-act="export">Show save code</button><button class="btn small ghost" data-act="import-open">Load a save code</button><button class="btn small danger" data-act="start-over">Start over</button></div>
       <div id="save-box"></div></div>
     <div class="card"><h2>About</h2><p class="sub">Bramblebrook Farm. Pixel art from the CraftPix and Nine Realms packs. Everything else made for this game.</p></div>`;
 }
