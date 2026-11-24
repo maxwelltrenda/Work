@@ -271,6 +271,12 @@ p { margin: 0; }
 .linkish { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
 .farm-pick { gap: 6px; }
 #sheet-root.over-scene .sheet-wrap { z-index: 13; }
+.class-card .scores { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.score { display: grid; justify-items: center; background: var(--surface-2); border-radius: 10px; padding: 6px 2px; } .score small { font-size: 10px; color: var(--muted); font-weight: 800; letter-spacing: .05em; } .score b { font-size: 18px; } .score span { font-size: 12px; color: var(--muted); } .score.main { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.moves { display: grid; gap: 8px; } .move { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; } .move b { font-size: 14px; } .move small { margin-left: 6px; color: var(--muted); font-size: 11px; } .move p { margin: 2px 0 0; font-size: 13px; color: var(--ink-2, var(--muted)); }
+.bar { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; } .bar i { display: block; height: 100%; background: var(--accent); }
+ details.plain summary { cursor: pointer; color: var(--accent); font-size: 13px; } details.plain p { margin: 6px 0 0; }
+.class-pick.current { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .vil-treasury { font-size: 15px; } .vil-treasury b { font-size: 22px; color: var(--sun); }
 .vil-say-form { display: flex; gap: 8px; } .vil-say-form input { flex: 1; min-width: 0; font: 15px var(--body); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 9px 11px; }
 .vil-board { display: grid; gap: 6px; margin-top: 8px; max-height: 320px; overflow-y: auto; }
@@ -506,3 +512,41 @@ body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hi
 .beast { grid-template-columns: 52px minmax(0, 1fr); align-items: start; }
 .beast b { font-family: var(--display); font-size: 17px; }
 .unknown-beast { opacity: .75; }
+/* Battles: the stage becomes a field; party on the left, foes on the right, each with a hit point bar. */
+.scene.battle .stage { height: 226px; cursor: default; }
+.bfield { position: absolute; inset: 0; }
+.bunit { position: absolute; width: 70px; margin-left: -35px; display: grid; justify-items: center; gap: 2px; padding: 2px 0 0; border: 0; background: none; color: var(--ink); font: inherit; cursor: default;
+  transition: filter .25s ease, opacity .4s ease; }
+.bunit .bpic { position: relative; display: grid; place-items: center; width: 48px; height: 48px; }
+.bunit .bpic .mono { width: 44px; height: 44px; }
+.bunit.foe .bpic .emo { filter: drop-shadow(0 3px 2px rgba(0, 0, 0, .5)); }
+.bhp { width: 52px; height: 6px; border-radius: 3px; background: rgba(0, 0, 0, .55); box-shadow: 0 0 0 1px rgba(255, 255, 255, .16); overflow: hidden; }
+.bhp i { display: block; height: 100%; background: var(--accent); }
+.bunit.foe .bhp i { background: var(--berry); }
+.bname { font-size: 11px; font-weight: 700; line-height: 1.1; max-width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px #000; }
+.bunit.turn .bpic { filter: drop-shadow(0 0 7px rgba(244, 200, 115, .9)); }
+.scene.battle .say { min-height: 0; font-size: 16px; }
+.scene.battle .scene-body { gap: 10px; }
+.bunit.turn .bname { color: var(--sun); }
+.bunit.down { opacity: .32; filter: grayscale(1); }
+.bunit.warded .bpic { border-radius: 50%; box-shadow: 0 0 0 2px rgba(140, 230, 120, .55), 0 0 14px rgba(140, 230, 120, .45); }
+.bunit.can { cursor: pointer; }
+.bunit.can .bpic { border-radius: 50%; box-shadow: 0 0 0 2px var(--sun); animation: bPulse 1s ease-in-out infinite; }
+.bunit.hurt .bpic { animation: bShake .35s ease-out; }
+.bunit.heal .bpic { filter: brightness(1.4); }
+.bfloat { position: absolute; top: -4px; left: 50%; transform: translateX(-50%); font-weight: 800; font-size: 16px; text-shadow: 0 1px 3px #000; pointer-events: none; animation: bFloat 1s ease-out forwards; }
+.bunit.hurt .bfloat { color: #ff9a9a; } .bunit.heal .bfloat { color: var(--accent); }
+.btag { position: absolute; top: 0; right: 6px; font-size: 14px; }
+.blog { display: grid; gap: 4px; min-height: 4.6em; font-size: 14px; line-height: 1.4; }
+.blog p { margin: 0; } .blog p.old { color: var(--muted); font-size: 13px; }
+.bmoves { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bmove { display: grid; gap: 2px; text-align: left; padding: 9px 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; }
+.bmove b { font-size: 14px; } .bmove small { color: var(--muted); font-size: 11.5px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.bmove:hover:not(:disabled) { border-color: var(--accent); }
+.bmove:disabled { opacity: .4; cursor: default; }
+.party-pick.on { border-color: var(--accent); background: var(--surface-2); }
+.card.adv.boss { border-color: rgba(243, 141, 182, .45); }
+@keyframes bPulse { 50% { box-shadow: 0 0 0 4px rgba(244, 200, 115, .35); } }
+@keyframes bShake { 20% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 80% { transform: translateX(-2px); } }
+@keyframes bFloat { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -26px); } }
+@media (prefers-reduced-motion: reduce) { .bunit .bpic, .bfloat { animation: none !important; } }

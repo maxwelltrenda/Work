@@ -452,6 +452,30 @@
           "text": "That roll missed, but you have Inspiration (✦). Spend one to roll again, or tap Continue to see where the story goes. Either way is fine."
         }
       ]
+    },
+    "battle": {
+      "title": "Your first battle",
+      "steps": [
+        {
+          "target": "#bfield",
+          "title": "The battlefield",
+          "text": "Your side is on the left, the foes are on the right. The bar under each one is their hit points. When it runs out, they're out of the fight."
+        },
+        {
+          "target": "#bfield .bunit.foe",
+          "title": "Front row and back row",
+          "text": "Whoever stands at the front protects the back. Swords and claws can only reach the front row until it's empty. Bows and spells reach anyone."
+        },
+        {
+          "target": ".blog",
+          "title": "Taking turns",
+          "text": "Everyone takes a turn in order. Each attack rolls a 20-sided die plus a bonus. If the total reaches the target's armour, it hits. The log shows every roll."
+        },
+        {
+          "title": "Your turn",
+          "text": "On your turn, pick a move, then tap who to use it on. Friends who came along take their own turns. Losing costs nothing: everyone just limps home."
+        }
+      ]
     }
   }
 }

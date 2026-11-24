@@ -76,6 +76,9 @@ function indexContent(data) {
   C.delves = { list: (data.delves && data.delves.delves) || [] };
   C.delves.byId = byId(C.delves.list);
   C.companions = data.companions || { companions: {}, inn: null, crit: {}, fumble: {} };
+  C.classes = data.classes || { abilities: {}, classes: [], moves: {}, folk: {}, terms: {}, levels: { cap: 20, xpBase: 100, xpExp: 1.8, scoreUpAt: [] } };
+  I.cls = {}; for (const c of C.classes.classes) I.cls[c.id] = c;
+  C.foes = data.foes || { foes: {}, fights: [] };
   I.legendary = new Set(k.spots.flatMap(s => s.fish.filter(f => f[2] === 5).map(f => f[0])));
   I.fishKinds = Object.keys(k.items).filter(id => k.items[id].t === 'fish');
   // which chapter unlocks what (for "unlocks in chapter N" hints)

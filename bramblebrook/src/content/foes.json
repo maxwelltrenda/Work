@@ -1,0 +1,23 @@
+{
+  "foes": {
+    "bramble_wolf": { "s": "Wolf", "n": "Bramble Wolf", "i": "🐺", "row": "front", "hp": 10, "ac": 13, "hit": 4, "dice": "2d4", "dmg": 1, "saves": { "dex": 2, "wis": 1 }, "xp": 50, "blurb": "Lean and grey, with burrs in its fur. Hunts in pairs." },
+    "moss_toad": { "s": "Toad", "n": "Mossback Toad", "i": "🐸", "row": "front", "hp": 18, "ac": 11, "hit": 3, "dice": "1d8", "dmg": 1, "saves": { "dex": 0, "wis": 0 }, "xp": 50, "blurb": "Big as a barrel and twice as stubborn." },
+    "cave_bats": { "s": "Bats", "n": "Bat Swarm", "i": "🦇", "row": "back", "hp": 9, "ac": 12, "hit": 4, "dice": "2d4", "dmg": 0, "reach": "any", "saves": { "dex": 2, "wis": 0 }, "xp": 50, "blurb": "A squeaking cloud that dives at the softest target." },
+    "goblin_scrapper": { "s": "Scrapper", "n": "Goblin Scrapper", "i": "👺", "row": "front", "hp": 12, "ac": 14, "hit": 4, "dice": "1d6", "dmg": 1, "saves": { "dex": 2, "wis": 0 }, "xp": 60, "blurb": "Rusty blade, dented pot for a helmet, very high opinion of itself." },
+    "goblin_hexer": { "s": "Hexer", "n": "Goblin Hexer", "i": "🧙", "row": "back", "hp": 10, "ac": 12, "hit": 4, "dice": "1d8", "dmg": 0, "reach": "any", "spell": true, "wards": true, "saves": { "dex": 1, "wis": 2 }, "xp": 80, "blurb": "Throws hexes from the back and wraps its friends in a sickly green ward." },
+    "mine_spider": { "s": "Spider", "n": "Mine Spider", "i": "🕷️", "row": "front", "hp": 15, "ac": 13, "hit": 4, "dice": "1d8", "dmg": 1, "poison": true, "saves": { "dex": 3, "wis": 0 }, "xp": 80, "blurb": "Its bite stings for a while after." },
+    "rock_crab": { "s": "Crab", "n": "Rock Crab", "i": "🦀", "row": "front", "hp": 24, "ac": 16, "hit": 4, "dice": "1d10", "dmg": 2, "saves": { "dex": 0, "wis": 0 }, "xp": 90, "blurb": "Shell like a cobblestone. Spells and sneaky strikes work better than brute force." },
+    "bog_wisp": { "s": "Wisp", "n": "Bog Wisp", "i": "👻", "row": "back", "hp": 14, "ac": 15, "hit": 5, "dice": "1d10", "dmg": 0, "reach": "any", "spell": true, "saves": { "dex": 4, "wis": 2 }, "xp": 100, "blurb": "A cold blue light that drifts out of reach and burns." },
+    "thornjaw": { "s": "Thornjaw", "n": "Old Thornjaw", "i": "🐻", "row": "front", "hp": 70, "ac": 14, "hit": 6, "dice": "2d6", "dmg": 4, "multi": 2, "boss": true, "saves": { "dex": 1, "wis": 2 }, "xp": 400, "blurb": "A bear grown huge on the valley's berries, with brambles tangled through its hide. Strikes twice a turn." },
+    "iron_golem": { "s": "Golem", "n": "Rust Golem", "i": "🤖", "row": "front", "hp": 120, "ac": 17, "hit": 8, "dice": "2d10", "dmg": 4, "boss": true, "wards": true, "regen": 6, "saves": { "dex": -1, "wis": 0 }, "xp": 600, "blurb": "Something old the miners woke. It mends itself each turn and shrugs off blows until its ward is broken: a wizard can dispel it, or enough hits will crack it." }
+  },
+  "fights": [
+    { "id": "wood_edge", "n": "Wolves at the Wood's Edge", "where": "woods", "lvl": 1, "foes": ["bramble_wolf", "bramble_wolf"], "coins": 60, "blurb": "Two wolves have been eyeing the henhouse." },
+    { "id": "toad_bridge", "n": "The Toad Under the Bridge", "where": "river", "lvl": 1, "foes": ["moss_toad", "cave_bats"], "coins": 70, "blurb": "Something croaks under the footbridge, and something squeaks above it." },
+    { "id": "goblin_camp", "n": "Goblin Camp", "where": "meadow", "lvl": 2, "foes": ["goblin_scrapper", "goblin_scrapper", "goblin_hexer"], "coins": 120, "blurb": "Goblins have pitched tents by the stream. Their hexer hangs back and wards the others." },
+    { "id": "spider_shaft", "n": "The Spider Shaft", "where": "mine", "lvl": 3, "foes": ["mine_spider", "mine_spider", "cave_bats"], "coins": 160, "blurb": "Webs across the old shaft, and things moving in them." },
+    { "id": "crab_cove", "n": "Crabs of the Cove", "where": "cove", "lvl": 4, "foes": ["rock_crab", "rock_crab", "bog_wisp"], "coins": 220, "blurb": "Shells like cobblestones, and a cold light drifting over the tide pools." },
+    { "id": "thornjaw", "n": "Old Thornjaw", "where": "woods", "lvl": 5, "boss": true, "foes": ["thornjaw", "bramble_wolf"], "coins": 500, "item": "charm_acorn", "blurb": "The berry-fat bear of the deep woods, with a wolf at its heel. Bring friends." },
+    { "id": "rust_golem", "n": "The Rust Golem", "where": "mine", "lvl": 7, "boss": true, "foes": ["iron_golem", "goblin_hexer"], "coins": 800, "item": "charm_lantern", "blurb": "Deep in the mine, something old has woken up. Break its ward or it mends itself forever." }
+  ]
+}

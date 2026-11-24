@@ -15,6 +15,7 @@ function viewSheet() {
   const cdata = (C.companions && C.companions.companions) || {};
   return `<div class="card sheet-hero">${playerPic(80)}<div><h2>${esc(state.name || 'You')}</h2><p class="sub">Level ${charLevel()} ${esc(bg ? bg.n : 'Adventurer')}</p>
       <p class="insp" aria-label="${insp} of ${max} Inspiration">${'✦'.repeat(insp)}${'✧'.repeat(Math.max(0, max - insp))} <span class="muted">Inspiration</span></p></div></div>
+    ${classCard()}
     <div class="card"><h2>Roll bonuses</h2><p class="sub">When a choice needs a dice roll, this number is added to what you roll. Bigger is better. You get +1 for every ${C.core.dice.levelsPerBonus} skill levels${bg ? `, +${C.core.background_bonus.check} on ${esc(skillName(bg.skill))} for being a ${esc(bg.n)}` : ''}, plus anything from charms.</p>${checks}</div>
     <div class="card"><div class="row between"><h2>Charms</h2><span class="chip plain">${state.charms.filter(id => have(id)).length}/${C.core.charmSlots} worn</span></div>${slots}</div>
     <div class="card"><h2>Who'll come along</h2>${comps.length ? comps.map(v => `<div class="store-item">${folk(v.id, 36)}<div class="what"><b>${esc(v.short || v.n)}</b><small>Helps with ${cdata[v.id].skills.map(skillName).join(' & ')} rolls</small></div></div>`).join('')
@@ -53,6 +54,7 @@ function viewInn() {
     <div class="label">Quest board</div>
     ${open.length || delves.length ? open.map(a => card(a, false)).join('') + delves.map(d => card(d, false, true)).join('') : '<div class="card"><p class="muted">The board is bare today. Keep following the story and making friends.</p></div>'}
     ${later > 0 ? `<p class="sub">${plural(later, 'more quest')} will be pinned up as the valley wakes.</p>` : ''}
+    ${trainingYard()}
     ${done.length ? `<div class="label">Finished</div>${done.map(a => card(a, true)).join('')}` : ''}`;
 }
 

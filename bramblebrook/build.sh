@@ -11,7 +11,7 @@ node - <<'JS'
 const fs = require('fs');
 const read = f => JSON.parse(fs.readFileSync('src/content/' + f, 'utf8'));
 const maybe = f => (fs.existsSync('src/content/' + f) ? read(f) : null);
-const content = { core: read('core.json'), story: read('story.json'), people: read('people.json'), adventures: read('adventures.json'), art: read('art.json'), tours: read('tours.json'), bestiary: maybe('bestiary.json'), delves: maybe('delves.json'), companions: maybe('companions.json') };
+const content = { core: read('core.json'), story: read('story.json'), people: read('people.json'), adventures: read('adventures.json'), art: read('art.json'), tours: read('tours.json'), bestiary: maybe('bestiary.json'), delves: maybe('delves.json'), companions: maybe('companions.json'), classes: maybe('classes.json'), foes: maybe('foes.json') };
 fs.writeFileSync('public/content.json', JSON.stringify(content));
 const css = fs.readFileSync('src/style.css', 'utf8');
 const js = fs.readdirSync('src/js').filter(f => f.endsWith('.js')).sort().map(f => fs.readFileSync('src/js/' + f, 'utf8')).join('\n');

@@ -240,6 +240,37 @@ if (comps) {
 }
 for (const f of usedFlags) if (!setFlags.has(f) && !['heirloom'].includes(f)) warn.push(`flag "${f}" is required somewhere but never given`);
 
+// classes.json: every class names real moves and abilities; every classed villager exists
+const classes = load('classes.json');
+if (classes) {
+  const ab = new Set(Object.keys(classes.abilities || {}));
+  for (const c of classes.classes || []) {
+    for (const m of c.moves || []) if (!(classes.moves || {})[m]) errors.push(`classes.json: ${c.id} uses unknown move "${m}"`);
+    if (!ab.has(c.primary)) errors.push(`classes.json: ${c.id} has unknown primary "${c.primary}"`);
+    for (const k of ab) if (!(c.scores || {})[k]) errors.push(`classes.json: ${c.id} is missing a ${k} score`);
+    if (!/^\d+d\d+$/.test((c.weapon || {}).dice || '')) errors.push(`classes.json: ${c.id} weapon dice must look like 1d8`);
+  }
+  const ids = new Set((classes.classes || []).map(c => c.id));
+  for (const [vid, cid] of Object.entries(classes.folk || {})) {
+    if (!ids.has(cid)) errors.push(`classes.json: folk ${vid} has unknown class "${cid}"`);
+    if (!VILLAGERS.has(vid) && !['saffi', 'tess'].includes(vid)) errors.push(`classes.json: unknown villager "${vid}"`);
+  }
+}
+// foes.json: every fight names real foes, a known place and a real reward item
+const foes = load('foes.json');
+if (foes) {
+  const F = foes.foes || {};
+  for (const [id, f] of Object.entries(F)) {
+    if (!/^\d+d\d+$/.test(f.dice || '')) errors.push(`foes.json: ${id} dice must look like 2d6`);
+    if (!(f.hp > 0 && f.ac > 0)) errors.push(`foes.json: ${id} needs hp and ac`);
+    if (!['front', 'back'].includes(f.row)) errors.push(`foes.json: ${id} row must be front or back`);
+  }
+  for (const f of foes.fights || []) {
+    for (const x of f.foes || []) if (!F[x]) errors.push(`foes.json: fight ${f.id} has unknown foe "${x}"`);
+    if (f.item && !ITEMS.has(f.item)) errors.push(`foes.json: fight ${f.id} gives unknown item "${f.item}"`);
+    if (!['meadow', 'woods', 'river', 'mine', 'cove', 'beach', 'banks', 'farm', 'quarry', 'highlands', 'tarn', 'pasture', 'town'].includes(f.where)) errors.push(`foes.json: fight ${f.id} has unknown place "${f.where}"`);
+  }
+}
 if (warn.length) console.log('Warnings:\n  ' + warn.join('\n  '));
 if (errors.length) { console.log(`\n${errors.length} error(s):\n  ` + errors.join('\n  ')); process.exit(1); }
-console.log(`OK  (story: ${!!story}, people: ${!!people}, adventures: ${!!adv}, bestiary: ${!!beasts}, delves: ${!!delves}, companions: ${!!comps})`);
+console.log(`OK  (story: ${!!story}, people: ${!!people}, adventures: ${!!adv}, bestiary: ${!!beasts}, delves: ${!!delves}, companions: ${!!comps}, classes: ${!!classes})`);

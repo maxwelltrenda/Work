@@ -1,0 +1,88 @@
+{
+  "abilities": {
+    "str": { "n": "Strength", "short": "STR", "plain": "Hitting hard and lifting heavy things" },
+    "dex": { "n": "Dexterity", "short": "DEX", "plain": "Quick hands, quick feet, a steady aim" },
+    "con": { "n": "Constitution", "short": "CON", "plain": "Toughness: more hit points" },
+    "int": { "n": "Intelligence", "short": "INT", "plain": "Book learning; powers a wizard's spells" },
+    "wis": { "n": "Wisdom", "short": "WIS", "plain": "Good sense and calm; powers a cleric's prayers" },
+    "cha": { "n": "Charisma", "short": "CHA", "plain": "Charm and nerve; powers a bard's songs" }
+  },
+  "terms": {
+    "hp": "Hit points (HP): how much harm you can take before you're knocked out of the fight.",
+    "ac": "Armour (AC): the number an attacker's dice roll has to reach to hit you. Higher is safer.",
+    "prof": "Training bonus: added to every attack you're trained for. It grows as your class levels up.",
+    "mod": "The small number next to each score is what it adds to your dice rolls."
+  },
+  "levels": { "cap": 20, "xpBase": 100, "xpExp": 1.8, "scoreUpAt": [4, 8, 12, 16, 19] },
+  "classes": [
+    {
+      "id": "fighter", "n": "Fighter", "icon": "🛡️", "role": "front",
+      "blurb": "Stands at the front and takes the hits. Simple, sturdy and hard to knock down.",
+      "primary": "str", "hitDie": 10, "armor": 16, "armorName": "chain mail",
+      "scores": { "str": 16, "dex": 12, "con": 15, "int": 8, "wis": 10, "cha": 10 },
+      "weapon": { "n": "Longsword", "dice": "1d8", "stat": "str", "reach": "melee" },
+      "moves": ["power_strike", "second_wind", "guard"]
+    },
+    {
+      "id": "rogue", "n": "Rogue", "icon": "🗡️", "role": "front",
+      "blurb": "Strikes where it hurts. Deals extra damage when a friend is already fighting the same foe.",
+      "primary": "dex", "hitDie": 8, "armor": 15, "armorName": "studded leather",
+      "scores": { "str": 10, "dex": 16, "con": 14, "int": 12, "wis": 10, "cha": 10 },
+      "weapon": { "n": "Short sword", "dice": "1d6", "stat": "dex", "reach": "melee" },
+      "moves": ["sneak_attack", "hide", "weak_spot"]
+    },
+    {
+      "id": "wizard", "n": "Wizard", "icon": "🔮", "role": "back",
+      "blurb": "Fragile but fierce. Hurls fire from the back row and never misses with magic missiles.",
+      "primary": "int", "hitDie": 6, "armor": 12, "armorName": "robes",
+      "scores": { "str": 8, "dex": 14, "con": 14, "int": 16, "wis": 12, "cha": 10 },
+      "weapon": { "n": "Fire bolt", "dice": "1d10", "stat": "int", "reach": "any", "spell": true },
+      "moves": ["magic_missile", "frost_ray", "dispel"]
+    },
+    {
+      "id": "cleric", "n": "Cleric", "icon": "✨", "role": "back",
+      "blurb": "Heals the party and burns away curses. The friend everyone wants on a hard adventure.",
+      "primary": "wis", "hitDie": 8, "armor": 16, "armorName": "scale mail and shield",
+      "scores": { "str": 14, "dex": 10, "con": 14, "int": 10, "wis": 16, "cha": 12 },
+      "weapon": { "n": "Mace", "dice": "1d6", "stat": "str", "reach": "melee" },
+      "moves": ["healing_word", "sacred_flame", "bless"]
+    },
+    {
+      "id": "ranger", "n": "Ranger", "icon": "🏹", "role": "back",
+      "blurb": "A patient shot from the back row. Marks one foe and keeps hitting it harder.",
+      "primary": "dex", "hitDie": 10, "armor": 15, "armorName": "scale vest",
+      "scores": { "str": 12, "dex": 16, "con": 14, "int": 10, "wis": 14, "cha": 8 },
+      "weapon": { "n": "Longbow", "dice": "1d8", "stat": "dex", "reach": "any" },
+      "moves": ["hunters_mark", "volley", "track"]
+    },
+    {
+      "id": "bard", "n": "Bard", "icon": "🎻", "role": "back",
+      "blurb": "Fights with wit and music: lifts friends' rolls, mocks foes off their game, patches up wounds.",
+      "primary": "cha", "hitDie": 8, "armor": 13, "armorName": "leather",
+      "scores": { "str": 8, "dex": 14, "con": 14, "int": 12, "wis": 10, "cha": 16 },
+      "weapon": { "n": "Rapier", "dice": "1d8", "stat": "dex", "reach": "melee" },
+      "moves": ["vicious_mockery", "inspire", "soothing_song"]
+    }
+  ],
+  "moves": {
+    "power_strike": { "n": "Power Strike", "kind": "attack", "toHit": -2, "extra": "1d8", "desc": "A huge swing: a little harder to land, a lot more damage." },
+    "second_wind": { "n": "Second Wind", "kind": "heal", "target": "self", "dice": "1d10", "addLevel": true, "uses": 1, "desc": "Catch your breath and heal yourself. Once per battle." },
+    "guard": { "n": "Guard", "kind": "guard", "target": "ally", "desc": "Step in front of a friend: the next attack on them hits you instead, and your armour gets +2." },
+    "sneak_attack": { "n": "Sneak Attack", "kind": "attack", "extra": "2d6", "needsAlly": true, "desc": "If a friend has already hit your target, or you are hidden, add 2d6 damage." },
+    "hide": { "n": "Hide", "kind": "advantage", "target": "self", "desc": "Slip into the shadows: your next attack rolls two dice and keeps the better one." },
+    "weak_spot": { "n": "Find a Weak Spot", "kind": "expose", "desc": "Point out a gap in a foe's guard: everyone's attacks on it get +2 for two rounds." },
+    "magic_missile": { "n": "Magic Missile", "kind": "auto", "dice": "3d4", "flat": 3, "uses": 2, "desc": "Three darts of light that always hit. Twice per battle." },
+    "frost_ray": { "n": "Frost Ray", "kind": "attack", "spell": true, "dice": "1d8", "slow": true, "desc": "A beam of cold that slows the target: it acts last next round." },
+    "dispel": { "n": "Dispel", "kind": "dispel", "desc": "Unravels a foe's ward at once so the party's blows land in full again." },
+    "healing_word": { "n": "Healing Word", "kind": "heal", "target": "ally", "dice": "1d4", "addStat": "wis", "uses": 3, "desc": "A word of comfort that heals a friend at any distance. Three times per battle." },
+    "sacred_flame": { "n": "Sacred Flame", "kind": "save", "save": "dex", "dice": "1d8", "stat": "wis", "desc": "Holy light falls on a foe. It must dodge (a Dexterity save) or take the damage. Ignores armour." },
+    "bless": { "n": "Bless", "kind": "bless", "target": "party", "uses": 1, "desc": "The whole party adds 1d4 to their attacks for three rounds. Once per battle." },
+    "hunters_mark": { "n": "Hunter's Mark", "kind": "mark", "extra": "1d6", "desc": "Mark a foe: your hits on it deal 1d6 more until it falls." },
+    "volley": { "n": "Volley", "kind": "all", "dice": "1d6", "uses": 1, "desc": "Rain arrows on every foe at once. Once per battle." },
+    "track": { "n": "Read the Field", "kind": "advantage", "target": "party", "uses": 1, "desc": "Spot every foe's next move: the party's next attacks roll two dice and keep the better. Once per battle." },
+    "vicious_mockery": { "n": "Vicious Mockery", "kind": "save", "save": "wis", "dice": "1d6", "stat": "cha", "rattle": true, "desc": "A cutting insult. The foe must keep its nerve (a Wisdom save) or take damage and roll badly on its next attack." },
+    "inspire": { "n": "Inspire", "kind": "advantage", "target": "ally", "desc": "A rousing tune: a friend's next roll uses two dice and keeps the better." },
+    "soothing_song": { "n": "Soothing Song", "kind": "heal", "target": "party", "dice": "1d4", "addStat": "cha", "uses": 1, "desc": "Heals the whole party a little. Once per battle." }
+  },
+  "folk": { "mira": "fighter", "ingrid": "fighter", "tess": "fighter", "pip": "rogue", "saffi": "rogue", "wren": "wizard", "clem": "cleric", "tobin": "ranger", "rook": "ranger", "hazel": "bard", "oakley": "bard" }
+}

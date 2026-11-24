@@ -362,6 +362,11 @@ function handle(act, el, e) {
     case 'online-open': onlineSheet(id === 'signin' ? 'signin' : 'signup'); return false;
     case 'online-link-make': makeLink(); return false;
     case 'vil-found': foundSheet(); return false;
+    case 'class-pick': classPickSheet(); return false;
+    case 'fight': fightSheet(id); return false;
+    case 'fight-pal': { const w = fightPick.with; if (w.includes(id)) fightPick.with = w.filter(x => x !== id); else if (w.length < 2) w.push(id); else { w.shift(); w.push(id); } return true; }
+    case 'fight-go': startFight(fightPick.id, fightPick.with.slice()); return false;
+    case 'class-choose': if (chooseClass(id)) { closeSheet(); return true; } return false;
     case 'vil-join': case 'vil-give': case 'vil-build': case 'vil-leave': villageAct(act, el); return false;
     case 'vil-refresh': vil.at = 0; vil.err = ''; refreshVillage(true); return false;
     case 'online-profile': openProfile(id || online.user); return false;

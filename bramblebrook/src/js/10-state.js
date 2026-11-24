@@ -30,7 +30,7 @@ function freshState() {
     bench: Array.from({ length: k.workbench.slots }, () => null), nets: {}, casks: Array.from({ length: k.cellar.slots }, () => null),
     pets: {}, perks: {}, tokens: 0, festival: null, login: null, exchange: null,
     toursSeen: {}, revealed: {}, visited: {}, opts: { tipsOff: false, relaxedFish: false }, overflow: {}, pity: {},
-    bg: '', face: '', insp: 1, charms: [], bestiary: {}, delvesDone: {},
+    bg: '', face: '', insp: 1, charms: [], bestiary: {}, delvesDone: {}, combat: { cls: '', xp: 0 },
     stats: { harvested: 0, fish: 0, explores: 0, crafted: 0, cooked: 0, digs: 0, collected: 0, delivered: 0, earned: 0, gifts: 0, bottled: 0, benched: 0, netted: 0, petfinds: 0, tokens: 0, streak: 0 },
     seed: 'wheat', spot: 'pond', bait: 'worm', area: 'meadow',
     tab: 'farm', sub: {},
@@ -40,7 +40,7 @@ function migrate(s) {
   const base = freshState();
   if (!s || typeof s !== 'object' || s.v !== 2) return base;
   const out = Object.assign({}, base, s);
-  for (const key of ['inv', 'locked', 'seen', 'got', 'xp', 'upgrades', 'buffs', 'mine', 'story', 'flags', 'unlocks', 'pages', 'friends', 'gifted', 'chatted', 'reqs', 'heartSeen', 'advDone', 'encDone', 'ach', 'mastery', 'stats', 'animals', 'sub', 'nets', 'pets', 'perks', 'toursSeen', 'revealed', 'visited', 'opts', 'overflow', 'pity', 'bestiary', 'delvesDone']) {
+  for (const key of ['inv', 'locked', 'seen', 'got', 'xp', 'upgrades', 'buffs', 'mine', 'story', 'flags', 'unlocks', 'pages', 'friends', 'gifted', 'chatted', 'reqs', 'heartSeen', 'advDone', 'encDone', 'ach', 'mastery', 'stats', 'animals', 'sub', 'nets', 'pets', 'perks', 'toursSeen', 'revealed', 'visited', 'opts', 'overflow', 'pity', 'bestiary', 'delvesDone', 'combat']) {
     out[key] = Object.assign({}, base[key], s[key] || {});
   }
   out.story.queue = Array.isArray(out.story.queue) ? out.story.queue : [];
