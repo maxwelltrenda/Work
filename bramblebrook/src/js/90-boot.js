@@ -46,7 +46,7 @@ async function initCloud() {
       const d = snap.data();
       if (d && typeof d.json === 'string') {
         const remote = JSON.parse(d.json);
-        if (remote.v === 2 && (remote.savedAt || 0) > (state.savedAt || 0)) {
+        if (remote.v === 2 && (remote.savedAt || 0) > (state.savedAt || 0) && !readOnline()) {
           state = migrate(remote);
           saveLocal();
           if (!sceneOpen && !advRun) $('#scene-root').innerHTML = '';

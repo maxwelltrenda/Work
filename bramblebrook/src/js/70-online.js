@@ -1,6 +1,7 @@
 /* ---------- online: accounts and cloud saves (Supabase), on the website ----------
    A username and password make an account; the farm then saves online a few seconds after each change and when
-   the page is put away, and follows the player to any device. The Artifact build keeps its own Claude cloud save. */
+   the page is put away, and follows the player to any device. Inside Claude (the Artifact) the game first checks
+   whether the page may reach the server at all; if it may not, the Online card points to the website instead. */
 const ONLINE = {
   url: 'https://rsjzatmbkrquzfczywsz.supabase.co',
   key: 'sb_publishable_ecWCRes8YT9knvVJyEULkw_B4l393GE',   // publishable: safe in the page, row-level security guards the data
@@ -8,8 +9,29 @@ const ONLINE = {
 };
 const ONLINE_STORE = 'bramblebrook-online';
 let online = null;          // { user, username, at, rt, exp, cloudAt, syncedAt, dirty }
-const onl = { busy: false, err: '', timer: 0, pending: null };
-const onlineAvailable = () => !(window.claude && typeof window.claude.use === 'function') && typeof fetch === 'function';
+const onl = { busy: false, err: '', timer: 0, pending: null, reach: '' };   // reach: '' not checked, 'checking', 'ok', 'blocked'
+const SITE_URL = 'https://bramblebrook-farm.vercel.app';
+const inClaude = () => !!(window.claude && typeof window.claude.use === 'function');
+const onlineAvailable = () => typeof fetch === 'function' && (!inClaude() || onl.reach === 'ok');
+/* Inside Claude, try one harmless request to the server; the answer decides whether online play can work here. */
+async function probeOnline() {
+  if (!inClaude()) { onl.reach = 'ok'; return true; }
+  onl.reach = 'checking';
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 7000);
+    const res = await fetch(ONLINE.url + '/auth/v1/health', { headers: { apikey: ONLINE.key }, signal: ctl.signal });
+    clearTimeout(t);
+    onl.reach = res.ok ? 'ok' : 'blocked';
+    if (!res.ok) onl.reachWhy = 'The server answered ' + res.status;
+  } catch (e) { onl.reach = 'blocked'; onl.reachWhy = String((e && e.message) || e).slice(0, 80); }
+  if (state && state.tab === 'bag' && !sheetOpen()) renderView();
+  if (onl.reach === 'ok') {
+    const f = $('#name-form');   // the first screen was drawn before the answer came back
+    if (f && !$('#scene-root [data-act="online-open"]')) f.insertAdjacentHTML('afterend', '<p class="sub" style="text-align:center">Already have a farm online? <button class="linkish" data-act="online-open" data-id="signin">Sign in</button></p>');
+  }
+  return onl.reach === 'ok';
+}
 
 function storeOnline() { try { if (online) localStorage.setItem(ONLINE_STORE, JSON.stringify(online)); else localStorage.removeItem(ONLINE_STORE); } catch (e) { /* storage blocked */ } }
 function readOnline() { try { const raw = localStorage.getItem(ONLINE_STORE); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
@@ -126,7 +148,7 @@ async function afterSignIn(isNew) {
 }
 /* On opening the game: pick up a farm played on another device, or send this one up. */
 async function initOnline() {
-  if (!onlineAvailable()) return;
+  if (!(await probeOnline())) return;
   online = readOnline();
   if (!online) return;
   try {
@@ -144,10 +166,16 @@ async function initOnline() {
 
 /* Settings card and the sign-in sheet */
 function onlineCard() {
+  if (inClaude() && onl.reach !== 'ok') {
+    if (onl.reach === 'blocked') return `<div class="card"><h2>Online</h2><p class="sub">This copy runs inside Claude, which keeps pages from reaching outside servers, so online accounts can't work here. Your farm still saves to your Claude account.</p>
+      <p class="sub">Play online on the website: <a class="linkish" href="${SITE_URL}" target="_blank" rel="noopener">${SITE_URL.replace('https://', '')}</a></p>
+      <p class="sub muted" style="font-size:12px">Connection test: blocked${onl.reachWhy ? ` (${esc(onl.reachWhy)})` : ''}</p></div>`;
+    return '<div class="card"><h2>Online</h2><p class="sub">Checking whether online play can work here…</p></div>';
+  }
   if (!onlineAvailable()) return '';
-  if (!online) return `<div class="card"><h2>Online</h2><p class="sub">Make an account to keep your farm safe online and play it on any device.</p>
+  if (!online) return `<div class="card"><h2>Online</h2>${inClaude() ? '<p class="sub muted" style="font-size:12px">Connection test: reached the online server from inside Claude.</p>' : ''}<p class="sub">Make an account to keep your farm safe online and play it on any device.</p>
       <div class="row"><button class="btn small" data-act="online-open" data-id="signup">Create account</button><button class="btn small ghost" data-act="online-open" data-id="signin">Sign in</button></div></div>`;
-  return `<div class="card"><h2>Online</h2><p class="sub">Signed in as <b>${esc(online.username)}</b>. ${onl.busy ? 'Saving…' : online.syncedAt ? `Saved online ${agoText(online.syncedAt)}.` : ''}</p>
+  return `<div class="card"><h2>Online</h2>${inClaude() ? '<p class="sub muted" style="font-size:12px">Connection test: reached the online server from inside Claude.</p>' : ''}<p class="sub">Signed in as <b>${esc(online.username)}</b>. ${onl.busy ? 'Saving…' : online.syncedAt ? `Saved online ${agoText(online.syncedAt)}.` : ''}</p>
       ${onl.err ? `<p class="sub" style="color:var(--berry)">${esc(onl.err)}</p>` : ''}
       <div class="row"><button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-signout">Sign out</button></div></div>`;
 }
