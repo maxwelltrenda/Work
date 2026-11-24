@@ -374,6 +374,9 @@ function handle(act, el, e) {
     case 'start-over-yes': startOver(); return false;
     case 'online-link-make': makeLink(); return false;
     case 'vil-found': foundSheet(); return false;
+    case 'raid-open': openRaid(); return false;
+    case 'raid-start': raidStart(id); return false;
+    case 'raid-claim': raidClaim(); return false;
     case 'class-pick': classPickSheet(); return false;
     case 'fight': fightSheet(id); return false;
     case 'fight-pal': { const w = fightPick.with; if (w.includes(id)) fightPick.with = w.filter(x => x !== id); else if (w.length < 2) w.push(id); else { w.shift(); w.push(id); } return true; }

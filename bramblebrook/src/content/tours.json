@@ -476,6 +476,30 @@
           "text": "On your turn, pick a move, then tap who to use it on. Friends who came along take their own turns. Losing costs nothing: everyone just limps home."
         }
       ]
+    },
+    "raid": {
+      "title": "Village boss",
+      "steps": [
+        {
+          "target": "#scene-root .raid-stage",
+          "title": "Everyone fights this one",
+          "text": "Every neighbour in your village is fighting the same boss, from the website or from Claude. It stays for two days."
+        },
+        {
+          "target": "#scene-root .raid-bar.might",
+          "title": "Two bars to fill",
+          "text": "Each phase has a Might bar and a Magic bar. Fill both and the boss moves to its next phase. Beat the last phase and the village wins."
+        },
+        {
+          "target": "#scene-root .raid-btns",
+          "title": "Strike or cast",
+          "text": "Each attack costs 1 courage, and courage refills fully every hour. Your class hits its own bar harder: fighters, rogues and rangers on Might, wizards, clerics and bards on Magic."
+        },
+        {
+          "title": "Rewards for joining in",
+          "text": "When the boss falls, everyone who fought gets coins and battle experience for every attack they made, plus a victory share."
+        }
+      ]
     }
   }
 }

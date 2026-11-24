@@ -553,3 +553,53 @@ body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hi
 
 /* a button that needs a perk first: tapping it explains and offers the perk */
 .btn.locked-perk { opacity: .62; }
+
+/* Village boss: the boss picture comes from a strip of four in boss.webp (art from Near Mint) */
+.boss-art { display: block; flex: none; width: 64px; height: 64px; border-radius: 12px; image-rendering: pixelated;
+  background: url(boss.webp) calc(var(--i) * 100% / (var(--n) - 1)) 0 / calc(var(--n) * 100%) 100% no-repeat; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12); }
+.boss-art.big { width: 100%; height: clamp(150px, 27vh, 230px); border-radius: 0; box-shadow: none; background-size: calc(var(--n) * 100%) auto; background-position-y: 40%; }
+.boss-card { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; color: var(--ink); font: inherit; cursor: pointer; border: 1px solid rgba(244, 200, 115, .35); }
+.boss-card .boss-art { width: 84px; height: 84px; }
+.boss-card .bc-text { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.boss-card .bc-text small { color: var(--muted); font-size: 12px; }
+.boss-card .bar i { background: var(--sun); }
+.boss-card .btn { justify-self: start; pointer-events: none; }
+.boss-pick { display: flex; gap: 12px; align-items: flex-start; }
+.boss-pick > div { display: grid; gap: 6px; }
+.boss-reward { border: 1px solid rgba(244, 200, 115, .5); background: linear-gradient(180deg, rgba(244, 200, 115, .1), transparent); }
+.scene.raid { padding: 0 0 calc(18px + env(safe-area-inset-bottom, 0px)); gap: 0; background: #14131c; max-height: 96vh; }
+.raid-top { display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px; padding: 14px 16px 10px; }
+.raid-back { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: #1c1b26; color: var(--ink); font-size: 24px; line-height: 1; cursor: pointer; }
+.raid-title { text-align: center; display: grid; gap: 2px; }
+.raid-title small, .raid-ends small { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.raid-title b { font-family: var(--display); font-size: 19px; color: var(--sun); letter-spacing: .02em; }
+.raid-ends { text-align: right; display: grid; } .raid-ends b { font-variant-numeric: tabular-nums; font-size: 15px; }
+.raid-phases { display: flex; gap: 6px; padding: 0 16px 12px; border-bottom: 1px solid #262433; }
+.raid-phases i { flex: 1; height: 4px; border-radius: 4px; background: #2c2a3a; }
+.raid-phases i.done { background: #b8913f; } .raid-phases i.now { background: var(--sun); box-shadow: 0 0 8px rgba(244, 200, 115, .6); }
+.raid-stage { position: relative; overflow: hidden; }
+.raid-stage::after { content: ''; position: absolute; inset: auto 0 0; height: 30%; background: linear-gradient(transparent, #14131c); pointer-events: none; }
+.raid-stage.hit .boss-art { animation: bShake .35s ease-out; }
+.raid-banner { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 1; padding: 6px 14px; border-radius: 99px; white-space: nowrap;
+  background: rgba(12, 12, 18, .82); border: 1px solid rgba(244, 200, 115, .45); font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--sun); }
+.raid-float { position: absolute; top: 34%; left: 50%; z-index: 2; transform: translateX(-50%); font-weight: 800; font-size: 30px; color: #fff; text-shadow: 0 2px 6px #000; animation: bFloat 1.1s ease-out forwards; pointer-events: none; }
+.raid-float.strong { color: var(--sun); }
+.raid-body { display: grid; gap: 8px; padding: 14px 18px 0; }
+.raid-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; }
+.raid-row > span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+.raid-bar { height: 10px; border-radius: 99px; background: #262433; overflow: hidden; margin-bottom: 4px; }
+.raid-bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); border-radius: inherit; transition: width .45s ease-out; }
+.raid-bar.gold i { background: linear-gradient(90deg, #a5803a, var(--sun)); }
+.raid-bar.might i { background: #e0973f; } .raid-bar.magic i { background: #6aa6d8; }
+.raid-k { font-weight: 700; font-size: 13px; } .raid-k.might { color: #f0a957; } .raid-k.magic { color: #8cc0ea; }
+.raid-text { margin: 0 0 4px; font-style: italic; color: #c9c6d8; font-size: 14px; line-height: 1.45; }
+.raid-courage { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 6px; } .raid-courage b { color: var(--ink); }
+.raid-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.raid-btns .btn { display: grid; gap: 2px; padding: 12px; border-radius: 14px; border: 0; font: inherit; cursor: pointer; }
+.raid-btns .btn b { font-size: 16px; } .raid-btns .btn small { font-size: 11.5px; opacity: .8; }
+.btn.raid-might { background: #e0973f; color: #24170a; } .btn.raid-magic { background: #6aa6d8; color: #0c1a26; }
+.raid-btns .btn:disabled { opacity: .45; cursor: default; }
+.raid-hint { font-size: 12px; text-align: center; margin: 2px 0 6px; }
+.raid-top-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13px; }
+.raid-top-list li { display: flex; justify-content: space-between; color: var(--muted); } .raid-top-list li span:first-child { color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .raid-stage.hit .boss-art, .raid-float { animation: none !important; } }

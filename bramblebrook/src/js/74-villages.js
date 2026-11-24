@@ -38,12 +38,13 @@ async function loadVillage() {
     if (viaLink()) {
       const r = (await linkCall('village')) || {};
       vil.defs = r.defs || vil.defs;
-      if (!r.mine) { vil.data = null; vil.members = []; vil.board = []; vil.list = r.list || []; }
+      if (!r.mine) { vil.data = null; vil.members = []; vil.board = []; vil.raid = null; vil.list = r.list || []; }
       else {
         vil.data = Object.assign({}, r.village, { buildings: r.buildings || [], role: r.mine.role });
         vil.members = r.members || []; vil.board = r.board || [];
         vil.profiles = {};
         for (const p of r.profiles || []) vil.profiles[p.id] = p;
+        takeRaid(r.raid);
       }
       vil.err = ''; vil.at = Date.now(); keepPerks(); vil.loading = false;
       return;
@@ -51,7 +52,7 @@ async function loadVillage() {
     if (!vil.defs.length) vil.defs = await onlineApi('/rest/v1/village_building_defs?select=*&order=sort', { auth: true });
     const mine = await onlineApi(`/rest/v1/village_members?user_id=eq.${online.user}&select=village_id,role`, { auth: true });
     if (!mine.length) {
-      vil.data = null; vil.members = []; vil.board = [];
+      vil.data = null; vil.members = []; vil.board = []; vil.raid = null;
       vil.list = await rpc('list_villages');
     } else {
       const id = mine[0].village_id;
@@ -67,6 +68,7 @@ async function loadVillage() {
       const ps = ids.length ? await rpc('get_profiles', { p_ids: ids }) : [];
       vil.profiles = {};
       for (const p of ps) vil.profiles[p.id] = p;
+      try { takeRaid(await rpc('raid_status')); } catch (e) { /* the boss shows next time */ }
     }
     vil.err = ''; vil.at = Date.now();
     keepPerks();
@@ -137,6 +139,7 @@ function villageHome() {
       <p class="vil-treasury">Treasury <b class="num">${fmtN(v.treasury)}</b> coins</p>
       <div class="row">${[100, 1000, 10000].map(n => `<button class="btn small ghost" data-act="vil-give" data-n="${n}" ${state.coins >= n ? '' : 'disabled'}>Give ${fmtN(n)}</button>`).join('')}</div>
       <p class="sub">You are ${elder ? 'an elder: you decide what the treasury builds' : 'a neighbour'}. Perks below apply to everyone who lives here.</p></div>
+    ${bossCardHTML()}
     <div class="label">Notice board</div>
     <div class="card"><form class="vil-say-form" id="vil-say-form"><input id="vil-say" maxlength="280" placeholder="Say something to the village" value="${esc(vil.draft)}"><button class="btn small" type="submit">Post</button></form>
       <div id="vil-board" class="vil-board">${boardHTML()}</div></div>

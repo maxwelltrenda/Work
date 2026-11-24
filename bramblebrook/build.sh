@@ -31,5 +31,5 @@ const head = [
 fs.writeFileSync('public/index.html', head + '\n' + page + '\n</body>\n</html>\n');
 console.log(`game.html ${(page.length / 1024).toFixed(0)} KB, content.json ${(JSON.stringify(content).length / 1024).toFixed(0)} KB`);
 JS
-cp assets/atlas.png assets/stage.png assets/icon.svg assets/manifest.webmanifest assets/icon-180.png assets/icon-192.png assets/icon-512.png public/
+cp assets/atlas.png assets/stage.png assets/boss.webp assets/icon.svg assets/manifest.webmanifest assets/icon-180.png assets/icon-192.png assets/icon-512.png public/
 echo "Built game.html and public/"

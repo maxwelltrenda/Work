@@ -30,4 +30,4 @@ Every feature ships to **both** the website and the Claude Artifact, the same da
 Progress is saved in the browser. With an account (website) or a linked connector (Artifact) it also saves online and follows the player between the two. **Bag → Settings** has a save code and Start over.
 
 ## Art credits
-Crops, icons and villagers come from CraftPix packs and Nine Realms Midgard Villagers (via the Hearthhold art library). Check each pack's licence before a public store release.
+Crops, icons and villagers come from CraftPix packs and Nine Realms Midgard Villagers (via the Hearthhold art library). The village boss pictures (`assets/boss.webp`) come from the art of Near Mint, our card game. Check each pack's licence before a public store release.
