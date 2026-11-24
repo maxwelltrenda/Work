@@ -252,8 +252,8 @@
         {
           "type": "level",
           "skill": "foraging",
-          "lvl": 4,
-          "t": "Reach Foraging level 4 to find your way in the Mossy Woods",
+          "lvl": 8,
+          "t": "Reach Foraging level 8 to find your way in the Mossy Woods",
           "scene": [
             {
               "say": "The Mossy Woods start to make sense: which paths loop, which mushrooms are friendly, which squirrels hold grudges."
@@ -264,10 +264,10 @@
           "type": "deliver",
           "to": "oakley",
           "want": {
-            "plank": 30,
-            "twine": 12
+            "plank": 50,
+            "twine": 20
           },
-          "t": "Bring 15 planks and 5 twine to Mayor Oakley",
+          "t": "Bring 50 planks and 20 twine to Mayor Oakley",
           "scene": [
             {
               "say": "It takes a morning of hammering, one pinched thumb and several words Oakley pretends not to hear. Then the footbridge stands straight and sure."
@@ -281,7 +281,7 @@
             },
             {
               "who": "oakley",
-              "say": "Tobin will want to bless it. Old ferryman's custom: three minnows from Lily Pond for every new bridge. Don't ask me why. I've asked. Tobin just nods."
+              "say": "Tobin will want to bless it. Old ferryman's custom: six minnows from Lily Pond for every new bridge. Don't ask me why. I've asked. Tobin just nods."
             }
           ]
         },
@@ -294,8 +294,8 @@
         {
           "type": "level",
           "skill": "farming",
-          "lvl": 6,
-          "t": "Reach Farming level 6 so the farm can feed the work crew",
+          "lvl": 10,
+          "t": "Reach Farming level 10 so the farm can feed the work crew",
           "scene": [
             {
               "say": "The farm has a rhythm now: sow, water, wait, gather. The work crew will eat well."
@@ -305,11 +305,11 @@
         {
           "type": "talk",
           "to": "tobin",
-          "t": "Show Old Tobin your three minnows",
+          "t": "Show Old Tobin your six minnows",
           "scene": [
             {
               "who": "tobin",
-              "say": "Three minnows. Hm. Good ones."
+              "say": "Six minnows. Hm. Good ones."
             },
             {
               "who": "you",
@@ -413,7 +413,7 @@
             },
             {
               "who": "mira",
-              "say": "I've got the patience now. What I need is twelve stone blocks for the hearth and eight coal to wake her up."
+              "say": "I've got the patience now. What I need is forty stone blocks for the hearth and thirty coal to wake her up."
             },
             {
               "who": "mira",
@@ -424,8 +424,8 @@
         {
           "type": "level",
           "skill": "foraging",
-          "lvl": 7,
-          "t": "Reach Foraging level 7 to read the Old Quarry's seams",
+          "lvl": 12,
+          "t": "Reach Foraging level 12 to read the Old Quarry's seams",
           "scene": [
             {
               "say": "The Old Quarry no longer looks like a heap of grey. You can read it now: black seams of coal, green stains of copper, the dull red of iron."
@@ -436,10 +436,10 @@
           "type": "deliver",
           "to": "mira",
           "want": {
-            "block": 25,
-            "coal": 16
+            "block": 40,
+            "coal": 30
           },
-          "t": "Bring 12 stone blocks and 8 coal to Mira",
+          "t": "Bring 40 stone blocks and 30 coal to Mira",
           "scene": [
             {
               "say": "Together you rebuild the hearth, block by block. Mira lays the last stone, banks the coal and strikes a match."
@@ -456,7 +456,7 @@
             },
             {
               "who": "mira",
-              "say": "Flue's cracked and the bellows have rusted through. Clay to seal the one, copper to refit the other. Ten ore, six clay."
+              "say": "Flue's cracked and the bellows have rusted through. Clay to seal the one, copper to refit the other. Forty ore, twenty clay."
             }
           ]
         },
@@ -464,10 +464,10 @@
           "type": "deliver",
           "to": "mira",
           "want": {
-            "copper": 20,
-            "clay": 12
+            "copper": 40,
+            "clay": 20
           },
-          "t": "Bring 10 copper ore and 6 clay to Mira",
+          "t": "Bring 40 copper ore and 20 clay to Mira",
           "scene": [
             {
               "say": "Mira packs the flue with clay and fits the bellows with bright new copper. She pumps once. Twice."
@@ -488,8 +488,8 @@
         {
           "type": "level",
           "skill": "crafting",
-          "lvl": 8,
-          "t": "Reach Crafting level 8 so Mira trusts you at the anvil",
+          "lvl": 11,
+          "t": "Reach Crafting level 11 so Mira trusts you at the anvil",
           "scene": [
             {
               "say": "Your joints are tight and your edges are square. Mira runs a thumb along your latest plank and grunts, which from Mira is practically a speech."
@@ -619,11 +619,11 @@
           "type": "deliver",
           "to": "mira",
           "want": {
-            "copperbar": 10,
-            "plank": 20,
-            "rope": 5
+            "copperbar": 20,
+            "plank": 40,
+            "rope": 10
           },
-          "t": "Bring Mira 5 copper bars, 10 planks and 2 rope for the mine",
+          "t": "Bring Mira 20 copper bars, 40 planks and 10 rope for the mine",
           "scene": [
             {
               "who": "mira",
@@ -661,8 +661,8 @@
         {
           "type": "level",
           "skill": "mining",
-          "lvl": 9,
-          "t": "Reach Mining level 9",
+          "lvl": 16,
+          "t": "Reach Mining level 16",
           "scene": [
             {
               "say": "Your swing has found its rhythm. The rock rings back at you, as if it approves."
@@ -775,8 +775,8 @@
         {
           "type": "stat",
           "stat": "cooked",
-          "n": 20,
-          "t": "Cook 20 dishes in the farmhouse kitchen",
+          "n": 40,
+          "t": "Cook 40 dishes in the farmhouse kitchen",
           "scene": [
             {
               "say": "The farmhouse smells of warm bread for the first time in eight years. Even the kettle seems pleased about it."
@@ -784,13 +784,24 @@
           ]
         },
         {
+          "type": "level",
+          "skill": "cooking",
+          "lvl": 7,
+          "t": "Reach Cooking level 7 so the judges take your pies seriously",
+          "scene": [
+            {
+              "say": "Your crusts flake, your fillings set, and Clem has stopped hovering at your elbow."
+            }
+          ]
+        },
+        {
           "type": "deliver",
           "to": "clem",
           "want": {
-            "bread": 15,
-            "berrypie": 6
+            "bread": 25,
+            "berrypie": 12
           },
-          "t": "Bring Gran 6 loaves of bread and 2 berry pies",
+          "t": "Bring Gran 25 loaves of bread and 12 berry pies",
           "scene": [
             {
               "who": "clem",
@@ -813,11 +824,11 @@
           "type": "deliver",
           "to": "oakley",
           "want": {
-            "bouquet": 10,
-            "candle": 8,
-            "basket": 3
+            "bouquet": 20,
+            "candle": 15,
+            "basket": 6
           },
-          "t": "Bring Mayor Oakley 4 bouquets, 4 candles and a basket",
+          "t": "Bring Mayor Oakley 20 bouquets, 15 candles and 6 baskets",
           "scene": [
             {
               "who": "oakley",
@@ -842,8 +853,8 @@
         {
           "type": "level",
           "skill": "farming",
-          "lvl": 12,
-          "t": "Reach Farming level 12: the fair judges only look at serious growers",
+          "lvl": 21,
+          "t": "Reach Farming level 21: the fair judges only look at serious growers",
           "scene": [
             {
               "say": "Your rows run straight, your soil is dark and rich, and folk have started leaning on your fence to watch."
@@ -957,8 +968,8 @@
         {
           "type": "gather",
           "item": "crystal",
-          "n": 10,
-          "t": "Find 10 sky crystals in the mine"
+          "n": 20,
+          "t": "Find 20 sky crystals in the mine"
         },
         {
           "type": "adventure",
@@ -976,8 +987,8 @@
         {
           "type": "level",
           "skill": "fishing",
-          "lvl": 12,
-          "t": "Reach Fishing level 12 to read the tides at the cove",
+          "lvl": 18,
+          "t": "Reach Fishing level 18 to read the tides at the cove",
           "scene": [
             {
               "say": "You can tell the tide by the colour of the water now, and the fish by the shape of the ripple."
@@ -989,9 +1000,9 @@
           "to": "rook",
           "want": {
             "lens": 1,
-            "lantern": 4
+            "lantern": 8
           },
-          "t": "Bring Captain Rook a lighthouse lens and 2 lanterns",
+          "t": "Bring Captain Rook a lighthouse lens and 8 lanterns",
           "scene": [
             {
               "who": "rook",
@@ -1100,7 +1111,7 @@
             },
             {
               "who": "oakley",
-              "say": "But now there's a forge, and a mine, and you. Thirty stone blocks, six iron bars, four ropes, and I'll rally every strong back in town."
+              "say": "But now there's a forge, and a mine, and you. A hundred stone blocks, thirty iron bars, twenty ropes, and I'll rally every strong back in town."
             },
             {
               "who": "oakley",
@@ -1112,11 +1123,11 @@
           "type": "deliver",
           "to": "oakley",
           "want": {
-            "block": 50,
-            "ironbar": 15,
-            "rope": 10
+            "block": 100,
+            "ironbar": 30,
+            "rope": 20
           },
-          "t": "Bring Mayor Oakley 30 stone blocks, 6 iron bars and 4 ropes",
+          "t": "Bring Mayor Oakley 100 stone blocks, 30 iron bars and 20 ropes",
           "scene": [
             {
               "say": "Half of Bramblebrook turns out with barrows and crowbars. Mira drives the rock bolts. Gran brings sandwiches. Pip supervises Oakley, who supervises everyone."
@@ -1165,8 +1176,8 @@
         {
           "type": "level",
           "skill": "foraging",
-          "lvl": 12,
-          "t": "Reach Foraging level 12 to cross the high moor safely",
+          "lvl": 20,
+          "t": "Reach Foraging level 20 to cross the high moor safely",
           "scene": [
             {
               "say": "You know the moor now: which tussocks hold your weight, which clouds mean rain, which sheep mean trouble."
@@ -1314,6 +1325,28 @@
             },
             {
               "say": "Somewhere in these walls is star-iron. Dig out a shard, and the forge can do the rest."
+            }
+          ]
+        },
+        {
+          "type": "level",
+          "skill": "mining",
+          "lvl": 22,
+          "t": "Reach Mining level 22: the deep seams only answer a steady hand",
+          "scene": [
+            {
+              "say": "You can hear the difference now between rock that is only rock and rock that is listening."
+            }
+          ]
+        },
+        {
+          "type": "level",
+          "skill": "crafting",
+          "lvl": 17,
+          "t": "Reach Crafting level 17 to work star-iron",
+          "scene": [
+            {
+              "say": "Mira hands you her second-best hammer without a word. It is the nicest thing she has ever done for anyone."
             }
           ]
         },
@@ -1504,8 +1537,8 @@
         {
           "type": "level",
           "skill": "farming",
-          "lvl": 20,
-          "t": "Reach Farming level 20: only a seasoned hand can coax a Moonbloom",
+          "lvl": 28,
+          "t": "Reach Farming level 28: only a seasoned hand can coax a Moonbloom",
           "scene": [
             {
               "say": "Wren watches you work a row and nods slowly. 'You've got her hands,' she says. 'Patient ones.'"

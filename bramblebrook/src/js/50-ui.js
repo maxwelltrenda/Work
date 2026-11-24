@@ -116,7 +116,8 @@ function holdToasts() {
 }
 function placeToasts() {
   const sk = $('#skills'), top = $('.top');
-  const y = sk && sk.offsetHeight ? sk.getBoundingClientRect().top : top ? top.getBoundingClientRect().bottom : 0;
+  // over the skill bars normally; with a sheet up, at the very top, above the sheet
+  const y = $('#sheet-root .sheet') ? 8 : sk && sk.offsetHeight ? sk.getBoundingClientRect().top : top ? top.getBoundingClientRect().bottom : 0;
   document.documentElement.style.setProperty('--toast-top', Math.max(0, Math.round(y)) + 'px');
 }
 
@@ -125,10 +126,11 @@ let sheetFn = null;
 function openSheet(html, refresh) {
   sheetFn = refresh || null;
   $('#sheet-root').innerHTML = `<div class="sheet-wrap" data-act="sheet-close"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+  placeToasts();
   const first = $('#sheet-root .sheet button');
   if (first) first.focus({ preventScroll: true });
 }
-function closeSheet() { sheetFn = null; $('#sheet-root').innerHTML = ''; }
+function closeSheet() { sheetFn = null; $('#sheet-root').innerHTML = ''; placeToasts(); }
 const sheetOpen = () => !!$('#sheet-root').innerHTML;
 
 function itemSheet(id) {
@@ -199,7 +201,12 @@ function journalHTML() {
       let extra = '';
       if (nowStep) {
         const [a, b] = stepProgress(s);
-        if (s.type === 'deliver') extra = `<div class="needs" style="margin-top:4px">${Object.entries(s.want).map(([id, n]) => chip(id, `${Math.min(have(id), n)}/${n}`, have(id) >= n ? '' : 'short')).join('')}</div>`;
+        if (s.type === 'deliver') {
+          extra = `<div class="needs" style="margin-top:4px">${Object.entries(s.want).map(([id, n]) => chip(id, `${Math.min(have(id), n)}/${n}`, have(id) >= n ? '' : 'short')).join('')}</div>`;
+          // a delivery bigger than the barn holds is a hidden wall unless we say so
+          const most = Math.max(...Object.values(s.want));
+          if (most > cap()) { const fit = C.core.barn.find(b => b.cap >= most); extra += `<p class="sub barn-note">Your barn holds ${fmtN(cap())} of each item. ${fit ? `Upgrade to the ${esc(fit.n)} in Town › Shops to carry ${fmtN(most)}.` : 'Upgrade it in Town › Shops.'}</p>`; }
+        }
         else if (autoStep(s) && s.type !== 'adventure') extra = `<div class="row" style="margin-top:4px"><span class="num sub">${fmtN(Math.min(a, b))}/${fmtN(b)}</span><span style="flex:1">${progressBar(a, b)}</span></div>`;
         else if (s.type === 'adventure') { const adv = I.adv[s.id]; extra = `<p class="sub">${adv ? (reqMet(adv.req) ? `Ready: ${esc(adv.n)}` : esc(reqProblems(adv.req).join(', '))) : ''}</p>`; }
       }

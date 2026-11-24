@@ -279,7 +279,7 @@ textarea { min-height: 70px; resize: vertical; font: 12px/1.4 ui-monospace, Menl
 .badge { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 4px; border-radius: 99px; background: var(--berry); color: var(--accent-ink); font-size: 10px; line-height: 17px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
 
 /* Toasts, sheets, scenes */
-.toasts { position: fixed; left: 0; right: 0; top: var(--toast-top, 64px); z-index: 12; display: grid; justify-items: center; gap: 6px; pointer-events: none; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.toasts { position: fixed; left: 0; right: 0; top: var(--toast-top, 64px); transition: top .2s ease; z-index: 12; display: grid; justify-items: center; gap: 6px; pointer-events: none; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hidden; }
 .toast { background: var(--ink); color: var(--bg); border-radius: 12px; padding: 9px 14px; font-size: 14px; font-weight: 700; max-width: 520px; box-shadow: 0 6px 18px rgba(0,0,0,.28); animation: toastDrop .26s cubic-bezier(.2, .8, .3, 1); pointer-events: auto; cursor: pointer; white-space: pre-line; text-align: center; }
 @keyframes toastDrop { from { opacity: 0; transform: translateY(-10px); } }
@@ -320,10 +320,10 @@ body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hi
 .page-text { font-size: 16px; line-height: 1.6; white-space: pre-line; background: var(--bg); border-radius: 12px; padding: 14px; border: 1px solid var(--line); }
 .steps { display: grid; gap: 6px; }
 .step { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
-.step i { width: 20px; height: 20px; border-radius: 50%; flex: none; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 800; border: 1.5px solid var(--line); margin-top: 1px; }
+.step > i { width: 20px; height: 20px; border-radius: 50%; flex: none; display: grid; place-items: center; font-style: normal; font-size: 12px; font-weight: 800; border: 1.5px solid var(--line); margin-top: 1px; }
 .step.done { color: var(--muted); }
-.step.done i { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.step.now i { border-color: var(--sun); background: var(--sun-soft); }
+.step.done > i { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.step.now > i { border-color: var(--sun); background: var(--sun-soft); }
 .step.now { font-weight: 700; }
 .boot { min-height: 70vh; display: grid; place-items: center; text-align: center; color: var(--muted); }
 

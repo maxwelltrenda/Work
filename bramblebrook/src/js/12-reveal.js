@@ -1,4 +1,5 @@
-/* ---------- gradual reveal: tabs, sub-tabs, skills and systems appear as they become useful ---------- */
+/* ---------- gradual reveal: tabs, sub-tabs, skills and systems appear as they become useful ----------
+   After the prologue, the town opens up over the first week: board on day 2, almanac day 3, inn day 5, bestiary day 7. */
 const FEATURES = {
   'tab:fish': () => chapterDone('prologue') || lvl('fishing') > 1,
   'tab:make': () => chapterDone('prologue') || lvl('crafting') > 1,
@@ -6,14 +7,14 @@ const FEATURES = {
   'farm:animals': () => unlocked('coop'),
   'farm:pets': () => (C.core.pets || []).some(p => unlocked(p.unlock)),
   'wilds:mine': () => unlocked('mine'),
-  'town:inn': () => chapterDone('bridge') && (I.advs.some(a => state.advDone[a.id] || reqMet(a.req)) || openDelves().length > 0),
-  'bag:bestiary': () => chapterDone('bridge') || Object.keys(state.bestiary || {}).length > 0,
+  'town:inn': () => chapterDone('prologue') && dayNumber() >= 5 && (I.advs.some(a => state.advDone[a.id] || reqMet(a.req)) || openDelves().length > 0),
+  'bag:bestiary': () => (chapterDone('prologue') && dayNumber() >= 7) || Object.keys(state.bestiary || {}).length > 0,
   'make:kitchen': () => unlocked('kitchen'),
   'make:bench': () => unlocked(C.core.workbench.unlock),
   'make:cellar': () => unlocked(C.core.cellar.unlock),
-  'town:board': () => chapterDone('bridge'),
+  'town:board': () => chapterDone('prologue') && dayNumber() >= 2,
   'town:mail': () => state.mail.length > 0,
-  'bag:almanac': () => chapterDone('bridge'),
+  'bag:almanac': () => chapterDone('prologue') && dayNumber() >= 3,
   'bag:feats': () => chapterDone('prologue') || Object.keys(state.ach).length > 0,
   'bag:perks': () => chapterDone('mine') || Object.keys(state.perks || {}).length > 0,
   'skill:fishing': () => featureOn('tab:fish'),
