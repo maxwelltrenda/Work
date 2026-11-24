@@ -130,7 +130,7 @@ function openSheet(html, refresh) {
   const first = $('#sheet-root .sheet button');
   if (first) first.focus({ preventScroll: true });
 }
-function closeSheet() { sheetFn = null; $('#sheet-root').innerHTML = ''; placeToasts(); }
+function closeSheet() { sheetFn = null; $('#sheet-root').innerHTML = ''; $('#sheet-root').classList.remove('over-scene'); placeToasts(); }
 const sheetOpen = () => !!$('#sheet-root').innerHTML;
 
 function itemSheet(id) {
@@ -359,6 +359,11 @@ function handle(act, el, e) {
       if (!m || m.claimed || !l || !l.give) return false;
       m.claimed = true; const lines = applyGive(l.give); toast(lines.join(' · ')); closeSheet(); break;
     }
+    case 'online-open': onlineSheet(id === 'signin' ? 'signin' : 'signup'); return false;
+    case 'online-sync': pushCloud().then(() => { renderView(); toast(onl.err ? onl.err : 'Saved online'); }); renderView(); return false;
+    case 'online-signout': onlineSignOut(); break;
+    case 'online-use-cloud': if (onl.pending) useCloud(onl.pending); onl.pending = null; return false;
+    case 'online-keep-local': onl.pending = null; closeSheet(); pushCloud().then(() => { renderView(); toast(onl.err ? onl.err : 'This farm is now the one saved online'); }); return false;
     case 'export': {
       let code = '';
       try { code = btoa(unescape(encodeURIComponent(JSON.stringify(state)))); } catch (err) { code = ''; }

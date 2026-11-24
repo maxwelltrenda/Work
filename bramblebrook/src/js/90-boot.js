@@ -15,6 +15,7 @@ function commit() {
   clearTimeout(localTimer);
   localTimer = setTimeout(saveLocal, 300);
   if (cloud.ready) { clearTimeout(cloud.timer); cloud.timer = setTimeout(saveCloud, 4000); }
+  onlineChanged();
   updateHeader();
   renderView();
   updateBadges();
@@ -62,6 +63,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && state) {
     saveLocal();
     if (cloud.ready && cloud.timer) { clearTimeout(cloud.timer); cloud.timer = 0; saveCloud(); }
+    onlineFlush();
   }
 });
 
@@ -95,6 +97,7 @@ function start(data) {
   else if (!state.bg) createCharacter(false);
   else storyCheck();
   initCloud();
+  initOnline();
 }
 async function boot() {
   try {

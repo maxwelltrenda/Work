@@ -294,7 +294,8 @@ function askName() {
       <label class="label" for="name-in">What should folks call you?</label>
       <input type="text" id="name-in" maxlength="20" autocomplete="nickname" placeholder="Your name">
       <button class="btn big" type="submit">Head to the valley</button>
-    </form>`);
+    </form>
+    ${onlineAvailable() ? '<p class="sub" style="text-align:center">Already have a farm online? <button class="linkish" data-act="online-open" data-id="signin">Sign in</button></p>' : ''}`);
   $('#name-in').focus();
   $('#name-form').addEventListener('submit', e => {
     e.preventDefault();

@@ -404,7 +404,7 @@ function viewFeats() {
 }
 function viewSettings() {
   const s = state.stats;
-  const where = cloud.ready ? 'Saved to your Claude account and on this device.' : 'Saved on this device. Use a save code to move your farm to another device.';
+  const where = cloud.ready ? 'Saved to your Claude account and on this device.' : online ? 'Saved online to your account and on this device.' : 'Saved on this device. Make an account above, or use a save code, to move your farm to another device.';
   return `<div class="card"><h2>${esc(state.name || 'Your farmer')}</h2><div class="stats">
       <div class="stat"><b>${dayNumber()}</b><span>days in the valley</span></div>
       <div class="stat"><b>${fmtN(s.harvested)}</b><span>crops harvested</span></div>
@@ -415,6 +415,7 @@ function viewSettings() {
       <div class="stat"><b>${fmtN(s.cooked)}</b><span>meals cooked</span></div>
       <div class="stat"><b>${fmtN(s.earned)}</b><span>coins from sales</span></div>
     </div></div>
+    ${onlineCard()}
     <div class="card"><h2>Sound</h2>
       <div class="toggle"><div class="what"><b>Sound effects</b><small>Soft sounds for harvesting, fishing, coins and story moments</small></div><button class="switch" role="switch" aria-label="Sound effects" aria-checked="${!state.opts.soundOff}" data-act="opt" data-id="soundOff"></button></div>
       ${state.opts.soundOff ? '' : `<label class="label" for="vol">Volume</label><input type="range" class="vol" id="vol" min="0" max="100" value="${Math.round(volume() * 100)}">`}</div>
