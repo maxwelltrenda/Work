@@ -23,8 +23,11 @@ A cozy, menu-based farming RPG for phone and browser. You inherit your great-aun
 - `tools/build_atlas.py` builds `assets/atlas.png` from the Hearthhold art packs (`python3 tools/build_atlas.py /path/to/hearthhold/art/packs`). Items not in its table fall back to emoji.
 - `build.sh` writes `game.html` (the Claude Artifact page) and `public/` (the live site). Vercel runs it on deploy.
 
+## Two versions, one game
+Every feature ships to **both** the website and the Claude Artifact, the same day. The Artifact cannot reach outside servers, so anything online (accounts, saves, villages, profiles) goes through the player's own **Bramblebrook Farm** connector (`supabase/functions/farm-mcp`), which calls the same database functions the website does. Adding an online feature means adding it to the website path, the connector, and the Artifact's declared connector tools.
+
 ## Saves
-Progress is saved in the browser. In the Artifact it is also saved to the player's Claude account. **Bag → Settings** has a save code for moving a farm between devices.
+Progress is saved in the browser. With an account (website) or a linked connector (Artifact) it also saves online and follows the player between the two. **Bag → Settings** has a save code and Start over.
 
 ## Art credits
 Crops, icons and villagers come from CraftPix packs and Nine Realms Midgard Villagers (via the Hearthhold art library). Check each pack's licence before a public store release.
