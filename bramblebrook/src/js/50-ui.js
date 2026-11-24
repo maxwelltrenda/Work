@@ -45,7 +45,7 @@ function updateBadges() {
   set('bag', (featureOn('bag:perks') ? perkPointsFree() : 0) + (overflowCount() ? 1 : 0));
   set('wilds', 0);
   ensureChores();
-  set('town', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length + (featureOn('town:inn') ? I.advs.filter(a => !state.advDone[a.id] && reqMet(a.req)).length + openDelves().length : 0)
+  set('town', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length + (featureOn('town:inn') ? innNew() : 0)
     + (featureOn('town:board') ? state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length : 0) + state.mail.filter(m => !m.read).length
     + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0) + (socialOn() ? soc.dms : 0));
   updateSocialBadges();
@@ -293,7 +293,8 @@ function handle(act, el, e) {
     case 'collect': { const g = collectAnimal(I.animal[id]); if (g === -1) { toast(`Your barn is full of ${itemName(I.animal[id].produce)}.`); return false; } if (g) toast(`Collected ${g} ${itemName(I.animal[id].produce)}`); break; }
     case 'collect-all': { let n = 0; I.animals.forEach(a => { const g = collectAnimal(a); if (g > 0) n += g; }); if (n) toast(`Collected ${n} goods`); break; }
     case 'buy-animal': if (!buyAnimal(I.animal[id])) return false; break;
-    case 'pet': if (!petAnimals()) return false; break;
+    case 'pet': if (!perkRank('petall')) { perkSheet('petall'); return false; } if (!petAnimals()) return false; break;
+    case 'pet-pen': if (!petPen(id)) return false; break;
     case 'area': state.area = id; break;
     case 'explore': case 'dig': {
       const n = el.dataset.n === 'all' ? Infinity : +el.dataset.n || 1;

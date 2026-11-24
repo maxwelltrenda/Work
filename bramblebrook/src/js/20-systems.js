@@ -121,13 +121,22 @@ function buyAnimal(a) {
   toast(`A new ${a.one.toLowerCase()} joins the farm`);
   return true;
 }
-function petAnimals() {
-  if (state.petDay === dayKey()) return false;
-  let n = 0;
-  for (const a of I.animals) { const rec = animalRec(a.id); if (rec.n) n += addItem(a.produce, rec.n); }
-  if (!n) { toast('No animals to pet yet.'); return false; }
-  state.petDay = dayKey();
+/* Petting: once a day per pen for bonus goods. Doing every pen in one tap is the Animal Whisperer perk. */
+const pettedToday = id => state.petDay === dayKey() || (state.petted && state.petted.day === dayKey() && !!state.petted.ids[id]);
+function petPen(id, quiet) {
+  const a = I.animal[id], rec = a && animalRec(id);
+  if (!rec || !rec.n || pettedToday(id)) return 0;
+  if (!state.petted || state.petted.day !== dayKey()) state.petted = { day: dayKey(), ids: {} };
+  const n = addItem(a.produce, rec.n);
+  state.petted.ids[id] = 1;
   state.stats.collected += n;
+  if (!quiet) toast(`The ${a.n.toLowerCase()} loved the attention: +${n} ${itemName(a.produce)}`);
+  return n || 1;
+}
+function petAnimals() {
+  let n = 0;
+  for (const a of I.animals) n += petPen(a.id, true);
+  if (!n) { toast('No animals to pet yet.'); return false; }
   toast(`Your animals loved the attention: +${n} goods`);
   return true;
 }

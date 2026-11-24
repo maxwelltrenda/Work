@@ -41,6 +41,7 @@ function viewInn() {
   const rnd = seeded('rumor-' + dayKey());
   const rumor = inn.rumors && inn.rumors.length ? inn.rumors[Math.floor(rnd() * inn.rumors.length)] : '';
   const open = I.advs.filter(a => !state.advDone[a.id] && reqMet(a.req));
+  markInnSeen();   // the red count is for quests you haven't seen yet, not every quest on the board
   const delves = openDelves();
   const done = I.advs.filter(a => state.advDone[a.id]);
   const later = I.advs.length - open.length - done.length;

@@ -73,8 +73,8 @@ function viewFields() {
     <div><div class="label">Seed packets</div><div class="packets">${packets}</div></div>
     <div class="plots">${state.plots.map(plotHTML).join('')}</div>
     <div class="farm-actions">
-      ${perkRank('harvestall') ? `<button class="btn" data-act="harvest-all" ${ready ? '' : 'disabled'}>${hN === Infinity ? 'Harvest all' : `Harvest ${hN}`}${ready ? ` (${Math.min(ready, hN)})` : ''}</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="harvestall">🔒 Harvest several</button>'}
-      ${perkRank('sowall') ? `<button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${Math.min(empty, sN) || ''} ${esc(itemName(seed.id))}${empty ? ` · ${Math.min(empty, sN) * seedCost(seed)}c` : ''}</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="sowall">🔒 Sow several</button>'}
+      ${perkRank('harvestall') ? `<button class="btn" data-act="harvest-all" ${ready ? '' : 'disabled'}>${hN === Infinity ? 'Harvest all' : `Harvest ${hN}`}${ready ? ` (${Math.min(ready, hN)})` : ''}</button>` : ''}
+      ${perkRank('sowall') ? `<button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${Math.min(empty, sN) || ''} ${esc(itemName(seed.id))}${empty ? ` · ${Math.min(empty, sN) * seedCost(seed)}c` : ''}</button>` : ''}
     </div>
     ${have('tonic') ? `<button class="btn sun" data-act="tonic">${pic('tonic', 24)} Use Grow Tonic (${have('tonic')}) · halves growing time</button>` : ''}
     ${featureOn('upgrades') ? `<div class="card"><h2>Farm improvements</h2><div class="upgrades">${ups}</div>
@@ -116,11 +116,16 @@ function viewAnimals() {
       <div style="display:grid;gap:8px">
         <p class="sub">Each makes ${pic(a.produce, 18)} ${esc(itemName(a.produce))} every ${fmtT(a.every)}. ${s.rec.n ? (s.ready ? `<b>${s.ready} ready.</b>` : `Next in ${fmtT(s.next)}.`) : ''}</p>
         <div class="row"><button class="btn small" data-act="collect" data-id="${a.id}" ${s.ready ? '' : 'disabled'}>Collect${s.ready ? ` ${s.ready}` : ''}</button>
+        ${s.rec.n ? `<button class="btn small ${pettedToday(a.id) ? 'ghost' : 'sun'}" data-act="pet-pen" data-id="${a.id}" ${pettedToday(a.id) ? 'disabled' : ''}>${pettedToday(a.id) ? 'Petted today' : 'Pet'}</button>` : ''}
         <button class="btn small ghost" data-act="buy-animal" data-id="${a.id}" ${s.rec.n < a.max && state.coins >= a.cost ? '' : 'disabled'}>Buy ${esc(a.one.toLowerCase())} · ${fmtN(a.cost)}c</button></div>
       </div></div>`;
   }).join('');
   const anyAnimals = I.animals.some(a => animalRec(a.id).n);
-  return `${anyAnimals ? `<button class="btn ${state.petDay === dayKey() ? 'ghost' : 'sun'} wide" data-act="pet" ${state.petDay === dayKey() ? 'disabled' : ''}>${state.petDay === dayKey() ? 'Everyone has been petted today' : 'Pet everyone (once a day, bonus goods)'}</button>` : ''}
+  const allDone = I.animals.every(a => !animalRec(a.id).n || pettedToday(a.id));
+  const petAll = !anyAnimals ? '' : perkRank('petall')
+    ? `<button class="btn ${allDone ? 'ghost' : 'sun'} wide" data-act="pet" ${allDone ? 'disabled' : ''}>${allDone ? 'Everyone has been petted today' : 'Pet everyone (once a day, bonus goods)'}</button>`
+    : '';   // one pen at a time until Animal Whisperer is learned
+  return `${petAll}
     ${animalsReady() > 1 ? '<button class="btn wide" data-act="collect-all">Collect everything</button>' : ''}${cards}`;
 }
 
@@ -154,13 +159,12 @@ function viewExplore() {
     <div class="card"><div class="label">Trail log</div><div class="log">${log}</div></div>
     <div class="label">Places</div><div class="areas">${cards}</div>`;
 }
-/* Several trips at once is the Long Trips perk: each level adds a bigger button (×3, ×10, ×25, then All) */
+/* Several trips at once is the Long Trips perk: each level adds a bigger button (×3, ×10, ×25, then All); none before it */
 function tripButtons(act, s) {
   const p = (C.core.perks || []).find(x => x.id === 'trips'), r = perkRank('trips'), counts = (p && p.counts) || [];
   const label = n => (n === 0 ? 'All' : `×${n}`);
   const btn = n => `<button class="btn ghost" data-act="${act}" data-n="${n === 0 ? 'all' : n}" data-need="1" ${s >= 1 ? '' : 'disabled'}>${label(n)}</button>`;
-  const next = counts[r] !== undefined ? `<button class="btn ghost locked-perk" data-act="need-perk" data-id="trips">🔒 ${label(counts[r])}</button>` : '';
-  return counts.slice(0, r).slice(-2).map(btn).join('') + next;
+  return counts.slice(0, r).slice(-2).map(btn).join('');   // nothing shows until the perk is learned
 }
 function viewMine() {
   const m = state.mine, k = C.core.mine;
@@ -272,7 +276,7 @@ function viewTown() {
   const unread = state.mail.filter(m => !m.read).length;
   const choresReady = state.chores.list.some(c => !c.claimed && choreProgress(c) >= c.n) || (featureOn('daily') && loginReady()) || (featureOn('festival') && festivalOpenCount() > 0);
   const people = I.vils.some(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id)));
-  const head = `<div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>${subtabs('town', { mail: unread > 0, board: choresReady, chat: chatDots(), people, inn: I.advs.some(a => !state.advDone[a.id] && reqMet(a.req)) || openDelves().length > 0 })}`;
+  const head = `<div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>${subtabs('town', { mail: unread > 0, board: choresReady, chat: chatDots(), people, inn: innNew() > 0 })}`;
   if (s === 'village') return head + viewVillage();
   if (s === 'chat') return head + viewChat();
   if (s === 'inn') return head + viewInn();
@@ -368,7 +372,7 @@ function viewMail() {
 /* ---- Bag ---- */
 function viewBag() {
   const s = sub('bag');
-  const head = `<div class="view-head"><h1>${{ sheet: 'Character', items: 'Bag', almanac: 'Almanac', bestiary: 'Bestiary', feats: 'Feats', perks: 'Perks', settings: 'Settings' }[s]}</h1><p>${s === 'items' ? `Barn holds ${fmtN(cap())} of each item` : s === 'almanac' ? `${Object.keys(state.seen).length} of ${Object.keys(I.items).length} found` : s === 'feats' ? `${Object.keys(state.ach).length} of ${I.ach.length} earned` : ''}</p></div>${subtabs('bag')}`;
+  const head = `<div class="view-head"><h1>${{ sheet: 'Character', items: 'Bag', almanac: 'Almanac', bestiary: 'Bestiary', feats: 'Feats', perks: 'Perks', settings: 'Settings' }[s]}</h1><p>${s === 'items' ? `Barn holds ${fmtN(cap())} of each item` : s === 'almanac' ? `${Object.keys(state.seen).length} of ${Object.keys(I.items).length} found` : s === 'feats' ? `${Object.keys(state.ach).length} of ${I.ach.length} earned` : ''}</p></div>${subtabs('bag', { perks: perkPointsFree() > 0, items: overflowCount() > 0 })}`;
   if (s === 'almanac') return head + viewAlmanac();
   if (s === 'feats') return head + viewFeats();
   if (s === 'sheet') return head + viewSheet();

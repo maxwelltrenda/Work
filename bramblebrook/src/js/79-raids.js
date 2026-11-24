@@ -58,7 +58,22 @@ function bossCardHTML() {
   if (R.role !== 'elder') return `${reward}<div class="label">Village boss</div><div class="card"><p class="sub">No boss right now. When an elder summons one, the whole village fights it together for two days, and everyone who joins in shares the reward.</p>${last}</div>`;
   return `${reward}<div class="label">Village boss</div><div class="card"><p class="sub">Summon a boss and the whole village fights it together for two days. Everyone who joins in shares the reward.</p>${last}</div>
     ${(R.defs || []).map(b => `<div class="card boss-pick">${bossArtHTML(b)}<div><b>${esc(b.n)}</b><p class="sub">${esc(b.blurb)}</p>
-      <button class="btn small" data-act="raid-start" data-id="${esc(b.id)}">Summon</button></div></div>`).join('')}`;
+      ${bossFactsHTML(b)}<button class="btn small" data-act="raid-start" data-id="${esc(b.id)}">Summon</button></div></div>`).join('')}`;
+}
+/* What a boss asks of each neighbour and what it pays, so the four can be told apart before summoning. */
+function bossFacts(d) {
+  const per = d.phases.reduce((a, p) => ({ might: a.might + p.might, magic: a.magic + p.magic }), { might: 0, magic: 0 });
+  const attacks = Math.round((per.might + per.magic) / 15);   // a typical hit is about 15 (12 plain, 19 with your class's bar)
+  const level = attacks <= 36 ? 'Easy' : attacks <= 46 ? 'Medium' : 'Hard';
+  const lean = per.might > per.magic * 1.15 ? 'might' : per.magic > per.might * 1.15 ? 'magic' : '';
+  return { attacks, level, lean };
+}
+function bossFactsHTML(d) {
+  const f = bossFacts(d);
+  return `<ul class="boss-facts">
+      <li><b>${f.level}</b> · about ${f.attacks} attacks from each neighbour over ${Math.round(d.hours / 24)} days</li>
+      <li>${f.lean === 'might' ? '⚔️ Needs more Might: fighters, rogues and rangers shine' : f.lean === 'magic' ? '✨ Needs more Magic: wizards, clerics and bards shine' : '⚖️ Even: every class helps the same'}</li>
+      <li>🪙 ${d.coin_per_action} coins and 15 battle experience per attack, +${fmtN(d.victory_bonus)} coins each if it's beaten</li></ul>`;
 }
 
 /* The boss screen: art, phase, the two bars, courage and the attack buttons. */
@@ -78,7 +93,8 @@ function drawRaid() {
   const ends = active ? `<small>Ends in</small><b id="raid-ends">${hms(Date.parse(r.ends_at) - serverNow())}</b>` : '<small>Over</small><b>—</b>';
   const tail = active ? `<div class="raid-courage"><span><b>${Math.floor(c)}</b>/${R.courage_max} courage</span><span id="raid-next">${c >= R.courage_max ? 'Full' : `+1 in ${mmss((1 - (c % 1)) * R.courage_secs * 1000)}`}</span></div>
       <div class="raid-btns">${btn('might', '⚔️ Strike')}${btn('magic', '✨ Cast')}</div>
-      <p class="sub raid-hint">${cls ? `You're a ${esc(cls.n)}: you hit ${MIGHT_CLASSES.includes(cls.id) ? 'Might' : 'Magic'} hardest.` : 'Pick a class on your character sheet to hit one bar harder.'} Courage refills fully every hour.</p>`
+      <p class="sub raid-hint">${cls ? `You're a ${esc(cls.n)}: you hit ${MIGHT_CLASSES.includes(cls.id) ? 'Might' : 'Magic'} hardest.` : 'Pick a class on your character sheet to hit one bar harder.'} Courage refills fully every hour.
+        Each attack pays ${d.coin_per_action} coins, and +${fmtN(d.victory_bonus)} each if the village wins.${R.mine && R.mine.actions ? ` You've attacked ${plural(R.mine.actions, 'time')}.` : ''}</p>`
     : r.status === 'won' ? `<p class="raid-text">The village did it. ${esc(d.n)} is beaten, and everyone who fought gets a share.</p>${R.reward ? '<button class="btn sun big" data-raid="claim">Collect your share</button>' : ''}`
     : `<p class="raid-text">Time ran out and ${esc(d.n)} slipped away. Everyone who fought still gets half a share.</p>${R.reward ? '<button class="btn sun big" data-raid="claim">Collect your share</button>' : ''}`;
   const html = `<div class="raid-top"><button class="raid-back" data-raid="close" aria-label="Back to the village">‹</button>

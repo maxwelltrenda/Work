@@ -39,6 +39,11 @@ function resetPerks() {
   return true;
 }
 
+/* The inn's red count: quests and passages pinned up since you last looked at the board. */
+const innIds = () => I.advs.filter(a => !state.advDone[a.id] && reqMet(a.req)).map(a => a.id).concat(openDelves().map(d => d.id));
+const innNew = () => { const seen = new Set(state.innSeen || []); return innIds().filter(id => !seen.has(id)).length; };
+function markInnSeen() { const ids = innIds(); if (innNew()) { state.innSeen = Array.from(new Set((state.innSeen || []).concat(ids))); saveLocal(); } }
+
 /* Workbench: queue a recipe and it makes one item at a time while you're away. */
 const benchOpen = () => unlocked(C.core.workbench.unlock);
 const benchSecs = r => C.core.workbench.secs.base + r.lvl * C.core.workbench.secs.perLvl;
