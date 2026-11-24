@@ -8,6 +8,8 @@ const ONLINE = {
   domain: 'players.bramblebrook.invalid',                   // sign-in address for a username; no mail is ever sent
 };
 const ONLINE_STORE = 'bramblebrook-online';
+const LINK_STORE = 'bramblebrook-link';          // inside Claude: syncing through the player's own connector
+const LINK_SERVER = 'Bramblebrook Farm';         // the custom connector's name in Claude's settings
 let online = null;          // { user, username, at, rt, exp, cloudAt, syncedAt, dirty }
 const onl = { busy: false, err: '', timer: 0, pending: null, reach: '' };   // reach: '' not checked, 'checking', 'ok', 'blocked'
 const SITE_URL = 'https://bramblebrook-farm.vercel.app';
@@ -33,8 +35,9 @@ async function probeOnline() {
   return onl.reach === 'ok';
 }
 
-function storeOnline() { try { if (online) localStorage.setItem(ONLINE_STORE, JSON.stringify(online)); else localStorage.removeItem(ONLINE_STORE); } catch (e) { /* storage blocked */ } }
-function readOnline() { try { const raw = localStorage.getItem(ONLINE_STORE); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
+const storeKey = () => (inClaude() ? LINK_STORE : ONLINE_STORE);
+function storeOnline() { try { if (online) localStorage.setItem(storeKey(), JSON.stringify(online)); else localStorage.removeItem(storeKey()); } catch (e) { /* storage blocked */ } }
+function readOnline() { try { const raw = localStorage.getItem(storeKey()); return raw ? JSON.parse(raw) : null; } catch (e) { return null; } }
 
 async function onlineApi(path, opts = {}) {
   const headers = { apikey: ONLINE.key, 'Content-Type': 'application/json', ...(opts.headers || {}) };
@@ -85,7 +88,27 @@ function onlineSignOut() {
   toast('Signed out. Your farm stays on this device.');
 }
 
+/* Inside Claude: one call to the player's own Bramblebrook Farm connector. */
+async function linkCall(tool, input) {
+  try { const r = await onl.mcp.callTool(LINK_SERVER, tool, input || {}, { cache: false }); return r.payload; }
+  catch (e) { throw Object.assign(new Error(linkErrText(e)), { code: e && e.code }); }
+}
+function linkErrText(e) {
+  switch (e && e.code) {
+    case 'server_not_connected': case 'server_not_found': return `Add the ${LINK_SERVER} connector in Claude's settings (steps below).`;
+    case 'needs_reauth': return `Reconnect ${LINK_SERVER} in Claude Settings › Connectors.`;
+    case 'approval_required': case 'consent_required': case 'not_in_manifest': return 'Syncing needs your OK first.';
+    case 'selection_required': return `You have more than one connector named ${LINK_SERVER}. Pick one when Claude asks.`;
+    case 'server_unavailable': return 'The farm server did not answer. It will try again.';
+    case 'tool_error': return 'The farm server said: ' + String((e.message || '').slice(0, 120));
+    default: return 'Syncing failed (' + ((e && e.code) || 'unknown') + ').';
+  }
+}
 async function fetchCloud() {
+  if (online.via === 'mcp') {
+    const r = await linkCall('load_farm');
+    return r && r.found ? { data: r.data, summary: r.summary, updated_at: r.updated_at } : null;
+  }
   const rows = await onlineApi(`/rest/v1/saves?select=data,summary,updated_at&user_id=eq.${online.user}`, { auth: true });
   return rows && rows[0] ? rows[0] : null;
 }
@@ -93,12 +116,44 @@ async function pushCloud(keepalive) {
   if (!online || !state || !state.name) return;
   if (onl.busy) { onl.again = true; return; }
   onl.busy = true;
+  if (online.via === 'mcp') {
+    try {
+      const r = await linkCall('save_farm', { data: state, summary: farmSummary(state), ...(online.cloudAt ? { if_updated_at: online.cloudAt } : {}) });
+      if (r && r.conflict) {   // played on the website since: never overwrite it, ask instead
+        onl.busy = false;
+        const row = await fetchCloud();
+        if (row) chooseFarm(row);
+        return;
+      }
+      online.cloudAt = r.updated_at; online.syncedAt = Date.now(); online.dirty = false; onl.err = '';
+      storeOnline();
+    } catch (e) { onl.err = e.message; if (/needs your OK/.test(onl.err)) onl.link = 'approve'; }
+    onl.busy = false;
+    if (onl.again) { onl.again = false; pushCloud(); }
+    return;
+  }
   try {
-    const rows = await onlineApi('/rest/v1/saves', {
-      method: 'POST', auth: true, keepalive,
-      headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
-      body: { user_id: online.user, data: state, summary: farmSummary(state), device: (navigator.userAgent || '').slice(0, 60) },
-    });
+    const body = { user_id: online.user, data: state, summary: farmSummary(state), device: (navigator.userAgent || '').slice(0, 60) };
+    let rows;
+    if (online.cloudAt) {
+      // only replace the copy we last saw; if it changed elsewhere (the Claude copy, another device), ask instead
+      rows = await onlineApi(`/rest/v1/saves?user_id=eq.${online.user}&updated_at=eq.${encodeURIComponent(online.cloudAt)}`, {
+        method: 'PATCH', auth: true, keepalive, headers: { Prefer: 'return=representation' }, body,
+      });
+      if (!rows || !rows.length) {
+        const row = await fetchCloud();
+        onl.busy = false;
+        if (row) { chooseFarm(row); return; }
+        online.cloudAt = null;   // nothing online any more: fall through to a fresh save next time
+        pushCloud();
+        return;
+      }
+    } else {
+      rows = await onlineApi('/rest/v1/saves', {
+        method: 'POST', auth: true, keepalive,
+        headers: { Prefer: 'resolution=merge-duplicates,return=representation' }, body,
+      });
+    }
     online.cloudAt = rows && rows[0] ? rows[0].updated_at : online.cloudAt;
     online.syncedAt = Date.now(); online.dirty = false; onl.err = '';
     storeOnline();
@@ -147,17 +202,44 @@ async function afterSignIn(isNew) {
   chooseFarm(row);
 }
 /* On opening the game: pick up a farm played on another device, or send this one up. */
+async function syncOnOpen() {
+  if (!online.cloudAt) return afterSignIn(false);   // first sync on this device: ask before replacing a started farm
+  const row = await fetchCloud();
+  if (!row) { if (state.name) pushCloud(); return; }
+  const newerOnline = new Date(row.updated_at) > new Date(online.cloudAt);
+  if (!newerOnline) { if (online.dirty) pushCloud(); return; }
+  if (!online.dirty || freshFarm(state)) useCloud(row);
+  else chooseFarm(row);
+}
+/* Inside Claude, where the page cannot reach the server itself: sync through the player's own connector. */
+async function initLink() {
+  let m = null;
+  try { m = await window.claude.use('mcp'); } catch (e) { m = null; }
+  if (!m) { onl.link = 'off'; refreshOnlineCard(); return; }
+  onl.mcp = m;
+  let listed = null;
+  try { listed = await m.listTools(LINK_SERVER); } catch (e) { listed = null; }
+  if (!(listed && listed.servers && listed.servers.some(s => s.server === LINK_SERVER))) { onl.link = 'missing'; refreshOnlineCard(); return; }
+  online = Object.assign(readOnline() || {}, { via: 'mcp' });
+  try {
+    const st = await linkCall('farm_status');   // the first call asks you to allow the connector for this page
+    online.username = st.username; storeOnline();
+    onl.link = 'ready'; onl.err = '';
+    await syncOnOpen();
+  } catch (e) {
+    onl.err = e.message;
+    onl.link = /needs your OK/.test(e.message) ? 'approve' : e.code === 'server_not_connected' ? 'missing' : 'error';
+    if (onl.link !== 'ready' && !online.cloudAt) online = null;
+  }
+  refreshOnlineCard();
+}
+function refreshOnlineCard() { if (state && state.tab === 'bag' && !sheetOpen()) renderView(); }
 async function initOnline() {
-  if (!(await probeOnline())) return;
+  if (!(await probeOnline())) { if (inClaude()) await initLink(); return; }
   online = readOnline();
   if (!online) return;
   try {
-    const row = await fetchCloud();
-    if (!row) { if (state.name) pushCloud(); return; }
-    const newerOnline = !online.cloudAt || new Date(row.updated_at) > new Date(online.cloudAt);
-    if (!newerOnline) { if (online.dirty) pushCloud(); return; }
-    if (!online.dirty || freshFarm(state)) useCloud(row);
-    else chooseFarm(row);
+    await syncOnOpen();
   } catch (e) {
     onl.err = navigator.onLine === false ? 'Offline. Your farm will save online when you are back.' : String(e.message || e);
     if (/refresh token|invalid jwt|not found/i.test(onl.err)) { online = null; storeOnline(); onl.err = 'Please sign in again.'; }
@@ -167,9 +249,24 @@ async function initOnline() {
 /* Settings card and the sign-in sheet */
 function onlineCard() {
   if (inClaude() && onl.reach !== 'ok') {
-    if (onl.reach === 'blocked') return `<div class="card"><h2>Online</h2><p class="sub">This copy runs inside Claude, which keeps pages from reaching outside servers, so online accounts can't work here. Your farm still saves to your Claude account.</p>
-      <p class="sub">Play online on the website: <a class="linkish" href="${SITE_URL}" target="_blank" rel="noopener">${SITE_URL.replace('https://', '')}</a></p>
+    if (onl.reach === 'blocked') {
+      const site = `<a class="linkish" href="${SITE_URL}" target="_blank" rel="noopener">${SITE_URL.replace('https://', '')}</a>`;
+      if (onl.link === 'ready' && online) return `<div class="card"><h2>Online</h2><p class="sub">Synced with your online farm <b>${esc(online.username || '')}</b> through your ${esc(LINK_SERVER)} connector. ${onl.busy ? 'Saving…' : online.syncedAt ? `Saved online ${agoText(online.syncedAt)}.` : ''}</p>
+        ${onl.err ? `<p class="sub" style="color:var(--berry)">${esc(onl.err)}</p>` : ''}
+        <div class="row"><button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-link-stop">Stop syncing</button></div></div>`;
+      if (onl.link === 'approve') return `<div class="card"><h2>Online</h2><p class="sub">Your ${esc(LINK_SERVER)} connector is ready. Syncing needs your OK once.</p>
+        <div class="row"><button class="btn small" data-act="online-link-allow">Allow syncing</button></div></div>`;
+      if (onl.link === 'missing' || onl.link === 'error') return `<div class="card"><h2>Online</h2><p class="sub">Claude keeps pages from reaching outside servers, but you can play your online farm here through a connector of your own:</p>
+        <ol class="sub link-steps"><li>On the website (${site}), sign in, open Settings and tap <b>Link Claude</b>. Copy the address it shows.</li>
+        <li>In Claude, open Settings › Connectors › <b>Add custom connector</b>. Name it <b>${esc(LINK_SERVER)}</b> and paste the address.</li>
+        <li>Come back here and reopen this page.</li></ol>
+        ${onl.err && onl.link === 'error' ? `<p class="sub" style="color:var(--berry)">${esc(onl.err)}</p>` : ''}
+        <div class="row"><button class="btn small ghost" data-act="online-link-allow">Check again</button></div></div>`;
+      if (onl.link === '' || onl.link === undefined) return '<div class="card"><h2>Online</h2><p class="sub">Looking for your Bramblebrook Farm connector…</p></div>';
+      return `<div class="card"><h2>Online</h2><p class="sub">This copy runs inside Claude, which keeps pages from reaching outside servers, so online accounts can't work here. Your farm still saves to your Claude account.</p>
+      <p class="sub">Play online on the website: ${site}</p>
       <p class="sub muted" style="font-size:12px">Connection test: blocked${onl.reachWhy ? ` (${esc(onl.reachWhy)})` : ''}</p></div>`;
+    }
     return '<div class="card"><h2>Online</h2><p class="sub">Checking whether online play can work here…</p></div>';
   }
   if (!onlineAvailable()) return '';
@@ -177,7 +274,31 @@ function onlineCard() {
       <div class="row"><button class="btn small" data-act="online-open" data-id="signup">Create account</button><button class="btn small ghost" data-act="online-open" data-id="signin">Sign in</button></div></div>`;
   return `<div class="card"><h2>Online</h2>${inClaude() ? '<p class="sub muted" style="font-size:12px">Connection test: reached the online server from inside Claude.</p>' : ''}<p class="sub">Signed in as <b>${esc(online.username)}</b>. ${onl.busy ? 'Saving…' : online.syncedAt ? `Saved online ${agoText(online.syncedAt)}.` : ''}</p>
       ${onl.err ? `<p class="sub" style="color:var(--berry)">${esc(onl.err)}</p>` : ''}
-      <div class="row"><button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-signout">Sign out</button></div></div>`;
+      <div class="row"><button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-signout">Sign out</button></div>
+      ${inClaude() ? '' : `<p class="sub" style="margin-top:6px">Play this same farm inside Claude too.</p><div class="row"><button class="btn small ghost" data-act="online-link-make">Link Claude</button></div>`}</div>`;
+}
+/* Website: make a private connector address for this account and show the three steps. */
+async function makeLink() {
+  openSheet('<h2>Link Claude</h2><p class="sub">Making your private address…</p>');
+  try {
+    const tok = await onlineApi('/rest/v1/rpc/create_connector_link', { method: 'POST', auth: true, body: {} });
+    const addr = `${ONLINE.url}/functions/v1/farm-mcp/${tok}`;
+    openSheet(`<h2>Link Claude</h2>
+      <p class="sub">This private address lets your own Claude account load and save this farm. Keep it to yourself; anyone with it can change your save. Making a new one turns the old one off.</p>
+      <label class="label" for="link-addr">Your connector address</label>
+      <input id="link-addr" class="link-addr" readonly value="${esc(addr)}">
+      <div class="row"><button class="btn small" data-act="online-link-copy">Copy address</button></div>
+      <ol class="sub link-steps"><li>In Claude, open Settings › Connectors › <b>Add custom connector</b>.</li>
+      <li>Name it <b>${esc(LINK_SERVER)}</b> and paste the address.</li>
+      <li>Open the Bramblebrook Artifact and allow syncing when it asks.</li></ol>
+      <div class="sheet-btns"><button class="btn small danger" data-act="online-link-off">Turn the link off</button><button class="btn small ghost" data-act="sheet-close">Done</button></div>`);
+  } catch (e) {
+    openSheet(`<h2>Link Claude</h2><p class="sub" style="color:var(--berry)">${esc(String(e.message || e))}</p><div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
+  }
+}
+async function unLink() {
+  try { await onlineApi('/rest/v1/rpc/delete_connector_link', { method: 'POST', auth: true, body: {} }); closeSheet(); toast('The Claude link is off. Remove the connector in Claude too.'); }
+  catch (e) { toast(String(e.message || e)); }
 }
 function onlineSheet(mode, err) {
   const isNew = mode === 'signup';
