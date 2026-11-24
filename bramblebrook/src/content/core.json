@@ -2669,7 +2669,8 @@
  },
  "xpCurve": {
   "base": 20,
-  "exp": 2.5
+  "exp": 2.5,
+  "early": { "min": 0.25, "until": 15, "pow": 1.5 }
  },
  "growScale": 1,
  "store": [
@@ -3556,6 +3557,9 @@
   }
  ],
  "perks": [
+  { "id": "harvestall", "n": "Big Basket", "desc": "Harvest every ready plot with one tap", "per": 0, "max": 1, "handy": true },
+  { "id": "sowall", "n": "Seed Bag", "desc": "Sow every empty plot with one tap", "per": 0, "max": 1, "handy": true },
+  { "id": "trips", "n": "Long Trips", "desc": "Explore or dig ten times with one tap", "ranks": ["Explore or dig ten times with one tap", "Spend all your stamina in one tap"], "per": 0, "max": 2, "handy": true },
   {
    "id": "greenthumb",
    "n": "Green Thumb",

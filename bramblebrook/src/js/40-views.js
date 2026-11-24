@@ -72,8 +72,8 @@ function viewFields() {
     <div><div class="label">Seed packets</div><div class="packets">${packets}</div></div>
     <div class="plots">${state.plots.map(plotHTML).join('')}</div>
     <div class="farm-actions">
-      <button class="btn" data-act="harvest-all" ${ready ? '' : 'disabled'}>Harvest all${ready ? ` (${ready})` : ''}</button>
-      <button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${empty || ''} ${esc(itemName(seed.id))}${empty ? ` · ${empty * seedCost(seed)}c` : ''}</button>
+      ${perkRank('harvestall') ? `<button class="btn" data-act="harvest-all" ${ready ? '' : 'disabled'}>Harvest all${ready ? ` (${ready})` : ''}</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="harvestall">🔒 Harvest all</button>'}
+      ${perkRank('sowall') ? `<button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${empty || ''} ${esc(itemName(seed.id))}${empty ? ` · ${empty * seedCost(seed)}c` : ''}</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="sowall">🔒 Sow all</button>'}
     </div>
     ${have('tonic') ? `<button class="btn sun" data-act="tonic">${pic('tonic', 24)} Use Grow Tonic (${have('tonic')}) · halves growing time</button>` : ''}
     ${featureOn('upgrades') ? `<div class="card"><h2>Farm improvements</h2><div class="upgrades">${ups}</div>
@@ -149,10 +149,15 @@ function viewExplore() {
   const s = state.stamina;
   return `<div class="card trail"><div><h2>${esc(a.n)}</h2><p class="sub" data-stam-line>${staminaLine()}</p></div>
       <div class="trail-btns"><button class="btn" data-act="explore" data-n="1" data-need="1" ${s >= 1 ? '' : 'disabled'}>Explore</button>
-      <button class="btn ghost" data-act="explore" data-n="10" data-need="10" ${s >= 10 ? '' : 'disabled'}>×10</button>
-      <button class="btn ghost" data-act="explore" data-n="all" data-need="1" ${s >= 1 ? '' : 'disabled'}>All</button></div></div>
+      ${tripButtons('explore', s)}</div></div>
     <div class="card"><div class="label">Trail log</div><div class="log">${log}</div></div>
     <div class="label">Places</div><div class="areas">${cards}</div>`;
+}
+/* ×10 and All on the trail and in the mine are the Long Trips perk */
+function tripButtons(act, s) {
+  const r = perkRank('trips');
+  return (r >= 1 ? `<button class="btn ghost" data-act="${act}" data-n="10" data-need="10" ${s >= 10 ? '' : 'disabled'}>×10</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="trips">🔒 ×10</button>')
+    + (r >= 2 ? `<button class="btn ghost" data-act="${act}" data-n="all" data-need="1" ${s >= 1 ? '' : 'disabled'}>All</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="trips">🔒 All</button>');
 }
 function viewMine() {
   const m = state.mine, k = C.core.mine;
@@ -170,8 +175,7 @@ function viewMine() {
       <div class="depth" aria-label="Floor ${m.floor} of ${k.floors}">${depth}</div>
       <p class="sub" data-stam-line>${staminaLine()}</p>
       <div class="trail-btns"><button class="btn" data-act="dig" data-n="1" data-need="1" ${s >= 1 ? '' : 'disabled'}>Dig</button>
-      <button class="btn ghost" data-act="dig" data-n="10" data-need="10" ${s >= 10 ? '' : 'disabled'}>×10</button>
-      <button class="btn ghost" data-act="dig" data-n="all" data-need="1" ${s >= 1 ? '' : 'disabled'}>All</button></div>
+      ${tripButtons('dig', s)}</div>
       <div class="row">${down}</div></div>
     <div class="card"><div class="row between"><div class="label">Found on this level</div><span class="drops">${drops}</span></div><div class="log">${log}</div></div>
     ${lifts ? `<div class="card"><h2>The old lift</h2><p class="sub">Ride down to any landing you've reached.</p><div class="row">${lifts}</div></div>` : ''}`;

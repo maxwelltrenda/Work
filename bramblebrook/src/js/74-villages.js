@@ -81,6 +81,7 @@ function viewVillage() {
   if (!online) return `<div class="card"><h2>Villages</h2><p class="sub">Team up with other players: pool coins, raise buildings together, and every neighbour gets the perks.</p>
       <p class="sub">Villages are online, so you need an account first.</p><div class="row"><button class="btn small" data-act="online-open" data-id="signup">Create account</button><button class="btn small ghost" data-act="online-open" data-id="signin">Sign in</button></div></div>`;
   if (!vil.at && !vil.err) { refreshVillage(true); return '<div class="card"><p class="sub">Walking to the village…</p></div>'; }
+  if (Date.now() - vil.at > 4000 && !vil.loading) setTimeout(() => refreshVillage(false), 0);   // coming back to the screen: catch up at once
   if (vil.err && !vil.data && !vil.list) return `<div class="card"><p class="sub" style="color:var(--berry)">${esc(vil.err)}</p><div class="row"><button class="btn small ghost" data-act="vil-refresh">Try again</button></div></div>`;
   return vil.data ? villageHome() : villageFinder();
 }

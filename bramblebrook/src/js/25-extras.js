@@ -7,12 +7,23 @@ const totalLevels = () => I.skills.reduce((a, s) => a + lvl(s.id), 0);
 const perkPointsEarned = () => Math.floor(totalLevels() / (C.core.perkLevels || 4));
 const perkPointsSpent = () => Object.values(state.perks || {}).reduce((a, n) => a + n, 0);
 const perkPointsFree = () => Math.max(0, perkPointsEarned() - perkPointsSpent());
+const perkText = (p, r) => (p.ranks ? p.ranks[Math.max(0, r - 1)] : p.desc.replace('{v}', Math.max(1, r) * p.per));
 function buyPerk(id) {
   const p = C.core.perks.find(x => x.id === id);
   if (!p || perkRank(id) >= p.max || perkPointsFree() < 1) return false;
   state.perks[id] = perkRank(id) + 1;
-  toast(`${p.n} rank ${state.perks[id]}: ${p.desc.replace('{v}', perkVal(id))}`, 'lvl');
+  toast(`${p.n}${p.max > 1 ? ` rank ${state.perks[id]}` : ''}: ${perkText(p, state.perks[id])}`, 'lvl');
   return true;
+}
+/* Doing things in one tap is learned: a locked button explains the perk and offers it right there. */
+const tripsMax = () => (perkRank('trips') >= 2 ? Infinity : perkRank('trips') >= 1 ? 10 : 1);
+function perkSheet(id) {
+  const p = C.core.perks.find(x => x.id === id);
+  if (!p) return;
+  const r = perkRank(id), free = perkPointsFree(), next = (perkPointsEarned() + 1) * C.core.perkLevels;
+  openSheet(`<h2>🔒 ${esc(p.n)}${p.max > 1 ? ` rank ${r + 1}` : ''}</h2><p class="sub">${esc(perkText(p, r + 1))}. It's a perk: you earn a perk point for every ${C.core.perkLevels} skill levels.</p>
+    <p class="sub">${free ? `You have ${plural(free, 'point')} to spend.` : `Your next point comes at ${next} total skill levels (you have ${totalLevels()}).`}</p>
+    <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Not now</button>${free ? `<button class="btn small" data-act="perk-learn" data-id="${id}">Learn it · 1 point</button>` : ''}</div>`);
 }
 function resetPerks() {
   if (!perkPointsSpent() || state.coins < C.core.perkReset) return false;

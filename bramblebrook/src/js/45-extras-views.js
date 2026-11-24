@@ -95,11 +95,12 @@ function viewPets() {
 function viewPerks() {
   const free = perkPointsFree(), earned = perkPointsEarned();
   return `<div class="card"><div class="row between"><h2>${free} perk point${free === 1 ? '' : 's'} to spend</h2><span class="chip plain">${earned} earned</span></div>
-      <p class="sub">You earn a point for every ${C.core.perkLevels} skill levels across all six skills. Next point at ${(earned + 1) * C.core.perkLevels} total levels (you have ${totalLevels()}).</p></div>
+      <p class="sub">You earn a point for every ${C.core.perkLevels} skill levels across all six skills. Next point at ${(earned + 1) * C.core.perkLevels} total levels (you have ${totalLevels()}).</p>
+      <p class="sub">The handy ones at the top let you harvest, sow and explore in one tap.</p></div>
     <div class="card">${C.core.perks.map(p => {
       const r = perkRank(p.id), maxed = r >= p.max;
       return `<div class="feat${r ? ' got' : ''}"><span class="medal">${r || ''}</span><div class="what"><b>${esc(p.n)} ${'●'.repeat(r)}${'○'.repeat(p.max - r)}</b>
-        <small>${esc(p.desc.replace('{v}', r ? perkVal(p.id) : p.per))}${r && !maxed ? ` · next rank: ${p.desc.replace('{v}', (r + 1) * p.per)}` : ''}</small></div>
+        <small>${esc(perkText(p, r || 1))}${r && !maxed ? ` · next rank: ${esc(perkText(p, r + 1))}` : ''}</small></div>
         ${maxed ? '<span class="chip plain">Max</span>' : `<button class="btn small" data-act="perk" data-id="${p.id}" ${free ? '' : 'disabled'}>Learn</button>`}</div>`;
     }).join('')}</div>
     ${perkPointsSpent() ? `<button class="btn ghost wide" data-act="perk-reset" ${state.coins >= C.core.perkReset ? '' : 'disabled'}>Refund all points · ${fmtN(C.core.perkReset)}c</button>` : ''}`;

@@ -1,3 +1,4 @@
+-- Applied to the Bramblebrook project on 2026-11-24 as migration "villages".
 -- Villages: players pool coins in a treasury, elders raise buildings, every member gets the perks.
 -- All changes go through the functions below; tables are read-only to players.
 

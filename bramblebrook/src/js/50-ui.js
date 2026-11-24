@@ -260,6 +260,7 @@ function handle(act, el, e) {
       break;
     }
     case 'harvest-all': {
+      if (!perkRank('harvestall')) { perkSheet('harvestall'); return false; }
       let n = 0, full = false;
       state.plots.forEach((p, i) => { const g = harvest(i); if (g > 0) n += g; if (g === -1) full = true; });
       if (n) toast(`Harvested ${plural(n, 'crop')}`);
@@ -267,6 +268,7 @@ function handle(act, el, e) {
       break;
     }
     case 'sow-all': {
+      if (!perkRank('sowall')) { perkSheet('sowall'); return false; }
       let n = 0;
       state.plots.forEach((p, i) => { if (!p.crop && plant(i, true)) n++; });
       if (!n) { toast(`You need ${I.crop[state.seed].seed} coins per ${itemName(state.seed)} seed.`); return false; }
@@ -290,8 +292,14 @@ function handle(act, el, e) {
     case 'buy-animal': if (!buyAnimal(I.animal[id])) return false; break;
     case 'pet': if (!petAnimals()) return false; break;
     case 'area': state.area = id; break;
-    case 'explore': explore(el.dataset.n); break;
-    case 'dig': dig(el.dataset.n); break;
+    case 'explore': case 'dig': {
+      const n = el.dataset.n === 'all' ? Infinity : +el.dataset.n || 1;
+      if (n > tripsMax()) { perkSheet('trips'); return false; }
+      (act === 'explore' ? explore : dig)(el.dataset.n);
+      break;
+    }
+    case 'need-perk': perkSheet(id); return false;
+    case 'perk-learn': if (!buyPerk(id)) return false; closeSheet(); break;
     case 'descend': descend(); break;
     case 'lift': elevator(+el.dataset.n); break;
     case 'adventure': case 'quest': { const a = findQuest(id); if (a && (a.floor || reqMet(a.req))) startQuest(a); return false; }

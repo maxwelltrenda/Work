@@ -550,3 +550,6 @@ body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hi
 @keyframes bShake { 20% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 80% { transform: translateX(-2px); } }
 @keyframes bFloat { from { opacity: 1; transform: translate(-50%, 0); } to { opacity: 0; transform: translate(-50%, -26px); } }
 @media (prefers-reduced-motion: reduce) { .bunit .bpic, .bfloat { animation: none !important; } }
+
+/* a button that needs a perk first: tapping it explains and offers the perk */
+.btn.locked-perk { opacity: .62; }

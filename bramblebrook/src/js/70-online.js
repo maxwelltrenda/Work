@@ -6,7 +6,7 @@ const ONLINE = {
   url: 'https://rsjzatmbkrquzfczywsz.supabase.co',
   key: 'sb_publishable_ecWCRes8YT9knvVJyEULkw_B4l393GE',   // publishable: safe in the page, row-level security guards the data
   domain: 'players.bramblebrook.invalid',                   // sign-in address for a username; no mail is ever sent
-  social: false,                                            // profiles and villages: on once their database tables are in
+  social: true,                                             // profiles and villages (switch off to hide them)
 };
 const ONLINE_STORE = 'bramblebrook-online';
 const LINK_STORE = 'bramblebrook-link';          // inside Claude: syncing through the player's own connector

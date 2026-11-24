@@ -17,7 +17,7 @@ const FEATURES = {
   'town:mail': () => state.mail.length > 0,
   'bag:almanac': () => chapterDone('prologue') && dayNumber() >= 3,
   'bag:feats': () => chapterDone('prologue') || Object.keys(state.ach).length > 0,
-  'bag:perks': () => chapterDone('mine') || Object.keys(state.perks || {}).length > 0,
+  'bag:perks': () => chapterDone('prologue') || Object.keys(state.perks || {}).length > 0,
   'skill:fishing': () => featureOn('tab:fish'),
   'skill:crafting': () => featureOn('tab:make'),
   'skill:mining': () => unlocked('mine'),

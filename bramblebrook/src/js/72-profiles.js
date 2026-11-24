@@ -10,7 +10,7 @@ function publicCard() {
   const bg = (C.core.backgrounds || []).find(b => b.id === state.bg);
   const levels = {};
   for (const s of I.skills) if (skillOn(s.id)) levels[s.id] = lvl(s.id);
-  return { name: state.name || '', face: state.face || '', bg: state.bg || '', title: `Level ${charLevel()} ${bg ? bg.n : 'Farmer'}`, levels, chapter: state.story ? state.story.ci : 0, day: dayNumber() };
+  return { name: state.name || '', face: state.face || '', bg: state.bg || '', title: `Level ${charLevel()} ${bg ? bg.n : 'Farmer'}${myClass() ? ` · ${myClass().icon} ${myClass().n}` : ''}`, levels, chapter: state.story ? state.story.ci : 0, day: dayNumber() };
 }
 const signedInWeb = () => !!(ONLINE.social && online && online.via !== 'mcp' && online.user);
 
