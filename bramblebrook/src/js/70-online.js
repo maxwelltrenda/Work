@@ -297,11 +297,17 @@ async function initOnline() {
 }
 
 /* Settings card and the sign-in sheet */
+// the farm saves a few seconds after each change, so an old time just means nothing has changed since
+function saveLine() {
+  if (onl.busy || (online && online.dirty)) return 'Saving…';
+  if (!online || !online.syncedAt) return '';
+  return Date.now() - online.syncedAt < 60000 ? 'Everything is saved.' : `Everything is saved. Your last change was saved ${agoText(online.syncedAt)}.`;
+}
 function onlineCard() {
   if (inClaude() && onl.reach !== 'ok') {
     if (onl.reach === 'blocked') {
       const site = `<a class="linkish" href="${SITE_URL}" target="_blank" rel="noopener">${SITE_URL.replace('https://', '')}</a>`;
-      if (onl.link === 'ready' && online) return `<div class="card"><h2>Online</h2><p class="sub">Synced with your online farm <b>${esc(online.username || '')}</b> through your ${esc(LINK_SERVER)} connector. ${onl.busy ? 'Saving…' : online.syncedAt ? `Saved online ${agoText(online.syncedAt)}.` : ''}</p>
+      if (onl.link === 'ready' && online) return `<div class="card"><h2>Online</h2><p class="sub">Synced with your online farm <b>${esc(online.username || '')}</b> through your ${esc(LINK_SERVER)} connector. ${saveLine()}</p>
         ${onl.err ? `<p class="sub" style="color:var(--berry)">${esc(onl.err)}</p>` : ''}
         ${ONLINE.social ? `<p class="sub">${prof.me && prof.me.show_online === false ? 'Your online status is private.' : 'Other players can see when you are online.'}</p>` : ''}
         <div class="row">${ONLINE.social && online.user ? '<button class="btn small" data-act="online-profile">My profile</button>' : ''}<button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-link-stop">Stop syncing</button></div></div>`;
@@ -323,7 +329,7 @@ function onlineCard() {
   if (!onlineAvailable()) return '';
   if (!online) return `<div class="card"><h2>Online</h2>${inClaude() ? '<p class="sub muted" style="font-size:12px">Connection test: reached the online server from inside Claude.</p>' : ''}<p class="sub">Make an account to keep your farm safe online and play it on any device.</p>
       <div class="row"><button class="btn small" data-act="online-open" data-id="signup">Create account</button><button class="btn small ghost" data-act="online-open" data-id="signin">Sign in</button></div></div>`;
-  return `<div class="card"><h2>Online</h2>${inClaude() ? '<p class="sub muted" style="font-size:12px">Connection test: reached the online server from inside Claude.</p>' : ''}<p class="sub">Signed in as <b>${esc(online.username)}</b>. ${onl.busy ? 'Saving…' : online.syncedAt ? `Saved online ${agoText(online.syncedAt)}.` : ''}</p>
+  return `<div class="card"><h2>Online</h2>${inClaude() ? '<p class="sub muted" style="font-size:12px">Connection test: reached the online server from inside Claude.</p>' : ''}<p class="sub">Signed in as <b>${esc(online.username)}</b>. ${saveLine()}</p>
       ${onl.err ? `<p class="sub" style="color:var(--berry)">${esc(onl.err)}</p>` : ''}
       ${inClaude() || !ONLINE.social ? '' : `<p class="sub">${prof.me && prof.me.show_online === false ? 'Your online status is private.' : 'Other players can see when you are online.'}</p>`}
       <div class="row">${inClaude() || !ONLINE.social ? '' : '<button class="btn small" data-act="online-profile">My profile</button>'}<button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-signout">Sign out</button></div>
