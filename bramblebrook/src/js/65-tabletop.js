@@ -33,7 +33,7 @@ const background = () => (C.core.backgrounds || []).find(b => b.id === state.bg)
 const bgSkill = () => (background() || {}).skill || '';
 
 /* Inspiration: earned by good deeds and natural 20s, spent to reroll a check. */
-const inspMax = () => C.core.dice.inspirationMax + charmFx('insp');
+const inspMax = () => C.core.dice.inspirationMax + charmFx('insp') + Math.floor(villageFx('insp'));
 function gainInsp(n = 1, why = '') {
   const before = state.insp || 0;
   state.insp = Math.min(inspMax(), before + n);

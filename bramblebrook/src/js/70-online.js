@@ -82,8 +82,11 @@ async function onlineSignIn(username, password, isNew) {
   online = null;
   takeSession(d, u);
   await afterSignIn(isNew);
+  startPresence();
 }
 function onlineSignOut() {
+  clearInterval(prof.timer); prof.me = null; prof.lastPublic = '';
+  vil.data = null; vil.at = 0; vil.list = null; keepPerks();
   online = null; storeOnline(); onl.err = '';
   toast('Signed out. Your farm stays on this device.');
 }
@@ -157,6 +160,7 @@ async function pushCloud(keepalive) {
     online.cloudAt = rows && rows[0] ? rows[0].updated_at : online.cloudAt;
     online.syncedAt = Date.now(); online.dirty = false; onl.err = '';
     storeOnline();
+    pushPublicCard();
   } catch (e) { onl.err = navigator.onLine === false ? 'Offline. Your farm will save online when you are back.' : String(e.message || e); }
   onl.busy = false;
   if (onl.again) { onl.again = false; pushCloud(); }
@@ -240,6 +244,7 @@ async function initOnline() {
   if (!online) return;
   try {
     await syncOnOpen();
+    startPresence();
   } catch (e) {
     onl.err = navigator.onLine === false ? 'Offline. Your farm will save online when you are back.' : String(e.message || e);
     if (/refresh token|invalid jwt|not found/i.test(onl.err)) { online = null; storeOnline(); onl.err = 'Please sign in again.'; }
@@ -274,7 +279,8 @@ function onlineCard() {
       <div class="row"><button class="btn small" data-act="online-open" data-id="signup">Create account</button><button class="btn small ghost" data-act="online-open" data-id="signin">Sign in</button></div></div>`;
   return `<div class="card"><h2>Online</h2>${inClaude() ? '<p class="sub muted" style="font-size:12px">Connection test: reached the online server from inside Claude.</p>' : ''}<p class="sub">Signed in as <b>${esc(online.username)}</b>. ${onl.busy ? 'Saving…' : online.syncedAt ? `Saved online ${agoText(online.syncedAt)}.` : ''}</p>
       ${onl.err ? `<p class="sub" style="color:var(--berry)">${esc(onl.err)}</p>` : ''}
-      <div class="row"><button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-signout">Sign out</button></div>
+      ${inClaude() ? '' : `<p class="sub">${prof.me && prof.me.show_online === false ? 'Your online status is private.' : 'Other players can see when you are online.'}</p>`}
+      <div class="row">${inClaude() ? '' : '<button class="btn small" data-act="online-profile">My profile</button>'}<button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-signout">Sign out</button></div>
       ${inClaude() ? '' : `<p class="sub" style="margin-top:6px">Play this same farm inside Claude too.</p><div class="row"><button class="btn small ghost" data-act="online-link-make">Link Claude</button></div>`}</div>`;
 }
 /* Website: make a private connector address for this account and show the three steps. */

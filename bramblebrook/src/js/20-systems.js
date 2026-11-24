@@ -14,7 +14,8 @@ function growFactor() {
   f *= 1 - charmFx('grow') / 100;
   return f;
 }
-const seedCost = c => Math.max(1, Math.round(c.seed * (1 - perkVal('thrifty') / 100)));
+const seedCost = c => Math.max(1, Math.round(c.seed * (1 - perkVal('thrifty') / 100) * (1 - villageFx('discount') / 100)));
+function storePrice(s) { return Math.max(1, Math.round(s.price * (1 - villageFx('discount') / 100))); }
 function cropOpen(c) { return lvl('farming') >= c.lvl && (!c.flag || state.flags[c.flag]); }
 function plant(i, quiet) {
   const p = state.plots[i];
@@ -446,10 +447,10 @@ function heartSceneReady(vid) {
 function plotCost() { const p = C.core.plots; return Math.round(p.base * Math.pow(p.growth, state.plots.length - p.start) / 10) * 10; }
 function buyStore(id) {
   const s = C.core.store.find(x => x.id === id);
-  if (!s || !unlocked(s.unlock) || state.coins < s.price) return false;
+  if (!s || !unlocked(s.unlock) || state.coins < storePrice(s)) return false;
   const got = addItem(s.item, s.qty);
   if (!got) { toast(`Your barn is full of ${itemName(s.item)}.`); return false; }
-  state.coins -= s.price;
+  state.coins -= storePrice(s);
   toast(`Bought ${got}× ${itemName(s.item)}`);
   return true;
 }

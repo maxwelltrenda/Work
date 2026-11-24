@@ -271,6 +271,19 @@ p { margin: 0; }
 .linkish { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
 .farm-pick { gap: 6px; }
 #sheet-root.over-scene .sheet-wrap { z-index: 13; }
+.vil-treasury { font-size: 15px; } .vil-treasury b { font-size: 22px; color: var(--sun); }
+.vil-say-form { display: flex; gap: 8px; } .vil-say-form input { flex: 1; min-width: 0; font: 15px var(--body); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 9px 11px; }
+.vil-board { display: grid; gap: 6px; margin-top: 8px; max-height: 320px; overflow-y: auto; }
+.vil-post { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; line-height: 1.4; } .vil-post small { color: var(--muted); flex: none; } .vil-post.note { color: var(--muted); font-size: 13px; }
+.vil-members { display: grid; gap: 4px; }
+.vil-member { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; text-align: left; background: none; border: 0; padding: 6px 2px; color: inherit; cursor: pointer; border-bottom: 1px solid var(--line); }
+.vil-member:last-child { border-bottom: 0; } .vm-name small { display: block; color: var(--muted); font-size: 12px; } .vil-member .presence { font-size: 11px; }
+.crest-pick { display: flex; flex-wrap: wrap; gap: 6px; } .crest-pick input { display: none; } .crest-pick span { display: grid; place-items: center; width: 40px; height: 40px; font-size: 22px; border-radius: 10px; background: var(--surface-2); border: 2px solid transparent; cursor: pointer; } .crest-pick input:checked + span { border-color: var(--accent); }
+.profile-head { display: flex; gap: 14px; align-items: center; }
+.profile-head h2 { margin: 0; }
+.presence { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.presence.on { color: var(--accent); font-weight: 700; }
+.presence.on::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
 .link-steps { margin: 4px 0 0; padding-left: 20px; display: grid; gap: 4px; }
 .link-addr { width: 100%; font: 13px ui-monospace, monospace; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px; }
 textarea, input[type="text"] { width: 100%; font: 14px var(--body); background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px; }

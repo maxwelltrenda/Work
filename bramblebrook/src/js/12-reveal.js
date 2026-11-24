@@ -13,6 +13,7 @@ const FEATURES = {
   'make:bench': () => unlocked(C.core.workbench.unlock),
   'make:cellar': () => unlocked(C.core.cellar.unlock),
   'town:board': () => chapterDone('prologue') && dayNumber() >= 2,
+  'town:village': () => chapterDone('prologue') && !inClaude(),
   'town:mail': () => state.mail.length > 0,
   'bag:almanac': () => chapterDone('prologue') && dayNumber() >= 3,
   'bag:feats': () => chapterDone('prologue') || Object.keys(state.ach).length > 0,
@@ -31,7 +32,7 @@ const FEATURE_NAMES = {
   'farm:orchard': 'The orchard, on the Farm tab.', 'farm:animals': 'Animals, on the Farm tab.', 'farm:pets': 'Pets, on the Farm tab.',
   'wilds:mine': 'The Mine, in the Wilds.', 'town:inn': 'The Lantern & Ladle inn, in Town.', 'bag:bestiary': 'The bestiary, in your Bag.',
   'make:kitchen': 'Cooking, in the Make tab.', 'make:bench': 'The workbench, in the Make tab.', 'make:cellar': 'The cellar, in the Make tab.',
-  'town:board': 'The town board: chores and daily gifts.', 'bag:perks': 'Perks, in your Bag.',
+  'town:board': 'The town board: chores and daily gifts.', 'town:village': 'Villages, in Town: team up with other players.', 'bag:perks': 'Perks, in your Bag.',
   'festival': 'Seasonal festivals, on the town board.', 'exchange': 'The Valley Exchange, in Shops.',
 };
 const featureOn = k => !FEATURES[k] || !!FEATURES[k]();

@@ -361,6 +361,11 @@ function handle(act, el, e) {
     }
     case 'online-open': onlineSheet(id === 'signin' ? 'signin' : 'signup'); return false;
     case 'online-link-make': makeLink(); return false;
+    case 'vil-found': foundSheet(); return false;
+    case 'vil-join': case 'vil-give': case 'vil-build': case 'vil-leave': villageAct(act, el); return false;
+    case 'vil-refresh': vil.at = 0; vil.err = ''; refreshVillage(true); return false;
+    case 'online-profile': openProfile(id || online.user); return false;
+    case 'online-show': setShowOnline(!(prof.me && prof.me.show_online === false) ? false : true).then(() => openProfile(online.user)); return false;
     case 'online-link-off': unLink(); return false;
     case 'online-link-copy': { const i = $('#link-addr'); if (i) { i.select(); (navigator.clipboard ? navigator.clipboard.writeText(i.value) : Promise.reject()).then(() => toast('Copied'), () => { try { document.execCommand('copy'); toast('Copied'); } catch (e) { toast('Select the address and copy it'); } }); } return false; }
     case 'online-link-allow': onl.link = ''; renderView(); initLink(); return false;

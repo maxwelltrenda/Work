@@ -3,7 +3,7 @@ const SUBS = {
   farm: [['fields', 'Fields'], ['orchard', 'Orchard'], ['animals', 'Animals'], ['pets', 'Pets']],
   wilds: [['explore', 'Explore'], ['mine', 'Mine']],
   make: [['workshop', 'Workshop'], ['kitchen', 'Kitchen'], ['bench', 'Bench'], ['cellar', 'Cellar']],
-  town: [['people', 'People'], ['inn', 'Inn'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
+  town: [['people', 'People'], ['village', 'Village'], ['inn', 'Inn'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
   bag: [['items', 'Items'], ['sheet', 'Sheet'], ['almanac', 'Almanac'], ['bestiary', 'Bestiary'], ['feats', 'Feats'], ['perks', 'Perks'], ['settings', 'Settings']],
 };
 const visibleSubs = t => (SUBS[t] || []).filter(([id]) => subOn(t, id));
@@ -266,6 +266,7 @@ function viewTown() {
   const choresReady = state.chores.list.some(c => !c.claimed && choreProgress(c) >= c.n) || (featureOn('daily') && loginReady()) || (featureOn('festival') && festivalOpenCount() > 0);
   const people = I.vils.some(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id)));
   const head = `<div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>${subtabs('town', { mail: unread > 0, board: choresReady, people, inn: I.advs.some(a => !state.advDone[a.id] && reqMet(a.req)) || openDelves().length > 0 })}`;
+  if (s === 'village') return head + viewVillage();
   if (s === 'inn') return head + viewInn();
   if (s === 'shops') return head + viewShops();
   if (s === 'board') return head + viewBoard();
@@ -313,7 +314,7 @@ function viewShops() {
   const nextBarn = C.core.barn[state.barn + 1];
   const pc = plotCost();
   const rows = C.core.store.filter(s => unlocked(s.unlock)).map(s => `<div class="store-item">${pic(s.item, 32)}<div class="what"><b>${esc(itemName(s.item))} ×${s.qty}</b><small>You have ${have(s.item)}</small></div>
-    <button class="btn small" data-act="buy" data-id="${s.id}" ${state.coins >= s.price ? '' : 'disabled'}>${fmtN(s.price)}c</button></div>`).join('');
+    <button class="btn small" data-act="buy" data-id="${s.id}" ${state.coins >= storePrice(s) ? '' : 'disabled'}>${fmtN(storePrice(s))}c</button></div>`).join('');
   let saffi = '';
   if (unlocked('merchant')) {
     ensureMerchant();

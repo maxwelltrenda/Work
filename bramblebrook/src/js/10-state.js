@@ -62,6 +62,7 @@ function migrate(s) {
 const lvl = sk => levelInfo(state.xp[sk] || 0).lvl;
 function addXP(sk, amount) {
   if (sk === bgSkill()) amount *= 1 + C.core.background_bonus.xp / 100;
+  amount *= 1 + villageFx({ farming: 'xp_farming', fishing: 'xp_fishing', mining: 'xp_mine_craft', crafting: 'xp_mine_craft' }[sk] || '-') / 100;
   amount = Math.round(amount);
   if (!amount || !I.skill[sk]) return;
   const before = lvl(sk);
@@ -137,7 +138,7 @@ function checkMastery(id) {
     toast(`Mastery: ${itemName(id)} ${'★'.repeat(t)} · +${fmtN(reward)} coins, sells for more`, 'lvl', 4200);
   }
 }
-const priceOf = id => Math.round(I.items[id].s * (1 + [0, 0.05, 0.1, 0.2][masteryTier(id)]) * (1 + perkVal('haggler') / 100) * (1 + charmFx('price') / 100));
+const priceOf = id => Math.round(I.items[id].s * (1 + [0, 0.05, 0.1, 0.2][masteryTier(id)]) * (1 + perkVal('haggler') / 100) * (1 + charmFx('price') / 100) * (['crop', 'fruit'].includes(I.items[id].t) ? 1 + villageFx('sell_crop') / 100 : 1));
 
 /* stamina and buffs */
 const maxStamina = () => C.core.stamina.base + lvl('foraging') * C.core.stamina.perLevel + perkVal('trail') + charmFx('stamina');
@@ -146,7 +147,7 @@ function setBuff(id, mins = 15) {
   if (!I.buffs[id]) return;
   state.buffs[id] = Math.max(state.buffs[id] || 0, now()) + mins * 60000;
 }
-function regenMs() { return C.core.stamina.regenMs / (buffOn('refreshed') ? 2 : 1) / (1 + perkVal('rest') / 100); }
+function regenMs() { return C.core.stamina.regenMs / (buffOn('refreshed') ? 2 : 1) / (1 + perkVal('rest') / 100) / (1 + villageFx('regen') / 100); }
 function syncStamina() {
   const max = maxStamina(), t = now();
   if (state.stamina >= max) { state.staminaAt = t; return; }
