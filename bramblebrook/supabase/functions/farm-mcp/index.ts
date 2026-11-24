@@ -12,7 +12,10 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
 const MAX_SAVE = 900_000; // bytes of JSON, under the 1 MiB a page may send through a connector
 const MAX_CARD = 4_000;   // a public profile card
 const VILLAGE_ACTIONS = ["create_village", "join_village", "leave_village", "donate_to_village", "upgrade_village_building",
-  "post_village_message", "promote_village_member", "set_village_details", "start_raid", "raid_hit", "claim_raid_reward"];
+  "post_village_message", "promote_village_member", "set_village_details", "start_raid", "raid_hit", "claim_raid_reward",
+  // chat, follows and notifications ride on the same tool, so a player who allowed it needs to allow nothing new
+  "social_ping", "notifications_list", "notifications_seen", "social_profile", "find_player", "follow_player", "unfollow_player",
+  "world_chat_recent", "post_world_message", "dm_threads", "dm_thread", "send_dm"];
 
 const TOOLS = [
   {
@@ -50,7 +53,7 @@ const TOOLS = [
   },
   {
     name: "village_action",
-    description: "Do something in villages as this player: found, join, leave, give coins, raise a building, post on the board, promote a neighbour, set the motto, summon or attack the village boss, collect a boss reward.",
+    description: "Do something in villages as this player: found, join, leave, give coins, raise a building, post on the board, promote a neighbour, set the motto, summon or attack the village boss, collect a boss reward; also world chat, follows, direct messages and notifications.",
     inputSchema: {
       type: "object",
       properties: {
@@ -202,7 +205,7 @@ async function handle(msg: Record<string, unknown>, userId: string) {
       return { jsonrpc: "2.0", id, result: {
         protocolVersion: typeof params.protocolVersion === "string" ? params.protocolVersion : "2025-06-18",
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "bramblebrook-farm", title: "Bramblebrook Farm", version: "1.2.0" },
+        serverInfo: { name: "bramblebrook-farm", title: "Bramblebrook Farm", version: "1.3.0" },
         instructions: "Loads and saves one player's Bramblebrook farm, and plays their village and profile. Used by the Bramblebrook game page.",
       } };
     case "ping":

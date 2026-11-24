@@ -3,7 +3,7 @@ const SUBS = {
   farm: [['fields', 'Fields'], ['orchard', 'Orchard'], ['animals', 'Animals'], ['pets', 'Pets']],
   wilds: [['explore', 'Explore'], ['mine', 'Mine']],
   make: [['workshop', 'Workshop'], ['kitchen', 'Kitchen'], ['bench', 'Bench'], ['cellar', 'Cellar']],
-  town: [['people', 'People'], ['village', 'Village'], ['inn', 'Inn'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
+  town: [['people', 'People'], ['village', 'Village'], ['chat', 'Chat'], ['inn', 'Inn'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
   bag: [['items', 'Items'], ['sheet', 'Sheet'], ['almanac', 'Almanac'], ['bestiary', 'Bestiary'], ['feats', 'Feats'], ['perks', 'Perks'], ['settings', 'Settings']],
 };
 const visibleSubs = t => (SUBS[t] || []).filter(([id]) => subOn(t, id));
@@ -53,6 +53,7 @@ function viewFields() {
   const fl = lvl('farming');
   const ready = state.plots.filter(p => p.crop && p.ready <= now()).length;
   const empty = state.plots.filter(p => !p.crop).length;
+  const hN = perkCount('harvestall'), sN = perkCount('sowall');
   const seed = I.crop[state.seed];
   const open = I.crops.filter(cropOpen);
   const next = I.crops.find(c => !cropOpen(c) && !c.flag);
@@ -72,8 +73,8 @@ function viewFields() {
     <div><div class="label">Seed packets</div><div class="packets">${packets}</div></div>
     <div class="plots">${state.plots.map(plotHTML).join('')}</div>
     <div class="farm-actions">
-      ${perkRank('harvestall') ? `<button class="btn" data-act="harvest-all" ${ready ? '' : 'disabled'}>Harvest all${ready ? ` (${ready})` : ''}</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="harvestall">🔒 Harvest all</button>'}
-      ${perkRank('sowall') ? `<button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${empty || ''} ${esc(itemName(seed.id))}${empty ? ` · ${empty * seedCost(seed)}c` : ''}</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="sowall">🔒 Sow all</button>'}
+      ${perkRank('harvestall') ? `<button class="btn" data-act="harvest-all" ${ready ? '' : 'disabled'}>${hN === Infinity ? 'Harvest all' : `Harvest ${hN}`}${ready ? ` (${Math.min(ready, hN)})` : ''}</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="harvestall">🔒 Harvest several</button>'}
+      ${perkRank('sowall') ? `<button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${Math.min(empty, sN) || ''} ${esc(itemName(seed.id))}${empty ? ` · ${Math.min(empty, sN) * seedCost(seed)}c` : ''}</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="sowall">🔒 Sow several</button>'}
     </div>
     ${have('tonic') ? `<button class="btn sun" data-act="tonic">${pic('tonic', 24)} Use Grow Tonic (${have('tonic')}) · halves growing time</button>` : ''}
     ${featureOn('upgrades') ? `<div class="card"><h2>Farm improvements</h2><div class="upgrades">${ups}</div>
@@ -153,11 +154,13 @@ function viewExplore() {
     <div class="card"><div class="label">Trail log</div><div class="log">${log}</div></div>
     <div class="label">Places</div><div class="areas">${cards}</div>`;
 }
-/* ×10 and All on the trail and in the mine are the Long Trips perk */
+/* Several trips at once is the Long Trips perk: each level adds a bigger button (×3, ×10, ×25, then All) */
 function tripButtons(act, s) {
-  const r = perkRank('trips');
-  return (r >= 1 ? `<button class="btn ghost" data-act="${act}" data-n="10" data-need="10" ${s >= 10 ? '' : 'disabled'}>×10</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="trips">🔒 ×10</button>')
-    + (r >= 2 ? `<button class="btn ghost" data-act="${act}" data-n="all" data-need="1" ${s >= 1 ? '' : 'disabled'}>All</button>` : '<button class="btn ghost locked-perk" data-act="need-perk" data-id="trips">🔒 All</button>');
+  const p = (C.core.perks || []).find(x => x.id === 'trips'), r = perkRank('trips'), counts = (p && p.counts) || [];
+  const label = n => (n === 0 ? 'All' : `×${n}`);
+  const btn = n => `<button class="btn ghost" data-act="${act}" data-n="${n === 0 ? 'all' : n}" data-need="1" ${s >= 1 ? '' : 'disabled'}>${label(n)}</button>`;
+  const next = counts[r] !== undefined ? `<button class="btn ghost locked-perk" data-act="need-perk" data-id="trips">🔒 ${label(counts[r])}</button>` : '';
+  return counts.slice(0, r).slice(-2).map(btn).join('') + next;
 }
 function viewMine() {
   const m = state.mine, k = C.core.mine;
@@ -269,8 +272,9 @@ function viewTown() {
   const unread = state.mail.filter(m => !m.read).length;
   const choresReady = state.chores.list.some(c => !c.claimed && choreProgress(c) >= c.n) || (featureOn('daily') && loginReady()) || (featureOn('festival') && festivalOpenCount() > 0);
   const people = I.vils.some(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id)));
-  const head = `<div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>${subtabs('town', { mail: unread > 0, board: choresReady, people, inn: I.advs.some(a => !state.advDone[a.id] && reqMet(a.req)) || openDelves().length > 0 })}`;
+  const head = `<div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>${subtabs('town', { mail: unread > 0, board: choresReady, chat: chatDots(), people, inn: I.advs.some(a => !state.advDone[a.id] && reqMet(a.req)) || openDelves().length > 0 })}`;
   if (s === 'village') return head + viewVillage();
+  if (s === 'chat') return head + viewChat();
   if (s === 'inn') return head + viewInn();
   if (s === 'shops') return head + viewShops();
   if (s === 'board') return head + viewBoard();

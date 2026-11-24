@@ -52,10 +52,8 @@ async function setShowOnline(on) {
 function startPresence() {
   clearInterval(prof.timer);
   if (!socialOn()) return;
-  touchPresence(); loadMyProfile().then(refreshOnlineCard); pushPublicCard(); loadVillage();
-  prof.timer = setInterval(touchPresence, PRESENCE_EVERY);
+  socialPing(); loadMyProfile().then(refreshOnlineCard); pushPublicCard(); loadVillage();   // socialPing also marks you online, every minute
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') touchPresence(); });
 
 /* "Online now", "Last online 3 h ago", or private. */
 function statusLine(p) {
@@ -75,15 +73,23 @@ function profileHTML(p, mine) {
     ${mine ? `<div class="toggle"><div class="what"><b>Show when I'm online</b><small>Off: other players see neither the dot nor when you were last on</small></div>
       <button class="switch" role="switch" aria-label="Show when I'm online" aria-checked="${p.show_online !== false}" data-act="online-show"></button></div>` : ''}`;
 }
+function showProfile(p) {
+  const mine = !!(online && p.id === online.user);
+  if (mine && prof.me) p.show_online = prof.me.show_online;
+  openSheet(`${profileHTML(p, mine)}${mine ? '' : followHTML(p)}<div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
+}
 async function openProfile(id) {
   openSheet('<h2>Profile</h2><p class="sub">Loading…</p>');
   try {
-    const rows = viaLink() ? ((await linkCall('profiles', { ids: [id] })) || {}).profiles : await onlineApi('/rest/v1/rpc/get_profiles', { method: 'POST', auth: true, body: { p_ids: [id] } });
-    const p = rows && rows[0];
+    let p;
+    if (socialOn() && id !== online.user) p = await rpc('social_profile', { p_user: id });   // with who follows whom
+    else {
+      const rows = viaLink() ? ((await linkCall('profiles', { ids: [id] })) || {}).profiles : await onlineApi('/rest/v1/rpc/get_profiles', { method: 'POST', auth: true, body: { p_ids: [id] } });
+      p = rows && rows[0];
+    }
     if (!p) throw new Error('That player could not be found.');
-    const mine = id === online.user;
-    if (mine && prof.me) p.show_online = prof.me.show_online;
-    openSheet(`${profileHTML(p, mine)}<div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
+    soc.profile = p;
+    showProfile(p);
   } catch (e) {
     openSheet(`<h2>Profile</h2><p class="sub" style="color:var(--berry)">${esc(String(e.message || e))}</p><div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
   }

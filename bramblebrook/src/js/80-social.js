@@ -1,0 +1,217 @@
+/* ---------- social: the notification bell, world and village chat, follows and direct messages ----------
+   The server writes notifications on its own (village news, the village boss, new followers) and keeps the
+   chats; direct messages only work between two players who follow each other. Everything goes through rpc()
+   (74-villages.js), so inside Claude it travels through the player's connector like villages do. */
+const SOC_STORE = 'bramblebrook-social';
+const soc = { notes: 0, dms: 0, worldLast: 0, villageLast: 0, worldSeen: 0, villageSeen: 0, tab: 'world',
+  world: [], worldLoaded: false, threads: null, thread: null, notesList: null, pinging: false, busy: false, draft: '' };
+try { Object.assign(soc, JSON.parse(localStorage.getItem(SOC_STORE) || '{}')); } catch (e) { /* storage blocked */ }
+function socKeep() { try { localStorage.setItem(SOC_STORE, JSON.stringify({ worldSeen: soc.worldSeen, villageSeen: soc.villageSeen, tab: soc.tab })); } catch (e) { /* storage blocked */ } }
+const chatOpenNow = () => state && state.tab === 'town' && sub('town') === 'chat' && !sheetOpen();
+const myId = () => online && online.user;
+
+/* The little numbers: checked about once a minute, which also tells the server you're online. */
+async function socialPing() {
+  if (!socialOn() || soc.pinging || document.visibilityState === 'hidden') return;
+  soc.pinging = true;
+  try {
+    const r = await rpc('social_ping');
+    const fresh = r.notes > soc.notes;
+    Object.assign(soc, { notes: r.notes, dms: r.dms, worldLast: r.world, villageLast: r.village });
+    if (fresh) freshNoteToast();
+    updateSocialBadges();
+    if (chatOpenNow()) refreshChat(false);
+  } catch (e) { /* offline: try next time */ }
+  soc.pinging = false;
+}
+async function freshNoteToast() {
+  try {
+    const r = await rpc('notifications_list');
+    soc.notesList = r.items || [];
+    const n = soc.notesList.find(x => x.unread);
+    if (n) toast(`${n.icon} ${n.body}`);
+  } catch (e) { /* the bell still shows it */ }
+}
+function updateSocialBadges() {
+  const bell = $('#bell-btn');
+  if (bell) bell.hidden = !socialOn();
+  const b = $('#badge-notes');
+  if (b) { b.hidden = !soc.notes; b.textContent = soc.notes > 99 ? '99+' : soc.notes; }
+}
+const chatDots = () => soc.dms > 0 || soc.villageLast > soc.villageSeen;
+
+/* The bell: the latest 40, newest first; opening it marks them read. */
+async function notesSheet() {
+  openSheet('<h2>Notifications</h2><p class="sub">Loading…</p>');
+  try {
+    const r = await rpc('notifications_list');
+    soc.notesList = r.items || [];
+    drawNotes();
+    if (soc.notes) { soc.notes = 0; updateSocialBadges(); rpc('notifications_seen').catch(() => {}); }
+  } catch (e) { openSheet(`<h2>Notifications</h2><p class="sub" style="color:var(--berry)">${esc(String(e.message || e))}</p><div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`); }
+}
+function drawNotes() {
+  const items = soc.notesList || [];
+  openSheet(`<h2>Notifications</h2>
+    ${items.length ? `<div class="notes">${items.map(n => `<button class="note${n.unread ? ' unread' : ''}" data-act="note-go" data-to="${esc((n.link && n.link.to) || '')}" data-id="${esc((n.link && n.link.id) || '')}">
+      <span class="note-ic">${esc(n.icon || '🔔')}</span><span class="note-body">${esc(n.body)}<small>${agoText(Date.parse(n.created_at))}</small></span></button>`).join('')}</div>`
+      : '<p class="sub">Nothing yet. News from your village, its boss and your friends shows up here.</p>'}
+    <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
+}
+function goTown(s) { state.tab = 'town'; state.sub.town = s; renderTabs(); renderView(); updateBadges(); window.scrollTo(0, 0); }
+function noteGo(to, id) {
+  closeSheet();
+  if (to === 'village') goTown('village');
+  else if (to === 'boss') { goTown('village'); loadVillage().then(() => { if (vil.raid && vil.raid.raid) openRaid(); else renderView(); }); }
+  else if (to === 'profile' && id) openProfile(id);
+  else if (to === 'dm' && id) openDm(id);
+}
+
+/* Following: a button on every profile. Two players who follow each other can message. */
+function followHTML(p) {
+  if (!socialOn() || !p || p.me) return '';
+  const mutual = p.i_follow && p.follows_me;
+  return `<p class="sub">${fmtN(p.followers || 0)} follower${p.followers === 1 ? '' : 's'} · ${fmtN(p.following || 0)} following${p.follows_me ? ' · <span class="chip plain">Follows you</span>' : ''}</p>
+    <div class="row"><button class="btn small${p.i_follow ? ' ghost' : ''}" data-act="follow" data-id="${esc(p.id)}">${p.i_follow ? 'Following ✓' : p.follows_me ? 'Follow back' : 'Follow'}</button>
+      ${mutual ? `<button class="btn small" data-act="dm-open" data-id="${esc(p.id)}">Message</button>` : ''}</div>
+    ${p.i_follow && !p.follows_me ? '<p class="sub">You can message each other once they follow you back.</p>' : !p.i_follow && !mutual ? '<p class="sub">Follow each other to send messages.</p>' : ''}`;
+}
+async function toggleFollow(id) {
+  try {
+    const cur = soc.profile && soc.profile.id === id ? soc.profile : null;
+    const p = await rpc(cur && cur.i_follow ? 'unfollow_player' : 'follow_player', { p_user: id });
+    soc.profile = p;
+    play(p.i_follow ? 'chime' : 'tick');
+    if (p.i_follow && p.follows_me) toast(`You and ${(p.public && p.public.name) || p.username} follow each other: you can message now.`);
+    showProfile(p);
+    soc.threads = null;
+  } catch (e) { toast(String(e.message || e)); }
+}
+
+/* Chat: Town › Chat, three rooms. */
+function viewChat() {
+  if (!socialOn()) {
+    if (inClaude()) return `<div class="card"><h2>Chat</h2><p class="sub">${onl.link === '' || onl.link === undefined ? 'Connecting to your account…' : 'Chat is online. Link this game to your account first: Bag › Settings › Online.'}</p></div>`;
+    return `<div class="card"><h2>Chat</h2><p class="sub">Talk with everyone in the valley, your village, and friends. Chat is online, so you need an account first.</p>
+      <div class="row"><button class="btn small" data-act="online-open" data-id="signup">Create account</button><button class="btn small ghost" data-act="online-open" data-id="signin">Sign in</button></div></div>`;
+  }
+  const tabs = [['world', 'World', 0], ['village', 'Village', soc.villageLast > soc.villageSeen ? 1 : 0], ['dm', 'Messages', soc.dms]];
+  const seg = `<div class="seg" role="tablist">${tabs.map(([k, n, b]) => `<button class="seg-b${soc.tab === k ? ' on' : ''}" role="tab" aria-selected="${soc.tab === k}" data-act="chat-tab" data-id="${k}">${n}${b ? `<span class="seg-dot">${k === 'dm' ? b : ''}</span>` : ''}</button>`).join('')}</div>`;
+  setTimeout(afterChatDraw, 0);
+  return seg + (soc.tab === 'village' ? villageChatHTML() : soc.tab === 'dm' ? dmHTML() : worldChatHTML());
+}
+const lineHTML = (m, mine) => `<div class="chat-line${mine ? ' mine' : ''}">
+    ${mine ? '' : `<button class="chat-pic" data-act="online-profile" data-id="${esc(m.user_id)}" aria-label="${esc(m.name || 'Player')}'s profile">${profilePic(m.face, 30)}</button>`}
+    <div class="chat-bubble">${mine ? '' : `<button class="chat-name" data-act="online-profile" data-id="${esc(m.user_id)}">${esc(m.name || 'Someone')}</button>`}<p>${esc(m.body)}</p><small>${agoText(Date.parse(m.created_at))}</small></div></div>`;
+const chatForm = (kind, ph, max, off) => `<form class="chat-form" id="chat-form" data-kind="${kind}"><input id="chat-in" maxlength="${max}" placeholder="${esc(ph)}" value="${esc(soc.draft)}" ${off ? 'disabled' : ''} autocomplete="off"><button class="btn small" type="submit" ${off ? 'disabled' : ''}>Send</button></form>`;
+function worldChatHTML() {
+  if (!soc.worldLoaded) { refreshChat(true); return '<div class="card"><p class="sub">Opening the world chat…</p></div>'; }
+  const list = soc.world.length ? soc.world.map(m => lineHTML(m, m.user_id === myId())).join('') : '<p class="sub">Nobody has said anything yet. Say hello to the valley!</p>';
+  return `<div class="card chat-card"><p class="sub chat-note">Everyone playing Bramblebrook. Tap a name to see their profile and follow them.</p>
+    <div class="chat-list" id="chat-list">${list}</div>${chatForm('world', 'Say something to everyone', 280)}</div>`;
+}
+function villageChatHTML() {
+  if (!vil.at) { loadVillage().then(() => { if (chatOpenNow()) renderView(); }); return '<div class="card"><p class="sub">Walking to the village…</p></div>'; }
+  if (!vil.data) return `<div class="card"><p class="sub">Join a village to chat with your neighbours.</p><div class="row"><button class="btn small" data-act="sub" data-tab="town" data-sub="village">Find a village</button></div></div>`;
+  const lines = vil.board.filter(e => e.kind === 'chat').slice().reverse().map(e => {
+    const p = vil.profiles[e.user_id] || {};
+    return lineHTML({ user_id: e.user_id, name: whoName(e.user_id), face: p.public && p.public.face, body: e.body, created_at: e.created_at }, e.user_id === myId());
+  }).join('');
+  return `<div class="card chat-card"><p class="sub chat-note">${esc(vil.data.crest)} ${esc(vil.data.name)}: only your neighbours see this.</p>
+    <div class="chat-list" id="chat-list">${lines || '<p class="sub">No messages yet. Say hello to your neighbours.</p>'}</div>${chatForm('village', 'Say something to the village', 280)}</div>`;
+}
+function dmHTML() {
+  const t = soc.thread;
+  if (t) {
+    const lines = t.messages.length ? t.messages.map(m => lineHTML({ user_id: t.with, name: t.name, face: t.face, body: m.body, created_at: m.created_at }, m.mine)).join('')
+      : `<p class="sub">This is the start of your messages with ${esc(t.name || 'them')}.</p>`;
+    return `<div class="card chat-card"><div class="dm-head"><button class="raid-back" data-act="dm-back" aria-label="Back to your messages">‹</button>
+        <button class="dm-who" data-act="online-profile" data-id="${esc(t.with)}">${profilePic(t.face, 32)}<b>${esc(t.name || 'Player')}</b></button></div>
+      <div class="chat-list" id="chat-list">${lines}</div>
+      ${t.mutual ? '' : '<p class="sub">You can message each other again once you both follow each other.</p>'}${chatForm('dm', `Message ${t.name || ''}`, 500, !t.mutual)}</div>`;
+  }
+  if (!soc.threads) { refreshChat(true); return '<div class="card"><p class="sub">Opening your messages…</p></div>'; }
+  const list = soc.threads.map(x => `<button class="thread${x.unread ? ' unread' : ''}" data-act="dm-open" data-id="${esc(x.user_id)}">${profilePic(x.face, 36)}
+      <span class="thread-text"><b>${esc(x.name || 'Player')}</b><small>${x.last_body ? `${x.last_mine ? 'You: ' : ''}${esc(x.last_body)}` : x.mutual ? 'You follow each other. Say hi!' : ''}</small></span>
+      ${x.unread ? `<span class="thread-badge">${x.unread}</span>` : x.last_at ? `<small class="thread-t">${agoText(Date.parse(x.last_at))}</small>` : ''}</button>`).join('');
+  return `<div class="card"><p class="sub">Message anyone you and they both follow. Find players in world chat, your village, or by username.</p>
+      <form class="chat-form" id="find-form"><input id="find-in" maxlength="20" placeholder="Find a player by username" autocapitalize="none" spellcheck="false" autocomplete="off"><button class="btn small ghost" type="submit">Find</button></form></div>
+    ${list ? `<div class="card threads">${list}</div>` : '<div class="card"><p class="sub">No friends to message yet. Follow someone, and when they follow you back you can message each other.</p></div>'}`;
+}
+function afterChatDraw() {
+  const l = $('#chat-list');
+  if (l) l.scrollTop = l.scrollHeight;
+  if (soc.tab === 'world' && soc.worldLoaded && soc.worldSeen !== soc.worldLast) { soc.worldSeen = soc.worldLast; socKeep(); }
+  if (soc.tab === 'village' && vil.data && soc.villageSeen !== soc.villageLast) { soc.villageSeen = soc.villageLast; socKeep(); updateBadges(); }
+}
+/* Fetch what the open room needs; redraw just the list while someone is typing. */
+async function refreshChat(full) {
+  if (soc.busy || !socialOn()) return;
+  soc.busy = true;
+  try {
+    if (soc.tab === 'world') {
+      const after = soc.worldLoaded && soc.world.length ? soc.world[soc.world.length - 1].id : 0;
+      const r = await rpc('world_chat_recent', { p_after: after });
+      soc.world = soc.world.concat(r.messages || []).slice(-80);
+      soc.worldLoaded = true;
+      if (soc.world.length) soc.worldLast = Math.max(soc.worldLast, soc.world[soc.world.length - 1].id);
+    } else if (soc.tab === 'village') {
+      await loadVillage();
+    } else if (soc.thread) {
+      const r = await rpc('dm_thread', { p_with: soc.thread.with, p_after: 0 });
+      soc.thread = r;
+      if (soc.dms) { soc.dms = 0; updateBadges(); }
+    } else {
+      const r = await rpc('dm_threads');
+      soc.threads = r.threads || [];
+      soc.dms = soc.threads.reduce((a, t) => a + (t.unread || 0), 0);
+    }
+  } catch (e) { toast(String(e.message || e)); }
+  soc.busy = false;
+  if (!chatOpenNow()) return;
+  const typing = document.activeElement && document.activeElement.id === 'chat-in';
+  if (full || !typing || !$('#chat-list')) renderView();
+  else { const fresh = document.createElement('div'); fresh.innerHTML = viewChat(); const nl = fresh.querySelector('#chat-list'); if (nl) { $('#chat-list').innerHTML = nl.innerHTML; afterChatDraw(); } }
+}
+async function sendChat(kind, text) {
+  const body = String(text || '').trim();
+  if (!body) return;
+  try {
+    if (kind === 'world') await rpc('post_world_message', { p_body: body });
+    else if (kind === 'village') await rpc('post_village_message', { p_body: body });
+    else if (kind === 'dm' && soc.thread) await rpc('send_dm', { p_to: soc.thread.with, p_body: body });
+    soc.draft = '';
+    const i = $('#chat-in'); if (i) i.value = '';
+    play('tick');
+    await refreshChat(true);
+    const again = $('#chat-in'); if (again) again.focus({ preventScroll: true });
+  } catch (e) { toast(String(e.message || e)); }
+}
+async function openDm(id) {
+  closeSheet();
+  soc.tab = 'dm'; socKeep();
+  soc.thread = { with: id, name: '', face: '', mutual: true, messages: [] };
+  goTown('chat');
+  await refreshChat(true);
+}
+async function findPlayer(name) {
+  const u = String(name || '').trim().toLowerCase();
+  if (!u) return;
+  try {
+    const p = await rpc('find_player', { p_username: u });
+    if (!p) { toast('No player with that username.'); return; }
+    soc.profile = p;
+    showProfile(p);
+  } catch (e) { toast(String(e.message || e)); }
+}
+
+document.addEventListener('submit', e => {
+  const f = e.target;
+  if (f.id === 'chat-form') { e.preventDefault(); sendChat(f.dataset.kind, ($('#chat-in') || {}).value); }
+  else if (f.id === 'find-form') { e.preventDefault(); findPlayer(($('#find-in') || {}).value); }
+});
+document.addEventListener('input', e => { if (e.target && e.target.id === 'chat-in') soc.draft = e.target.value; });
+// chat rooms refresh every 8 seconds while open; the bell and badges once a minute
+setInterval(() => { if (chatOpenNow() && socialOn() && document.visibilityState !== 'hidden') refreshChat(false); }, 8000);
+setInterval(socialPing, 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') socialPing(); });

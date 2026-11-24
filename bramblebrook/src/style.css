@@ -603,3 +603,37 @@ body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hi
 .raid-top-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 13px; }
 .raid-top-list li { display: flex; justify-content: space-between; color: var(--muted); } .raid-top-list li span:first-child { color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { .raid-stage.hit .boss-art, .raid-float { animation: none !important; } }
+
+/* Notifications, chat and messages */
+.bell-btn[hidden] { display: none; }
+.notes { display: grid; gap: 6px; }
+.note { display: flex; gap: 10px; align-items: flex-start; text-align: left; width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
+.note.unread { border-color: rgba(134, 220, 194, .5); background: var(--surface-2); }
+.note-ic { font-size: 20px; line-height: 1.2; flex: none; }
+.note-body { display: grid; gap: 2px; font-size: 14px; line-height: 1.35; } .note-body small { color: var(--muted); font-size: 12px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+.seg-b { position: relative; padding: 9px 6px; border: 0; border-radius: 10px; background: none; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; }
+.seg-b.on { background: var(--surface-2); color: var(--ink); }
+.seg-dot { display: inline-grid; place-items: center; min-width: 8px; height: 8px; margin-left: 5px; border-radius: 99px; background: var(--berry); color: var(--accent-ink); font-size: 10px; vertical-align: 2px; }
+.seg-dot:not(:empty) { min-width: 17px; height: 17px; padding: 0 4px; vertical-align: 1px; }
+.chat-card { display: grid; gap: 10px; }
+.chat-note { margin: 0; font-size: 12.5px; }
+.chat-list { display: grid; gap: 8px; max-height: 52vh; overflow-y: auto; padding-right: 2px; align-content: start; }
+.chat-line { display: flex; gap: 8px; align-items: flex-end; }
+.chat-line.mine { justify-content: flex-end; }
+.chat-pic { padding: 0; border: 0; background: none; cursor: pointer; flex: none; } .chat-pic .mono { width: 30px; height: 30px; }
+.chat-bubble { max-width: 78%; padding: 7px 11px; border-radius: 14px 14px 14px 4px; background: var(--surface-2); display: grid; gap: 2px; }
+.chat-line.mine .chat-bubble { border-radius: 14px 14px 4px 14px; background: rgba(134, 220, 194, .16); }
+.chat-bubble p { margin: 0; font-size: 14.5px; line-height: 1.4; overflow-wrap: anywhere; } .chat-bubble small { color: var(--muted); font-size: 11px; }
+.chat-name { justify-self: start; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.chat-form { display: flex; gap: 8px; } .chat-form input { flex: 1; min-width: 0; }
+.dm-head { display: flex; gap: 10px; align-items: center; }
+.dm-who { display: flex; gap: 8px; align-items: center; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; cursor: pointer; } .dm-who .mono { width: 32px; height: 32px; }
+.threads { display: grid; gap: 4px; padding: 6px; }
+.thread { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; padding: 9px 10px; border: 0; border-radius: 12px; background: none; color: var(--ink); font: inherit; cursor: pointer; }
+.thread:hover { background: var(--surface-2); } .thread .mono { width: 36px; height: 36px; }
+.thread-text { flex: 1; min-width: 0; display: grid; } .thread-text small { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.thread.unread .thread-text b { color: var(--accent); }
+.thread-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--berry); color: var(--accent-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.thread-t { color: var(--muted); font-size: 11px; flex: none; }
+.linkish.who { font-weight: 700; color: var(--ink); }

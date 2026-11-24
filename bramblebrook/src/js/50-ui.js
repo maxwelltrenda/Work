@@ -47,7 +47,8 @@ function updateBadges() {
   ensureChores();
   set('town', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length + (featureOn('town:inn') ? I.advs.filter(a => !state.advDone[a.id] && reqMet(a.req)).length + openDelves().length : 0)
     + (featureOn('town:board') ? state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length : 0) + state.mail.filter(m => !m.read).length
-    + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0));
+    + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0) + (socialOn() ? soc.dms : 0));
+  updateSocialBadges();
   const st = storyStatus();
   const jb = $('#badge-journal');
   if (jb) { jb.hidden = !st.ready; jb.textContent = '!'; }
@@ -261,8 +262,9 @@ function handle(act, el, e) {
     }
     case 'harvest-all': {
       if (!perkRank('harvestall')) { perkSheet('harvestall'); return false; }
-      let n = 0, full = false;
-      state.plots.forEach((p, i) => { const g = harvest(i); if (g > 0) n += g; if (g === -1) full = true; });
+      let n = 0, full = false, done = 0;
+      const max = perkCount('harvestall');
+      state.plots.forEach((p, i) => { if (done >= max || !p.crop || p.ready > now()) return; const g = harvest(i); if (g > 0) { n += g; done++; } if (g === -1) full = true; });
       if (n) toast(`Harvested ${plural(n, 'crop')}`);
       if (full) toast('Some crops are waiting: your barn is full of them.');
       break;
@@ -270,7 +272,8 @@ function handle(act, el, e) {
     case 'sow-all': {
       if (!perkRank('sowall')) { perkSheet('sowall'); return false; }
       let n = 0;
-      state.plots.forEach((p, i) => { if (!p.crop && plant(i, true)) n++; });
+      const max = perkCount('sowall');
+      state.plots.forEach((p, i) => { if (n < max && !p.crop && plant(i, true)) n++; });
       if (!n) { toast(`You need ${I.crop[state.seed].seed} coins per ${itemName(state.seed)} seed.`); return false; }
       toast(`Sowed ${n} ${itemName(state.seed)}`);
       break;
@@ -374,6 +377,12 @@ function handle(act, el, e) {
     case 'start-over-yes': startOver(); return false;
     case 'online-link-make': makeLink(); return false;
     case 'vil-found': foundSheet(); return false;
+    case 'notes': notesSheet(); return false;
+    case 'note-go': noteGo(el.dataset.to, id); return false;
+    case 'follow': toggleFollow(id); return false;
+    case 'dm-open': openDm(id); return false;
+    case 'dm-back': soc.thread = null; soc.threads = null; renderView(); return false;
+    case 'chat-tab': soc.tab = id; soc.thread = null; socKeep(); renderView(); return false;
     case 'raid-open': openRaid(); return false;
     case 'raid-start': raidStart(id); return false;
     case 'raid-claim': raidClaim(); return false;

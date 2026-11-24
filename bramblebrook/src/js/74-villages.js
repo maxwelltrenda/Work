@@ -91,7 +91,7 @@ const buildingCost = (d, lv) => Math.round(d.base_cost * Math.pow(d.growth, lv))
 function boardHTML() {
   if (!vil.board.length) return '<p class="sub">Nothing on the board yet. Say hello.</p>';
   return vil.board.map(e => {
-    const who = `<b>${esc(whoName(e.user_id))}</b>`;
+    const who = e.user_id ? `<button class="linkish who" data-act="online-profile" data-id="${esc(e.user_id)}">${esc(whoName(e.user_id))}</button>` : `<b>${esc(whoName(e.user_id))}</b>`;
     const what = e.kind === 'chat' ? `${who}: ${esc(e.body)}` : e.kind === 'donate' ? `${who} gave ${fmtN(e.amount)} coins to the treasury`
       : e.kind === 'build' ? `${who} raised the ${esc(e.body)}${e.amount ? ` (${fmtN(e.amount)} coins)` : ''}` : `${who} ${esc(e.body)}`;
     return `<div class="vil-post${e.kind === 'chat' ? '' : ' note'}"><span>${what}</span><small>${agoText(new Date(e.created_at).getTime())}</small></div>`;

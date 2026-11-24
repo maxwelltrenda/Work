@@ -16,7 +16,14 @@ function buyPerk(id) {
   return true;
 }
 /* Doing things in one tap is learned: a locked button explains the perk and offers it right there. */
-const tripsMax = () => (perkRank('trips') >= 2 ? Infinity : perkRank('trips') >= 1 ? 10 : 1);
+// how many a one-tap perk handles at its current level: 1 without it, every one at its last level
+function perkCount(id) {
+  const p = (C.core.perks || []).find(x => x.id === id), r = perkRank(id);
+  if (!p || !r) return 1;
+  const n = (p.counts || [])[r - 1];
+  return n === 0 || n == null ? Infinity : n;
+}
+const tripsMax = () => perkCount('trips');
 function perkSheet(id) {
   const p = C.core.perks.find(x => x.id === id);
   if (!p) return;
