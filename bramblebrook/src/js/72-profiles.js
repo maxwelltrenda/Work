@@ -12,34 +12,38 @@ function publicCard() {
   for (const s of I.skills) if (skillOn(s.id)) levels[s.id] = lvl(s.id);
   return { name: state.name || '', face: state.face || '', bg: state.bg || '', title: `Level ${charLevel()} ${bg ? bg.n : 'Farmer'}${myClass() ? ` · ${myClass().icon} ${myClass().n}` : ''}`, levels, chapter: state.story ? state.story.ci : 0, day: dayNumber() };
 }
-const signedInWeb = () => !!(ONLINE.social && online && online.via !== 'mcp' && online.user);
+const viaLink = () => !!(online && online.via === 'mcp');
+// online with an account: signed in on the website, or inside Claude through the player's working connector
+const socialOn = () => !!(ONLINE.social && online && online.user && (!viaLink() || onl.link === 'ready'));
 
 async function touchPresence() {
-  if (!signedInWeb() || document.visibilityState === 'hidden') return;
-  try { await onlineApi('/rest/v1/rpc/touch_presence', { method: 'POST', auth: true, body: {} }); } catch (e) { /* offline: try next time */ }
+  if (!socialOn() || document.visibilityState === 'hidden') return;
+  try { if (viaLink()) await linkCall('profile_update', { touch: true }); else await onlineApi('/rest/v1/rpc/touch_presence', { method: 'POST', auth: true, body: {} }); } catch (e) { /* offline: try next time */ }
 }
 async function loadMyProfile() {
-  if (!signedInWeb()) return null;
+  if (!socialOn()) return null;
   try {
-    const rows = await onlineApi(`/rest/v1/profiles?id=eq.${online.user}&select=username,farm_name,public,show_online,last_seen`, { auth: true });
-    prof.me = rows && rows[0] ? rows[0] : null;
+    if (viaLink()) { const r = await linkCall('profiles', { me: true }); prof.me = (r && r.me) || null; }
+    else { const rows = await onlineApi(`/rest/v1/profiles?id=eq.${online.user}&select=username,farm_name,public,show_online,last_seen`, { auth: true }); prof.me = rows && rows[0] ? rows[0] : null; }
   } catch (e) { /* keep what we had */ }
   return prof.me;
 }
 /* Keep the public card current, without sending it when nothing changed. */
 async function pushPublicCard() {
-  if (!signedInWeb() || !state || !state.name) return;
+  if (!socialOn() || !state || !state.name) return;
   const card = JSON.stringify(publicCard());
   if (card === prof.lastPublic) return;
   try {
-    await onlineApi(`/rest/v1/profiles?id=eq.${online.user}`, { method: 'PATCH', auth: true, headers: { Prefer: 'return=minimal' }, body: { public: JSON.parse(card) } });
+    if (viaLink()) await linkCall('profile_update', { public: JSON.parse(card) });
+    else await onlineApi(`/rest/v1/profiles?id=eq.${online.user}`, { method: 'PATCH', auth: true, headers: { Prefer: 'return=minimal' }, body: { public: JSON.parse(card) } });
     prof.lastPublic = card;
   } catch (e) { /* next save tries again */ }
 }
 async function setShowOnline(on) {
-  if (!signedInWeb()) return;
+  if (!socialOn()) return;
   try {
-    await onlineApi(`/rest/v1/profiles?id=eq.${online.user}`, { method: 'PATCH', auth: true, headers: { Prefer: 'return=minimal' }, body: { show_online: !!on } });
+    if (viaLink()) await linkCall('profile_update', { show_online: !!on });
+    else await onlineApi(`/rest/v1/profiles?id=eq.${online.user}`, { method: 'PATCH', auth: true, headers: { Prefer: 'return=minimal' }, body: { show_online: !!on } });
     if (prof.me) prof.me.show_online = !!on;
     toast(on ? 'Others can see when you are online' : 'Your online status is now private');
   } catch (e) { toast(String(e.message || e)); }
@@ -47,7 +51,7 @@ async function setShowOnline(on) {
 }
 function startPresence() {
   clearInterval(prof.timer);
-  if (!signedInWeb()) return;
+  if (!socialOn()) return;
   touchPresence(); loadMyProfile().then(refreshOnlineCard); pushPublicCard(); loadVillage();
   prof.timer = setInterval(touchPresence, PRESENCE_EVERY);
 }
@@ -74,7 +78,7 @@ function profileHTML(p, mine) {
 async function openProfile(id) {
   openSheet('<h2>Profile</h2><p class="sub">Loading…</p>');
   try {
-    const rows = await onlineApi('/rest/v1/rpc/get_profiles', { method: 'POST', auth: true, body: { p_ids: [id] } });
+    const rows = viaLink() ? ((await linkCall('profiles', { ids: [id] })) || {}).profiles : await onlineApi('/rest/v1/rpc/get_profiles', { method: 'POST', auth: true, body: { p_ids: [id] } });
     const p = rows && rows[0];
     if (!p) throw new Error('That player could not be found.');
     const mine = id === online.user;

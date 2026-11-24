@@ -23,11 +23,31 @@ function keepPerks() {
   try { if (vil.perks) localStorage.setItem(VIL_PERKS, JSON.stringify(vil.perks)); else localStorage.removeItem(VIL_PERKS); } catch (e) { /* storage blocked */ }
 }
 
-const rpc = (fn, body) => onlineApi('/rest/v1/rpc/' + fn, { method: 'POST', auth: true, body: body || {} });
+async function rpc(fn, body) {
+  if (viaLink()) {   // inside Claude: the same call, through the player's connector
+    const r = await linkCall('village_action', { action: fn, args: body || {} });
+    if (!r || r.ok === false) throw new Error((r && r.error) || 'The village did not answer.');
+    return r.result;
+  }
+  return onlineApi('/rest/v1/rpc/' + fn, { method: 'POST', auth: true, body: body || {} });
+}
 async function loadVillage() {
-  if (!signedInWeb() || vil.loading) return;
+  if (!socialOn() || vil.loading) return;
   vil.loading = true;
   try {
+    if (viaLink()) {
+      const r = (await linkCall('village')) || {};
+      vil.defs = r.defs || vil.defs;
+      if (!r.mine) { vil.data = null; vil.members = []; vil.board = []; vil.list = r.list || []; }
+      else {
+        vil.data = Object.assign({}, r.village, { buildings: r.buildings || [], role: r.mine.role });
+        vil.members = r.members || []; vil.board = r.board || [];
+        vil.profiles = {};
+        for (const p of r.profiles || []) vil.profiles[p.id] = p;
+      }
+      vil.err = ''; vil.at = Date.now(); keepPerks(); vil.loading = false;
+      return;
+    }
     if (!vil.defs.length) vil.defs = await onlineApi('/rest/v1/village_building_defs?select=*&order=sort', { auth: true });
     const mine = await onlineApi(`/rest/v1/village_members?user_id=eq.${online.user}&select=village_id,role`, { auth: true });
     if (!mine.length) {
@@ -62,7 +82,7 @@ async function refreshVillage(full) {
   else { const b = $('#vil-board'); if (b) b.innerHTML = boardHTML(); }
 }
 /* While the village screen is open, check for news every 20 seconds. */
-setInterval(() => { if (villageOpenNow() && signedInWeb() && Date.now() - vil.at > 18000) refreshVillage(false); }, 5000);
+setInterval(() => { if (villageOpenNow() && socialOn() && Date.now() - vil.at > 18000) refreshVillage(false); }, 5000);
 
 const whoName = id => { const p = vil.profiles[id]; return p ? ((p.public && p.public.name) || p.username) : 'A neighbour'; };
 const buildingCost = (d, lv) => Math.round(d.base_cost * Math.pow(d.growth, lv));
@@ -77,7 +97,7 @@ function boardHTML() {
 }
 
 function viewVillage() {
-  if (inClaude()) return '<div class="card"><h2>Villages</h2><p class="sub">Villages are played online, on the website version of Bramblebrook.</p></div>';
+  if (inClaude() && !socialOn()) return `<div class="card"><h2>Villages</h2><p class="sub">Team up with other players: pool coins, raise buildings together, and every neighbour gets the perks.</p><p class="sub">${onl.link === '' || onl.link === undefined ? 'Connecting to your account…' : 'Villages are online. Link this game to your account first: Bag › Settings › Online.'}</p></div>`;
   if (!online) return `<div class="card"><h2>Villages</h2><p class="sub">Team up with other players: pool coins, raise buildings together, and every neighbour gets the perks.</p>
       <p class="sub">Villages are online, so you need an account first.</p><div class="row"><button class="btn small" data-act="online-open" data-id="signup">Create account</button><button class="btn small ghost" data-act="online-open" data-id="signin">Sign in</button></div></div>`;
   if (!vil.at && !vil.err) { refreshVillage(true); return '<div class="card"><p class="sub">Walking to the village…</p></div>'; }

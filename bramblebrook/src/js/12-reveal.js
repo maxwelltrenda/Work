@@ -13,7 +13,7 @@ const FEATURES = {
   'make:bench': () => unlocked(C.core.workbench.unlock),
   'make:cellar': () => unlocked(C.core.cellar.unlock),
   'town:board': () => chapterDone('prologue') && dayNumber() >= 2,
-  'town:village': () => ONLINE.social && chapterDone('prologue') && !inClaude(),
+  'town:village': () => ONLINE.social && chapterDone('prologue'),
   'town:mail': () => state.mail.length > 0,
   'bag:almanac': () => chapterDone('prologue') && dayNumber() >= 3,
   'bag:feats': () => chapterDone('prologue') || Object.keys(state.ach).length > 0,

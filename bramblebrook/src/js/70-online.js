@@ -139,6 +139,7 @@ function linkErrText(e) {
     case 'selection_required': return `You have more than one connector named ${LINK_SERVER}. Pick one when Claude asks.`;
     case 'server_unavailable': return 'The farm server did not answer. It will try again.';
     case 'tool_error': return 'The farm server said: ' + String((e.message || '').slice(0, 120));
+    case 'tool_not_found': case 'unknown_tool': return `Reconnect ${LINK_SERVER} in Claude Settings › Connectors to pick up villages and profiles.`;
     default: return 'Syncing failed (' + ((e && e.code) || 'unknown') + ').';
   }
 }
@@ -264,9 +265,10 @@ async function initLink() {
   online = Object.assign(readOnline() || {}, { via: 'mcp' });
   try {
     const st = await linkCall('farm_status');   // the first call asks you to allow the connector for this page
-    online.username = st.username; storeOnline();
+    online.username = st.username; online.user = st.user_id || online.user; storeOnline();
     onl.link = 'ready'; onl.err = '';
     await syncOnOpen();
+    startPresence();   // profiles and villages work through the connector too
   } catch (e) {
     onl.err = e.message;
     onl.link = /needs your OK/.test(e.message) ? 'approve' : e.code === 'server_not_connected' ? 'missing' : 'error';
@@ -301,7 +303,8 @@ function onlineCard() {
       const site = `<a class="linkish" href="${SITE_URL}" target="_blank" rel="noopener">${SITE_URL.replace('https://', '')}</a>`;
       if (onl.link === 'ready' && online) return `<div class="card"><h2>Online</h2><p class="sub">Synced with your online farm <b>${esc(online.username || '')}</b> through your ${esc(LINK_SERVER)} connector. ${onl.busy ? 'Saving…' : online.syncedAt ? `Saved online ${agoText(online.syncedAt)}.` : ''}</p>
         ${onl.err ? `<p class="sub" style="color:var(--berry)">${esc(onl.err)}</p>` : ''}
-        <div class="row"><button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-link-stop">Stop syncing</button></div></div>`;
+        ${ONLINE.social ? `<p class="sub">${prof.me && prof.me.show_online === false ? 'Your online status is private.' : 'Other players can see when you are online.'}</p>` : ''}
+        <div class="row">${ONLINE.social && online.user ? '<button class="btn small" data-act="online-profile">My profile</button>' : ''}<button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-link-stop">Stop syncing</button></div></div>`;
       if (onl.link === 'approve') return `<div class="card"><h2>Online</h2><p class="sub">Your ${esc(LINK_SERVER)} connector is ready. Syncing needs your OK once.</p>
         <div class="row"><button class="btn small" data-act="online-link-allow">Allow syncing</button></div></div>`;
       if (onl.link === 'missing' || onl.link === 'error') return `<div class="card"><h2>Online</h2><p class="sub">Claude keeps pages from reaching outside servers, but you can play your online farm here through a connector of your own:</p>
