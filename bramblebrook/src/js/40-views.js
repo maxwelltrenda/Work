@@ -429,6 +429,7 @@ function viewSettings() {
       <div class="stat"><b>${fmtN(s.earned)}</b><span>coins from sales</span></div>
     </div></div>
     ${onlineCard()}
+    ${feedbackCardHTML()}
     <div class="card"><h2>Sound</h2>
       <div class="toggle"><div class="what"><b>Sound effects</b><small>Soft sounds for harvesting, fishing, coins and story moments</small></div><button class="switch" role="switch" aria-label="Sound effects" aria-checked="${!state.opts.soundOff}" data-act="opt" data-id="soundOff"></button></div>
       ${state.opts.soundOff ? '' : `<label class="label" for="vol">Volume</label><input type="range" class="vol" id="vol" min="0" max="100" value="${Math.round(volume() * 100)}">`}</div>

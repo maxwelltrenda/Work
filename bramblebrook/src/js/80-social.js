@@ -17,7 +17,7 @@ async function socialPing() {
   try {
     const r = await rpc('social_ping');
     const fresh = r.notes > soc.notes;
-    Object.assign(soc, { notes: r.notes, dms: r.dms, worldLast: r.world, villageLast: r.village });
+    Object.assign(soc, { notes: r.notes, dms: r.dms, worldLast: r.world, villageLast: r.village, admin: !!r.admin, fbNew: r.feedback_new || 0 });
     if (fresh) freshNoteToast();
     updateSocialBadges();
     if (chatOpenNow()) refreshChat(false);
@@ -56,7 +56,7 @@ function drawNotes() {
     ${items.length ? `<div class="notes">${items.map(n => `<button class="note${n.unread ? ' unread' : ''}" data-act="note-go" data-to="${esc((n.link && n.link.to) || '')}" data-id="${esc((n.link && n.link.id) || '')}">
       <span class="note-ic">${esc(n.icon || '🔔')}</span><span class="note-body">${esc(n.body)}<small>${agoText(Date.parse(n.created_at))}</small></span></button>`).join('')}</div>`
       : '<p class="sub">Nothing yet. News from your village, its boss and your friends shows up here.</p>'}
-    <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
+    <div class="sheet-btns">${soc.admin ? `<button class="btn small" data-act="fb-inbox">Feedback inbox${soc.fbNew ? ` (${soc.fbNew} new)` : ''}</button>` : ''}<button class="btn small ghost" data-act="feedback">Send feedback</button><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
 }
 function goTown(s) { state.tab = 'town'; state.sub.town = s; renderTabs(); renderView(); updateBadges(); window.scrollTo(0, 0); }
 function noteGo(to, id) {
@@ -65,6 +65,7 @@ function noteGo(to, id) {
   else if (to === 'boss') { goTown('village'); loadVillage().then(() => { if (vil.raid && vil.raid.raid) openRaid(); else renderView(); }); }
   else if (to === 'profile' && id) openProfile(id);
   else if (to === 'dm' && id) openDm(id);
+  else if (to === 'feedback') feedbackInbox();
 }
 
 /* Following: a button on every profile. Two players who follow each other can message. */

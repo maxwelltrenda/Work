@@ -49,6 +49,7 @@ function updateBadges() {
     + (featureOn('town:board') ? state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length : 0) + state.mail.filter(m => !m.read).length
     + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0) + (socialOn() ? soc.dms : 0));
   updateSocialBadges();
+  placeFeedbackTab();
   const st = storyStatus();
   const jb = $('#badge-journal');
   if (jb) { jb.hidden = !st.ready; jb.textContent = '!'; }
@@ -82,6 +83,7 @@ function updateHeader(force) {
 const toastQ = [];
 const toastBusy = () => sceneOpen || !!advRun || !!tour || !!$('#scene-root .scene-wrap');
 function toast(msg, kind = '', ms = 2800) {
+  fbNote('toasts', msg);
   if (toastQ.some(t => t.msg === msg) || $$('#toasts .toast').some(el => el.dataset.msg === msg)) return;
   toastQ.push({ msg, kind, ms, born: Date.now() });
   flushToasts();
@@ -379,6 +381,13 @@ function handle(act, el, e) {
     case 'online-link-make': makeLink(); return false;
     case 'vil-found': foundSheet(); return false;
     case 'notes': notesSheet(); return false;
+    case 'feedback': openFeedback(); return false;
+    case 'fb-kind': fb.kind = id; feedbackSheet(); return false;
+    case 'fb-send': sendFeedback(); return false;
+    case 'fb-inbox': feedbackInbox(); return false;
+    case 'fb-filter': fb.filter = id; fb.replyTo = 0; drawInbox(); return false;
+    case 'fb-reply': fb.replyTo = +id; fb.reply = ''; drawInbox(); return false;
+    case 'fb-mark': markFeedback(+id, el.dataset.to); return false;
     case 'note-go': noteGo(el.dataset.to, id); return false;
     case 'follow': toggleFollow(id); return false;
     case 'dm-open': openDm(id); return false;
@@ -450,7 +459,7 @@ function handle(act, el, e) {
     case 'fest-buy': if (!festivalBuy(+el.dataset.i)) return false; break;
     case 'login-claim': if (!claimLogin()) return false; break;
     case 'help': replayTour(); return false;
-    case 'opt': state.opts[id] = !state.opts[id]; toast({ tipsOff: state.opts.tipsOff ? 'Tutorials off' : 'Tutorials on', relaxedFish: state.opts.relaxedFish ? 'Relaxed fishing on' : 'Relaxed fishing off', soundOff: state.opts.soundOff ? 'Sound off' : 'Sound on' }[id] || 'Saved'); if (id === 'soundOff' && !state.opts.soundOff) play('chime'); break;
+    case 'opt': state.opts[id] = !state.opts[id]; toast({ tipsOff: state.opts.tipsOff ? 'Tutorials off' : 'Tutorials on', relaxedFish: state.opts.relaxedFish ? 'Relaxed fishing on' : 'Relaxed fishing off', soundOff: state.opts.soundOff ? 'Sound off' : 'Sound on', fbTabOff: state.opts.fbTabOff ? 'Feedback tab hidden. Send feedback from Settings any time.' : 'Feedback tab on' }[id] || 'Saved'); if (id === 'soundOff' && !state.opts.soundOff) play('chime'); break;
     case 'replay-tours': state.toursSeen = {}; state.opts.tipsOff = false; toast('Tutorials will show again as you visit each screen'); break;
     case 'take-overflow': { const n = takeOverflow(); toast(n ? `Moved ${n} into your barn` : 'Still no room. Sell something or upgrade the barn first.'); if (!n) return false; break; }
     default: return false;

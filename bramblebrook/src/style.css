@@ -643,3 +643,25 @@ body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hi
 /* every sub-tab, and its dot, stays on screen: the row wraps instead of scrolling sideways */
 .subtabs { flex-wrap: wrap; overflow-x: visible; row-gap: 6px; }
 .subtab { padding: 6px 12px; font-size: 14px; }
+
+/* feedback: the edge tab, the form and the owner's inbox */
+.fb-tab { position: fixed; right: 0; top: 46%; z-index: 12; writing-mode: vertical-rl; transform: rotate(180deg); padding: 10px 2px; width: 16px; box-sizing: border-box; border: 1px solid var(--line); border-right: 0;
+  border-radius: 0 10px 10px 0; background: color-mix(in srgb, var(--surface) 88%, transparent); color: var(--muted); font: 700 10px/1 var(--body); letter-spacing: .06em; text-transform: uppercase; cursor: pointer; opacity: .85; }
+.fb-tab:hover, .fb-tab:focus-visible { opacity: 1; color: var(--ink); }
+body:has(#sheet-root .sheet-wrap) .fb-tab, body:has(.tour) .fb-tab { display: none; }
+.fb-kinds .seg-b { font-size: 13px; }
+textarea.fb-text { font: 15px/1.45 var(--body); min-height: 110px; margin: 10px 0 4px; }
+.fb-small { font-size: 12px; }
+.fb-list { display: grid; gap: 10px; margin: 10px 0; }
+.fb-item { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); display: grid; gap: 6px; }
+.fb-head { display: flex; gap: 8px; align-items: center; }
+.fb-who { display: grid; flex: 1; min-width: 0; line-height: 1.25; } .fb-who small { color: var(--muted); font-size: 12px; }
+.fb-st.new { border-color: rgba(134, 220, 194, .6); color: var(--mint, #86dcc2); }
+.fb-st.fixed { color: var(--sun); }
+.fb-body { margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 1.4; }
+.fb-ctx { font-size: 12px; color: var(--muted); }
+.fb-ctx summary { cursor: pointer; }
+.fb-ctx p, .fb-ctx ol { margin: 4px 0; word-break: break-word; } .fb-ctx ol { padding-left: 18px; }
+.fb-item .sheet-btns .btn { min-height: 34px; }
+.boss-pick.locked { opacity: .6; align-items: center; }
+.boss-pick.locked .boss-art { filter: grayscale(1) brightness(.45); }

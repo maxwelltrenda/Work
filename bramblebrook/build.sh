@@ -15,7 +15,8 @@ const content = { core: read('core.json'), story: read('story.json'), people: re
 fs.writeFileSync('public/content.json', JSON.stringify(content));
 const css = fs.readFileSync('src/style.css', 'utf8');
 const js = fs.readdirSync('src/js').filter(f => f.endsWith('.js')).sort().map(f => fs.readFileSync('src/js/' + f, 'utf8')).join('\n');
-const page = fs.readFileSync('src/shell.html', 'utf8').replace('/*@STYLE@*/', () => css).replace('/*@SCRIPT@*/', () => js);
+const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+const page = fs.readFileSync('src/shell.html', 'utf8').replace('/*@STYLE@*/', () => css).replace('/*@SCRIPT@*/', () => js).replace('/*@BUILD@*/', () => stamp);
 fs.writeFileSync('game.html', page);
 const head = [
   '<!doctype html>', '<html lang="en">', '<head>', '<meta charset="utf-8">',

@@ -55,10 +55,20 @@ function bossCardHTML() {
         <span class="bar"><i style="--p:${n.total.toFixed(3)}"></i></span><span class="btn small">Fight</span></span></button>`;
   }
   const last = r && d ? `<p class="sub">${r.status === 'won' ? `The village beat ${esc(d.n)}!` : `${esc(d.n)} got away.`}</p>` : '';
-  if (R.role !== 'elder') return `${reward}<div class="label">Village boss</div><div class="card"><p class="sub">No boss right now. When an elder summons one, the whole village fights it together for two days, and everyone who joins in shares the reward.</p>${last}</div>`;
-  return `${reward}<div class="label">Village boss</div><div class="card"><p class="sub">Summon a boss and the whole village fights it together for two days. Everyone who joins in shares the reward.</p>${last}</div>
-    ${(R.defs || []).map(b => `<div class="card boss-pick">${bossArtHTML(b)}<div><b>${esc(b.n)}</b><p class="sub">${esc(b.blurb)}</p>
-      ${bossFactsHTML(b)}<button class="btn small" data-act="raid-start" data-id="${esc(b.id)}">Summon</button></div></div>`).join('')}`;
+  const ladder = bossLadder(), next = ladder.find(x => x.state === 'open' && !x.beaten);
+  const progress = `<p class="sub">${ladder.filter(x => x.beaten).length} of ${ladder.length} bosses beaten.${next ? ` Next: <b>${esc(next.d.n)}</b>.` : ladder.length ? ' The village has beaten them all!' : ''}</p>`;
+  if (R.role !== 'elder') return `${reward}<div class="label">Village boss</div><div class="card"><p class="sub">No boss right now. When an elder summons one, the whole village fights it together for two days, and everyone who joins in shares the reward.</p>${progress}${last}</div>`;
+  return `${reward}<div class="label">Village boss</div><div class="card"><p class="sub">Summon a boss and the whole village fights it together for two days. Everyone who joins in shares the reward. Bosses unlock one at a time: beat each to face the next.</p>${progress}${last}</div>
+    ${ladder.map(({ d: b, state, beaten, prev }) => state === 'locked'
+      ? `<div class="card boss-pick locked">${bossArtHTML(b)}<div><b>🔒 ${esc(b.n)}</b><p class="sub">Beat ${esc(prev.n)} to unlock.</p></div></div>`
+      : `<div class="card boss-pick">${bossArtHTML(b)}<div><b>${esc(b.n)}${beaten ? ' <span class="chip plain">Beaten ✓</span>' : ''}</b><p class="sub">${esc(b.blurb)}</p>
+      ${bossFactsHTML(b)}<button class="btn small${beaten ? ' ghost' : ''}" data-act="raid-start" data-id="${esc(b.id)}">${beaten ? 'Summon again' : 'Summon'}</button></div></div>`).join('')}`;
+}
+/* Bosses unlock in order, smallest to largest: each one opens once the village has beaten the one before it. */
+function bossLadder() {
+  const R = vil.raid || {}, won = new Set(R.beaten || []);
+  const defs = (R.defs || []).slice().sort((a, b) => a.sort - b.sort);
+  return defs.map((d, i) => ({ d, beaten: won.has(d.id), prev: defs[i - 1] || null, state: i === 0 || won.has(defs[i - 1].id) ? 'open' : 'locked' }));
 }
 /* What a boss asks of each neighbour and what it pays, so the four can be told apart before summoning. */
 function bossFacts(d) {
