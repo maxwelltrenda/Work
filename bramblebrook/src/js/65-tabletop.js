@@ -56,7 +56,7 @@ function chanceOf(ch) {
   for (let n = 1; n <= 20; n++) if (n === 20 || (n !== 1 && n + ch.mod >= ch.dc)) p += 1 / 20;
   return ch.adv ? 1 - Math.pow(1 - p, 2) : p;
 }
-const d20 = () => 1 + Math.floor(Math.random() * 20);
+const d20 = () => 1 + Math.floor(rand() * 20);
 function rollCheck(ch) {
   let rolls = [d20()];
   if (ch.adv) rolls.push(d20());
@@ -72,8 +72,16 @@ function companionLine(kind) {
   return c && c[kind] && c[kind].length ? { who: advRun.companion, text: pickLine(c[kind]) } : null;
 }
 /* Shows the roll, then continues to the success or failure node. */
+let diceCtx = null;   // the roll on screen, waiting for Continue or a reroll
 function showDice(choice, ch, onDone, rerolled) {
   const res = rollCheck(ch);
+  diceCtx = { choice, ch, onDone, res, rerolled: !!rerolled };
+  if (res.crit) {
+    const coins = Math.round(C.core.dice.critCoins * (1 + state.story.ci * 0.5));
+    state.coins += coins; state.stats.crits = (state.stats.crits || 0) + 1;
+    if (advRun) advRun.rewards.push(`+${coins} coins (critical)`);
+    gainInsp(1, 'a natural 20');
+  } else if (res.fumble) state.stats.fumbles = (state.stats.fumbles || 0) + 1;
   const body = `<div class="dice-wrap">
       <p class="dice-label">${esc(skillName(ch.sk))} roll · you need ${ch.dc} or more · your bonus ${ch.mod >= 0 ? '+' : ''}${ch.mod}${ch.adv ? ` · ${ch.adv === 'Lucky' ? 'feeling lucky' : esc(ch.adv) + ' helps'}: best of two dice` : ''}</p>
       <div class="dice-row">${res.rolls.map((r, i) => `<div class="d20 spin" data-i="${i}">${D20_SVG}<span class="d20-n">?</span></div>`).join('')}</div>
@@ -95,14 +103,9 @@ function showDice(choice, ch, onDone, rerolled) {
     let line;
     if (res.crit) {
       line = `A 20, the best roll there is! ${pickLine((C.companions.crit || {})[ch.sk]) || 'A perfect roll.'}`;
-      const coins = Math.round(C.core.dice.critCoins * (1 + state.story.ci * 0.5));
-      state.coins += coins; state.stats.crits = (state.stats.crits || 0) + 1;
-      advRun.rewards.push(`+${coins} coins (critical)`);
-      gainInsp(1, 'a natural 20');
       play('crit'); bloom();
     } else if (res.fumble) {
       line = `A 1, the lowest roll. It always goes a little wrong. ${pickLine((C.companions.fumble || {})[ch.sk]) || 'Well, that happened.'}`;
-      state.stats.fumbles = (state.stats.fumbles || 0) + 1;
       play('fumble');
     } else {
       line = `You rolled ${res.kept}${ch.mod ? `, ${ch.mod > 0 ? 'plus' : 'minus'} your bonus of ${Math.abs(ch.mod)}, makes ${res.total}` : ''}. You needed ${ch.dc}. ${res.ok ? 'Success!' : 'Not quite.'}`;
@@ -112,9 +115,9 @@ function showDice(choice, ch, onDone, rerolled) {
     $('#dice-result').innerHTML = `${res.note ? `<small class="muted">${esc(res.note)}</small><br>` : ''}<b class="${res.ok ? 'ok' : 'bad'}">${esc(fill(line))}</b>${cl ? `<span class="dice-quip">${folk(cl.who, 28)}<i>“${esc(fill(cl.text))}”</i></span>` : ''}`;
     const canReroll = !res.ok && (state.insp || 0) > 0 && !rerolled;
     $('#dice-btns').innerHTML = `${canReroll ? `<button class="btn ghost" data-dice="reroll">Spend ✦ Inspiration to reroll (${state.insp})</button>` : ''}<button class="btn" data-dice="go">Continue</button>`;
-    $('#dice-btns [data-dice="go"]').addEventListener('click', () => onDone(res.ok));
+    $('#dice-btns [data-dice="go"]').addEventListener('click', diceGo);
     const rr = $('#dice-btns [data-dice="reroll"]');
-    if (rr) rr.addEventListener('click', () => { state.insp--; play('sparkle'); showDice(choice, ch, onDone, true); });
+    if (rr) rr.addEventListener('click', () => { play('sparkle'); diceReroll(); });
     $('#dice-btns .btn:last-child').focus({ preventScroll: true });
     saveLocal();
     setTimeout(() => $('#dice-btns') && maybeTourNow(!res.ok && (state.insp || 0) > 0 && !rerolled && state.toursSeen && state.toursSeen['dice-roll'] ? 'dice-reroll' : 'dice-roll'), 200);
@@ -122,7 +125,7 @@ function showDice(choice, ch, onDone, rerolled) {
   if (reducedMotion()) { settle(); return; }
   let t = 0;
   const flick = setInterval(() => {
-    dice.forEach(d => { d.querySelector('.d20-n').textContent = d20(); });
+    dice.forEach(d => { d.querySelector('.d20-n').textContent = 1 + Math.floor(Math.random() * 20); });   // show only: not a roll
     if (++t >= 12) { clearInterval(flick); settle(); }
   }, 55);
 }
@@ -169,14 +172,14 @@ function createCharacter(isNew) {
       <div class="say">${isNew ? 'Who were you, before the letter came?' : 'Every adventurer needs a character sheet. Who were you, before the valley?'}</div>
       <p class="sub">Your background makes one kind of dice roll easier (+2 to it) and gives you a starting kit. There's no wrong choice.</p>
       <div class="bg-grid">${C.core.backgrounds.map(b => `<button class="bg-card" data-bg="${b.id}"><b>${esc(b.n)}</b><small class="bg-skill">+2 to ${esc(skillName(b.skill))} rolls</small><span>${esc(b.blurb)}</span><small class="muted">Starts with ${esc(giveSummary(b.kit))}</small></button>`).join('')}</div>`);
-    $$('[data-bg]').forEach(btn => btn.addEventListener('click', () => { state.bg = btn.dataset.bg; play('pick'); step3(); }));
+    $$('[data-bg]').forEach(btn => btn.addEventListener('click', () => { charPick('bg', btn.dataset.bg, isNew); play('pick'); step3(); }));
   };
   const step3 = () => {
     const faces = FACES();
     $('#scene-root').innerHTML = sceneShell({ title: 'Your look' }, `
       <div class="say">And how do folks in Bramblebrook see you?</div>
       <div class="face-grid">${faces.map(f => `<button class="face" data-face="${f}" aria-label="Portrait option">${artCell('face:' + f, 48)}</button>`).join('')}</div>`);
-    $$('[data-face]').forEach(btn => btn.addEventListener('click', () => { state.face = btn.dataset.face; play('pick'); (C.classes.classes.length && !state.combat.cls ? step4 : finish)(); }));
+    $$('[data-face]').forEach(btn => btn.addEventListener('click', () => { play('pick'); if (!charPick('face', btn.dataset.face, isNew)) step4(); }));
   };
   // D&D-style class: how you fight in battles later on
   const step4 = () => {
@@ -185,18 +188,41 @@ function createCharacter(isNew) {
       <p class="sub">Your class is how you fight in battles: your hit points, your armour and your special moves. You can change it any time on your character sheet.</p>
       <div class="bg-grid">${C.classes.classes.map(c => { const b = statBlock(c.id, 1);
         return `<button class="bg-card" data-cls="${c.id}"><b>${c.icon} ${esc(c.n)}</b><small class="bg-skill">${c.role === 'front' ? 'Front row' : 'Back row'} · ${b.hp} hit points · armour ${b.ac}</small><span>${esc(c.blurb)}</span><small class="muted">Moves: ${c.moves.map(m => esc(C.classes.moves[m].n)).join(', ')}</small></button>`; }).join('')}</div>`);
-    $$('[data-cls]').forEach(btn => btn.addEventListener('click', () => { state.combat.cls = btn.dataset.cls; finish(); }));
-  };
-  const finish = () => {
-    applyGive(background().kit);
-    play('chime');
-    $('#scene-root').innerHTML = '';
-    const c = myClass();
-    toast(`${state.name}, ${background().n}${c ? ` and ${c.n}` : ''}. Welcome to Bramblebrook.`, 'lvl');
-    commit();
-    if (isNew) beginChapter();
+    $$('[data-cls]').forEach(btn => btn.addEventListener('click', () => charPick('cls', btn.dataset.cls, isNew)));
   };
   step2();
+}
+// One pick on the character sheet. Returns true when that was the last pick and the character is done.
+function charPick(k, v, isNew) {
+  recordMove('char', { k, v, isNew: !!isNew });
+  if (k === 'bg') { if (C.core.backgrounds.some(b => b.id === v)) state.bg = v; return false; }
+  if (k === 'face') { state.face = String(v || '').slice(0, 40); if (C.classes.classes.length && !state.combat.cls) return false; }
+  if (k === 'cls') { if (!C.classes.classes.some(c => c.id === v)) return false; state.combat.cls = v; }
+  if (state.charDone) return true;   // already finished once: a second pick never pays the kit again
+  state.charDone = true;
+  const bgd = background();
+  if (bgd) applyGive(bgd.kit);
+  play('chime');
+  $('#scene-root').innerHTML = '';
+  const c = myClass();
+  toast(`${state.name}${bgd ? ', ' + bgd.n : ''}${c ? ` and ${c.n}` : ''}. Welcome to Bramblebrook.`, 'lvl');
+  commit();
+  if (isNew) beginChapter();
+  return true;
+}
+function diceGo() {
+  recordMove('dice-go');
+  const d = diceCtx;
+  if (!d) return;
+  diceCtx = null;
+  d.onDone(d.res.ok);
+}
+function diceReroll() {
+  recordMove('dice-reroll');
+  const d = diceCtx;
+  if (!d || d.res.ok || d.rerolled || !((state.insp || 0) > 0)) return;
+  state.insp--;
+  showDice(d.choice, d.ch, d.onDone, true);
 }
 const playerPic = (size = 48) => `<span class="mono" style="--h:160">${state.face ? artCell('face:' + state.face, size) : esc((state.name || '?')[0])}</span>`;
 const charLevel = () => Math.max(1, Math.floor(totalLevels() / I.skills.length));

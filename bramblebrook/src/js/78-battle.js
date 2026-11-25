@@ -11,10 +11,10 @@ function rollDice(spec, crit) {
   const m = /^(\d+)d(\d+)$/.exec(spec || '');
   if (!m) return 0;
   let n = +m[1] * (crit ? 2 : 1), t = 0;
-  while (n-- > 0) t += 1 + Math.floor(Math.random() * +m[2]);
+  while (n-- > 0) t += 1 + Math.floor(rand() * +m[2]);
   return t;
 }
-const d20roll = () => 1 + Math.floor(Math.random() * 20);
+const d20roll = () => 1 + Math.floor(rand() * 20);
 const alive = side => Object.values(bt.units).filter(u => u.side === side && !u.down);
 const unitPic = u => u.kind === 'monster' ? `<span class="emo" style="--s:40px">${u.icon}</span>` : u.kind === 'you' ? playerPic(48) : folk(u.ref, 48);
 
@@ -231,20 +231,20 @@ function palAct(u) {
   const marked = u.fx.mark && foes.find(f => f.id === u.fx.mark);
   if (marked) return useMove(u, 'strike', marked);
   if (usable('sneak_attack')) return useMove(u, 'sneak_attack', foes.find(f => [...f.hitBy].length) || weakest(foes));
-  if (usable('vicious_mockery') && Math.random() < 0.5) return useMove(u, 'vicious_mockery', weakest(alive('foe')));
+  if (usable('vicious_mockery') && rand() < 0.5) return useMove(u, 'vicious_mockery', weakest(alive('foe')));
   if (usable('sacred_flame')) return useMove(u, 'sacred_flame', weakest(alive('foe')));
-  if (usable('power_strike') && Math.random() < 0.5) return useMove(u, 'power_strike', weakest(foes));
+  if (usable('power_strike') && rand() < 0.5) return useMove(u, 'power_strike', weakest(foes));
   return useMove(u, 'strike', weakest(foes));
 }
 function foeAct(f) {
   // a hexer wraps an unprotected friend in a ward
-  if (f.wards && !f.boss && Math.random() < 0.5) {
+  if (f.wards && !f.boss && rand() < 0.5) {
     const bare = alive('foe').filter(x => !x.warded && x.id !== f.id);
-    if (bare.length) { const w = bare[Math.floor(Math.random() * bare.length)]; w.warded = true; w.wardHits = 3; say(`${f.name} wraps ${w.name} in a ward: blows on it are halved until it cracks or someone dispels it.`); play('chime'); return; }
+    if (bare.length) { const w = bare[Math.floor(rand() * bare.length)]; w.warded = true; w.wardHits = 3; say(`${f.name} wraps ${w.name} in a ward: blows on it are halved until it cracks or someone dispels it.`); play('chime'); return; }
   }
   for (let k = 0; k < f.multi && alive('party').length; k++) {
     const targets = reachable(f, 'party', f.reach);
-    const t = f.reach === 'any' ? targets.slice().sort((a, b) => a.hp - b.hp)[0] : targets[Math.floor(Math.random() * targets.length)];
+    const t = f.reach === 'any' ? targets.slice().sort((a, b) => a.hp - b.hp)[0] : targets[Math.floor(rand() * targets.length)];
     const hit = weaponHit(f, t, { verb: f.spell ? 'hexes' : 'attacks' });
     if (hit && f.poison && !t.down) { t.fx.poisoned = 2; say(`${t.name} is poisoned.`); }
   }
@@ -252,6 +252,7 @@ function foeAct(f) {
 
 /* ---- the player's turn ---- */
 function battleChoose(id) {
+  recordMove('bt', { k: 'move', id });
   if (!bt || bt.phase !== 'choose') return;
   const u = bt.units.you;
   if (usesLeft(u, id) <= 0) return;
@@ -263,6 +264,7 @@ function battleChoose(id) {
   drawBattle();
 }
 function battleTarget(uid) {
+  recordMove('bt', { k: 'target', id: uid });
   if (!bt || bt.phase !== 'target') return;
   const t = bt.units[uid];
   if (!t || !moveTargets(bt.units.you, bt.pick).includes(t)) return;
@@ -296,6 +298,7 @@ function endFight(won) {
   saveLocal();
 }
 function leaveBattle() {
+  recordMove('bt', { k: 'leave' });
   bt = null;
   $('#scene-root').innerHTML = '';
   commit();
@@ -360,10 +363,13 @@ document.addEventListener('click', e => {
     const k = b.dataset.bt;
     if (k === 'move') battleChoose(b.dataset.id);
     else if (k === 'target') battleTarget(b.dataset.id);
-    else if (k === 'back') { bt.phase = 'choose'; bt.pick = null; drawBattle(); }
+    else if (k === 'back') battleBack();
     else if (k === 'leave') leaveBattle();
   } else if (unit && bt.phase === 'target') battleTarget(unit.dataset.unit);
 });
+
+function battleBack() { recordMove('bt', { k: 'back' }); if (!bt) return; bt.phase = 'choose'; bt.pick = null; drawBattle(); }
+function battleAct(k, id) { if (k === 'move') battleChoose(id); else if (k === 'target') battleTarget(id); else if (k === 'back') battleBack(); else if (k === 'leave') leaveBattle(); }
 
 /* The training yard at the inn: fights to learn your class. */
 function trainingYard() {

@@ -170,8 +170,7 @@ async function raidStart(id) {
 async function raidClaim() {
   const rw = await raidCall('claim_raid_reward');
   if (!rw) return;
-  state.coins += rw.coins || 0;
-  if (rw.xp) addCombatXP(rw.xp);
+  doMove('grant', { c: rw.coins || 0, xp: rw.xp || 0, why: 'raid' });
   play('coins');
   toast(`+${fmtN(rw.coins)} coins from ${rw.boss_name}${myClass() && rw.xp ? ` · +${fmtN(rw.xp)} battle experience` : ''}`, 'lvl', 4500);
   commit();

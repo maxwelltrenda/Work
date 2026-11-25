@@ -86,6 +86,7 @@ function wipeFarm(msg) {
   if (typeof bt !== 'undefined') bt = null;
   state = migrate(null);
   state.savedAt = now(); exploreLog = []; mineLog = []; catchLog = [];
+  restartChecking();
   saveLocal();
   if (cloud.ready) saveCloud();
   closeSheet(); $('#scene-root').innerHTML = '';
@@ -119,9 +120,12 @@ async function onlineSignIn(username, password, isNew) {
   online = null;
   takeSession(d, u);
   await afterSignIn(isNew);
+  startChecking();
   startPresence();
 }
 function onlineSignOut() {
+  if (mv.on) { chk.base = ''; storeCheck(); mv.log = []; keepMoves(); }   // moves made signed out can't follow these
+  stopChecking();
   clearInterval(prof.timer); prof.me = null; prof.lastPublic = '';
   vil.data = null; vil.at = 0; vil.list = null; keepPerks();
   online = null; storeOnline(); onl.err = '';
@@ -200,6 +204,7 @@ async function pushCloud(keepalive) {
     online.syncedAt = Date.now(); online.dirty = false; onl.err = '';
     storeOnline();
     pushPublicCard();
+    checkSoon(1500);   // and let the server check the moves that led here (71-check.js)
   } catch (e) { onl.err = navigator.onLine === false ? 'Offline. Your farm will save online when you are back.' : String(e.message || e); }
   onl.busy = false;
   if (onl.again) { onl.again = false; pushCloud(); }
@@ -216,6 +221,7 @@ function onlineFlush() { if (online && online.dirty) { clearTimeout(onl.timer); 
 function useCloud(row) {
   state = migrate(row.data);
   online.cloudAt = row.updated_at; online.syncedAt = Date.now(); online.dirty = false; storeOnline();
+  restartChecking();
   saveLocal();
   if (!sceneOpen && !advRun) $('#scene-root').innerHTML = '';
   closeSheet();
@@ -297,6 +303,7 @@ async function initOnline() {
     onl.err = navigator.onLine === false ? 'Offline. Your farm will save online when you are back.' : String(e.message || e);
     if (/refresh token|invalid jwt|not found/i.test(onl.err)) { online = null; storeOnline(); onl.err = 'Please sign in again.'; }
   }
+  if (online) startChecking(); else stopChecking();
 }
 
 /* Settings card and the sign-in sheet */

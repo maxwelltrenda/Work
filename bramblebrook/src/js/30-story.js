@@ -160,7 +160,7 @@ function nextScene() {
     $$('#scene-root [data-scene-next]').forEach(b => b.addEventListener('click', () => {
       if (finishTyping()) return;   // the first tap finishes the line, the next one moves on
       if (i < lines.length - 1) { i++; play('page'); draw(); return; }
-      if (s.opts.onDone) s.opts.onDone();
+      if (s.opts.onDone) sceneDone(s.opts.onDone);
       nextScene();
     }));
     const stage = $('#scene-root .stage');
@@ -168,6 +168,14 @@ function nextScene() {
     focusScene();
   };
   draw();
+}
+// The end of a scene is a move: what it does (start the chapter, move the story on) happens when the player
+// finishes reading, and the server does it at that same moment.
+const sceneEnds = [];   // on the server: what each open scene does when it ends, oldest first
+function sceneDone(fn) {
+  recordMove('scene-done');
+  if (ENGINE) { const f = sceneEnds.shift(); if (f) f(); return; }
+  if (fn) fn();
 }
 /* The name over a line: the portrait only when that person isn't standing on the stage. */
 function speakerHead(who) {
@@ -254,10 +262,16 @@ function drawAdventure() {
   { const sy = $('#scene-root .say'); if (sy) sy.addEventListener('click', finishTyping); const sg = $('#scene-root .stage'); if (sg) sg.onclick = finishTyping; }
   $$('[data-adv-choice]').forEach(b => b.addEventListener('click', () => chooseAdv(+b.dataset.advChoice)));
   const d = $('[data-adv-done]'); if (d) d.addEventListener('click', finishAdventure);
-  const l = $('[data-adv-leave]'); if (l) l.addEventListener('click', () => { stopTyping(); advRun = null; stg = null; $('#scene-root').innerHTML = ''; commit(); if (sceneQ.length) nextScene(); });
+  const l = $('[data-adv-leave]'); if (l) l.addEventListener('click', leaveAdventure);
   focusScene();
 }
+function leaveAdventure() {
+  recordMove('adv-leave');
+  stopTyping(); advRun = null; stg = null; $('#scene-root').innerHTML = ''; commit(); if (sceneQ.length) nextScene();
+}
 function chooseAdv(i) {
+  recordMove('adv', { i });
+  if (!advRun) return;
   const n = advRun.def.nodes[advRun.cur];
   const c = n.ch[i];
   if (!c || reqProblems(c.req).length || costProblems(c.cost).length) return;
@@ -269,6 +283,8 @@ function chooseAdv(i) {
   enterNode(c.go);
 }
 function finishAdventure() {
+  recordMove('adv-done');
+  if (!advRun) return;
   const { def, isEnc, cur } = advRun;
   const n = def.nodes[cur] || {};
   if (isEnc) { if (def.once && (n.end === 'win' || !def.creature)) state.encDone[def.id] = now(); }
@@ -310,8 +326,13 @@ function askName() {
   $('#name-in').focus();
   $('#name-form').addEventListener('submit', e => {
     e.preventDefault();
-    state.name = ($('#name-in').value || '').trim().slice(0, 20) || 'Farmer';
-    commit();
+    setFarmerName($('#name-in').value);
     createCharacter(true);
   });
+}
+function setFarmerName(v) {
+  const name = String(v || '').trim().slice(0, 20) || 'Farmer';
+  recordMove('name', { v: name });
+  state.name = name;
+  commit();
 }

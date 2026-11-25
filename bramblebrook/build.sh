@@ -18,6 +18,13 @@ const js = fs.readdirSync('src/js').filter(f => f.endsWith('.js')).sort().map(f 
 const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 const page = fs.readFileSync('src/shell.html', 'utf8').replace('/*@STYLE@*/', () => css).replace('/*@SCRIPT@*/', () => js).replace('/*@BUILD@*/', () => stamp);
 fs.writeFileSync('game.html', page);
+// the rules engine for the server: the same game code with no page (src/engine-preamble.js, src/js/99-engine.js)
+fs.mkdirSync('supabase/functions/_shared', { recursive: true });
+const ENV = ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'requestAnimationFrame', 'cancelAnimationFrame', 'document', 'window', 'addEventListener', 'removeEventListener', 'localStorage', 'sessionStorage', 'fetch', 'confirm', 'alert', 'matchMedia', 'navigator', 'location'];
+const engineJs = fs.readFileSync('src/engine-preamble.js', 'utf8') + `(function (${ENV.join(', ')}) {\n'use strict';\n` + js.replace('/*@BUILD@*/', () => stamp) + `})(${ENV.map(k => '__engineEnv.' + k).join(', ')});\n`;
+fs.writeFileSync('supabase/functions/_shared/engine.js', engineJs);
+fs.writeFileSync('public/engine.js', engineJs);   // the server loads the rules from the site, so both always run the same ones
+fs.writeFileSync('supabase/functions/_shared/content.json', JSON.stringify(content));
 const head = [
   '<!doctype html>', '<html lang="en">', '<head>', '<meta charset="utf-8">',
   '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">',

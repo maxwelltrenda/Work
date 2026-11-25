@@ -52,6 +52,7 @@ function migrate(s) {
   if (!Array.isArray(out.bench) || !out.bench.length) out.bench = base.bench;
   if (!Array.isArray(out.casks) || !out.casks.length) out.casks = base.casks;
   if (!Array.isArray(out.charms)) out.charms = [];
+  if (out.bg && out.charDone === undefined) out.charDone = true;   // characters made before charDone existed
   if (!I.crop[out.seed]) out.seed = 'wheat';
   if (!I.spot[out.spot]) out.spot = 'pond';
   if (!I.area[out.area]) out.area = 'meadow';

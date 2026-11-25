@@ -5,11 +5,8 @@ let localTimer = 0;
 function commit() {
   setTimeout(flushToasts, 0);
   if (!state) return;
-  storyCheck();
-  checkMail();
-  checkAchievements();
   const before = Object.keys(state.revealed || {}).length;
-  checkReveals();
+  settleOnOwn(false);   // storyCheck, checkMail, checkAchievements, checkReveals (99-engine.js)
   if (Object.keys(state.revealed).length !== before) renderTabs();
   state.savedAt = now();
   clearTimeout(localTimer);
@@ -80,7 +77,7 @@ function tick() {
     $$('[data-stam-line]').forEach(el => { el.textContent = staminaLine(); });
     $$('[data-need]').forEach(b => { b.disabled = state.stamina < +b.dataset.need; });
   }
-  if (ticks % 30 === 0) { checkMail(); ensureChores(); checkLogin(); }
+  if (ticks % 30 === 0) { const seen = Object.keys(state.revealed || {}).length; settleOnOwn(true); if (Object.keys(state.revealed || {}).length !== seen) renderTabs(); }
   if (state.tab === 'make' && ['bench', 'cellar'].includes(sub('make')) && ticks % 5 === 0 && !sheetOpen()) renderView();
   if (state.tab === 'fish' && fishing.phase !== 'waiting' && fishing.phase !== 'bite' && ticks % 10 === 0 && !sheetOpen()) renderView();
   updateBadges();
@@ -88,6 +85,8 @@ function tick() {
 function start(data) {
   const fromHot = data && data.state;
   state = migrate(fromHot ? data.state : loadLocal());
+  if (state.vperks === undefined) state.vperks = vil.perks || null;   // village perks used to live beside the save
+  startChecking(true);   // signed in on this device: record moves from the first tap (71-check.js)
   ensureChores();
   checkLogin();
   checkReveals(true);
@@ -112,4 +111,4 @@ async function boot() {
   if (hot && typeof hot.snapshot === 'function') hot.snapshot(() => ({ state }));
   if (hot && typeof hot.ready === 'function') hot.ready(start); else start((hot && hot.data) || {});
 }
-boot();
+if (!ENGINE) boot();

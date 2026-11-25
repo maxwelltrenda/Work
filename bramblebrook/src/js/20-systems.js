@@ -33,7 +33,7 @@ function harvest(i) {
   if (!p || !p.crop || p.ready > now()) return 0;
   const c = I.crop[p.crop];
   const sc = state.upgrades.scarecrow ? C.core.upgrades.scarecrow.tiers[0].pct / 100 : 0;
-  const bonus = Math.random() < lvl('farming') * 0.02 + sc + perkVal('bumper') / 100 ? 1 : 0;
+  const bonus = rand() < lvl('farming') * 0.02 + sc + perkVal('bumper') / 100 ? 1 : 0;
   const got = addItem(c.id, 1 + bonus);
   if (!got) return -1;
   state.plots[i] = { crop: null, at: 0, ready: 0 };
@@ -190,7 +190,7 @@ function explore(n) {
 }
 function maybeEncounter(where, tries) {
   const chance = 1 - Math.pow(1 - 0.03 * (1 + charmFx('encounter') / 100), tries);
-  if (Math.random() > Math.min(0.35, chance)) return;
+  if (rand() > Math.min(0.35, chance)) return;
   const pool = I.encs.filter(e => e.where.includes(where) && reqMet(e.req) && !(e.once && state.encDone[e.id]));
   if (!pool.length) return;
   const [e] = pickWeighted(pool.map(x => [x, x.weight]));
@@ -217,7 +217,7 @@ function dig(n) {
   for (let k = 0; k < times; k++) {
     if (!m.stairs && m.floor < mineMax()) {
       const p = Math.max(0.04, C.core.mine.stairs + lvl('mining') * 0.004 + (buffOn('miner') ? 0.08 : 0) + perkVal('prospector') / 100 + charmFx('stairs') / 100 - (m.floor > 30 ? Math.min(0.06, (m.floor - 30) * 0.002) : 0));
-      if (Math.random() < p) { m.stairs = true; stairsAt = k + 1; }
+      if (rand() < p) { m.stairs = true; stairsAt = k + 1; }
     }
     let [id] = pickWeighted(table);
     if (m.floor >= 25) {
@@ -268,6 +268,7 @@ function fishButton() {
   if (fishing.phase === 'bite') return reel();
 }
 function cast() {
+  recordMove('fish-cast');
   const sp = I.spot[state.spot];
   if (!spotOpen(sp)) return;
   let bait = state.bait;
@@ -283,10 +284,11 @@ function cast() {
   fishing.msg = 'Waiting for a bite…';
   syncFishDom(); updateBaitCounts();
   play('cast'); setTimeout(() => ripple($('#pond')), 220);
-  fishing.timers.push(setTimeout(bite, 500 + Math.random() * 900));
+  if (!ENGINE) fishing.timers.push(setTimeout(bite, 500 + Math.random() * 900));   // on the server the bite is its own move
   commit();
 }
 function bite() {
+  recordMove('fish-bite');
   const sp = I.spot[state.spot], fl = lvl('fishing');
   const lure = fishing.bait === 'lure', glow = fishing.bait === 'glowbait', fog = weather().id === 'foggy';
   const table = sp.fish.map(([id, w, r]) => {
@@ -329,9 +331,15 @@ function animateNeedle() {
 function reel() {
   const pos = needlePos() * 100;
   const [left, width] = fishing.zone;
+  reelResult(pos >= left - 1 && pos <= left + width + 1);
+}
+// whether the reel landed is the phone's call (it's a timing game); which fish it was, the server rolled at the bite
+function reelResult(hit) {
+  recordMove('fish-reel', { hit: !!hit });
+  if (!fishing.fish) return;
   clearFishTimers();
   fishing.phase = 'result';
-  if (pos >= left - 1 && pos <= left + width + 1) {
+  if (hit) {
     const { id, r } = fishing.fish;
     const name = itemName(id);
     const firstLegend = I.legendary.has(id) && !state.got[id];
@@ -468,7 +476,7 @@ function ensureMerchant() {
   const key = dayKey();
   if (state.merchant && state.merchant.day === key) return;
   const rnd = seeded('saffi-' + key);
-  const pool = C.core.merchant.pool.slice().sort(() => rnd() - 0.5).slice(0, 4);
+  const pool = shuffled(C.core.merchant.pool, rnd).slice(0, 4);
   const wants = C.core.merchant.wants;
   state.merchant = { day: key, stock: pool.map(p => Object.assign({ sold: false }, p)), want: wants[Math.floor(rnd() * wants.length)], sold: 0 };
 }
@@ -500,7 +508,7 @@ function ensureChores() {
   const key = dayKey();
   if (state.chores && state.chores.day === key) return;
   const rnd = seeded('chores-' + key);
-  const pool = C.core.chores.filter(c => unlocked(c.unlock)).sort(() => rnd() - 0.5).slice(0, 3);
+  const pool = shuffled(C.core.chores.filter(c => unlocked(c.unlock)), rnd).slice(0, 3);
   const scale = 1 + Math.floor(Object.values(state.xp).reduce((a, x) => a + levelInfo(x).lvl, 0) / 15) * 0.5;
   state.chores = { day: key, bonus: false, list: pool.map(c => ({ id: c.id, n: Math.ceil(c.n * (c.id === 'deliver' || c.id === 'gift' ? 1 : scale)), coins: Math.round(c.coins * scale), base: state.stats[c.stat] || 0, claimed: false })) };
 }
@@ -529,7 +537,7 @@ function checkMail() {
   const known = new Set(state.mail.map(m => m.id));
   for (const l of I.letters) {
     if (known.has(l.id) || !letterDue(l)) continue;
-    state.mail.unshift({ id: l.id, read: false, claimed: false, at: now() });
+    state.mail.unshift({ id: l.id, read: false, claimed: false, at: dayStart() });   // the day it came, not the moment the box was checked
     toast(`New letter from ${vilShort(l.from)}`);
   }
 }

@@ -240,6 +240,7 @@ function pageSheet(n) {
 /* actions */
 function handle(act, el, e) {
   const id = el.dataset.id;
+  if (FARM_ACTS.has(act)) recordMove('h', { act, d: Object.assign({}, el.dataset) });
   switch (act) {
     case 'tab':
       if (state.tab === 'fish' && el.dataset.tab !== 'fish') { clearFishTimers(); fishing.phase = 'idle'; fishing.msg = ''; }
@@ -440,6 +441,7 @@ function handle(act, el, e) {
       $('#save-in').focus();
       return false;
     case 'import':
+      if (mv.on) { toast('Save codes are for farms without an account. Your farm is already saved to your account.'); return false; }
       try {
         const s = JSON.parse(decodeURIComponent(escape(atob($('#save-in').value.trim()))));
         if (!s || s.v !== 2) throw new Error('bad');

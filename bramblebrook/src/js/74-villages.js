@@ -8,7 +8,7 @@ try { vil.perks = JSON.parse(localStorage.getItem(VIL_PERKS) || 'null'); } catch
 
 /* Perks for the player's village: the sum of per-level amounts for buildings with this effect. */
 function villageFx(effect) {
-  const c = vil.perks;
+  const c = state && state.vperks;
   if (!c || !c.levels) return 0;
   let v = 0;
   for (const [id, lv] of Object.entries(c.levels)) { const d = c.defs && c.defs[id]; if (d && d.effect === effect) v += d.per_level * lv; }
@@ -21,6 +21,7 @@ function keepPerks() {
   for (const d of vil.defs) defs[d.id] = { effect: d.effect, per_level: +d.per_level };
   vil.perks = vil.data ? { levels, defs, name: vil.data.name } : null;
   try { if (vil.perks) localStorage.setItem(VIL_PERKS, JSON.stringify(vil.perks)); else localStorage.removeItem(VIL_PERKS); } catch (e) { /* storage blocked */ }
+  if (state && JSON.stringify(state.vperks || null) !== JSON.stringify(vil.perks)) doMove('vperks', { p: vil.perks });
 }
 
 async function rpc(fn, body) {
@@ -163,9 +164,8 @@ function foundSheet(err) {
     const name = $('#vf-name').value, crest = ($('input[name="crest"]:checked') || {}).value || '🌾', motto = $('#vf-motto').value;
     const go = $('#vf-go');
     go.disabled = true;
-    state.coins -= 500; commit();
-    try { await rpc('create_village', { p_name: name, p_crest: crest, p_motto: motto }); closeSheet(); toast(`${crest} ${name.trim()} is founded`); await refreshVillage(true); }
-    catch (err2) { state.coins += 500; commit(); $('#vf-err').textContent = String(err2.message || err2); go.disabled = false; }
+    try { await rpc('create_village', { p_name: name, p_crest: crest, p_motto: motto }); doMove('pay', { c: 500, why: 'village' }); commit(); closeSheet(); toast(`${crest} ${name.trim()} is founded`); await refreshVillage(true); }
+    catch (err2) { $('#vf-err').textContent = String(err2.message || err2); go.disabled = false; }
   });
   setTimeout(() => { const i = $('#vf-name'); if (i) i.focus(); }, 60);
 }
@@ -177,7 +177,7 @@ async function villageAct(act, el) {
       if (state.coins < n) return;
       await saveNowOnline();   // the server takes the gift out of the coins it has saved for you
       state.coins -= n;         // not committed until the server agrees, so no save goes out in between
-      try { await rpc('donate_to_village', { p_amount: n }); commit(); play('coins'); toast(`Gave ${fmtN(n)} coins to the treasury`); }
+      try { await rpc('donate_to_village', { p_amount: n }); state.coins += n; doMove('pay', { c: n, why: 'gift' }); commit(); play('coins'); toast(`Gave ${fmtN(n)} coins to the treasury`); }
       catch (e) { state.coins += n; commit(); throw e; }
     }
     if (act === 'vil-build') { const lv = await rpc('upgrade_village_building', { p_building: el.dataset.id }); play('level'); toast(`Raised to level ${lv}`); }

@@ -1,11 +1,25 @@
 /* ---------- base helpers, content index, art ---------- */
+// true when this code runs on the server as the rules engine (supabase/functions/_shared/engine.js), not in a page
+const ENGINE = typeof globalThis !== 'undefined' && !!globalThis.__ENGINE__;
 let C = null;          // all content (core, story, people, adventures, art)
 const I = {};          // lookups built from C
 let state = null;      // the save
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-const now = () => Date.now();
+// Game time. On the server the engine sets engineClock to each move's time while it replays; online, the
+// device's clock is nudged by clockSkew to agree with the server's.
+let engineClock = 0, clockSkew = 0;
+const now = () => engineClock || (Date.now() + clockSkew);
+/* Every roll that changes the farm comes from rand(), never Math.random(): it draws from a seed the server hands
+   out (state.rng), so the server can replay the same moves and get the same rolls. Math.random() is only for
+   things that change nothing (which line of chatter, where a ripple goes). */
+function mix32(x) { x = Math.imul(x ^ (x >>> 16), 0x21f0aaad); x = Math.imul(x ^ (x >>> 15), 0x735a2d97); return (x ^ (x >>> 15)) >>> 0; }
+function rand() {
+  if (!state.rng || typeof state.rng.s !== 'number') state.rng = { s: (Math.random() * 4294967296) >>> 0, n: 0 };
+  const r = state.rng;
+  return mix32((r.s + Math.imul(r.n++ + 1, 0x9E3779B9)) >>> 0) / 4294967296;
+}
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtN = n => Math.floor(n).toLocaleString('en-US');
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -28,16 +42,28 @@ function clockAt(t) {
   h = h % 12 || 12;
   return `${h}:${String(d.getMinutes()).padStart(2, '0')}${ap}`;
 }
+// The farm's calendar day. It follows the player's time zone, kept in the save (state.tz, minutes east of UTC),
+// so the server sees the same day as the phone; before that is set, the device's own zone.
 function dayKey(t = now()) {
-  const d = new Date(t);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const off = state && typeof state.tz === 'number' ? state.tz : -new Date(t).getTimezoneOffset();
+  const d = new Date(t + off * 60000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
+// midnight at the start of the farm's day, in ms
+function dayStart(t = now()) { const off = state && typeof state.tz === 'number' ? state.tz : -new Date(t).getTimezoneOffset(); const m = off * 60000; return Math.floor((t + m) / 86400000) * 86400000 - m; }
 function seeded(str) {
   let h = 2166136261;
   for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
-function pickWeighted(entries, rnd = Math.random) {
+// A fair shuffle that comes out the same on every browser and on the server. (Sorting with a random
+// comparator does not: Chrome, Safari and the server each sort differently, so they picked different chores.)
+function shuffled(list, rnd = rand) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+function pickWeighted(entries, rnd = rand) {
   const total = entries.reduce((a, e) => a + e[1], 0);
   let r = rnd() * total;
   for (const e of entries) { r -= e[1]; if (r <= 0) return e; }
