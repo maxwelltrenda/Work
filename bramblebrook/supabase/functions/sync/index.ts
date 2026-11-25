@@ -16,8 +16,10 @@ const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE
 
 // deno-lint-ignore no-explicit-any
 let eng: any = null, engAt = 0, engBuild = "";
+// the rules are cached for 15 minutes; a player on a newer build than the cached one reloads them (once a minute at most)
 async function engine(want?: string) {
-  if (eng && Date.now() - engAt < 15 * 60_000 && (!want || want === engBuild)) return eng;
+  const age = Date.now() - engAt;
+  if (eng && age < 15 * 60_000 && (!want || want === engBuild || age < 60_000)) return eng;
   const bust = "?t=" + Date.now();
   const [code, content] = await Promise.all([
     fetch(SITE + "/engine.js" + bust).then((r) => { if (!r.ok) throw new Error("engine.js " + r.status); return r.text(); }),
