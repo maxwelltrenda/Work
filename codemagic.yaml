@@ -1,0 +1,80 @@
+# Codemagic builds the Bramblebrook Farm iPhone app from bramblebrook/app (Capacitor 8, Swift Package Manager:
+# no CocoaPods, no Mac needed on our side). The game itself is bundled into the app, so it works offline.
+workflows:
+
+  # ── App Store / TestFlight ────────────────────────────────────────────────
+  bramblebrook-ios:
+    name: Bramblebrook iOS (App Store)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    # Codemagic > Team settings > Integrations > App Store Connect: an App Store Connect API key named "codemagic"
+    # (the same one Trenda RS uses works, if both apps are on the same Apple team).
+    integrations:
+      app_store_connect: codemagic
+    working_directory: bramblebrook/app
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.bramblebrook.farm
+      vars:
+        BUNDLE_ID: com.bramblebrook.farm
+      node: v22
+      xcode: latest
+    triggering:
+      events: [tag]
+      tag_patterns:
+        - pattern: 'bramblebrook-v*'
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Build the game into the app
+        script: npm run web
+      - name: Capacitor sync iOS
+        script: npx cap sync ios
+      - name: Set up code signing
+        script: xcode-project use-profiles
+      - name: Set build number
+        working_directory: bramblebrook/app/ios/App
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$BUNDLE_ID" 2>/dev/null || echo "0")
+          agvtool new-version -all $((LATEST + 1))
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --project "ios/App/App.xcodeproj" \
+            --scheme "App" \
+            --export-options-plist /Users/builder/export_options.plist
+    artifacts:
+      - bramblebrook/app/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false   # internal testers get it straight away; true = external beta review
+        submit_to_app_store: false    # flip to true when the listing is ready for full review
+
+  # ── iPhone simulator preview (no Apple account needed) ───────────────────
+  # Open the finished build in Codemagic > App Preview to play it in a browser-based iPhone.
+  bramblebrook-ios-simulator:
+    name: Bramblebrook iOS Simulator (App Preview)
+    max_build_duration: 45
+    instance_type: mac_mini_m2
+    working_directory: bramblebrook/app
+    environment:
+      node: v22
+      xcode: latest
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci
+      - name: Build the game into the app
+        script: npm run web
+      - name: Capacitor sync iOS
+        script: npx cap sync ios
+      - name: Build for simulator
+        script: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO
+          mkdir -p artifacts && cp -R build/Build/Products/Debug-iphonesimulator/App.app artifacts/
+    artifacts:
+      - bramblebrook/app/artifacts/App.app

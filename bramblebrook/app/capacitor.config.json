@@ -1,0 +1,16 @@
+{
+  "appId": "com.bramblebrook.farm",
+  "appName": "Bramblebrook Farm",
+  "webDir": "www",
+  "backgroundColor": "#0E0F1E",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": true,
+    "backgroundColor": "#0E0F1E",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 800, "launchAutoHide": true, "backgroundColor": "#0E0F1E", "showSpinner": false },
+    "StatusBar": { "style": "DARK", "backgroundColor": "#0E0F1E", "overlaysWebView": true }
+  }
+}

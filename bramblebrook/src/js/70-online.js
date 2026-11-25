@@ -15,6 +15,8 @@ let online = null;          // { user, username, at, rt, exp, cloudAt, syncedAt,
 const onl = { busy: false, err: '', timer: 0, pending: null, reach: '' };   // reach: '' not checked, 'checking', 'ok', 'blocked'
 const SITE_URL = 'https://bramblebrook-farm.vercel.app';
 const inClaude = () => !!(window.claude && typeof window.claude.use === 'function');
+// the iPhone app (Capacitor): the same game, bundled; it plays online like the website does
+const isNativeApp = () => !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
 const onlineAvailable = () => typeof fetch === 'function' && (!inClaude() || onl.reach === 'ok');
 /* Inside Claude, try one harmless request to the server; the answer decides whether online play can work here. */
 async function probeOnline() {
@@ -334,7 +336,7 @@ function onlineCard() {
       ${onl.err ? `<p class="sub" style="color:var(--berry)">${esc(onl.err)}</p>` : ''}
       ${inClaude() || !ONLINE.social ? '' : `<p class="sub">${prof.me && prof.me.show_online === false ? 'Your online status is private.' : 'Other players can see when you are online.'}</p>`}
       <div class="row">${inClaude() || !ONLINE.social ? '' : '<button class="btn small" data-act="online-profile">My profile</button>'}<button class="btn small ghost" data-act="online-sync">Save now</button><button class="btn small ghost" data-act="online-signout">Sign out</button></div>
-      ${inClaude() ? '' : `<p class="sub" style="margin-top:6px">Play this same farm inside Claude too.</p><div class="row"><button class="btn small ghost" data-act="online-link-make">Link Claude</button></div>`}</div>`;
+      ${inClaude() || isNativeApp() ? '' : `<p class="sub" style="margin-top:6px">Play this same farm inside Claude too.</p><div class="row"><button class="btn small ghost" data-act="online-link-make">Link Claude</button></div>`}</div>`;
 }
 /* Website: make a private connector address for this account and show the three steps. */
 async function makeLink() {

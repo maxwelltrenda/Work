@@ -1,0 +1,19 @@
+{
+  "name": "bramblebrook-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "The iPhone app for Bramblebrook Farm: the same game, bundled so it works offline.",
+  "scripts": {
+    "web": "bash ../build.sh && rm -rf www && cp -r ../public www && rm -f www/vercel.json",
+    "sync": "npm run web && npx cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2"
+  }
+}
