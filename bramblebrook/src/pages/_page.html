@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E0F1E">
+<title>@TITLE@ · Bramblebrook Farm</title>
+<meta name="description" content="@DESC@">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="fonts.css">
+<style>
+:root { color-scheme: dark; --bg: #0E0F1E; --surface: #171932; --ink: #ECEAF6; --muted: #A6A8C8; --line: #2B2E52; --sun: #F4C873; --mint: #86DCC2; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 'Atkinson Hyperlegible', system-ui, sans-serif; padding: max(16px, env(safe-area-inset-top)) 16px 48px; }
+main { max-width: 720px; margin: 0 auto; }
+header { display: flex; align-items: center; gap: 12px; margin: 8px 0 24px; }
+header img { width: 44px; height: 44px; border-radius: 10px; }
+header a { color: var(--ink); text-decoration: none; font: 800 22px/1 'Bricolage Grotesque', system-ui, sans-serif; letter-spacing: -.02em; }
+h1 { font: 800 clamp(28px, 6vw, 38px)/1.15 'Bricolage Grotesque', system-ui, sans-serif; letter-spacing: -.02em; margin: 0 0 6px; }
+h2 { font: 700 21px/1.3 'Bricolage Grotesque', system-ui, sans-serif; margin: 32px 0 6px; color: var(--sun); }
+.when { color: var(--muted); margin: 0 0 24px; }
+a { color: var(--mint); }
+ul { padding-left: 22px; } li { margin: 4px 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; margin: 16px 0; }
+footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+<header><img src="icon-180.png" alt=""><a href="./">Bramblebrook Farm</a></header>
+@BODY@
+<footer><a href="privacy">Privacy policy</a> · <a href="terms">Terms and community rules</a> · <a href="support">Help</a> · <a href="./">Play</a></footer>
+</main>
+</body>
+</html>

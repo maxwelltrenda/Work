@@ -105,7 +105,7 @@ async function boot() {
     if (!res.ok) throw new Error(res.status);
     indexContent(await res.json());
   } catch (e) {
-    $('#view').innerHTML = '<div class="boot"><div><p>The valley didn\'t load.</p><p><button class="btn" onclick="location.reload()">Try again</button></p></div></div>';
+    $('#view').innerHTML = '<div class="boot"><div><p>The valley didn\'t load.</p><p><a class="btn" href="">Try again</a></p></div></div>';
     return;
   }
   const hot = window.claude && window.claude.hot;

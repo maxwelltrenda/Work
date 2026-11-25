@@ -17,7 +17,9 @@ const VILLAGE_ACTIONS = ["create_village", "join_village", "leave_village", "don
   "social_ping", "notifications_list", "notifications_seen", "social_profile", "find_player", "follow_player", "unfollow_player",
   "world_chat_recent", "post_world_message", "dm_threads", "dm_thread", "send_dm",
   // feedback: players send it; the game's owner reads and answers it in the game
-  "send_feedback", "feedback_inbox", "feedback_mark"];
+  "send_feedback", "feedback_inbox", "feedback_mark",
+  // safety: report, block, moderation by the game's owner, and deleting the account
+  "block_player", "unblock_player", "blocked_list", "report_content", "mod_action", "delete_my_account"];
 
 const TOOLS = [
   {
@@ -55,7 +57,7 @@ const TOOLS = [
   },
   {
     name: "village_action",
-    description: "Do something in villages as this player: found, join, leave, give coins, raise a building, post on the board, promote a neighbour, set the motto, summon or attack the village boss, collect a boss reward; also world chat, follows, direct messages, notifications, and sending feedback to the game's maker.",
+    description: "Do something in villages as this player: found, join, leave, give coins, raise a building, post on the board, promote a neighbour, set the motto, summon or attack the village boss, collect a boss reward; also world chat, follows, direct messages, notifications, sending feedback to the game's maker, reporting or blocking a player, and deleting this account.",
     inputSchema: {
       type: "object",
       properties: {
@@ -207,7 +209,7 @@ async function handle(msg: Record<string, unknown>, userId: string) {
       return { jsonrpc: "2.0", id, result: {
         protocolVersion: typeof params.protocolVersion === "string" ? params.protocolVersion : "2025-06-18",
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "bramblebrook-farm", title: "Bramblebrook Farm", version: "1.4.0" },
+        serverInfo: { name: "bramblebrook-farm", title: "Bramblebrook Farm", version: "1.5.0" },
         instructions: "Loads and saves one player's Bramblebrook farm, and plays their village and profile. Used by the Bramblebrook game page.",
       } };
     case "ping":

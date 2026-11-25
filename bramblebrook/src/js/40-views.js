@@ -430,6 +430,7 @@ function viewSettings() {
     </div></div>
     ${onlineCard()}
     ${feedbackCardHTML()}
+    ${online ? safetyCardHTML() : ''}
     <div class="card"><h2>Sound</h2>
       <div class="toggle"><div class="what"><b>Sound effects</b><small>Soft sounds for harvesting, fishing, coins and story moments</small></div><button class="switch" role="switch" aria-label="Sound effects" aria-checked="${!state.opts.soundOff}" data-act="opt" data-id="soundOff"></button></div>
       ${state.opts.soundOff ? '' : `<label class="label" for="vol">Volume</label><input type="range" class="vol" id="vol" min="0" max="100" value="${Math.round(volume() * 100)}">`}</div>
@@ -441,5 +442,6 @@ function viewSettings() {
     <div class="card"><h2>Save</h2><p class="sub">${where}</p>
       <div class="row"><button class="btn small ghost" data-act="export">Show save code</button><button class="btn small ghost" data-act="import-open">Load a save code</button><button class="btn small danger" data-act="start-over">Start over</button></div>
       <div id="save-box"></div></div>
-    <div class="card"><h2>About</h2><p class="sub">Bramblebrook Farm. Pixel art from the CraftPix and Nine Realms packs. Everything else made for this game.</p></div>`;
+    <div class="card"><h2>About</h2><p class="sub">Bramblebrook Farm. Pixel art from the CraftPix and Nine Realms packs. Everything else made for this game.</p>
+      <p class="sub">${legalLink('privacy', 'Privacy policy')} · ${legalLink('terms', 'Terms')} · ${legalLink('support', 'Help')}${typeof BUILD === 'string' && !BUILD.startsWith('/*') ? ` · Version ${esc(BUILD)}` : ''}</p></div>`;
 }

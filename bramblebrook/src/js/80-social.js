@@ -17,7 +17,7 @@ async function socialPing() {
   try {
     const r = await rpc('social_ping');
     const fresh = r.notes > soc.notes;
-    Object.assign(soc, { notes: r.notes, dms: r.dms, worldLast: r.world, villageLast: r.village, admin: !!r.admin, fbNew: r.feedback_new || 0 });
+    Object.assign(soc, { notes: r.notes, dms: r.dms, worldLast: r.world, villageLast: r.village, admin: !!r.admin, fbNew: r.feedback_new || 0, blocked: r.blocked || soc.blocked || [] });
     if (fresh) freshNoteToast();
     updateSocialBadges();
     if (chatOpenNow()) refreshChat(false);
@@ -75,7 +75,9 @@ function followHTML(p) {
   return `<p class="sub">${fmtN(p.followers || 0)} follower${p.followers === 1 ? '' : 's'} · ${fmtN(p.following || 0)} following${p.follows_me ? ' · <span class="chip plain">Follows you</span>' : ''}</p>
     <div class="row"><button class="btn small${p.i_follow ? ' ghost' : ''}" data-act="follow" data-id="${esc(p.id)}">${p.i_follow ? 'Following ✓' : p.follows_me ? 'Follow back' : 'Follow'}</button>
       ${mutual ? `<button class="btn small" data-act="dm-open" data-id="${esc(p.id)}">Message</button>` : ''}</div>
-    ${p.i_follow && !p.follows_me ? '<p class="sub">You can message each other once they follow you back.</p>' : !p.i_follow && !mutual ? '<p class="sub">Follow each other to send messages.</p>' : ''}`;
+    ${p.i_follow && !p.follows_me ? '<p class="sub">You can message each other once they follow you back.</p>' : !p.i_follow && !mutual ? '<p class="sub">Follow each other to send messages.</p>' : ''}
+    <div class="row safety-row">${isBlocked(p.id) ? `<button class="btn small ghost" data-act="unblock" data-user="${esc(p.id)}">Unblock</button>`
+      : `<button class="btn small ghost" data-act="report-open" data-kind="profile" data-id="" data-user="${esc(p.id)}" data-name="${esc((p.public && p.public.name) || p.username || '')}">🚩 Report</button><button class="btn small ghost danger" data-act="block" data-user="${esc(p.id)}" data-name="${esc((p.public && p.public.name) || p.username || '')}">Block</button>`}</div>`;
 }
 async function toggleFollow(id) {
   try {
@@ -101,22 +103,23 @@ function viewChat() {
   setTimeout(afterChatDraw, 0);
   return seg + (soc.tab === 'village' ? villageChatHTML() : soc.tab === 'dm' ? dmHTML() : worldChatHTML());
 }
-const lineHTML = (m, mine) => `<div class="chat-line${mine ? ' mine' : ''}">
+const lineHTML = (m, mine, kind) => `<div class="chat-line${mine ? ' mine' : ''}">
     ${mine ? '' : `<button class="chat-pic" data-act="online-profile" data-id="${esc(m.user_id)}" aria-label="${esc(m.name || 'Player')}'s profile">${profilePic(m.face, 30)}</button>`}
-    <div class="chat-bubble">${mine ? '' : `<button class="chat-name" data-act="online-profile" data-id="${esc(m.user_id)}">${esc(m.name || 'Someone')}</button>`}<p>${esc(m.body)}</p><small>${agoText(Date.parse(m.created_at))}</small></div></div>`;
+    <div class="chat-bubble">${mine ? '' : `<button class="chat-name" data-act="online-profile" data-id="${esc(m.user_id)}">${esc(m.name || 'Someone')}</button>`}<p>${esc(m.body)}</p><small>${agoText(Date.parse(m.created_at))}</small></div>
+    ${mine ? '' : msgMenuHTML(kind, m.id, m.user_id, m.name)}</div>`;
 const chatForm = (kind, ph, max, off) => `<form class="chat-form" id="chat-form" data-kind="${kind}"><input id="chat-in" maxlength="${max}" placeholder="${esc(ph)}" value="${esc(soc.draft)}" ${off ? 'disabled' : ''} autocomplete="off"><button class="btn small" type="submit" ${off ? 'disabled' : ''}>Send</button></form>`;
 function worldChatHTML() {
   if (!soc.worldLoaded) { refreshChat(true); return '<div class="card"><p class="sub">Opening the world chat…</p></div>'; }
-  const list = soc.world.length ? soc.world.map(m => lineHTML(m, m.user_id === myId())).join('') : '<p class="sub">Nobody has said anything yet. Say hello to the valley!</p>';
+  const list = soc.world.length ? soc.world.filter(m => !isBlocked(m.user_id)).map(m => lineHTML(m, m.user_id === myId(), 'world')).join('') : '<p class="sub">Nobody has said anything yet. Say hello to the valley!</p>';
   return `<div class="card chat-card"><p class="sub chat-note">Everyone playing Bramblebrook. Tap a name to see their profile and follow them.</p>
     <div class="chat-list" id="chat-list">${list}</div>${chatForm('world', 'Say something to everyone', 280)}</div>`;
 }
 function villageChatHTML() {
   if (!vil.at) { loadVillage().then(() => { if (chatOpenNow()) renderView(); }); return '<div class="card"><p class="sub">Walking to the village…</p></div>'; }
   if (!vil.data) return `<div class="card"><p class="sub">Join a village to chat with your neighbours.</p><div class="row"><button class="btn small" data-act="sub" data-tab="town" data-sub="village">Find a village</button></div></div>`;
-  const lines = vil.board.filter(e => e.kind === 'chat').slice().reverse().map(e => {
+  const lines = vil.board.filter(e => e.kind === 'chat' && !isBlocked(e.user_id)).slice().reverse().map(e => {
     const p = vil.profiles[e.user_id] || {};
-    return lineHTML({ user_id: e.user_id, name: whoName(e.user_id), face: p.public && p.public.face, body: e.body, created_at: e.created_at }, e.user_id === myId());
+    return lineHTML({ id: e.id, user_id: e.user_id, name: whoName(e.user_id), face: p.public && p.public.face, body: e.body, created_at: e.created_at }, e.user_id === myId(), 'village');
   }).join('');
   return `<div class="card chat-card"><p class="sub chat-note">${esc(vil.data.crest)} ${esc(vil.data.name)}: only your neighbours see this.</p>
     <div class="chat-list" id="chat-list">${lines || '<p class="sub">No messages yet. Say hello to your neighbours.</p>'}</div>${chatForm('village', 'Say something to the village', 280)}</div>`;
@@ -124,12 +127,12 @@ function villageChatHTML() {
 function dmHTML() {
   const t = soc.thread;
   if (t) {
-    const lines = t.messages.length ? t.messages.map(m => lineHTML({ user_id: t.with, name: t.name, face: t.face, body: m.body, created_at: m.created_at }, m.mine)).join('')
+    const lines = t.messages.length ? t.messages.map(m => lineHTML({ id: m.id, user_id: t.with, name: t.name, face: t.face, body: m.body, created_at: m.created_at }, m.mine, 'dm')).join('')
       : `<p class="sub">This is the start of your messages with ${esc(t.name || 'them')}.</p>`;
     return `<div class="card chat-card"><div class="dm-head"><button class="raid-back" data-act="dm-back" aria-label="Back to your messages">‹</button>
         <button class="dm-who" data-act="online-profile" data-id="${esc(t.with)}">${profilePic(t.face, 32)}<b>${esc(t.name || 'Player')}</b></button></div>
       <div class="chat-list" id="chat-list">${lines}</div>
-      ${t.mutual ? '' : '<p class="sub">You can message each other again once you both follow each other.</p>'}${chatForm('dm', `Message ${t.name || ''}`, 500, !t.mutual)}</div>`;
+      ${t.blocked ? '<p class="sub">You or they blocked the other, so messages are off.</p>' : t.mutual ? '' : '<p class="sub">You can message each other again once you both follow each other.</p>'}${chatForm('dm', `Message ${t.name || ''}`, 500, !t.mutual)}</div>`;
   }
   if (!soc.threads) { refreshChat(true); return '<div class="card"><p class="sub">Opening your messages…</p></div>'; }
   const list = soc.threads.map(x => `<button class="thread${x.unread ? ' unread' : ''}" data-act="dm-open" data-id="${esc(x.user_id)}">${profilePic(x.face, 36)}

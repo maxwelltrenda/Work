@@ -5,7 +5,7 @@
    It lands in the `feedback` table (Supabase), the owner's bell pings, and Claude can read it straight away.
    Players without an account can send it too, from the website. */
 const BUILD = '/*@BUILD@*/';
-const fb = { kind: 'bug', draft: '', at: null, sending: false, inbox: null, filter: 'new', replyTo: 0, reply: '', busy: 0 };
+const fb = { kind: 'bug', draft: '', at: null, sending: false, inbox: null, reports: null, filter: 'new', replyTo: 0, reply: '', busy: 0 };
 const fbLog = { acts: [], errs: [], toasts: [], t0: Date.now() };
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 function fbNote(kind, text) {
@@ -84,6 +84,9 @@ async function feedbackInbox() {
   try {
     const r = await rpc('feedback_inbox');
     fb.inbox = r.items || [];
+    fb.reports = r.reports || [];
+    soc.fbNew = fb.inbox.filter(x => x.status === 'new').length + fb.reports.filter(x => x.status === 'new').length;
+    updateSocialBadges();
     drawInbox();
   } catch (e) { openSheet(`<h2>Feedback inbox</h2><p class="sub" style="color:var(--berry)">${esc(String(e.message || e))}</p><div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`); }
 }
@@ -97,10 +100,10 @@ function fbContextHTML(c) {
     ${list('Errors', c.errs)}${list('Messages shown', c.toasts)}${list('Last taps', c.acts)}</details>`;
 }
 function drawInbox() {
-  const all = fb.inbox || [];
+  const all = fb.inbox || [], reps = fb.reports || [];
   const shown = fb.filter === 'new' ? all.filter(f => f.status === 'new') : all;
-  const nNew = all.filter(f => f.status === 'new').length;
-  const seg = `<div class="seg" role="tablist">${[['new', `New${nNew ? ' (' + nNew + ')' : ''}`], ['all', 'All']].map(([k, n]) => `<button class="seg-b${fb.filter === k ? ' on' : ''}" role="tab" aria-selected="${fb.filter === k}" data-act="fb-filter" data-id="${k}">${n}</button>`).join('')}</div>`;
+  const nNew = all.filter(f => f.status === 'new').length, rNew = reps.filter(r => r.status === 'new').length;
+  const seg = `<div class="seg" role="tablist">${[['new', `New${nNew ? ' (' + nNew + ')' : ''}`], ['reports', `Reports${rNew ? ' (' + rNew + ')' : ''}`], ['all', 'All']].map(([k, n]) => `<button class="seg-b${fb.filter === k ? ' on' : ''}" role="tab" aria-selected="${fb.filter === k}" data-act="fb-filter" data-id="${k}">${n}</button>`).join('')}</div>`;
   const items = shown.map(f => {
     const replying = fb.replyTo === f.id;
     return `<div class="fb-item">
@@ -117,9 +120,11 @@ function drawInbox() {
           ${f.status !== 'wontfix' && f.status !== 'fixed' ? `<button class="btn small ghost" data-act="fb-mark" data-id="${f.id}" data-to="wontfix">Won't fix</button>` : ''}</div>`}
     </div>`;
   }).join('');
+  const body = fb.filter === 'reports' ? reportsHTML(reps.slice().sort((a, b) => (a.status === 'new' ? 0 : 1) - (b.status === 'new' ? 0 : 1) || b.id - a.id))
+    : items ? `<div class="fb-list">${items}</div>` : `<p class="sub">${fb.filter === 'new' ? 'Nothing new. Everything has been looked at.' : 'No feedback yet.'}</p>`;
   openSheet(`<h2>Feedback inbox</h2>
-    <p class="sub">What players sent. Fixed and Reply send a note to their bell; Got it just clears it from New.</p>${seg}
-    ${items ? `<div class="fb-list">${items}</div>` : `<p class="sub">${fb.filter === 'new' ? 'Nothing new. Everything has been looked at.' : 'No feedback yet.'}</p>`}
+    <p class="sub">${fb.filter === 'reports' ? 'Players reported these. Removing, muting or banning tells the reporter action was taken.' : 'What players sent. Fixed and Reply send a note to their bell; Got it just clears it from New.'}</p>${seg}
+    ${body}
     <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
   if (fb.replyTo) { const t = $('#fb-reply'); if (t) t.focus({ preventScroll: true }); }
 }
@@ -132,7 +137,7 @@ async function markFeedback(id, status) {
     const f = (fb.inbox || []).find(x => x.id === id);
     if (f) { f.status = status; if (reply) f.reply = reply; }
     fb.replyTo = 0; fb.reply = '';
-    soc.fbNew = (fb.inbox || []).filter(x => x.status === 'new').length;
+    soc.fbNew = (fb.inbox || []).filter(x => x.status === 'new').length + (fb.reports || []).filter(x => x.status === 'new').length;
     play('tick');
     toast(status === 'fixed' ? (f && f.user_id ? 'Marked fixed. They will get a note.' : 'Marked fixed.') : reply ? 'Reply sent.' : status === 'wontfix' ? 'Marked won\'t fix.' : 'Cleared from New.');
     drawInbox();

@@ -370,6 +370,7 @@ function onlineSheet(mode, err) {
       <label class="label" for="on-pass">Password</label>
       <input id="on-pass" name="password" type="password" autocomplete="${isNew ? 'new-password' : 'current-password'}" minlength="8" maxlength="72" required placeholder="At least 8 characters">
       ${isNew ? '<label class="label" for="on-pass2">Password again</label><input id="on-pass2" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>' : ''}
+      ${isNew ? `<p class="sub small-print">By creating an account you agree to the ${legalLink('terms', 'Terms and community rules')} and the ${legalLink('privacy', 'Privacy policy')}. No bullying, hate or adult content: it is removed, and players who post it are banned.</p>` : ''}
       <p class="sub" id="on-err" style="color:var(--berry)">${err ? esc(err) : ''}</p>
       <div class="sheet-btns"><button class="btn small ghost" type="button" data-act="sheet-close">Cancel</button><button class="btn small" type="submit" id="on-go">${isNew ? 'Create account' : 'Sign in'}</button></div>
     </form>

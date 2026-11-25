@@ -29,8 +29,31 @@ const head = [
   '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>',
   '</head>', '<body>',
 ].join('\n');
-fs.writeFileSync('public/index.html', head + '\n' + page + '\n</body>\n</html>\n');
+// The website and the phone app: the script is its own file (so the site can forbid inline scripts), and the
+// fonts come from this site, not Google. game.html above stays one self-contained page for the Artifact.
+const SCRIPT_TAG = '<script>\n(() => {\n\'use strict\';\n';
+const at = page.indexOf(SCRIPT_TAG);
+if (at < 0) throw new Error('shell.html script block not found');
+const end = page.lastIndexOf('})();\n</script>');
+const gameJs = "(() => {\n'use strict';\n" + page.slice(at + SCRIPT_TAG.length, end) + '})();\n';
+const sitePage = (page.slice(0, at) + '<script src="game.js"></script>' + page.slice(end + '})();\n</script>'.length))
+  .replace(/<link rel="preconnect"[^>]*>\n/g, '')
+  .replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="fonts.css">');
+if (/<script>/.test(sitePage) || /onclick=/.test(sitePage)) throw new Error('inline script left in the site page');
+fs.writeFileSync('public/game.js', gameJs);
+fs.writeFileSync('public/index.html', head + '\n' + sitePage + '\n</body>\n</html>\n');
+// privacy, terms and help pages
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || fs.existsSync('support-email.txt') && fs.readFileSync('support-email.txt', 'utf8').trim() || '';
+const shell = fs.readFileSync('src/pages/_page.html', 'utf8');
+for (const f of fs.readdirSync('src/pages').filter(f => f.endsWith('.md.html'))) {
+  const src = fs.readFileSync('src/pages/' + f, 'utf8');
+  const title = (src.match(/<!-- TITLE: (.*?) -->/) || [])[1] || 'Bramblebrook Farm';
+  const desc = (src.match(/<!-- DESC: (.*?) -->/) || [])[1] || '';
+  const body = src.replace(/<!--.*?-->\n/g, '').replace('@EMAIL@', SUPPORT_EMAIL ? `<p>Or email <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>` : '');
+  fs.writeFileSync('public/' + f.replace('.md.html', '.html'), shell.replace(/@TITLE@/g, title).replace('@DESC@', desc).replace('@BODY@', () => body));
+}
 console.log(`game.html ${(page.length / 1024).toFixed(0)} KB, content.json ${(JSON.stringify(content).length / 1024).toFixed(0)} KB`);
 JS
 cp assets/atlas.png assets/stage.png assets/boss.webp assets/icon.svg assets/manifest.webmanifest assets/icon-180.png assets/icon-192.png assets/icon-512.png public/
+mkdir -p public/fonts && cp assets/fonts/*.woff2 public/fonts/ && cp assets/fonts/fonts.css public/fonts.css
 echo "Built game.html and public/"

@@ -382,6 +382,16 @@ function handle(act, el, e) {
     case 'vil-found': foundSheet(); return false;
     case 'notes': notesSheet(); return false;
     case 'feedback': openFeedback(); return false;
+    case 'msg-menu': msgMenu(el); return false;
+    case 'report-open': safe.reason = ''; reportSheet(el.dataset); return false;
+    case 'report-reason': safe.reason = id; reportSheet({ kind: safe.report.kind, id: safe.report.ref || '', user: safe.report.user, name: safe.report.name }); return false;
+    case 'report-send': sendReport(); return false;
+    case 'block': blockPlayer(el.dataset.user, el.dataset.name); return false;
+    case 'unblock': unblockPlayer(el.dataset.user).then(() => { if (soc.profile && soc.profile.id === el.dataset.user) showProfile(soc.profile); }); return false;
+    case 'blocked-list': blockedSheet(); return false;
+    case 'delete-account': deleteAccountSheet(); return false;
+    case 'delete-account-go': deleteAccount(); return false;
+    case 'mod': modAction(+id, el.dataset.to); return false;
     case 'fb-kind': fb.kind = id; feedbackSheet(); return false;
     case 'fb-send': sendFeedback(); return false;
     case 'fb-inbox': feedbackInbox(); return false;

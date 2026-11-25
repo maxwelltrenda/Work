@@ -90,11 +90,11 @@ const whoName = id => { const p = vil.profiles[id]; return p ? ((p.public && p.p
 const buildingCost = (d, lv) => Math.round(d.base_cost * Math.pow(d.growth, lv));
 function boardHTML() {
   if (!vil.board.length) return '<p class="sub">Nothing on the board yet. Say hello.</p>';
-  return vil.board.map(e => {
+  return vil.board.filter(e => !(e.kind === 'chat' && isBlocked(e.user_id))).map(e => {
     const who = e.user_id ? `<button class="linkish who" data-act="online-profile" data-id="${esc(e.user_id)}">${esc(whoName(e.user_id))}</button>` : `<b>${esc(whoName(e.user_id))}</b>`;
     const what = e.kind === 'chat' ? `${who}: ${esc(e.body)}` : e.kind === 'donate' ? `${who} gave ${fmtN(e.amount)} coins to the treasury`
       : e.kind === 'build' ? `${who} raised the ${esc(e.body)}${e.amount ? ` (${fmtN(e.amount)} coins)` : ''}` : `${who} ${esc(e.body)}`;
-    return `<div class="vil-post${e.kind === 'chat' ? '' : ' note'}"><span>${what}</span><small>${agoText(new Date(e.created_at).getTime())}</small></div>`;
+    return `<div class="vil-post${e.kind === 'chat' ? '' : ' note'}"><span>${what}</span><small>${agoText(new Date(e.created_at).getTime())}</small>${e.kind === 'chat' ? msgMenuHTML('village', e.id, e.user_id, whoName(e.user_id)) : ''}</div>`;
   }).join('');
 }
 
@@ -175,8 +175,9 @@ async function villageAct(act, el) {
     if (act === 'vil-give') {
       const n = +el.dataset.n;
       if (state.coins < n) return;
-      state.coins -= n; commit();
-      try { await rpc('donate_to_village', { p_amount: n }); play('coins'); toast(`Gave ${fmtN(n)} coins to the treasury`); }
+      await saveNowOnline();   // the server takes the gift out of the coins it has saved for you
+      state.coins -= n;         // not committed until the server agrees, so no save goes out in between
+      try { await rpc('donate_to_village', { p_amount: n }); commit(); play('coins'); toast(`Gave ${fmtN(n)} coins to the treasury`); }
       catch (e) { state.coins += n; commit(); throw e; }
     }
     if (act === 'vil-build') { const lv = await rpc('upgrade_village_building', { p_building: el.dataset.id }); play('level'); toast(`Raised to level ${lv}`); }
