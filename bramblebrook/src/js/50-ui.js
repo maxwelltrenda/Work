@@ -422,8 +422,6 @@ function handle(act, el, e) {
     case 'online-link-stop': online = null; storeOnline(); onl.link = 'missing'; toast('Stopped syncing here. Remove the connector in Claude to turn it off fully.'); break;
     case 'online-sync': pushCloud().then(() => { renderView(); toast(onl.err ? onl.err : 'Saved online'); }); renderView(); return false;
     case 'online-signout': onlineSignOut(); break;
-    case 'online-use-cloud': if (onl.pending) useCloud(onl.pending); onl.pending = null; return false;
-    case 'online-keep-local': onl.pending = null; if (online) online.cloudAt = null; closeSheet(); pushCloud().then(() => { renderView(); toast(onl.err ? onl.err : 'This farm is now the one saved online'); }); return false;
     case 'export': {
       let code = '';
       try { code = btoa(unescape(encodeURIComponent(JSON.stringify(state)))); } catch (err) { code = ''; }

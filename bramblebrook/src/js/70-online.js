@@ -11,7 +11,7 @@ const ONLINE = {
 const ONLINE_STORE = 'bramblebrook-online';
 const LINK_STORE = 'bramblebrook-link';          // inside Claude: syncing through the player's own connector
 const LINK_SERVER = 'Bramblebrook Farm';         // the custom connector's name in Claude's settings
-let online = null;          // { user, username, at, rt, exp, cloudAt, syncedAt, dirty }
+let online = null;          // { user, username, at, rt, exp, syncedAt, dirty }
 const onl = { busy: false, err: '', timer: 0, pending: null, reach: '' };   // reach: '' not checked, 'checking', 'ok', 'blocked'
 const SITE_URL = 'https://bramblebrook-farm.vercel.app';
 const inClaude = () => !!(window.claude && typeof window.claude.use === 'function');
@@ -67,26 +67,13 @@ async function freshToken() {
 }
 
 /* What a farm looks like at a glance, for the "which farm?" choice. */
-function farmSummary(s) {
-  const levels = Object.values(s.xp || {}).reduce((a, x) => a + levelInfo(x).lvl, 0);
-  return { name: s.name || 'Your farmer', day: Math.floor(((s.savedAt || Date.now()) - (s.created || Date.now())) / 86400000) + 1, levels, coins: Math.floor(s.coins || 0), chapter: (s.story && s.story.ci) || 0, savedAt: s.savedAt || 0 };
-}
-// only a device that has not started a farm yet (still on the name screen) is replaced without asking
-const freshFarm = s => !s || !s.name;
-// "Start over" leaves this marker online in place of the farm: farms begun before it are wiped, newer ones kept
-const isReset = row => !!(row && row.data && row.data.reset && !row.data.name);
-function takeReset(row) {
-  online.cloudAt = row.updated_at; online.dirty = false; storeOnline();
-  if (state.name && (state.created || 0) < row.data.reset) { wipeFarm('Your farm was reset. A fresh start!'); return; }
-  if (state.name) pushCloud();
-}
 /* A brand-new farm on this device. The old one is gone for good. */
 function wipeFarm(msg) {
   try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* storage blocked */ }
   if (typeof bt !== 'undefined') bt = null;
   state = migrate(null);
   state.savedAt = now(); exploreLog = []; mineLog = []; catchLog = [];
-  restartChecking();
+  restartChecking('reset');
   saveLocal();
   if (cloud.ready) saveCloud();
   closeSheet(); $('#scene-root').innerHTML = '';
@@ -95,18 +82,9 @@ function wipeFarm(msg) {
   if (msg) toast(msg);
 }
 async function startOver() {
-  if (online) {
-    const mark = { reset: Date.now() };
-    try {
-      if (online.via === 'mcp') { const r = await linkCall('save_farm', { data: mark, summary: mark }); online.cloudAt = r.updated_at; }
-      else {
-        const rows = await onlineApi('/rest/v1/saves', { method: 'POST', auth: true, headers: { Prefer: 'resolution=merge-duplicates,return=representation' }, body: { user_id: online.user, data: mark, summary: mark, device: 'start over' } });
-        online.cloudAt = rows && rows[0] ? rows[0].updated_at : null;
-      }
-      online.dirty = false; storeOnline();
-    } catch (e) { toast('Could not reach your account, so nothing was reset. Try again when you are online.'); return; }
-  }
-  wipeFarm('A fresh start. Your old farm is gone.');
+  if (online && !mv.on) { toast('Could not reach your account, so nothing was reset. Try again when you are online.'); return; }
+  wipeFarm('A fresh start. Your old farm is gone.');   // online: the server starts your farm over from this fresh one
+  if (mv.on) pushCloud();
 }
 
 async function onlineSignUp(username, password) {
@@ -150,63 +128,14 @@ function linkErrText(e) {
     default: return 'Syncing failed (' + ((e && e.code) || 'unknown') + ').';
   }
 }
-async function fetchCloud() {
-  if (online.via === 'mcp') {
-    const r = await linkCall('load_farm');
-    return r && r.found ? { data: r.data, summary: r.summary, updated_at: r.updated_at } : null;
-  }
-  const rows = await onlineApi(`/rest/v1/saves?select=data,summary,updated_at&user_id=eq.${online.user}`, { auth: true });
-  return rows && rows[0] ? rows[0] : null;
-}
-async function pushCloud(keepalive) {
-  if (!online || !state || !state.name) return;
+/* Save online: send the moves made since the last save; the server plays them and keeps the farm (71-check.js). */
+async function pushCloud() {
+  if (!online || !state) return;
   if (onl.busy) { onl.again = true; return; }
   onl.busy = true;
-  if (online.via === 'mcp') {
-    try {
-      const r = await linkCall('save_farm', { data: state, summary: farmSummary(state), ...(online.cloudAt ? { if_updated_at: online.cloudAt } : {}) });
-      if (r && r.conflict) {   // played on the website since: never overwrite it, ask instead
-        onl.busy = false;
-        const row = await fetchCloud();
-        if (row) (isReset(row) ? takeReset(row) : chooseFarm(row));
-        return;
-      }
-      online.cloudAt = r.updated_at; online.syncedAt = Date.now(); online.dirty = false; onl.err = '';
-      storeOnline();
-    } catch (e) { onl.err = e.message; if (/needs your OK/.test(onl.err)) onl.link = 'approve'; }
-    onl.busy = false;
-    if (onl.again) { onl.again = false; pushCloud(); }
-    return;
-  }
-  try {
-    const body = { user_id: online.user, data: state, summary: farmSummary(state), device: (navigator.userAgent || '').slice(0, 60) };
-    let rows;
-    if (online.cloudAt) {
-      // only replace the copy we last saw; if it changed elsewhere (the Claude copy, another device), ask instead
-      rows = await onlineApi(`/rest/v1/saves?user_id=eq.${online.user}&updated_at=eq.${encodeURIComponent(online.cloudAt)}`, {
-        method: 'PATCH', auth: true, keepalive, headers: { Prefer: 'return=representation' }, body,
-      });
-      if (!rows || !rows.length) {
-        const row = await fetchCloud();
-        onl.busy = false;
-        if (row) { isReset(row) ? takeReset(row) : chooseFarm(row); return; }
-        online.cloudAt = null;   // nothing online any more: fall through to a fresh save next time
-        pushCloud();
-        return;
-      }
-    } else {
-      rows = await onlineApi('/rest/v1/saves', {
-        method: 'POST', auth: true, keepalive,
-        headers: { Prefer: 'resolution=merge-duplicates,return=representation' }, body,
-      });
-    }
-    online.cloudAt = rows && rows[0] ? rows[0].updated_at : online.cloudAt;
-    online.syncedAt = Date.now(); online.dirty = false; onl.err = '';
-    storeOnline();
-    pushPublicCard();
-    checkSoon(1500);   // and let the server check the moves that led here (71-check.js)
-  } catch (e) { onl.err = navigator.onLine === false ? 'Offline. Your farm will save online when you are back.' : String(e.message || e); }
-  onl.busy = false;
+  let ok = false;
+  try { ok = await checkNow('save'); } finally { onl.busy = false; }
+  if (ok) pushPublicCard();
   if (onl.again) { onl.again = false; pushCloud(); }
 }
 /* Called from commit(): save online a few seconds after the last change. */
@@ -216,51 +145,21 @@ function onlineChanged() {
   clearTimeout(onl.timer);
   onl.timer = setTimeout(() => pushCloud(), 5000);
 }
-function onlineFlush() { if (online && online.dirty) { clearTimeout(onl.timer); pushCloud(true); } }
+function onlineFlush() { if (online && online.dirty) { clearTimeout(onl.timer); pushCloud(); } }
 
-function useCloud(row) {
-  state = migrate(row.data);
-  online.cloudAt = row.updated_at; online.syncedAt = Date.now(); online.dirty = false; storeOnline();
-  restartChecking();
-  saveLocal();
-  if (!sceneOpen && !advRun) $('#scene-root').innerHTML = '';
-  closeSheet();
-  renderAll();
-  if (!state.bg) createCharacter(false);
-  toast(`Loaded ${state.name ? state.name + "'s" : 'your'} farm from your account`);
-}
-/* Both this device and the account have a farm that the other has not seen: the player picks. */
-function chooseFarm(row) {
-  onl.pending = row;
-  const a = farmSummary(state), b = Object.assign(farmSummary(row.data), row.summary || {});
-  const card = (s, label, act) => `<div class="card farm-pick"><div class="row between"><b>${esc(label)}</b><span class="chip plain">${s.savedAt ? agoText(s.savedAt) : ''}</span></div>
-      <p class="sub">${esc(s.name)} · day ${s.day} · ${s.levels} skill levels · ${fmtN(s.coins)} coins</p><button class="btn small" data-act="${act}">Play this farm</button></div>`;
-  openSheet(`<h2>Which farm?</h2><p class="sub">Your account has a farm saved online, and this device has a different one. Pick the one to keep playing. The other is replaced.</p>
-    ${card(b, 'Saved online', 'online-use-cloud')}${card(a, 'On this device', 'online-keep-local')}
-    <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Decide later</button></div>`);
-}
 function agoText(t) {
   const m = Math.round((Date.now() - t) / 60000);
   return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`;
 }
 async function afterSignIn(isNew) {
-  const row = await fetchCloud();
-  if (isReset(row)) { takeReset(row); toast(isNew ? 'Account made.' : 'Signed in.'); return; }
-  if (!row) { await pushCloud(); toast(isNew ? 'Account made. Your farm is saved online.' : 'Signed in. Your farm is saved online.'); return; }
-  if (freshFarm(state)) { useCloud(row); return; }
-  if (JSON.stringify(row.data) === JSON.stringify(state)) { online.cloudAt = row.updated_at; storeOnline(); toast('Signed in.'); return; }
-  chooseFarm(row);
+  startChecking();
+  const ok = await checkNow('open');
+  toast(isNew ? 'Account made. Your farm is saved online.' : ok ? 'Signed in.' : 'Signed in. Your farm will save when the server answers.');
 }
-/* On opening the game: pick up a farm played on another device, or send this one up. */
+/* On opening the game: send anything not yet saved, and pick up moves played on another device. */
 async function syncOnOpen() {
-  if (!online.cloudAt) return afterSignIn(false);   // first sync on this device: ask before replacing a started farm
-  const row = await fetchCloud();
-  if (!row) { if (state.name) pushCloud(); return; }
-  if (isReset(row)) { if (new Date(row.updated_at) > new Date(online.cloudAt)) takeReset(row); else if (online.dirty && state.name) pushCloud(); return; }
-  const newerOnline = new Date(row.updated_at) > new Date(online.cloudAt);
-  if (!newerOnline) { if (online.dirty) pushCloud(); return; }
-  if (!online.dirty || freshFarm(state)) useCloud(row);
-  else chooseFarm(row);
+  startChecking();
+  await checkNow('open');
 }
 /* Inside Claude, where the page cannot reach the server itself: sync through the player's own connector. */
 async function initLink() {
@@ -281,7 +180,7 @@ async function initLink() {
   } catch (e) {
     onl.err = e.message;
     onl.link = /needs your OK/.test(e.message) ? 'approve' : e.code === 'server_not_connected' ? 'missing' : 'error';
-    if (onl.link !== 'ready' && !online.cloudAt) online = null;
+    if (onl.link !== 'ready' && !online.syncedAt) online = null;
   }
   refreshOnlineCard();
 }

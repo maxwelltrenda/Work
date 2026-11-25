@@ -15,13 +15,13 @@ const FARM_ACTS = new Set(['seed', 'plot', 'harvest-all', 'sow-all', 'tonic', 'i
   'bench-collect', 'bench-cancel', 'bench-buy', 'net-set', 'net-collect', 'cask-fill', 'cask-bottle', 'cask-buy', 'ex-sell',
   'pet-adopt', 'pet-feed', 'pet-collect', 'fest-deliver', 'fest-buy', 'login-claim', 'take-overflow']);
 
-const mv = { on: false, log: [], replaying: 0, user: '' };   // on: recording (signed in online, as user); replaying: inside a replay
+const mv = { on: false, log: [], replaying: 0, user: '', seq: 0 };   // on: recording (signed in online, as user); replaying: inside a replay
 function recordMove(n, a) {
   if (!mv.on || mv.replaying || ENGINE) return;
   const fresh = !engineClock, t = now();
   // hold the clock still for the rest of this move, so every time it stamps matches the server's replay
   if (fresh) { engineClock = t; Promise.resolve().then(() => { engineClock = 0; }); engineTick(); }   // the server catches up the day (mail, chores, login) before every move: so does the phone
-  mv.log.push({ n, a: a || {}, t });
+  mv.log.push({ n, a: a || {}, t, q: ++mv.seq });
   keepMoves();
 }
 // A moment the phone tidies the farm on its own (the idle timer, a battle ending later): if that changed
@@ -34,7 +34,7 @@ function settleOnOwn(full) {
   engineClock = t;
   try { if (full) { engineTick(); syncStamina(); } engineSettle(); }
   finally { engineClock = 0; }
-  if (hashState(state) !== before) { mv.log.push({ n: 'tick', a: {}, t }); keepMoves(); }
+  if (hashState(state) !== before) { mv.log.push({ n: 'tick', a: {}, t, q: ++mv.seq }); keepMoves(); }
   return t;
 }
 // moves wait in storage until the server has them, so closing the app loses nothing (a long offline log is kept in memory only)
@@ -43,6 +43,7 @@ function keepMoves() {
   try {
     if (mv.log.length > 3000) { localStorage.removeItem(MOVES_KEY()); localStorage.removeItem(CHECK_STORE()); return; }
     localStorage.setItem(MOVES_KEY(), JSON.stringify(mv.log));
+    localStorage.setItem(MOVES_KEY() + '-seq', String(mv.seq));
   } catch (e) { /* storage full or blocked: the next sync still has them in memory */ }
 }
 const MOVES_KEY = (u = mv.user) => 'bramblebrook-moves-' + (u || 'local');
@@ -68,12 +69,26 @@ const MOVES = {
   'scene-done': () => sceneDone(),
   bt: a => battleAct(a.k, a.id),
   tick: () => syncStamina(),   // the tidying every move gets (engineTick before, engineSettle after), plus stamina
-  // Things the online server decides (villages, boss rewards). Step 1 takes the phone's word for them;
-  // step 2 has the server fill them in from its own records instead.
-  vperks: a => { state.vperks = a.p && typeof a.p === 'object' ? a.p : null; },
-  pay: a => { const c = Math.floor(+a.c || 0); if (c > 0 && c <= state.coins) state.coins -= c; },
-  grant: a => { const c = Math.floor(+a.c || 0); if (c > 0) state.coins += c; if (+a.xp > 0) addCombatXP(Math.floor(+a.xp)); },
+  // Things the online server decides. On the server (srv set by replay) they come from its own records: the
+  // village's real buildings, the rewards it handed out, whether you are in a village to give to at all. The
+  // phone runs the same moves with the numbers the server already told it, so both come out the same.
+  vperks: a => { state.vperks = srv ? srv.vperks : (a.p && typeof a.p === 'object' ? a.p : null); },
+  pay: a => {
+    const c = Math.floor(+a.c || 0);
+    if (!(c > 0 && c <= state.coins)) return;
+    if (srv && a.why === 'gift' && !srv.canGift) return;   // no village to give to: the coins stay
+    state.coins -= c;
+    if (srv) srv.effects.push({ kind: String(a.why || 'pay'), c });
+  },
+  grant: a => {
+    let g = { c: +a.c || 0, xp: +a.xp || 0 };
+    if (srv) { const x = srv.grants[a.g]; if (!x || x.used) return; x.used = true; g = { c: x.coins, xp: x.xp }; }
+    giveGrant(g);
+  },
 };
+function giveGrant(g) { const c = Math.floor(+g.c || 0); if (c > 0) state.coins += c; if (+g.xp > 0) addCombatXP(Math.floor(+g.xp)); }
+// the server's records for the replay in progress (null on the phone)
+let srv = null;
 // record a move and run it, for inputs that don't already pass through a recorded function
 function doMove(n, a) { recordMove(n, a || {}); return MOVES[n](a || {}); }
 

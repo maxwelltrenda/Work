@@ -21,7 +21,7 @@ function keepPerks() {
   for (const d of vil.defs) defs[d.id] = { effect: d.effect, per_level: +d.per_level };
   vil.perks = vil.data ? { levels, defs, name: vil.data.name } : null;
   try { if (vil.perks) localStorage.setItem(VIL_PERKS, JSON.stringify(vil.perks)); else localStorage.removeItem(VIL_PERKS); } catch (e) { /* storage blocked */ }
-  if (state && JSON.stringify(state.vperks || null) !== JSON.stringify(vil.perks)) doMove('vperks', { p: vil.perks });
+  if (state && canonical(state.vperks || null) !== canonical(vil.perks)) doMove('vperks', { p: vil.perks });
 }
 
 async function rpc(fn, body) {
@@ -175,10 +175,11 @@ async function villageAct(act, el) {
     if (act === 'vil-give') {
       const n = +el.dataset.n;
       if (state.coins < n) return;
-      await saveNowOnline();   // the server takes the gift out of the coins it has saved for you
-      state.coins -= n;         // not committed until the server agrees, so no save goes out in between
-      try { await rpc('donate_to_village', { p_amount: n }); state.coins += n; doMove('pay', { c: n, why: 'gift' }); commit(); play('coins'); toast(`Gave ${fmtN(n)} coins to the treasury`); }
-      catch (e) { state.coins += n; commit(); throw e; }
+      // the gift is a move like any other: the server takes it out of your farm and puts it in the treasury
+      doMove('pay', { c: n, why: 'gift' }); commit(); play('coins');
+      clearTimeout(onl.timer);
+      await pushCloud();
+      toast(onl.err ? 'Your gift reaches the treasury when your farm saves.' : `Gave ${fmtN(n)} coins to the treasury`);
     }
     if (act === 'vil-build') { const lv = await rpc('upgrade_village_building', { p_building: el.dataset.id }); play('level'); toast(`Raised to level ${lv}`); }
     if (act === 'vil-leave') {

@@ -85,7 +85,7 @@ function tick() {
 function start(data) {
   const fromHot = data && data.state;
   state = migrate(fromHot ? data.state : loadLocal());
-  if (state.vperks === undefined) state.vperks = vil.perks || null;   // village perks used to live beside the save
+  if (!state.vperks && vil.perks) state.vperks = vil.perks;   // village perks used to live beside the save
   startChecking(true);   // signed in on this device: record moves from the first tap (71-check.js)
   ensureChores();
   checkLogin();

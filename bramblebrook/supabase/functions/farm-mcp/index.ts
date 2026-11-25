@@ -5,11 +5,11 @@
 // profiles, profile_update (profiles and online status). Village and profile changes run through the
 // database's svc_act(), which plays the same player-facing functions the website calls, as this player.
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { syncFarm } from "../_shared/farm.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
-const MAX_SAVE = 900_000; // bytes of JSON, under the 1 MiB a page may send through a connector
 const MAX_CARD = 4_000;   // a public profile card
 const VILLAGE_ACTIONS = ["create_village", "join_village", "leave_village", "donate_to_village", "upgrade_village_building",
   "post_village_message", "promote_village_member", "set_village_details", "start_raid", "raid_hit", "claim_raid_reward",
@@ -36,15 +36,15 @@ const TOOLS = [
   },
   {
     name: "save_farm",
-    description: "Save this account's Bramblebrook farm. Pass if_updated_at (the updated_at you last loaded) to refuse overwriting a newer save made elsewhere.",
+    description: "Save this account's Bramblebrook farm. The game sends the moves played since its last save (sync); the server plays them through the game's rules and keeps the result. A whole farm (data) is no longer accepted.",
     inputSchema: {
       type: "object",
       properties: {
-        data: { type: "object", description: "The whole game state." },
-        summary: { type: "object", description: "Name, day, levels and coins, for the farm picker." },
-        if_updated_at: { type: "string", description: "Only save if the online copy is still this one." },
+        sync: { type: "object", description: "The moves played since the last save, as the game sends them." },
+        data: { type: "object", description: "Old games only: a whole farm. Refused now; reload the game." },
+        summary: { type: "object", description: "Unused." },
+        if_updated_at: { type: "string", description: "Unused." },
       },
-      required: ["data"],
       additionalProperties: false,
     },
     annotations: { readOnlyHint: false, destructiveHint: true },
@@ -146,22 +146,10 @@ async function callTool(userId: string, name: string, args: Record<string, unkno
     return toolResult({ found: true, data: s.data, summary: s.summary, updated_at: s.updated_at }, `Loaded the farm saved ${s.updated_at}.`);
   }
   if (name === "save_farm") {
-    const data = args.data;
-    if (!data || typeof data !== "object" || Array.isArray(data)) return toolResult({ saved: false, reason: "bad_data" }, "data must be the game state object.", true);
-    const size = JSON.stringify(data).length;
-    if (size > MAX_SAVE) return toolResult({ saved: false, reason: "too_big" }, "That save is too big.", true);
-    if (typeof args.if_updated_at === "string" && args.if_updated_at) {
-      const { data: cur } = await admin.from("saves").select("updated_at").eq("user_id", userId).maybeSingle();
-      if (cur && new Date(cur.updated_at).getTime() !== new Date(args.if_updated_at).getTime()) {
-        return toolResult({ saved: false, conflict: true, updated_at: cur.updated_at }, "A newer save exists online; not overwritten.");
-      }
-    }
-    const summary = args.summary && typeof args.summary === "object" ? args.summary : {};
-    const { data: row, error } = await admin.from("saves")
-      .upsert({ user_id: userId, data, summary, device: "Claude" }, { onConflict: "user_id" })
-      .select("updated_at").single();
-    if (error) return toolResult({ saved: false, reason: "save_failed" }, "Could not save the farm.", true);
-    return toolResult({ saved: true, updated_at: row.updated_at }, `Saved at ${row.updated_at}.`);
+    // the farm is kept by the server now: only moves come in, never a whole farm
+    if (!args.sync || typeof args.sync !== "object") return toolResult({ saved: false, reason: "reload" }, "This copy of the game is out of date. Reload it to keep saving.", true);
+    const r = await syncFarm(admin, userId, args.sync, "Claude");
+    return toolResult({ saved: r.status === 200 && !r.body.error, ...r.body }, r.status === 200 ? "Saved." : String(r.body.error || "Could not save."), r.status !== 200);
   }
   if (name === "village") {
     const st = await villageState(userId);

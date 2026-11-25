@@ -8,13 +8,6 @@ const legalLink = (k, text) => `<a class="linkish" href="${LEGAL[k]}" target="_b
 const isBlocked = id => !!(id && soc.blocked && soc.blocked.includes(id));
 const safe = { report: null, reason: '', busy: false };
 
-/* The server takes a village gift out of the coins it has saved for you, so save first. */
-async function saveNowOnline() {
-  if (!online) return;
-  if (online.dirty) { clearTimeout(onl.timer); await pushCloud(); }
-  for (let i = 0; i < 40 && onl.busy; i++) await new Promise(r => setTimeout(r, 150));
-}
-
 /* The little ⋯ on someone else's message: report it, or block them. */
 function msgMenuHTML(kind, id, user, name) {
   if (!user || user === myId()) return '';
