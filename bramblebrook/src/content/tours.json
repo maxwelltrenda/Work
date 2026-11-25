@@ -45,8 +45,8 @@
         },
         {
           "target": ".farm-actions",
-          "title": "Do the whole field at once",
-          "text": "Harvest everything that's ready, or sow every empty plot, in one tap."
+          "title": "One plot, or the whole field",
+          "text": "Harvest or sow here. The Big Basket and Seed Bag perks in your Bag let you do several plots in one tap."
         },
         {
           "target": ".tabs-in",
@@ -194,8 +194,8 @@
         },
         {
           "target": ".view .recipe .row",
-          "title": "Make one, or make lots",
-          "text": "Craft one at a time, or make as many as your materials allow."
+          "title": "Make one at a time",
+          "text": "Craft one at a time. The Batch Maker perk in your Bag lets you make several at once."
         }
       ]
     },

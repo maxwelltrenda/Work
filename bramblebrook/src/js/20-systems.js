@@ -372,7 +372,7 @@ function maxMake(r) {
 function craft(id, n) {
   const r = I.recipe[id];
   if (!r || !recipeOpen(r)) return;
-  const m = maxMake(r), times = n === 'max' ? m : Math.min(+n, m);
+  const m = Math.min(maxMake(r), perkCount('batchmake')), times = n === 'max' ? m : Math.min(+n, m);   // more than one at a time is the Batch Maker perk
   if (times <= 0) { toast('Not enough materials, or your barn is full of these.'); return; }
   for (const [nid, q] of Object.entries(r.need)) takeItem(nid, q * times);
   addItem(r.id, r.out * times);
@@ -383,7 +383,7 @@ function craft(id, n) {
 function cook(id, n) {
   const r = I.meal[id];
   if (!r || !mealOpen(r) || !unlocked('kitchen')) return;
-  const m = maxMake(r), times = n === 'max' ? m : Math.min(+n, m);
+  const m = Math.min(maxMake(r), perkCount('batchmake')), times = n === 'max' ? m : Math.min(+n, m);
   if (times <= 0) { toast('Not enough ingredients, or your pantry is full of these.'); return; }
   for (const [nid, q] of Object.entries(r.need)) takeItem(nid, q * times);
   addItem(r.id, times);

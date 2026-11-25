@@ -96,7 +96,7 @@ function viewPerks() {
   const free = perkPointsFree(), earned = perkPointsEarned();
   return `<div class="card"><div class="row between"><h2>${free} perk point${free === 1 ? '' : 's'} to spend</h2><span class="chip plain">${earned} earned</span></div>
       <p class="sub">You earn a point for every ${C.core.perkLevels} skill levels across all six skills. Next point at ${(earned + 1) * C.core.perkLevels} total levels (you have ${totalLevels()}).</p>
-      <p class="sub">The handy ones at the top let you harvest, sow and explore in one tap.</p></div>
+      <p class="sub">The handy ones at the top let you harvest, sow, explore, pet and craft in one tap.</p></div>
     <div class="card">${C.core.perks.map(p => {
       const r = perkRank(p.id), maxed = r >= p.max;
       return `<div class="feat${r ? ' got' : ''}"><span class="medal">${r || ''}</span><div class="what"><b>${esc(p.n)} ${'●'.repeat(r)}${'○'.repeat(p.max - r)}</b>

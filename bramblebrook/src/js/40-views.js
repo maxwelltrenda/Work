@@ -254,7 +254,7 @@ function recipeList(list, isOpen, act, skill) {
   const open = list.filter(isOpen);
   const next = list.filter(r => !isOpen(r)).slice(0, 2);
   const card = (r, locked) => {
-    const it = I.items[r.id], m = locked ? 0 : maxMake(r);
+    const it = I.items[r.id], m = locked ? 0 : maxMake(r), batch = Math.min(m, perkCount('batchmake'));
     const needs = Object.entries(r.need).map(([id, q]) => chip(id, `${have(id)}/${q}`, have(id) >= q ? '' : 'short')).join('');
     const effect = I.meal[r.id] ? [I.meal[r.id].stamina ? `+${I.meal[r.id].stamina} stamina` : '', I.meal[r.id].buff ? `${I.buffs[I.meal[r.id].buff].n} ${I.meal[r.id].mins}m` : ''].filter(Boolean).join(' · ') : r.upgrade ? 'Farm improvement' : '';
     const lockWhy = !unlocked(r.unlock) ? unlockHint(r.unlock) : `${skillName(skill)} Lv ${r.lvl}`;
@@ -262,7 +262,7 @@ function recipeList(list, isOpen, act, skill) {
       <div class="recipe-name"><b>${(r.out || 1) > 1 ? r.out + '× ' : ''}${esc(it.n)}</b><span class="muted num" style="font-size:13px">${locked ? esc(lockWhy) : `sells ${priceOf(r.id)}c${effect ? ' · ' + esc(effect) : ''}`}</span></div>
       <div class="needs">${needs}</div>
       ${locked ? '' : `<div class="row"><button class="btn small" data-act="${act}" data-id="${r.id}" data-n="1" ${m ? '' : 'disabled'}>${act === 'cook' ? 'Cook' : 'Craft'}</button>
-        <button class="btn small ghost" data-act="${act}" data-id="${r.id}" data-n="max" ${m > 1 ? '' : 'disabled'}>Make ${m > 1 ? m : 'max'}</button>
+        ${perkRank('batchmake') ? `<button class="btn small ghost" data-act="${act}" data-id="${r.id}" data-n="max" ${batch > 1 ? '' : 'disabled'}>Make ${batch > 1 ? batch : perkCount('batchmake') === Infinity ? 'max' : perkCount('batchmake')}</button>` : ''}
         ${act === 'cook' && edible(r.id) && have(r.id) ? `<button class="btn small sun" data-act="eat" data-id="${r.id}">Eat one</button>` : ''}
         <span class="muted num" style="font-size:13px">You have ${have(r.id)}</span></div>`}</div>`;
   };
