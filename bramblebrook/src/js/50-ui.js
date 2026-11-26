@@ -297,7 +297,7 @@ function handle(act, el, e) {
     case 'collect-all': { let n = 0; I.animals.forEach(a => { const g = collectAnimal(a); if (g > 0) n += g; }); if (n) toast(`Collected ${n} goods`); break; }
     case 'buy-animal': if (!buyAnimal(I.animal[id])) return false; break;
     case 'pet': if (!perkRank('petall')) { perkSheet('petall'); return false; } if (!petAnimals()) return false; break;
-    case 'pet-pen': if (!petPen(id)) return false; break;
+    case 'pet-one': if (!petOne(id, el.dataset.i)) return false; break;
     case 'area': state.area = id; break;
     case 'explore': case 'dig': {
       const n = el.dataset.n === 'all' ? Infinity : +el.dataset.n || 1;

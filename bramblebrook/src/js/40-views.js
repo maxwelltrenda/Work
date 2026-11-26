@@ -107,6 +107,14 @@ function viewOrchard() {
     <p class="sub">Trees are planted once and keep fruiting. Each holds up to two harvests before you pick it.</p>
     <div class="trees">${slots}</div></div>`;
 }
+// one heart per animal: tap each to pet it (once a day each)
+function petRowHTML(a) {
+  const n = animalRec(a.id).n, done = pettedIdx(a.id);
+  const dots = Array.from({ length: n }, (_, i) => done.includes(i)
+    ? `<span class="pet-dot done" aria-label="${esc(a.one)} ${i + 1}, petted today">${a.i}<small>♥</small></span>`
+    : `<button class="pet-dot" data-act="pet-one" data-id="${a.id}" data-i="${i}" aria-label="Pet ${esc(a.one.toLowerCase())} ${i + 1}">${a.i}</button>`).join('');
+  return `<div class="pet-row"><span class="sub">${done.length >= n ? 'All petted today' : `Pet each one · ${done.length}/${n}`}</span><div class="pet-dots">${dots}</div></div>`;
+}
 function viewAnimals() {
   const cards = I.animals.map(a => {
     if (!unlocked(a.unlock)) return `<div class="card locked-card pen"><span class="big" style="filter:grayscale(1)">${a.i}</span><div><b>${esc(a.n)}</b><p class="sub">${esc(unlockHint(a.unlock))}</p></div></div>`;
@@ -116,15 +124,16 @@ function viewAnimals() {
       <div style="display:grid;gap:8px">
         <p class="sub">Each makes ${pic(a.produce, 18)} ${esc(itemName(a.produce))} every ${fmtT(a.every)}. ${s.rec.n ? (s.ready ? `<b>${s.ready} ready.</b>` : `Next in ${fmtT(s.next)}.`) : ''}</p>
         <div class="row"><button class="btn small" data-act="collect" data-id="${a.id}" ${s.ready ? '' : 'disabled'}>Collect${s.ready ? ` ${s.ready}` : ''}</button>
-        ${s.rec.n ? `<button class="btn small ${pettedToday(a.id) ? 'ghost' : 'sun'}" data-act="pet-pen" data-id="${a.id}" ${pettedToday(a.id) ? 'disabled' : ''}>${pettedToday(a.id) ? 'Petted today' : 'Pet'}</button>` : ''}
         <button class="btn small ghost" data-act="buy-animal" data-id="${a.id}" ${s.rec.n < a.max && state.coins >= a.cost ? '' : 'disabled'}>Buy ${esc(a.one.toLowerCase())} · ${fmtN(a.cost)}c</button></div>
+        ${s.rec.n ? petRowHTML(a) : ''}
       </div></div>`;
   }).join('');
   const anyAnimals = I.animals.some(a => animalRec(a.id).n);
   const allDone = I.animals.every(a => !animalRec(a.id).n || pettedToday(a.id));
+  // one animal at a time until Animal Whisperer is learned; the locked button says where the shortcut is
   const petAll = !anyAnimals ? '' : perkRank('petall')
     ? `<button class="btn ${allDone ? 'ghost' : 'sun'} wide" data-act="pet" ${allDone ? 'disabled' : ''}>${allDone ? 'Everyone has been petted today' : 'Pet everyone (once a day, bonus goods)'}</button>`
-    : '';   // one pen at a time until Animal Whisperer is learned
+    : allDone ? '' : `<button class="btn ghost wide" data-act="pet">🔒 Pet everyone in one tap · Animal Whisperer perk</button>`;
   return `${petAll}
     ${animalsReady() > 1 ? '<button class="btn wide" data-act="collect-all">Collect everything</button>' : ''}${cards}`;
 }

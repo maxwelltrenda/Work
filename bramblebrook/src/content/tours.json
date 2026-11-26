@@ -96,9 +96,9 @@
           "text": "Each animal makes something on its own: eggs, milk, honey or wool. Collect it before the pen fills up."
         },
         {
-          "target": "[data-act='pet']",
+          "target": ".pet-row",
           "title": "Once a day",
-          "text": "Pet everyone once a day for some bonus goods. They like it too."
+          "text": "Tap each animal once a day to pet it, for a little bonus. They like it too."
         }
       ]
     },

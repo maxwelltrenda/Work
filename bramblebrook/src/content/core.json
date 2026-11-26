@@ -3560,7 +3560,7 @@
   { "id": "harvestall", "n": "Big Basket", "desc": "Harvest several ready plots with one tap", "ranks": ["Harvest 3 ready plots with one tap", "Harvest 6 ready plots with one tap", "Harvest every ready plot with one tap"], "counts": [3, 6, 0], "per": 0, "max": 3, "handy": true },
   { "id": "sowall", "n": "Seed Bag", "desc": "Sow several empty plots with one tap", "ranks": ["Sow 3 empty plots with one tap", "Sow 6 empty plots with one tap", "Sow every empty plot with one tap"], "counts": [3, 6, 0], "per": 0, "max": 3, "handy": true },
   { "id": "trips", "n": "Long Trips", "desc": "Explore or dig several times with one tap", "ranks": ["Explore or dig 3 times with one tap", "Explore or dig 10 times with one tap", "Explore or dig 25 times with one tap", "Spend all your stamina in one tap"], "counts": [3, 10, 25, 0], "per": 0, "max": 4, "handy": true },
-  { "id": "petall", "n": "Animal Whisperer", "desc": "Pet every pen with one tap", "per": 0, "max": 1, "handy": true },
+  { "id": "petall", "n": "Animal Whisperer", "desc": "Pet every animal on the farm with one tap", "per": 0, "max": 1, "handy": true },
   { "id": "batchmake", "n": "Batch Maker", "desc": "Craft or cook several at once", "ranks": ["Craft or cook 5 at once", "Craft or cook 20 at once", "Craft or cook as many as you can at once"], "counts": [5, 20, 0], "per": 0, "max": 3, "handy": true },
   {
    "id": "greenthumb",

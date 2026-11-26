@@ -343,7 +343,7 @@
     if (state.orchard.some(s => s && treeState(s).ready > 0)) { tap('harvest-trees'); did = true; }
     if (featureOn('farm:animals') && typeof pettedToday === 'function') {
       const pens = I.animals.filter(a => animalRec(a.id).n && !pettedToday(a.id));
-      if (pens.length) { if (perkRank('petall')) tap('pet'); else for (const a of pens) tap('pet-pen', { id: a.id }, 1); did = true; }   // one pen at a time until Animal Whisperer
+      if (pens.length) { if (perkRank('petall')) tap('pet'); else for (const a of pens) for (let i = 0; i < animalRec(a.id).n; i++) if (!pettedIdx(a.id).includes(i)) tap('pet-one', { id: a.id, i }, 1); did = true; }   // one animal at a time until Animal Whisperer
     } else if (featureOn('farm:animals') && state.petDay !== dayKey() && I.animals.some(a => animalRec(a.id).n)) { tap('pet'); did = true; }
     return did;
   }

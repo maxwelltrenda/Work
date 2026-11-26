@@ -121,18 +121,29 @@ function buyAnimal(a) {
   toast(`A new ${a.one.toLowerCase()} joins the farm`);
   return true;
 }
-/* Petting: once a day per pen for bonus goods. Doing every pen in one tap is the Animal Whisperer perk. */
-const pettedToday = id => state.petDay === dayKey() || (state.petted && state.petted.day === dayKey() && !!state.petted.ids[id]);
-function petPen(id, quiet) {
+/* Petting: each animal once a day, one tap each, for one bonus of what it makes. A full coop is a lot of taps
+   on purpose: petting everyone in one tap is the Animal Whisperer perk. */
+function pettedIdx(id) {
+  if (state.petDay === dayKey()) return Array.from({ length: animalRec(id).n || 0 }, (_, i) => i);
+  if (!state.petted || state.petted.day !== dayKey()) return [];
+  const v = state.petted.ids[id];
+  return Array.isArray(v) ? v : v ? Array.from({ length: animalRec(id).n || 0 }, (_, i) => i) : [];   // older saves petted a pen at once
+}
+const pettedToday = id => pettedIdx(id).length >= (animalRec(id).n || 0);
+function petOne(id, i, quiet) {
   const a = I.animal[id], rec = a && animalRec(id);
-  if (!rec || !rec.n || pettedToday(id)) return 0;
+  i = Math.floor(+i);
+  if (!rec || !rec.n || !(i >= 0 && i < rec.n)) return 0;
+  const done = pettedIdx(id);
+  if (done.includes(i)) return 0;
   if (!state.petted || state.petted.day !== dayKey()) state.petted = { day: dayKey(), ids: {} };
-  const n = addItem(a.produce, rec.n);
-  state.petted.ids[id] = 1;
+  state.petted.ids[id] = done.concat(i);
+  const n = addItem(a.produce, 1);
   state.stats.collected += n;
-  if (!quiet) toast(`The ${a.n.toLowerCase()} loved the attention: +${n} ${itemName(a.produce)}`);
+  if (!quiet) toast(`The ${a.one.toLowerCase()} loved that: +${n} ${itemName(a.produce)}`);
   return n || 1;
 }
+function petPen(id) { let n = 0; for (let i = 0; i < (animalRec(id).n || 0); i++) n += petOne(id, i, true); return n; }
 function petAnimals() {
   let n = 0;
   for (const a of I.animals) n += petPen(a.id, true);
