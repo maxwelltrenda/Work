@@ -16,6 +16,25 @@
 | 10 | Fonts are served from the game's own site instead of Google's. | Visitors' addresses no longer go to Google. |
 | 11 | The iPhone app uses Capacitor 8.6.2. Versions 8.0 to 8.3.4 have a critical flaw (GHSA-rvm3-566m-v7fv: remote content could load at the app's origin). | Apps built on the old version are exposed. |
 
+## The economy runs on the server (November 2026)
+
+Online farms can no longer be edited from the device. The game records every input that changes the farm as a
+move; the server plays the moves through the game's own rules (`public/engine.js`, the same code the page runs)
+and keeps the result in `public.farms`. The browser can read its farm's copy (`saves`) but not write it.
+
+- Coins, items and levels only come from moves the server played. Dice come from a seed in the farm, times are
+  the move's own (no more than two minutes ahead of the server's clock), and a resent save is never applied twice.
+- Boss rewards are server records (`farm_grants`), paid once. Village gifts are moves: they need the coins and a
+  village. Village perks come from the village's real buildings.
+- An account with no farm yet takes the farm its first device was playing, once, trimmed to 5,000 coins, 50 of
+  any item and level 12. "Start over" always gives a truly fresh farm.
+- What the server can't check: whether a fishing reel landed (a timing game on the phone), and a determined player
+  could work out upcoming dice from the seed. Neither reaches anyone else.
+- Still written by the device: the public profile card (the levels and coins other players see). It can only
+  misdescribe its own player; the server could write it from the real farm later.
+- Mismatches between a phone and the server are written to `farm_flags` (the phone then takes the server's farm).
+  Tests: `tools/replay` (a bot plays 30 days, and 40+ battles, and the server replays them to an identical farm).
+
 ## Checked and fine
 
 - Row-level security is on for every table, and every server function checks who is signed in. Functions run
@@ -36,11 +55,7 @@
    passwords" (checks HaveIBeenPwned). It may need the Pro plan.
 2. **Make the GitHub repository private.** It holds the bought art packs, which their licences don't allow to be
    shared, and all the game's code.
-3. **Players can still cheat their own farm**, because the farm is saved from the device. That can't reach anyone
-   else's account. The shared parts are now checked (village gifts) or limited by courage (boss fights), but a
-   player who edits their save to a high class level would hit village bosses harder. Moving the economy to the
-   server is a big job, worth doing before leaderboards or real-money purchases, not before.
-4. **No password recovery**: accounts have no email, so a lost password can't be reset (the help page says so).
-5. **Reports need answering within 24 hours** once the app is on the App Store.
-6. **Trenda RS** (separate project): its iPhone app is on @capacitor/ios 8.3.1, which has the critical flaw in
+3. **No password recovery**: accounts have no email, so a lost password can't be reset (the help page says so).
+4. **Reports need answering within 24 hours** once the app is on the App Store.
+5. **Trenda RS** (separate project): its iPhone app is on @capacitor/ios 8.3.1, which has the critical flaw in
    item 11. Updating it to 8.6 or later is worth doing before its next App Store build.

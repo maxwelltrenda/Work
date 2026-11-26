@@ -109,3 +109,6 @@ language plpgsql security definer set search_path = '' as $$
 begin
   raise exception 'Please reload the game to give coins.';
 end $$;
+
+-- applied once the new game was live: the browser can read its farm's copy but never write one
+revoke insert, update on public.saves from authenticated, anon;
