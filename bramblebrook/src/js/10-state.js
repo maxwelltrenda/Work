@@ -33,7 +33,7 @@ function freshState() {
     bg: '', face: '', insp: 1, charms: [], bestiary: {}, delvesDone: {}, combat: { cls: '', xp: 0 },
     stats: { harvested: 0, fish: 0, explores: 0, crafted: 0, cooked: 0, digs: 0, collected: 0, delivered: 0, earned: 0, gifts: 0, bottled: 0, benched: 0, netted: 0, petfinds: 0, tokens: 0, streak: 0 },
     seed: 'wheat', spot: 'pond', bait: 'worm', area: 'meadow',
-    tab: 'farm', sub: {},
+    tab: 'home', nav: 'home', sub: {},
   };
 }
 function migrate(s) {
@@ -59,6 +59,7 @@ function migrate(s) {
   if (typeof out.bed !== 'number') out.bed = 0;       // the bed, which saves stamina while the bar is full
   if (typeof out.bank !== 'number') out.bank = 0;
   if (out.drinks === undefined) out.drinks = null;   // field drinks had today: { day, n }
+  if (!out.nav) { out.tab = 'home'; out.nav = 'home'; if (out.sub) out.sub.bag = 'sheet'; }   // before the four pages: everyone starts on the new Home
   if (!out.rng || typeof out.rng.s !== 'number') out.rng = { s: (Math.random() * 4294967296) >>> 0, n: 0 };
   if (!I.crop[out.seed]) out.seed = 'wheat';
   if (!I.spot[out.spot]) out.spot = 'pond';

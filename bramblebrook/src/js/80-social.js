@@ -58,7 +58,7 @@ function drawNotes() {
       : '<p class="sub">Nothing yet. News from your village, its boss and your friends shows up here.</p>'}
     <div class="sheet-btns">${soc.admin ? `<button class="btn small" data-act="fb-inbox">Feedback inbox${soc.fbNew ? ` (${soc.fbNew} new)` : ''}</button>` : ''}<button class="btn small ghost" data-act="feedback">Send feedback</button><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
 }
-function goTown(s) { state.tab = 'town'; state.sub.town = s; renderTabs(); renderView(); updateBadges(); window.scrollTo(0, 0); }
+function goTown(s) { goPlace('town', s); }
 function noteGo(to, id) {
   closeSheet();
   if (to === 'village') goTown('village');

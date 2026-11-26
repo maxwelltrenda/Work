@@ -20,7 +20,7 @@ const FEATURES = {
   'town:mail': () => state.mail.length > 0,
   'bag:almanac': () => chapterDone('prologue') && dayNumber() >= 3,
   'bag:feats': () => chapterDone('prologue') || Object.keys(state.ach).length > 0,
-  'bag:perks': () => chapterDone('prologue') || Object.keys(state.perks || {}).length > 0,
+  'market:perks': () => chapterDone('prologue') || Object.keys(state.perks || {}).length > 0,
   'skill:fishing': () => featureOn('tab:fish'),
   'skill:crafting': () => featureOn('tab:make'),
   'skill:mining': () => unlocked('mine'),
@@ -31,12 +31,12 @@ const FEATURES = {
   'upgrades': () => unlocked('forge'),
 };
 const FEATURE_NAMES = {
-  'tab:fish': 'Fishing, in the new Fish tab.', 'tab:make': 'Crafting, in the new Make tab.',
-  'farm:orchard': 'The orchard, on the Farm tab.', 'farm:animals': 'Animals, on the Farm tab.', 'farm:pets': 'Pets, on the Farm tab.',
-  'wilds:mine': 'The Mine, in the Wilds.', 'wilds:stair': 'The Lantern Stair, in the Wilds: light lanterns to make everything sell for more.', 'town:inn': 'The Lantern & Ladle inn, in Town.', 'bag:bestiary': 'The bestiary, in your Bag.',
-  'make:kitchen': 'Cooking, in the Make tab.', 'make:bench': 'The workbench, in the Make tab.', 'make:cellar': 'The cellar, in the Make tab.',
-  'town:board': 'The town board: chores and daily gifts.', 'town:village': 'Villages, in Town: team up with other players.', 'town:hands': 'Farmhands, in Town: hire other players to hit bosses harder.', 'town:chat': 'Chat, in Town: talk with everyone and message friends.', 'bag:perks': 'Perks, in your Bag.',
-  'festival': 'Seasonal festivals, on the town board.', 'exchange': 'The Valley Exchange, in Shops.',
+  'tab:fish': 'Fishing, on your Home page.', 'tab:make': 'The workshop, on your Home page: craft goods worth more.',
+  'farm:orchard': 'The orchard, on your Home page.', 'farm:animals': 'Animals, on your Home page.', 'farm:pets': 'Pets, on your Home page.',
+  'wilds:mine': 'The Mine, on your Home page.', 'wilds:stair': 'The Lantern Stair, on your Home page: light lanterns to make everything sell for more.', 'town:inn': 'The Lantern & Ladle inn, on your Home page.', 'bag:bestiary': 'The bestiary, on your Profile.',
+  'make:kitchen': 'Cooking, on your Home page.', 'make:bench': 'The workbench, on your Home page.', 'make:cellar': 'The cellar, on your Home page.',
+  'town:board': 'Chores and daily gifts, on your Home page.', 'town:village': 'Villages, on the Village page: team up with other players.', 'town:hands': 'Farmhands, on the Village page: hire other players to hit bosses harder.', 'town:chat': 'Chat, on the Village page: talk with everyone and message friends.', 'market:perks': 'Perks, in the Market: spend points on bonuses.',
+  'festival': 'Seasonal festivals, under Chores on your Home page.', 'exchange': 'The Valley Exchange, in the Market.',
 };
 const featureOn = k => !FEATURES[k] || !!FEATURES[k]();
 const tabOn = t => featureOn('tab:' + t);

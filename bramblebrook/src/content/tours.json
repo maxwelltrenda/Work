@@ -1,6 +1,21 @@
 {
   "_about": "First-time tutorials. Each tour runs the first time its screen opens; the ? button replays it. A step points at the first element matching `target` (a CSS selector); with no target, or none on screen, the card sits in the middle. `unlock` skips the tour until that feature opens.",
   "tours": {
+    "home": {
+      "title": "Your valley",
+      "steps": [
+        {
+          "target": ".hub-grid",
+          "title": "Everything starts here",
+          "text": "Every place in the valley is a tile. Tap one to go there; each says what's waiting. ‹ Home at the top brings you back."
+        },
+        {
+          "target": "#tabs",
+          "title": "Four pages",
+          "text": "Home for everything you do, Profile for you and your bag, Village for other players and the townsfolk, and the Market for buying and selling."
+        }
+      ]
+    },
     "farm-fields": {
       "title": "Your farm",
       "steps": [
@@ -46,7 +61,7 @@
         {
           "target": ".farm-actions",
           "title": "One plot, or the whole field",
-          "text": "Harvest or sow here. The Big Basket and Seed Bag perks in your Bag let you do several plots in one tap."
+          "text": "Harvest or sow here. The Big Basket and Seed Bag perks (Market, then Perks) let you do several plots in one tap."
         },
         {
           "target": ".tabs-in",
@@ -220,7 +235,7 @@
         {
           "target": ".view .recipe .row",
           "title": "Make one at a time",
-          "text": "Craft one at a time. The Batch Maker perk in your Bag lets you make several at once."
+          "text": "Craft one at a time. The Batch Maker perk (Market, then Perks) lets you make several at once."
         }
       ]
     },

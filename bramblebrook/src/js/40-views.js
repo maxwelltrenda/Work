@@ -4,9 +4,17 @@ const SUBS = {
   wilds: [['explore', 'Explore'], ['mine', 'Mine'], ['stair', 'Lantern Stair']],
   make: [['workshop', 'Workshop'], ['kitchen', 'Kitchen'], ['bench', 'Bench'], ['cellar', 'Cellar']],
   town: [['people', 'People'], ['village', 'Village'], ['hands', 'Farmhands'], ['chat', 'Chat'], ['inn', 'Inn'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
-  bag: [['items', 'Items'], ['sheet', 'Sheet'], ['almanac', 'Almanac'], ['bestiary', 'Bestiary'], ['feats', 'Feats'], ['perks', 'Perks'], ['settings', 'Settings']],
+  bag: [['sheet', 'Character'], ['items', 'Bag'], ['almanac', 'Almanac'], ['bestiary', 'Bestiary'], ['feats', 'Feats'], ['settings', 'Settings']],
+  market: [['sell', 'Sell'], ['shops', 'Shops'], ['perks', 'Perks']],
 };
-const visibleSubs = t => (SUBS[t] || []).filter(([id]) => subOn(t, id));
+// the parts of a place that show as sub-tabs: the Village page shows its four; a part of the town opened from Home shows alone
+const visibleSubs = t => {
+  const all = (SUBS[t] || []).filter(([id]) => subOn(t, id));
+  if (t !== 'town') return all;
+  if (curNav() === 'village') return all.filter(([id]) => VILLAGE_SUBS.includes(id));
+  const cur = state.sub && state.sub.town;
+  return all.filter(([id]) => id === cur && !VILLAGE_SUBS.includes(id) && id !== 'shops');
+};
 function sub(t) {
   const list = visibleSubs(t);
   if (!list.length) return '';
@@ -420,7 +428,7 @@ function viewShops() {
       <div class="store-item">${pic(m.want, 32)}<div class="what"><b>Saffi wants ${esc(itemName(m.want))}</b><small>Pays double: ${fmtN(priceOf(m.want) * 2)}c each, up to ${left} more today</small></div>
         <button class="btn small sun" data-act="saffi-sell" ${have(m.want) && left > 0 ? '' : 'disabled'}>Sell ${Math.min(have(m.want), left) || ''}</button></div></div>`;
   }
-  return `<div class="card" data-tour="store"><h2>Pennywhistle's General Store</h2><p class="sub">Seeds are bought as you sow. Sell your goods from the Bag.</p>
+  return `<div class="card" data-tour="store"><h2>Pennywhistle's General Store</h2><p class="sub">Seeds are bought as you sow. Sell your goods under Sell.</p>
     ${rows}
     <div class="store-item"><span class="emo" style="--s:32px">🟩</span><div class="what"><b>New farm plot</b><small>${state.plots.length}/${C.core.plots.max} plots</small></div>
       ${state.plots.length < C.core.plots.max ? `<button class="btn small" data-act="buy-plot" ${state.coins >= pc ? '' : 'disabled'}>${fmtC(pc)}</button>` : '<span class="chip plain">All bought</span>'}</div>
@@ -456,12 +464,11 @@ function viewMail() {
 /* ---- Bag ---- */
 function viewBag() {
   const s = sub('bag');
-  const head = `<div class="view-head"><h1>${{ sheet: 'Character', items: 'Bag', almanac: 'Almanac', bestiary: 'Bestiary', feats: 'Feats', perks: 'Perks', settings: 'Settings' }[s]}</h1><p>${s === 'items' ? `Barn holds ${fmtN(cap())} of each item` : s === 'almanac' ? `${Object.keys(state.seen).length} of ${Object.keys(I.items).length} found` : s === 'feats' ? `${Object.keys(state.ach).length} of ${I.ach.length} earned` : ''}</p></div>${subtabs('bag', { perks: perkPointsFree() > 0, items: overflowCount() > 0 })}`;
+  const head = `<div class="view-head"><h1>${{ sheet: 'Profile', items: 'Bag', almanac: 'Almanac', bestiary: 'Bestiary', feats: 'Feats', settings: 'Settings' }[s]}</h1><p>${s === 'items' ? `Barn holds ${fmtN(cap())} of each item` : s === 'almanac' ? `${Object.keys(state.seen).length} of ${Object.keys(I.items).length} found` : s === 'feats' ? `${Object.keys(state.ach).length} of ${I.ach.length} earned` : ''}</p></div>${subtabs('bag', { items: overflowCount() > 0 })}`;
   if (s === 'almanac') return head + viewAlmanac();
   if (s === 'feats') return head + viewFeats();
   if (s === 'sheet') return head + viewSheet();
   if (s === 'bestiary') return head + viewBestiary();
-  if (s === 'perks') return head + viewPerks();
   if (s === 'settings') return head + viewSettings();
   return head + viewItems();
 }

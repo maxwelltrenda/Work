@@ -8,7 +8,7 @@ const i = +process.env.SNAP;
 const r = E.replay(rec.s0, rec.log.slice(0, i), { at: rec.log[i].t });
 const a = rec.snap, b = r.state;
 console.log('client snap hash', E.hashState(a), 'server', r.hash, 'recorded', rec.log[i].h);
-const skip = new Set(['tab', 'sub', 'opts', 'toursSeen', 'visited', 'savedAt', 'innSeen', 'revealed']);
+const skip = new Set(['tab', 'nav', 'sub', 'opts', 'toursSeen', 'visited', 'savedAt', 'innSeen', 'revealed']);
 const walk = (x, y, p) => {
   if (JSON.stringify(x) === JSON.stringify(y)) return;
   if (x && y && typeof x === 'object' && typeof y === 'object') { for (const k of new Set([...Object.keys(x), ...Object.keys(y)])) walk(x[k], y[k], p + '.' + k); return; }

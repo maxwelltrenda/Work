@@ -1,28 +1,23 @@
 /* ---------- header, tabs, sheets, input ---------- */
-const TAB_DEFS = [
-  { id: 'farm', n: 'Farm', svg: '<path d="M12 21v-9"/><path d="M12 13c0-4.5-3-7-7.5-7 0 4.5 3 7 7.5 7z"/><path d="M12 11c0-3.6 2.4-6 6.5-6 0 3.6-2.4 6-6.5 6z"/>' },
-  { id: 'wilds', n: 'Wilds', svg: '<path d="M3 20l6-11 4 7 3-4 5 8z"/><circle cx="17" cy="6" r="2"/>' },
-  { id: 'fish', n: 'Fish', svg: '<path d="M15 3v11a4.5 4.5 0 1 1-9 0v-1.5"/><path d="M6 12.5l-2 2"/><path d="M13 3h4"/>' },
-  { id: 'make', n: 'Make', svg: '<path d="M4 20l8.5-8.5"/><path d="M11 6l3-3 7 7-3 3z"/><path d="M14.5 9.5l-2 2"/>' },
-  { id: 'town', n: 'Town', svg: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/>' },
-  { id: 'bag', n: 'Bag', svg: '<path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>' },
-];
-const VIEWS = { farm: viewFarm, wilds: viewWilds, fish: viewFish, make: viewMake, town: viewTown, bag: viewBag };
+const VIEWS = { home: viewHome, market: viewMarket, farm: viewFarm, wilds: viewWilds, fish: viewFish, make: viewMake, town: viewTown, bag: viewBag };
 
+// the bottom bar: the four pages (41-home.js)
 function renderTabs() {
-  const tabs = TAB_DEFS.filter(t => tabOn(t.id));
-  if (!tabOn(state.tab)) state.tab = 'farm';
-  $('#tabs').style.gridTemplateColumns = `repeat(${tabs.length}, minmax(0, 1fr))`;
-  $('#tabs').innerHTML = tabs.map(t => `<button class="tab" data-act="tab" data-tab="${t.id}" ${t.id === state.tab ? 'aria-current="page"' : ''}>
-    <svg viewBox="0 0 24 24" aria-hidden="true">${t.svg}</svg><span>${t.n}</span>${tabFresh(t.id) ? '<span class="newdot" aria-label="New"></span>' : ''}<span class="badge" id="badge-${t.id}" hidden></span></button>`).join('');
+  if (!tabOn(state.tab)) state.tab = 'home';
+  const nav = curNav();
+  $('#tabs').style.gridTemplateColumns = `repeat(${NAV_DEFS.length}, minmax(0, 1fr))`;
+  $('#tabs').innerHTML = NAV_DEFS.map(t => `<button class="tab" data-act="tab" data-tab="${t.id}" ${t.id === nav ? 'aria-current="page"' : ''}>
+    <svg viewBox="0 0 24 24" aria-hidden="true">${t.svg}</svg><span>${t.n}</span>${navFresh(t.id) ? '<span class="newdot" aria-label="New"></span>' : ''}<span class="badge" id="badge-${t.id}" hidden></span></button>`).join('');
 }
 const tabFresh = t => isNew('tab:' + t) || (SUBS[t] || []).some(([s]) => isNew(`${t}:${s}`) && subOn(t, s));
 function renderView() {
   if (!state) return;
   if (state.tab === 'fish' && (fishing.phase === 'waiting' || fishing.phase === 'bite')) { updateBaitCounts(); return; }
-  if (!tabOn(state.tab)) state.tab = 'farm';
+  if (!tabOn(state.tab)) state.tab = 'home';
   const vkey = state.tab + ':' + sub(state.tab);
-  $('#view').innerHTML = (VIEWS[state.tab] || viewFarm)();
+  // a place opened from Home has a way back to it
+  const back = curNav() === 'home' && state.tab !== 'home' ? '<button class="home-back" data-act="go-home">‹ Home</button>' : '';
+  $('#view').innerHTML = back + (VIEWS[state.tab] || viewHome)();
   $('#view').classList.toggle('fx-in', vkey !== renderView.last);
   renderView.last = vkey;
   if (state.tab === 'fish') syncFishDom();
@@ -39,15 +34,13 @@ function renderAll() { renderTabs(); updateHeader(true); renderView(); updateBad
 function updateBadges() {
   if (!state) return;
   const set = (id, n) => { const el = $('#badge-' + id); if (el) { el.hidden = !n; el.textContent = n > 99 ? '99+' : n; } };
-  set('farm', state.plots.filter(p => p.crop && p.ready <= now()).length + orchardReady() + animalsReady() + petsReady());
-  set('make', benchReady() + casksReady());
-  set('fish', netsReady());
-  set('bag', (featureOn('bag:perks') ? perkPointsFree() : 0) + (overflowCount() ? 1 : 0));
-  set('wilds', 0);
   ensureChores();
-  set('town', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length + (featureOn('town:inn') ? innNew() : 0)
-    + (featureOn('town:board') ? state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length : 0) + state.mail.filter(m => !m.read).length
-    + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0) + (socialOn() ? soc.dms : 0));
+  set('home', state.plots.filter(p => p.crop && p.ready <= now()).length + orchardReady() + animalsReady() + petsReady() + benchReady() + casksReady() + netsReady()
+    + (featureOn('town:inn') ? innNew() : 0) + (featureOn('town:board') ? state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length : 0)
+    + state.mail.filter(m => !m.read).length + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0));
+  set('profile', overflowCount() ? 1 : 0);
+  set('village', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length + (socialOn() ? soc.dms : 0));
+  set('market', featureOn('market:perks') ? perkPointsFree() : 0);
   updateSocialBadges();
   placeFeedbackTab();
   const st = storyStatus();
@@ -252,9 +245,9 @@ function handle(act, el, e) {
   const id = el.dataset.id;
   if (FARM_ACTS.has(act)) recordMove('h', { act, d: Object.assign({}, el.dataset) });
   switch (act) {
-    case 'tab':
-      if (state.tab === 'fish' && el.dataset.tab !== 'fish') { clearFishTimers(); fishing.phase = 'idle'; fishing.msg = ''; }
-      state.tab = el.dataset.tab; renderTabs(); renderView(); updateBadges(); window.scrollTo(0, 0); return false;
+    case 'tab': goNav(el.dataset.tab); return false;
+    case 'go': goPlace(el.dataset.tab, el.dataset.sub || ''); return false;
+    case 'go-home': goNav('home'); return false;
     case 'sub': state.sub[el.dataset.tab] = el.dataset.sub; renderView(); return false;
     case 'skill': {
       const L = levelInfo(state.xp[id] || 0);

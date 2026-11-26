@@ -1,7 +1,7 @@
 /* ---------- guided tours: the screen dims, the thing being explained glows, a card explains it ---------- */
 let tour = null;   // { id, steps, i }
 const tourDefs = () => (C.tours && C.tours.tours) || {};
-const screenKey = () => (state.tab === 'fish' ? (waterOpenId() ? 'fish-water' : 'fish')
+const screenKey = () => (state.tab === 'home' ? 'home' : state.tab === 'market' ? ({ shops: 'town-shops', perks: 'bag-perks' }[sub('market')] || 'market-sell') : state.tab === 'fish' ? (waterOpenId() ? 'fish-water' : 'fish')
   : state.tab === 'wilds' && sub('wilds') === 'explore' && placeOpenId() ? 'wilds-place' : `${state.tab}-${sub(state.tab)}`);
 function tourReady(id) {
   const t = tourDefs()[id];
@@ -12,7 +12,7 @@ function maybeTour() {
   if (sheetOpen()) return;
   const id = screenKey();
   if ((state.toursSeen || {})[id] || !tourReady(id)) return;
-  if (id === 'farm-fields' && !state.story.started && !chapterDone('prologue')) return;   // wait until the prologue has begun
+  if ((id === 'farm-fields' || id === 'home') && !state.story.started && !chapterDone('prologue')) return;   // wait until the prologue has begun
   startTour(id);
 }
 function maybeTourNow(id) {

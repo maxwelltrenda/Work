@@ -12,7 +12,7 @@ console.log('client', rec.hash, 'server', r.hash, rec.hash === r.hash ? 'MATCH' 
 const counts = {}; rec.log.forEach(m => { const k = m.n === 'h' ? 'h:' + m.a.act : m.n; counts[k] = (counts[k] || 0) + 1; });
 console.log('moves by kind:', JSON.stringify(counts));
 if (rec.hash !== r.hash) {
-  const skip = new Set(['tab', 'sub', 'opts', 'toursSeen', 'visited', 'savedAt', 'innSeen', 'revealed']);
+  const skip = new Set(['tab', 'nav', 'sub', 'opts', 'toursSeen', 'visited', 'savedAt', 'innSeen', 'revealed']);
   const a = rec.st, b = r.state;
   for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
     if (skip.has(k)) continue;

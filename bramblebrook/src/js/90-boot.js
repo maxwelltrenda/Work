@@ -79,6 +79,7 @@ function tick() {
   }
   if (ticks % 30 === 0) { const seen = Object.keys(state.revealed || {}).length; settleOnOwn(true); if (Object.keys(state.revealed || {}).length !== seen) renderTabs(); }
   if (state.tab === 'make' && ['bench', 'cellar'].includes(sub('make')) && ticks % 5 === 0 && !sheetOpen()) renderView();
+  if ((state.tab === 'home' || state.tab === 'market') && ticks % 5 === 0 && !sheetOpen() && !tour) renderView();
   if (state.tab === 'fish' && fishing.phase !== 'waiting' && fishing.phase !== 'bite' && ticks % 10 === 0 && !sheetOpen()) renderView();
   updateBadges();
 }

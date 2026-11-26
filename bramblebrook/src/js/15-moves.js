@@ -119,7 +119,7 @@ function resetTransient() {
 
 /* The farm, reduced to what the server checks: screen-only settings (which tab is open, tutorials seen,
    sound) are the player's own and never compared. */
-const UI_FIELDS = ['tab', 'sub', 'opts', 'toursSeen', 'visited', 'savedAt', 'innSeen', 'revealed'];
+const UI_FIELDS = ['tab', 'nav', 'sub', 'opts', 'toursSeen', 'visited', 'savedAt', 'innSeen', 'revealed'];
 function checkedState(s) {
   const o = {};
   for (const k of Object.keys(s).sort()) if (!UI_FIELDS.includes(k)) o[k] = s[k];
