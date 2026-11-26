@@ -9,6 +9,8 @@ const placeLuck = id => 1 + placeRank(id) * ((C.core.places && C.core.places.luc
 const placeSteps = id => (C.core.places ? C.core.places[placeIsArea(id) ? 'trips' : 'catches'] : []);
 const placeStars = id => { const n = placeSteps(id).length, r = placeRank(id); return '★'.repeat(r) + '☆'.repeat(Math.max(0, n - r)); };
 const placeCoins = rank => Math.round(C.core.places.coins[rank - 1] * rewardScale());
+// a place's background picture (from Max's Near Mint landscape cards, tools/place_art.py), as a CSS value
+const placeArt = id => { const x = I.area[id] || I.spot[id], a = x && x.look && x.look.art; return a ? `url(${a})` : ''; };
 function placeMood(id) {
   const x = I.area[id] || I.spot[id], L = x && x.look;
   if (!L || !L.moods) return '';

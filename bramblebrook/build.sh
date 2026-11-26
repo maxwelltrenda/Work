@@ -61,6 +61,7 @@ for (const f of fs.readdirSync('src/pages').filter(f => f.endsWith('.md.html')))
 }
 console.log(`game.html ${(page.length / 1024).toFixed(0)} KB, content.json ${(JSON.stringify(content).length / 1024).toFixed(0)} KB`);
 JS
+mkdir -p public/places && cp assets/places/*.webp public/places/
 cp assets/atlas.png assets/stage.png assets/boss.webp assets/icon.svg assets/manifest.webmanifest assets/icon-180.png assets/icon-192.png assets/icon-512.png public/
 mkdir -p public/fonts && cp assets/fonts/*.woff2 public/fonts/ && cp assets/fonts/fonts.css public/fonts.css
 echo "Built game.html and public/"

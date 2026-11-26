@@ -1624,7 +1624,7 @@
  "areas": [
   {
    "id": "meadow",
-   "n": "Sunny Meadow", "look": {"a": "#a6e8bd", "b": "#f1e08c", "moods": ["Clover everywhere, and the bees are busy.", "Tall grass hums in the heat.", "Seed heads rattle in the breeze.", "Frost on the stalks, and small tracks in the white."]},
+   "n": "Sunny Meadow", "look": { "art": "places/meadow.webp","a": "#a6e8bd", "b": "#f1e08c", "moods": ["Clover everywhere, and the bees are busy.", "Tall grass hums in the heat.", "Seed heads rattle in the breeze.", "Frost on the stalks, and small tracks in the white."]},
    "lvl": 1,
    "xp": 2,
    "blurb": "Tall grass behind the farmhouse.",
@@ -1645,7 +1645,7 @@
   },
   {
    "id": "woods",
-   "n": "Mossy Woods", "look": {"a": "#b4dfa6", "b": "#78bb92", "moods": ["Ferns unrolling under the old oaks.", "Cool shade and the smell of moss.", "Mushrooms push up through the leaves.", "Bare branches. The owls are easier to spot."]},
+   "n": "Mossy Woods", "look": { "art": "places/woods.webp","a": "#b4dfa6", "b": "#78bb92", "moods": ["Ferns unrolling under the old oaks.", "Cool shade and the smell of moss.", "Mushrooms push up through the leaves.", "Bare branches. The owls are easier to spot."]},
    "lvl": 3,
    "xp": 3,
    "blurb": "Old oaks, soft ground, quiet birds.",
@@ -1668,7 +1668,7 @@
   },
   {
    "id": "banks",
-   "n": "Willow Banks", "look": {"a": "#a6dcea", "b": "#bfe3a6", "moods": ["The willows trail green into the water.", "Dragonflies over the shallows.", "Reeds gone gold along the bank.", "Thin ice at the edges, the current still running."]},
+   "n": "Willow Banks", "look": { "art": "places/banks.webp","a": "#a6dcea", "b": "#bfe3a6", "moods": ["The willows trail green into the water.", "Dragonflies over the shallows.", "Reeds gone gold along the bank.", "Thin ice at the edges, the current still running."]},
    "lvl": 4,
    "xp": 3,
    "unlock": "banks",
@@ -1690,7 +1690,7 @@
   },
   {
    "id": "quarry",
-   "n": "Old Quarry", "look": {"a": "#e0d8c8", "b": "#bfae94", "moods": ["Wildflowers in the cracks of the old cuts.", "The stone holds the heat all day.", "Loose scree after the rains.", "Icicles hang off the rock face."]},
+   "n": "Old Quarry", "look": { "art": "places/quarry.webp","a": "#e0d8c8", "b": "#bfae94", "moods": ["Wildflowers in the cracks of the old cuts.", "The stone holds the heat all day.", "Loose scree after the rains.", "Icicles hang off the rock face."]},
    "lvl": 5,
    "xp": 4,
    "blurb": "Abandoned cuts in the hillside.",
@@ -1712,7 +1712,7 @@
   },
   {
    "id": "beach",
-   "n": "Saltspray Beach", "look": {"a": "#f6e2ac", "b": "#a2dbe8", "moods": ["Gulls arguing over the tideline.", "Warm sand and long, low tides.", "Storms leave the best things on the shore.", "Grey sea, empty sand, all yours."]},
+   "n": "Saltspray Beach", "look": { "art": "places/beach.webp","a": "#f6e2ac", "b": "#a2dbe8", "moods": ["Gulls arguing over the tideline.", "Warm sand and long, low tides.", "Storms leave the best things on the shore.", "Grey sea, empty sand, all yours."]},
    "lvl": 7,
    "xp": 5,
    "unlock": "beach",
@@ -1734,7 +1734,7 @@
   },
   {
    "id": "highlands",
-   "n": "Windy Highlands", "look": {"a": "#cad9f0", "b": "#acc9a4", "moods": ["Lambs on the slopes, wind in your ears.", "Heather in bloom as far as you can see.", "Eagles riding the gusts.", "Snow on the tops. The air bites."]},
+   "n": "Windy Highlands", "look": { "art": "places/highlands.webp","a": "#cad9f0", "b": "#acc9a4", "moods": ["Lambs on the slopes, wind in your ears.", "Heather in bloom as far as you can see.", "Eagles riding the gusts.", "Snow on the tops. The air bites."]},
    "lvl": 10,
    "xp": 6,
    "unlock": "highlands",
@@ -1756,7 +1756,7 @@
    ]
   }
  ],
- "mine": {
+ "mine": { "art": "places/mine.webp",
   "floors": 30,
   "checkpoints": [
    1,
@@ -1833,7 +1833,7 @@
  "spots": [
   {
    "id": "pond",
-   "n": "Lily Pond", "look": {"a": "#aee2cc", "b": "#82c6da", "moods": ["Frogspawn among the lily pads.", "Lilies open, carp lazing.", "Leaves drifting on still water.", "Fish slow and deep under the cold."]},
+   "n": "Lily Pond", "look": { "art": "places/pond.webp","a": "#aee2cc", "b": "#82c6da", "moods": ["Frogspawn among the lily pads.", "Lilies open, carp lazing.", "Leaves drifting on still water.", "Fish slow and deep under the cold."]},
    "lvl": 1,
    "fish": [
     [
@@ -1880,7 +1880,7 @@
   },
   {
    "id": "river",
-   "n": "Willow River", "look": {"a": "#a2cfea", "b": "#acdcbc", "moods": ["Snowmelt makes the river quick.", "Trout rising at dusk.", "Salmon fighting their way upstream.", "Dark water, and the big ones lurk."]},
+   "n": "Willow River", "look": { "art": "places/river.webp","a": "#a2cfea", "b": "#acdcbc", "moods": ["Snowmelt makes the river quick.", "Trout rising at dusk.", "Salmon fighting their way upstream.", "Dark water, and the big ones lurk."]},
    "lvl": 3,
    "unlock": "river",
    "fish": [
@@ -1933,7 +1933,7 @@
   },
   {
    "id": "cove",
-   "n": "Saltspray Cove", "look": {"a": "#f2ddaa", "b": "#7ec2da", "moods": ["Rock pools full again.", "Bright water, quick fish.", "Swell rolling in off the sea.", "Spray over the rocks."]},
+   "n": "Saltspray Cove", "look": { "art": "places/cove.webp","a": "#f2ddaa", "b": "#7ec2da", "moods": ["Rock pools full again.", "Bright water, quick fish.", "Swell rolling in off the sea.", "Spray over the rocks."]},
    "lvl": 6,
    "unlock": "cove",
    "fish": [
@@ -1986,7 +1986,7 @@
   },
   {
    "id": "tarn",
-   "n": "Highland Tarn", "look": {"a": "#bccbea", "b": "#93b3ca", "moods": ["Clear and cold, the peaks reflected.", "Midges, and the char jumping.", "Mist on the water each morning.", "Ice at the rim, deep water in the middle."]},
+   "n": "Highland Tarn", "look": { "art": "places/tarn.webp","a": "#bccbea", "b": "#93b3ca", "moods": ["Clear and cold, the peaks reflected.", "Midges, and the char jumping.", "Mist on the water each morning.", "Ice at the rim, deep water in the middle."]},
    "lvl": 10,
    "unlock": "tarn",
    "fish": [

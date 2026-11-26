@@ -172,17 +172,17 @@ function viewExplore() {
 }
 // a place on the list: tap it to go there
 function placeCard(x, open, chip, blurb, drops, meta, act) {
-  const L = x.look || {};
-  return `<button class="area place-card${open ? '' : ' locked'}" style="--a:${L.a || 'var(--accent)'};--b:${L.b || 'var(--water)'}" ${open ? `data-act="${act}" data-id="${x.id}"` : 'disabled'}>
+  const L = x.look || {}, art = placeArt(x.id);
+  return `<button class="area place-card${open ? '' : ' locked'}${art ? ' has-art' : ''}" style="--a:${L.a || 'var(--accent)'};--b:${L.b || 'var(--water)'}${art ? `;--art:${art}` : ''}" ${open ? `data-act="${act}" data-id="${x.id}"` : 'disabled'}>
     <span class="area-top"><b>${esc(x.n)}</b><span class="chip plain">${chip}</span></span>
     <span class="sub">${blurb}</span><span class="drops">${drops}</span>${meta ? `<span class="place-meta">${meta}</span>` : ''}${open ? '<span class="place-go" aria-hidden="true">›</span>' : ''}</button>`;
 }
 // the top of a place's page: its colours, a few of its finds, the season's mood
 function placeHero(x, back, body) {
-  const L = x.look || {}, w = weather();
-  const icons = (I.area[x.id] ? Object.keys(x.drops).filter(k => k !== 'none') : x.fish.map(f => f[0])).slice(0, 6);
+  const L = x.look || {}, w = weather(), art = placeArt(x.id);
+  const icons = art ? [] : (I.area[x.id] ? Object.keys(x.drops).filter(k => k !== 'none') : x.fish.map(f => f[0])).slice(0, 6);
   const scene = icons.map((k, i) => `<span class="ps ps${i}">${state.seen[k] ? pic(k, 32) : ''}</span>`).join('');
-  return `<div class="card trail place-hero" style="--a:${L.a || 'var(--accent)'};--b:${L.b || 'var(--water)'}">
+  return `<div class="card trail place-hero${art ? ' has-art' : ''}${back === 'water-back' ? ' water' : ''}" style="--a:${L.a || 'var(--accent)'};--b:${L.b || 'var(--water)'}${art ? `;--art:${art}` : ''}">
     <div class="place-scene" aria-hidden="true">${scene}</div>
     <button class="place-back" data-act="${back}">‹ ${I.area[x.id] ? 'All places' : 'All waters'}</button>
     <div><h2>${esc(x.n)}</h2><p class="place-mood">${esc(placeMood(x.id))}</p>
@@ -239,7 +239,7 @@ function viewMine() {
     : '<span class="sub">Keep digging to find the way down.</span>';
   const lifts = mineCheckpoints().filter(f => f <= m.deepest && f !== m.floor).map(f => `<button class="btn small ghost" data-act="lift" data-n="${f}">Floor ${f}</button>`).join('');
   const log = mineLog.length ? mineLog.map(l => `<div class="log-line">${l.html}<span class="t">${esc(l.when)}</span></div>`).join('') : '<p class="muted">Every dig costs 1 stamina and might turn up ore, gems or the way down.</p>';
-  return `<div class="card trail mine"><div class="row between"><h2>Floor ${m.floor}</h2><span class="sub">Deepest: ${m.deepest}</span></div>
+  return `<div class="card trail mine${k.art ? ' has-art' : ''}"${k.art ? ` style="--art:url(${k.art})"` : ''}><div class="row between"><h2>Floor ${m.floor}</h2><span class="sub">Deepest: ${m.deepest}</span></div>
       <div class="depth" aria-label="Floor ${m.floor} of ${k.floors}">${depth}</div>
       <p class="sub" data-stam-line>${staminaLine()}</p>
       <div class="trail-btns"><button class="btn" data-act="dig" data-n="1" data-need="1" ${s >= 1 ? '' : 'disabled'}>Dig</button>
