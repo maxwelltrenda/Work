@@ -489,6 +489,9 @@ function handle(act, el, e) {
     case 'hire-hand': hireHand(el.dataset); return false;
     case 'drop-hand': dropHand(el.dataset); return false;
     case 'hand-search': handSearch(); return false;
+    case 'hands-hire': hf.page = 'hire'; hf.market = null; loadHands(true); renderView(); window.scrollTo(0, 0); return false;
+    case 'hands-back': hf.page = ''; renderView(); window.scrollTo(0, 0); return false;
+    case 'hand-budget': handBudgetSet(el.dataset.b); return false;
     case 'net-set': if (!setNet(id)) return false; break;
     case 'net-collect': { const g = collectNet(id); if (g) toast(`Hauled in ${g} from the net`); else return false; break; }
     case 'cask-slot': caskSheet(+el.dataset.i); return false;
@@ -527,6 +530,8 @@ document.addEventListener('pointerdown', e => {
   fishButton();
 });
 document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target && e.target.id === 'hand-budget') { e.preventDefault(); handBudgetSet('set'); return; }
+  if (e.key === 'Enter' && e.target && e.target.id === 'hand-q') { e.preventDefault(); handSearch(); return; }
   if (tour) return;
   if (e.key === 'Escape' && sheetOpen()) { closeSheet(); return; }
   if (state && state.tab === 'fish' && $('#pond') && e.key === ' ' && !e.target.closest('button, input, textarea') && !sceneOpen && !advRun) { e.preventDefault(); fishButton(); }
