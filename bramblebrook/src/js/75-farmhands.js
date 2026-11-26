@@ -58,10 +58,10 @@ function viewHands() {
   const bonus = Math.round((+me.bonus || 0) * 100);
   const intro = `<div class="card"><h2>Farmhands</h2>
     <p class="sub">Hire other players to help you. You pay what their farm is worth, and they get a tenth of it. Each farmhand makes your hits on village bosses stronger, more so the more their farm is worth.</p>
-    <div class="row between"><span class="sub">Your farm is worth <b>${fmtC(+me.value || farmValue())}</b>: that's your price if someone hires you.</span>
+    <div class="row between"><span class="sub">Your farm is worth <b>${fmtCoins(+me.value || farmValue())}</b>: that's your price if someone hires you.</span>
     <span class="chip plain">${bonus ? `+${bonus}% boss damage` : 'No farmhands yet'}</span></div></div>`;
   const mine = `<div class="card"><div class="row between"><h2>Your farmhands</h2><span class="chip plain">${hands.length}/${cap}</span></div>
-    ${hands.length ? hands.map(h => `<div class="store-item"><span class="emo" style="--s:28px">🧑‍🌾</span><div class="what"><b>${esc(h.name)}</b><small>@${esc(h.username || '')} · farm worth ${fmtC(+h.value)} · +${Math.round(Math.log10(1 + Math.max(0, +h.value)) * 10)}% damage</small></div>
+    ${hands.length ? hands.map(h => `<div class="store-item"><span class="emo" style="--s:28px">🧑‍🌾</span><div class="what"><b>${esc(h.name)}</b><small>@${esc(h.username || '')} · farm worth ${fmtCoins(+h.value)} · +${Math.round(Math.log10(1 + Math.max(0, +h.value)) * 10)}% damage</small></div>
       <button class="btn small ghost" data-act="drop-hand" data-id="${esc(h.id)}" data-name="${esc(h.name)}">Let go</button></div>`).join('') : '<p class="sub">Nobody yet. Hire someone below.</p>'}
     <div class="store-item"><span class="emo" style="--s:28px">🛏️</span><div class="what"><b>Bunkhouse</b><small>Room for ${cap} farmhands${bunkMaxed() ? ' (the most there can be)' : ` → ${C.core.farmhands.cap[(state.bunk || 0) + 1]}`}</small></div>
       ${bunkMaxed() ? '<span class="chip plain">Full size</span>' : `<button class="btn small" data-act="bunk-buy" ${state.coins >= bunkCost() ? '' : 'disabled'}>${fmtC(bunkCost())}</button>`}</div></div>`;
@@ -69,15 +69,15 @@ function viewHands() {
     const price = Math.max(C.core.farmhands.minPrice, +p.price || 0);
     const btn = p.hired ? '<span class="chip plain">Hired</span>'
       : `<button class="btn small" data-act="hire-hand" data-id="${esc(p.id)}" data-name="${esc(p.name)}" data-price="${price}" ${!full && state.coins >= price && !hf.busy ? '' : 'disabled'}>Hire · ${fmtC(price)}</button>`;
-    return `<div class="store-item"><span class="emo" style="--s:28px">${p.online ? '🟢' : '🧑‍🌾'}</span><div class="what"><b>${esc(p.name)}</b><small>@${esc(p.username || '')} · farm worth ${fmtC(+p.value)}${+p.hired_by ? ` · working for ${p.hired_by}` : ''}</small></div>${btn}</div>`;
+    return `<div class="store-item"><span class="emo" style="--s:28px">${p.online ? '🟢' : '🧑‍🌾'}</span><div class="what"><b>${esc(p.name)}</b><small>@${esc(p.username || '')} · farm worth ${fmtCoins(+p.value)}${+p.hired_by ? ` · working for ${p.hired_by}` : ''}</small></div>${btn}</div>`;
   }).join('');
   const market = `<div class="card"><h2>Hire a farmhand</h2>
-    <div class="row"><input id="hand-q" maxlength="30" placeholder="Find a player" value="${esc(hf.q)}" autocapitalize="none" spellcheck="false" style="flex:1"><button class="btn small ghost" data-act="hand-search">Search</button></div>
+    <div class="vil-say-form"><input id="hand-q" maxlength="30" placeholder="Find a player" value="${esc(hf.q)}" autocapitalize="none" spellcheck="false"><button class="btn small ghost" data-act="hand-search">Search</button></div>
     ${full ? '<p class="sub">Your bunkhouse is full. Build more room to hire more.</p>' : ''}
     ${list || '<p class="sub">Nobody to hire yet.</p>'}</div>`;
   const by = me.hired_by || [];
   const hired = `<div class="card"><h2>Working for others</h2>
     <p class="sub">${by.length ? `${plural(by.length, 'player')} ${by.length === 1 ? 'has' : 'have'} hired you.` : 'Nobody has hired you yet. The more your farm is worth, the more you earn when someone does.'} Being hired has earned you <b>${fmtN(+me.earned || 0)}</b> coins.</p>
-    ${by.slice(0, 20).map(h => `<div class="store-item"><span class="emo" style="--s:24px">🤝</span><div class="what"><b>${esc(h.name)}</b><small>@${esc(h.username || '')} · paid ${fmtC(+h.price)}</small></div></div>`).join('')}</div>`;
+    ${by.slice(0, 20).map(h => `<div class="store-item"><span class="emo" style="--s:24px">🤝</span><div class="what"><b>${esc(h.name)}</b><small>@${esc(h.username || '')} · paid ${fmtCoins(+h.price)}</small></div></div>`).join('')}</div>`;
   return intro + mine + market + hired;
 }

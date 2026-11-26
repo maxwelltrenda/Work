@@ -29,7 +29,8 @@ const fmtShort = n => {
   const [v, u] = [[1e15, 'Qa'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M']].find(([x]) => a >= x);
   return String(+(n / v).toPrecision(3)) + u;
 };
-const fmtC = n => fmtShort(n) + 'c';
+const fmtC = n => fmtShort(n) + (Math.abs(n) < 1e6 ? 'c' : '');
+const fmtCoins = n => fmtShort(n) + ' coins';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const byId = list => Object.fromEntries((list || []).map(x => [x.id, x]));
 const plural = (n, w) => `${fmtN(n)} ${w}${n === 1 ? '' : 's'}`;
