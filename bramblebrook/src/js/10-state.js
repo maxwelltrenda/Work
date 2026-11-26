@@ -11,7 +11,7 @@ function freshState() {
   const t = now();
   const k = C.core;
   return {
-    v: 2, created: t, savedAt: 0, name: '', vperks: null, bunk: 0, stair: 0, rng: { s: (Math.random() * 4294967296) >>> 0, n: 0 },
+    v: 2, created: t, savedAt: 0, name: '', vperks: null, bunk: 0, stair: 0, bed: 0, bank: 0, drinks: null, rng: { s: (Math.random() * 4294967296) >>> 0, n: 0 },
     coins: 80, barn: 0,
     plots: Array.from({ length: k.plots.start }, () => ({ crop: null, at: 0, ready: 0 })),
     inv: { worm: 6 }, locked: {}, seen: { worm: 1 }, got: {},
@@ -52,11 +52,14 @@ function migrate(s) {
   if (!Array.isArray(out.bench) || !out.bench.length) out.bench = base.bench;
   if (!Array.isArray(out.casks) || !out.casks.length) out.casks = base.casks;
   if (!Array.isArray(out.charms)) out.charms = [];
-  if (out.bg && out.charDone === undefined) out.charDone = true;
-  if (out.vperks === undefined) out.vperks = null;
-  if (typeof out.bunk !== 'number') out.bunk = 0;
-  if (typeof out.stair !== 'number') out.stair = 0;   // lanterns lit on the Lantern Stair (26-stair.js)   // farmhand bunkhouse (75-farmhands.js)   // the village's perks (74-villages.js); null: not in one
-  if (!out.rng || typeof out.rng.s !== 'number') out.rng = { s: (Math.random() * 4294967296) >>> 0, n: 0 };   // characters made before charDone existed
+  if (out.bg && out.charDone === undefined) out.charDone = true;   // characters made before charDone existed
+  if (out.vperks === undefined) out.vperks = null;   // the village's perks (74-villages.js); null: not in one
+  if (typeof out.bunk !== 'number') out.bunk = 0;     // farmhand bunkhouse (75-farmhands.js)
+  if (typeof out.stair !== 'number') out.stair = 0;   // lanterns lit on the Lantern Stair (26-stair.js)
+  if (typeof out.bed !== 'number') out.bed = 0;       // the bed, which saves stamina while the bar is full
+  if (typeof out.bank !== 'number') out.bank = 0;
+  if (out.drinks === undefined) out.drinks = null;   // field drinks had today: { day, n }
+  if (!out.rng || typeof out.rng.s !== 'number') out.rng = { s: (Math.random() * 4294967296) >>> 0, n: 0 };
   if (!I.crop[out.seed]) out.seed = 'wheat';
   if (!I.spot[out.spot]) out.spot = 'pond';
   if (!I.area[out.area]) out.area = 'meadow';
@@ -156,17 +159,31 @@ function setBuff(id, mins = 15) {
   state.buffs[id] = Math.max(state.buffs[id] || 0, now()) + mins * 60000;
 }
 function regenMs() { return C.core.stamina.regenMs / (buffOn('refreshed') ? 2 : 1) / (1 + perkVal('rest') / 100) / (1 + villageFx('regen') / 100); }
+/* The bar refills one point every regenMs. With a bed, what it would refill while already full is saved
+   (up to the bed's multiple of max stamina); exploring and digging spend the bar first, then the savings. */
+const bankCap = () => { const b = (C.core.bed && C.core.bed.levels[state.bed || 0]) || null; return b ? b.mult * maxStamina() : 0; };
+const staminaLeft = () => Math.max(0, state.stamina) + (state.bank || 0);
+const staminaIdle = () => state.stamina >= maxStamina() && (state.bank || 0) >= bankCap();
 function syncStamina() {
-  const max = maxStamina(), t = now();
-  if (state.stamina >= max) { state.staminaAt = t; return; }
-  const step = regenMs();
-  const gained = Math.floor((t - state.staminaAt) / step);
-  if (gained > 0) {
-    state.stamina = Math.min(max, state.stamina + gained);
-    state.staminaAt = state.stamina >= max ? t : state.staminaAt + gained * step;
-  }
+  const t = now();
+  if (staminaIdle()) { state.staminaAt = t; return; }
+  const step = regenMs(), gained = Math.floor((t - state.staminaAt) / step);
+  if (gained <= 0) return;
+  let g = gained;
+  const max = maxStamina();
+  if (state.stamina < max) { const f = Math.min(g, max - state.stamina); state.stamina += f; g -= f; }
+  if (g > 0) state.bank = Math.min(bankCap(), (state.bank || 0) + g);
+  state.staminaAt = staminaIdle() ? t : state.staminaAt + gained * step;
 }
-function spendStamina(n) { syncStamina(); const wasFull = state.stamina >= maxStamina(); state.stamina -= n; if (wasFull) state.staminaAt = now(); }
+function spendStamina(n, bedFirst) {
+  syncStamina();
+  const idle = staminaIdle();
+  let fromBank = bedFirst ? Math.min(state.bank || 0, n) : 0;
+  state.stamina -= n - fromBank;
+  if (state.stamina < 0 && state.bank > fromBank) { const d = Math.min(state.bank - fromBank, -state.stamina); fromBank += d; state.stamina += d; }
+  state.bank = (state.bank || 0) - fromBank;
+  if (idle) state.staminaAt = now();
+}
 
 /* calendar */
 function dayNumber() { return Math.floor((now() - state.created) / 86400000) + 1; }

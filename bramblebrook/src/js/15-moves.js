@@ -10,7 +10,7 @@
 const FARM_ACTS = new Set(['seed', 'plot', 'harvest-all', 'sow-all', 'tonic', 'install', 'plant-tree', 'tree', 'harvest-trees',
   'collect', 'collect-all', 'buy-animal', 'pet', 'pet-pen', 'pet-one', 'area', 'explore', 'dig', 'perk-learn', 'descend', 'lift',
   'adventure', 'quest', 'quest-go', 'charm-on', 'charm-off', 'spot', 'bait', 'craft', 'cook', 'eat', 'sell', 'sell-type', 'lock',
-  'buy', 'buy-plot', 'buy-barn', 'orchard-buy', 'bunk-buy', 'stair-light', 'saffi-buy', 'saffi-sell', 'chore', 'chore-bonus', 'deliver', 'chat', 'gift-pick', 'heart',
+  'buy', 'buy-plot', 'buy-barn', 'orchard-buy', 'bunk-buy', 'bed-buy', 'use-net', 'stair-light', 'saffi-buy', 'saffi-sell', 'chore', 'chore-bonus', 'deliver', 'chat', 'gift-pick', 'heart',
   'letter', 'letter-gift', 'story', 'class-choose', 'fight', 'fight-pal', 'fight-go', 'perk', 'perk-reset', 'bench-queue',
   'bench-collect', 'bench-cancel', 'bench-buy', 'net-set', 'net-collect', 'cask-fill', 'cask-bottle', 'cask-buy', 'ex-sell',
   'pet-adopt', 'pet-feed', 'pet-collect', 'fest-deliver', 'fest-buy', 'login-claim', 'take-overflow']);
@@ -118,13 +118,13 @@ const UI_FIELDS = ['tab', 'sub', 'opts', 'toursSeen', 'visited', 'savedAt', 'inn
 function checkedState(s) {
   const o = {};
   for (const k of Object.keys(s).sort()) if (!UI_FIELDS.includes(k)) o[k] = s[k];
-  if (o.stamina >= maxStaminaOf(s)) delete o.staminaAt;   // a full bar's timestamp means nothing
+  if (idleOf(s)) delete o.staminaAt;   // a full bar (and a full bed) means the timestamp means nothing
   // when an achievement or chapter was marked is a keepsake, and the phone can mark it a moment after the server
   if (o.ach) o.ach = Object.fromEntries(Object.keys(o.ach).map(k => [k, 1]));
   if (o.story && o.story.done) o.story = Object.assign({}, o.story, { done: Object.fromEntries(Object.keys(o.story.done).map(k => [k, 1])) });
   return o;
 }
-function maxStaminaOf(s) { const keep = state; state = s; try { return maxStamina(); } finally { state = keep; } }
+function idleOf(s) { const keep = state; state = s; try { return staminaIdle(); } finally { state = keep; } }
 function canonical(v) {
   if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
   if (v && typeof v === 'object') return '{' + Object.keys(v).sort().filter(k => v[k] !== undefined).map(k => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';

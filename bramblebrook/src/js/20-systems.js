@@ -176,11 +176,12 @@ function exploreTable(drops) {
     return [k, w];
   });
 }
-function explore(n) {
+// cider: a drink's trips, at its own stamina cost (drawn from the bed first)
+function explore(n, cider) {
   syncStamina();
   const a = I.area[state.area];
   if (!a || !areaOpen(a)) return;
-  const times = n === 'all' ? Math.max(0, state.stamina) : Math.min(+n, state.stamina);
+  const times = cider ? cider.trips : n === 'all' ? staminaLeft() : Math.min(+n, staminaLeft());
   if (times <= 0) { toast('Out of stamina. It refills over time, or eat a meal.'); return; }
   const found = {}, full = new Set();
   let empty = 0;
@@ -198,7 +199,7 @@ function explore(n) {
     if (addItem(id, 1) === 0) { addOrStash(id, 1); full.add(id); }
     found[id] = (found[id] || 0) + 1;
   }
-  spendStamina(times);
+  spendStamina(cider ? cider.cost : times, !!cider);
   addXP('foraging', a.xp * times);
   state.stats.explores += times;
   const parts = Object.entries(found).map(([id, q]) => chip(id, q > 1 ? q + '×' : null));
@@ -230,7 +231,7 @@ function mineGate(floor) { return C.core.mine.gates[floor] || 0; }
 function dig(n) {
   if (!unlocked('mine')) return;
   syncStamina();
-  const times = n === 'all' ? Math.max(0, state.stamina) : Math.min(+n, state.stamina);
+  const times = n === 'all' ? staminaLeft() : Math.min(+n, staminaLeft());
   if (times <= 0) { toast('Out of stamina. Rest, or eat something from the kitchen.'); return; }
   const m = state.mine, band = mineBand(m.floor);
   const lucky = (buffOn('lucky') ? 2 : 1) * (1 + perkVal('keeneye') / 100) * (1 + charmFx('luck') / 100) * (m.floor > 30 ? 1 + (m.floor - 30) * 0.05 : 1);
@@ -423,17 +424,103 @@ function cook(id, n) {
   state.stats.cooked += times;
   toast(`Cooked ${times}× ${itemName(r.id)}`);
 }
-const edible = id => { const m = I.meal[id]; return !!m && (m.stamina || m.buff); };
+/* Meals restore stamina or give a boost. Some are drinks with a bigger job (core.json meals):
+   explore: that many trips where you're exploring, for 'cost' stamina (bar and bed);
+   find: that many finds where you're exploring, no stamina; grow: every growing crop that many minutes ahead;
+   ripen: every growing crop ready now. Field drinks (grow, ripen) are limited to fieldDrinks a day. */
+const edible = id => { const m = I.meal[id]; return !!m && !!(m.stamina || m.buff || m.explore || m.find || m.grow || m.ripen); };
+const isDrink = id => { const m = I.meal[id]; return !!m && !!(m.explore || m.find || m.grow || m.ripen); };
+const fieldDrink = m => !!(m.grow || m.ripen);
+function fieldDrinksLeft() { const d = state.drinks; return (C.core.fieldDrinks || 4) - (d && d.day === dayKey() ? d.n : 0); }
 function eat(id) {
   const m = I.meal[id];
   if (!m || !have(id) || !edible(id)) return false;
   syncStamina();
+  if (m.explore) return drinkCider(id, m);
+  if (m.find) return drinkFind(id, m);
+  if (fieldDrink(m)) return drinkField(id, m);
   if (m.stamina && state.stamina >= maxStamina() * 2 && !m.buff) { toast("You're too full to eat another bite."); return false; }
   takeItem(id, 1);
   const bits = [];
   if (m.stamina) { state.stamina = Math.min(maxStamina() * 2, state.stamina + m.stamina); bits.push(`+${m.stamina} stamina`); }
   if (m.buff) { setBuff(m.buff, m.mins || 15); bits.push(`${I.buffs[m.buff].n} for ${m.mins || 15} min`); }
   toast(`${itemName(id)}: ${bits.join(', ')}`);
+  return true;
+}
+function drinkCider(id, m) {
+  const a = I.area[state.area], cost = m.cost || m.explore;
+  if (!a || !areaOpen(a)) return false;
+  if (staminaLeft() < cost) { toast(`${itemName(id)} needs ${fmtN(cost)} stamina. You have ${fmtN(staminaLeft())}.`); return false; }
+  takeItem(id, 1);
+  explore(m.explore, { trips: m.explore, cost });
+  toast(`${itemName(id)}: ${fmtN(m.explore)} trips in ${a.n} for ${fmtN(cost)} stamina`);
+  return true;
+}
+function drinkFind(id, m) {
+  const a = I.area[state.area];
+  if (!a || !areaOpen(a)) return false;
+  takeItem(id, 1);
+  const table = exploreTable(a.drops).filter(([k]) => k !== 'none');
+  const found = {}, full = new Set();
+  for (let k = 0; k < m.find; k++) {
+    const [f] = pickWeighted(table);
+    if (addItem(f, 1) === 0) { addOrStash(f, 1); full.add(f); }
+    found[f] = (found[f] || 0) + 1;
+  }
+  addXP('foraging', a.xp * m.find);
+  state.stats.explores += m.find;
+  exploreLog.unshift({ html: Object.entries(found).map(([f, q]) => chip(f, q > 1 ? q + '×' : null)).join(''), when: `${itemName(id)} · ${m.find} finds` });
+  exploreLog = exploreLog.slice(0, 6);
+  if (full.size) toast(`Barn is full of ${[...full].map(itemName).join(', ')}. The extra went to Lost & found in your Bag.`);
+  else toast(`${itemName(id)}: ${fmtN(m.find)} finds in ${a.n}, no stamina used`);
+  return true;
+}
+function drinkField(id, m) {
+  if (fieldDrinksLeft() <= 0) { toast(`That's ${C.core.fieldDrinks || 4} field drinks today. The fields need a rest until tomorrow.`); return false; }
+  const t = now(); let n = 0;
+  for (const p of state.plots) {
+    if (!p.crop || p.ready <= t) continue;
+    p.ready = m.ripen ? t : Math.max(t, p.ready - m.grow * 60000);
+    n++;
+  }
+  if (!n) { toast('Nothing is growing right now. Sow something first.'); return false; }
+  takeItem(id, 1);
+  const day = dayKey();
+  state.drinks = { day, n: (state.drinks && state.drinks.day === day ? state.drinks.n : 0) + 1 };
+  toast(m.ripen ? `${itemName(id)}: ${plural(n, 'plot')} ready now` : `${itemName(id)}: ${plural(n, 'plot')} ${m.grow} minutes ahead`);
+  return true;
+}
+
+/* Crafted nets (workshop): cast where you're fishing and haul in that many fish of common to rare kinds. */
+function useNet(id) {
+  const r = I.recipes.find(x => x.id === id), sp = I.spot[state.spot];
+  if (!r || !r.catch || !have(id) || !sp || !spotOpen(sp)) return false;
+  const pool = sp.fish.filter(f => f[2] <= (C.core.netRarity || 3) && I.items[f[0]] && I.items[f[0]].t === 'fish' && f[0] !== 'boot' && f[1] > 0);
+  if (!pool.length) return false;
+  takeItem(id, 1);
+  const got = {};
+  let xp = 0;
+  for (let k = 0; k < r.catch; k++) { const [f, , rar] = pickWeighted(pool); got[f] = (got[f] || 0) + 1; xp += C.core.rarity[rar].xp; }
+  const full = new Set();
+  for (const [f, q] of Object.entries(got)) { if (addOrStash(f, q) < q) full.add(f); }
+  addXP('fishing', xp);
+  state.stats.fish += r.catch;
+  state.stats.netted = (state.stats.netted || 0) + r.catch;
+  catchLog.unshift(`${Object.entries(got).map(([f, q]) => chip(f, q > 1 ? q + '×' : null)).join('')}<span class="t">${esc(itemName(id))}</span>`);
+  catchLog = catchLog.slice(0, 5);
+  toast(full.size ? `${itemName(id)}: ${fmtN(r.catch)} fish. Barn is full of ${[...full].map(itemName).join(', ')}; the extra went to Lost & found.` : `${itemName(id)}: ${fmtN(r.catch)} fish from ${sp.n}`, 'lvl');
+  return true;
+}
+
+/* The bed: saves the stamina a full bar would have refilled (10-state.js) */
+const bedNext = () => (C.core.bed ? C.core.bed.levels[(state.bed || 0) + 1] : null);
+function buyBed() {
+  const b = bedNext();
+  if (!b || state.coins < b.cost) return false;
+  syncStamina();
+  state.coins -= b.cost;
+  state.bed = (state.bed || 0) + 1;
+  toast(`${b.n}: it saves up to ${fmtN(bankCap())} stamina while yours is full`, 'lvl');
   return true;
 }
 
@@ -502,6 +589,7 @@ function farmValue(s = state) {
     if (fh) for (let n = 0; n < (s.bunk || 0); n++) v += Math.round(fh.bunkCost * Math.pow(fh.bunkGrow, n));
     const st = C.core.stair;
     if (st) for (let n = 1; n <= (s.stair || 0); n++) v += Math.round(st.cost * Math.pow(st.grow, n - 1));
+    if (C.core.bed) for (let n = 1; n <= (s.bed || 0); n++) v += (C.core.bed.levels[n] || {}).cost || 0;
     return v;
   } finally { state = keep; }
 }

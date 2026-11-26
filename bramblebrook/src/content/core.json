@@ -975,6 +975,14 @@
    "t": "meal",
    "s": 230
   },
+  "trailcider": {"n": "Trail Cider", "i": "🧃", "t": "meal", "s": 120},
+  "grandcider": {"n": "Grand Cider", "i": "🍶", "t": "meal", "s": 230},
+  "lemonfizz": {"n": "Lemon Fizz", "i": "🫧", "t": "meal", "s": 160},
+  "sunfizz": {"n": "Sunshine Fizz", "i": "🌞", "t": "meal", "s": 550},
+  "sprouttea": {"n": "Sprout Tea", "i": "🍵", "t": "meal", "s": 45},
+  "grapejuice": {"n": "Grape Juice", "i": "🍇", "t": "meal", "s": 2400},
+  "castnet": {"n": "Cast Net", "i": "🕸️", "t": "crafted", "s": 140},
+  "trawlnet": {"n": "Trawl Net", "i": "⛵", "t": "crafted", "s": 680},
   "feast": {
    "n": "Harvest Feast",
    "i": "🍽️",
@@ -2157,6 +2165,8 @@
    "lvl": 5,
    "xp": 24
   },
+  { "id": "castnet", "out": 1, "need": { "rope": 2, "twine": 2, "ironbar": 1 }, "lvl": 6, "xp": 20, "unlock": "forge", "catch": 10, "use": "Catches 10 fish where you're fishing" },
+  { "id": "trawlnet", "out": 1, "need": { "castnet": 10, "goldbar": 2, "rope": 10 }, "lvl": 16, "xp": 150, "unlock": "forge", "catch": 250, "use": "Catches 250 fish where you're fishing" },
   {
    "id": "nails",
    "out": 5,
@@ -2593,6 +2603,12 @@
    "buff": "refreshed",
    "mins": 30
   },
+  { "id": "sprouttea", "need": { "fern": 2, "carrot": 3 }, "lvl": 3, "xp": 12, "grow": 60, "use": "Every growing crop jumps an hour ahead" },
+  { "id": "trailcider", "need": { "apple": 12, "honeycomb": 1 }, "lvl": 6, "xp": 30, "explore": 100, "cost": 50, "use": "100 trips where you're exploring, for 50 stamina" },
+  { "id": "lemonfizz", "need": { "lemon": 4, "honeycomb": 1 }, "lvl": 10, "xp": 40, "find": 10, "use": "Find 10 things where you're exploring, no stamina needed" },
+  { "id": "grapejuice", "need": { "grapes": 6 }, "lvl": 12, "xp": 70, "ripen": true, "use": "Every crop in your fields is ready now" },
+  { "id": "grandcider", "need": { "apple": 40, "pear": 10, "honeycomb": 4 }, "lvl": 14, "xp": 90, "explore": 500, "cost": 250, "use": "500 trips where you're exploring, for 250 stamina" },
+  { "id": "sunfizz", "need": { "lemonfizz": 10, "peach": 4 }, "lvl": 18, "xp": 160, "find": 200, "use": "Find 200 things where you're exploring, no stamina needed" },
   {
    "id": "feast",
    "need": {
@@ -3572,6 +3588,15 @@
    }
   }
  ],
+ "bed": { "levels": [
+   { "mult": 0, "cost": 0, "n": "No bed yet" },
+   { "mult": 5, "cost": 2000, "n": "Straw cot" },
+   { "mult": 10, "cost": 60000, "n": "Feather bed" },
+   { "mult": 20, "cost": 2000000, "n": "Four-poster bed" },
+   { "mult": 40, "cost": 60000000, "n": "Canopy bed" }],
+   "note": "while your stamina is full, what it would have refilled is saved, up to mult x your max stamina; exploring and digging use it when yours runs out" },
+ "fieldDrinks": 4,
+ "netRarity": 3,
  "stair": { "cost": 250000, "grow": 1.5, "max": 60, "stars": 2, "sell": 4, "unlockValue": 100000, "every": 5,
    "milestones": [{ "grow": 5, "text": "Crops grow 5% faster" }, { "stamina": 10, "text": "+10 max stamina" }, { "barn": 10, "text": "Your barn holds 10% more" }],
    "note": "lantern n costs cost * grow^(n-1) coins and needs stars*n mastery stars (counted, not spent). Every lantern: everything sells for sell% more, compounding. Every 'every'th lantern also gives the next milestone in turn." },

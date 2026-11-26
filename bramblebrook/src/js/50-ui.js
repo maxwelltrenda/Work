@@ -62,6 +62,8 @@ function updateHeader(force) {
   $('#stam-now').textContent = state.stamina;
   $('#stam-max').textContent = max;
   $('#stam-bar').style.setProperty('--p', Math.min(1, state.stamina / max));
+  const bankEl = $('#stam-bank');
+  if (bankEl) { bankEl.hidden = !bankCap(); bankEl.textContent = ` +${fmtShort(state.bank || 0)}`; bankEl.title = `${fmtN(state.bank || 0)} stamina saved in your bed`; }
   $('#almanac').textContent = `Day ${dayNumber()} · ${season()} · ${weather().n}`;
   const buffs = Object.keys(I.buffs).filter(buffOn).map(b => `<span class="buff">${esc(I.buffs[b].n)} ${fmtT((state.buffs[b] - now()) / 1000)}</span>`).join('');
   const bEl = $('#buffs');
@@ -157,18 +159,20 @@ function itemSheet(id) {
   I.vils.forEach(v => { const q = curRequest(v.id); if (q && q.want[id] && vilAvailable(v)) uses.push(`${vilShort(v.id)} wants ${q.want[id]}`); });
   const lovers = I.vils.filter(v => (v.loves || []).includes(id) && vilAvailable(v)).map(v => vilShort(v.id));
   const n = have(id), key = it.t === 'key', t = masteryTier(id);
-  const meal = I.meal[id];
+  const meal = I.meal[id], netRec = I.recipes.find(x => x.id === id && x.catch);
   openSheet(`
     <div class="sheet-head">${pic(id, 56)}<div><h2>${esc(it.n)}</h2><p class="muted">${rarity(id) ? `<span class="rar${rarClass(id)}">${esc(rarity(id))}</span> · ` : ''}${esc(C.core.types[it.t])} · you have ${n}${key ? '' : `/${fmtN(cap())}`}</p></div></div>
     ${it.t === 'charm' ? `<p>${esc(it.desc)}</p>` : ''}
     <dl>${key ? '' : `<dt>Sells for</dt><dd class="num">${priceOf(id)} coins${t ? ` (${'★'.repeat(t)} mastery)` : ''}</dd>`}
-      ${meal && edible(id) ? `<dt>Eat it</dt><dd>${esc([meal.stamina ? `+${meal.stamina} stamina` : '', meal.buff ? `${I.buffs[meal.buff].n}: ${I.buffs[meal.buff].desc} (${meal.mins} min)` : ''].filter(Boolean).join(' · '))}</dd>` : ''}
+      ${meal && edible(id) ? `<dt>${isDrink(id) ? 'Drink it' : 'Eat it'}</dt><dd>${esc(meal.use || [meal.stamina ? `+${meal.stamina} stamina` : '', meal.buff ? `${I.buffs[meal.buff].n}: ${I.buffs[meal.buff].desc} (${meal.mins} min)` : ''].filter(Boolean).join(' · '))}</dd>` : ''}
+      ${netRec ? `<dt>Cast it</dt><dd>${esc(netRec.use)}</dd>` : ''}
       <dt>Found</dt><dd>${esc([...new Set(where)].join(', ') || (key ? 'A keepsake from the story' : 'Rewards'))}</dd>
       <dt>Used for</dt><dd>${esc(uses.join(', ') || (key ? 'Remembering' : 'Selling'))}</dd>
       ${lovers.length ? `<dt>Loved by</dt><dd>${esc(lovers.join(', '))}</dd>` : ''}
       <dt>Gathered</dt><dd class="num">${fmtN(state.got[id] || 0)} in all</dd></dl>
     <div class="sheet-btns">
-      ${meal && edible(id) && n ? `<button class="btn small sun" data-act="eat" data-id="${id}">Eat one</button>` : ''}
+      ${meal && edible(id) && n ? `<button class="btn small sun" data-act="eat" data-id="${id}">${isDrink(id) ? 'Drink one' : 'Eat one'}</button>` : ''}
+      ${netRec && n ? `<button class="btn small sun" data-act="use-net" data-id="${id}">Cast where you fish</button>` : ''}
       ${id === 'tonic' && n ? '<button class="btn small sun" data-act="tonic">Use on the farm</button>' : ''}
       ${it.t === 'charm' && n ? (state.charms.includes(id) ? `<button class="btn small ghost" data-act="charm-off" data-id="${id}">Take it off</button>` : `<button class="btn small sun" data-act="charm-on" data-id="${id}">Wear it</button>`) : ''}
       ${key || !n ? '' : `<button class="btn small" data-act="sell" data-id="${id}" data-n="1">Sell 1 · ${priceOf(id)}c</button>
@@ -464,6 +468,8 @@ function handle(act, el, e) {
     case 'bench-buy': { const c = benchSlotCost(); if (state.bench.length >= C.core.workbench.maxSlots || state.coins < c) return false; state.coins -= c; state.bench.push(null); toast('Another pair of hands at the workbench'); break; }
     case 'orchard-buy': if (!buyOrchardSpot()) return false; break;
     case 'bunk-buy': if (!buyBunk()) return false; break;
+    case 'bed-buy': if (!buyBed()) return false; break;
+    case 'use-net': if (!useNet(id)) return false; if (sheetOpen()) closeSheet(); break;
     case 'stair-light': if (!lightLantern()) return false; break;
     case 'hire-hand': hireHand(el.dataset); return false;
     case 'drop-hand': dropHand(el.dataset); return false;

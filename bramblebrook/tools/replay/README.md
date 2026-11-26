@@ -13,6 +13,10 @@ node tools/replay/check.js tools/replay/out/d4-rec.json supabase/functions/_engi
 node tools/replay/battle.js 3
 node tools/replay/check.js tools/replay/out/battle-rec.json supabase/functions/_engine
 
+# the bulk items: the bed, trail and field drinks, cast nets, then replayed
+node tools/replay/bulk.js
+node tools/replay/check.js tools/replay/out/bulk-rec.json supabase/functions/_engine
+
 # the server's save rules (rewards, gifts, resends, new accounts, start over) against an in-memory database
 node --experimental-strip-types tools/replay/server-test.mjs
 ```

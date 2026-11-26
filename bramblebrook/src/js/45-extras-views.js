@@ -64,6 +64,25 @@ function viewNets() {
   return `<div class="card"><div class="row between"><h2>Fishing nets</h2><span class="chip plain">${have('net')} in bag</span></div><p class="sub">A net catches common fish while you're away, one every ${fmtT(C.core.nets.every)}, up to ${C.core.nets.cap}. Craft nets in the Workshop.</p>${rows}</div>`;
 }
 
+/* Drinks and crafted nets you own, ready to use where they work (fields, the trail, the water). */
+function useBar(ids, title, note) {
+  const own = ids.filter(id => have(id));
+  if (!own.length) return '';
+  const rows = own.map(id => {
+    const m = I.meal[id], r = I.recipes.find(x => x.id === id);
+    const what = (m && m.use) || (r && r.use) || '';
+    const act = r && r.catch ? `data-act="use-net" data-id="${id}"` : `data-act="eat" data-id="${id}"`;
+    const verb = r && r.catch ? 'Cast' : 'Drink';
+    return `<div class="store-item">${pic(id, 32)}<div class="what"><b>${esc(itemName(id))} ×${fmtN(have(id))}</b><small>${esc(what)}</small></div>
+      <button class="btn small sun" ${act}>${verb}</button></div>`;
+  }).join('');
+  return `<div class="card"><div class="row between"><h2>${esc(title)}</h2>${note ? `<span class="chip plain">${esc(note)}</span>` : ''}</div>${rows}</div>`;
+}
+const FIELD_DRINKS = ['sprouttea', 'grapejuice'], TRAIL_DRINKS = ['lemonfizz', 'sunfizz', 'trailcider', 'grandcider'], CAST_NETS = ['castnet', 'trawlnet'];
+const fieldDrinkBar = () => useBar(FIELD_DRINKS, 'Field drinks', `${Math.max(0, fieldDrinksLeft())} of ${C.core.fieldDrinks || 4} left today`);
+const trailDrinkBar = () => useBar(TRAIL_DRINKS, 'Trail drinks');
+const castNetBar = () => useBar(CAST_NETS, 'Cast a net', 'common to rare fish');
+
 function viewExchange() {
   const rows = exchangeBoard();
   const ends = (exchangeWindow() + 1) * C.core.exchange.hours * 3600000 - now();

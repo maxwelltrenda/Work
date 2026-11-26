@@ -77,6 +77,7 @@ function viewFields() {
       ${perkRank('sowall') ? `<button class="btn ghost" data-act="sow-all" ${empty ? '' : 'disabled'}>Sow ${Math.min(empty, sN) || ''} ${esc(itemName(seed.id))}${empty ? ` · ${Math.min(empty, sN) * seedCost(seed)}c` : ''}</button>` : ''}
     </div>
     ${have('tonic') ? `<button class="btn sun" data-act="tonic">${pic('tonic', 24)} Use Grow Tonic (${have('tonic')}) · halves growing time</button>` : ''}
+    ${fieldDrinkBar()}
     ${featureOn('upgrades') ? `<div class="card"><h2>Farm improvements</h2><div class="upgrades">${ups}</div>
       <p class="sub">${state.plots.length}/${C.core.plots.max} plots. Buy more at Pennywhistle's store in Town.</p></div>` : ''}`;
 }
@@ -151,8 +152,9 @@ function viewWilds() {
   return head + viewExplore();
 }
 function staminaLine() {
-  const s = state.stamina, max = maxStamina();
-  return `${s} stamina${s >= max ? '' : ` · +1 in ${fmtT((regenMs() - (now() - state.staminaAt)) / 1000)}`}`;
+  const s = state.stamina, max = maxStamina(), cap = bankCap(), bank = state.bank || 0;
+  const next = staminaIdle() ? '' : ` · +1 in ${fmtT((regenMs() - (now() - state.staminaAt)) / 1000)}`;
+  return `${fmtN(s)} stamina${cap ? ` · ${fmtN(bank)}/${fmtN(cap)} saved in bed` : ''}${next}`;
 }
 function viewExplore() {
   if (!areaOpen(I.area[state.area])) state.area = 'meadow';
@@ -166,10 +168,11 @@ function viewExplore() {
       <span class="sub">${esc(open || unlocked(x.unlock) ? x.blurb : unlockHint(x.unlock))}</span><span class="drops">${drops}</span></button>`;
   }).join('');
   const log = exploreLog.length ? exploreLog.map(l => `<div class="log-line">${l.html}<span class="t">${esc(l.when)}</span></div>`).join('') : '<p class="muted">Each trip costs 1 stamina. Sometimes something unexpected happens.</p>';
-  const s = state.stamina;
+  const s = staminaLeft();
   return `<div class="card trail"><div><h2>${esc(a.n)}</h2><p class="sub" data-stam-line>${staminaLine()}</p></div>
       <div class="trail-btns"><button class="btn" data-act="explore" data-n="1" data-need="1" ${s >= 1 ? '' : 'disabled'}>Explore</button>
       ${tripButtons('explore', s)}</div></div>
+    ${trailDrinkBar()}
     <div class="card"><div class="label">Trail log</div><div class="log">${log}</div></div>
     <div class="label">Places</div><div class="areas">${cards}</div>`;
 }
@@ -186,7 +189,7 @@ function viewMine() {
   const depth = m.floor > k.floors ? `<span class="chip plain gold">The Deep · ${m.floor - k.floors} below the vault</span>` : Array.from({ length: k.floors }, (_, i) => `<i class="${i < m.floor ? 'on' : ''} ${k.checkpoints.includes(i + 1) ? 'cp' : ''}"></i>`).join('');
   const band = mineBand(m.floor);
   const drops = Object.keys(band.drops).filter(x => x !== 'none').concat(m.floor >= 25 ? ['starshard'] : []).map(x => state.seen[x] ? pic(x, 24) : '<span class="unknown">?</span>').join('');
-  const s = state.stamina;
+  const s = staminaLeft();
   const down = m.floor >= mineMax() ? '<span class="chip plain">The bottom</span>'
     : m.stairs ? `<button class="btn sun" data-act="descend" ${lvl('mining') >= need ? '' : 'disabled'}>Go down to floor ${m.floor + 1}${need && lvl('mining') < need ? ` (Mining ${need})` : ''}</button>`
     : '<span class="sub">Keep digging to find the way down.</span>';
@@ -238,7 +241,7 @@ function viewFish() {
     </div>
     <div class="bait-row">${bait('worm', 'Worms', 'basic')}${bait('lure', 'Lures', 'bigger zone')}${bait('glowbait', 'Glow grubs', 'legends')}</div>
     <button class="btn big" id="cast-btn" data-act="fish-btn">Cast line</button>
-    <div class="card"><div class="row between"><div class="label">In these waters</div><div class="drops">${pool}</div></div><div class="log">${logHTML}</div></div>${viewNets()}`;
+    <div class="card"><div class="row between"><div class="label">In these waters</div><div class="drops">${pool}</div></div><div class="log">${logHTML}</div></div>${castNetBar()}${viewNets()}`;
 }
 function updateBaitCounts() {
   const notes = { worm: 'basic', lure: 'bigger zone', glowbait: 'legends' };
@@ -270,14 +273,16 @@ function recipeList(list, isOpen, act, skill) {
   const card = (r, locked) => {
     const it = I.items[r.id], m = locked ? 0 : maxMake(r), batch = Math.min(m, perkCount('batchmake'));
     const needs = Object.entries(r.need).map(([id, q]) => chip(id, `${have(id)}/${q}`, have(id) >= q ? '' : 'short')).join('');
-    const effect = I.meal[r.id] ? [I.meal[r.id].stamina ? `+${I.meal[r.id].stamina} stamina` : '', I.meal[r.id].buff ? `${I.buffs[I.meal[r.id].buff].n} ${I.meal[r.id].mins}m` : ''].filter(Boolean).join(' · ') : r.upgrade ? 'Farm improvement' : '';
+    const ml = I.meal[r.id];
+    const effect = ml && ml.use ? ml.use : r.use ? r.use : ml ? [ml.stamina ? `+${ml.stamina} stamina` : '', ml.buff ? `${I.buffs[ml.buff].n} ${ml.mins}m` : ''].filter(Boolean).join(' · ') : r.upgrade ? 'Farm improvement' : '';
     const lockWhy = !unlocked(r.unlock) ? unlockHint(r.unlock) : `${skillName(skill)} Lv ${r.lvl}`;
     return `<div class="card recipe${locked ? ' locked' : ''}"><span class="big-ico">${pic(r.id, 40)}</span>
       <div class="recipe-name"><b>${(r.out || 1) > 1 ? r.out + '× ' : ''}${esc(it.n)}</b><span class="muted num" style="font-size:13px">${locked ? esc(lockWhy) : `sells ${priceOf(r.id)}c${effect ? ' · ' + esc(effect) : ''}`}</span></div>
       <div class="needs">${needs}</div>
       ${locked ? '' : `<div class="row"><button class="btn small" data-act="${act}" data-id="${r.id}" data-n="1" ${m ? '' : 'disabled'}>${act === 'cook' ? 'Cook' : 'Craft'}</button>
         ${perkRank('batchmake') ? `<button class="btn small ghost" data-act="${act}" data-id="${r.id}" data-n="max" ${batch > 1 ? '' : 'disabled'}>Make ${batch > 1 ? batch : perkCount('batchmake') === Infinity ? 'max' : perkCount('batchmake')}</button>` : ''}
-        ${act === 'cook' && edible(r.id) && have(r.id) ? `<button class="btn small sun" data-act="eat" data-id="${r.id}">Eat one</button>` : ''}
+        ${act === 'cook' && edible(r.id) && have(r.id) ? `<button class="btn small sun" data-act="eat" data-id="${r.id}">${isDrink(r.id) ? 'Drink one' : 'Eat one'}</button>` : ''}
+        ${r.catch && have(r.id) ? `<button class="btn small sun" data-act="use-net" data-id="${r.id}">Cast one</button>` : ''}
         <span class="muted num" style="font-size:13px">You have ${have(r.id)}</span></div>`}</div>`;
   };
   return `<div class="recipes">${open.map(r => card(r, false)).join('')}${next.map(r => card(r, true)).join('')}</div>`;
@@ -357,6 +362,8 @@ function viewShops() {
     ${rows}
     <div class="store-item"><span class="emo" style="--s:32px">🟩</span><div class="what"><b>New farm plot</b><small>${state.plots.length}/${C.core.plots.max} plots</small></div>
       ${state.plots.length < C.core.plots.max ? `<button class="btn small" data-act="buy-plot" ${state.coins >= pc ? '' : 'disabled'}>${fmtC(pc)}</button>` : '<span class="chip plain">All bought</span>'}</div>
+    ${C.core.bed ? (() => { const b = bedNext(), cur = C.core.bed.levels[state.bed || 0]; return `<div class="store-item"><span class="emo" style="--s:32px">🛏️</span><div class="what"><b>${b ? `${state.bed ? 'Upgrade to' : 'Buy'} a ${esc(b.n.toLowerCase())}` : esc(cur.n)}</b><small>${state.bed ? `Saves up to ${fmtN(bankCap())} stamina while yours is full` : 'Saves the stamina a full bar would waste'}${b ? ` → ${fmtN(b.mult * maxStamina())}` : ''}</small></div>
+      ${b ? `<button class="btn small" data-act="bed-buy" ${state.coins >= b.cost ? '' : 'disabled'}>${fmtC(b.cost)}</button>` : '<span class="chip plain">Best</span>'}</div>`; })() : ''}
     <div class="store-item"><span class="emo" style="--s:32px">🛖</span><div class="what"><b>${nextBarn ? `Upgrade to ${esc(nextBarn.n)}` : esc(C.core.barn[state.barn].n)}</b><small>Holds ${fmtN(cap())} of each item${nextBarn ? ` → ${fmtN(nextBarn.cap)}` : ''}</small></div>
       ${nextBarn ? `<button class="btn small" data-act="buy-barn" ${state.coins >= nextBarn.cost ? '' : 'disabled'}>${fmtC(nextBarn.cost)}</button>` : '<span class="chip plain">Maxed</span>'}</div>
   </div>${featureOn('exchange') ? viewExchange() : ''}${saffi}`;

@@ -66,6 +66,7 @@ p { margin: 0; }
 .stam { display: grid; gap: 2px; width: 104px; }
 .stam-top { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .stam-top b { color: var(--ink); }
+.stam-bank { color: var(--accent); font-weight: 600; }
 .bar { display: block; height: 7px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
 .bar i { display: block; height: 100%; width: calc(var(--p, 0) * 100%); background: var(--accent); border-radius: inherit; transition: width .3s; }
 .skills { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }

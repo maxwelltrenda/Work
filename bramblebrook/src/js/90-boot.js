@@ -75,7 +75,7 @@ function tick() {
   }
   if (state.tab === 'wilds') {
     $$('[data-stam-line]').forEach(el => { el.textContent = staminaLine(); });
-    $$('[data-need]').forEach(b => { b.disabled = state.stamina < +b.dataset.need; });
+    $$('[data-need]').forEach(b => { b.disabled = staminaLeft() < +b.dataset.need; });
   }
   if (ticks % 30 === 0) { const seen = Object.keys(state.revealed || {}).length; settleOnOwn(true); if (Object.keys(state.revealed || {}).length !== seen) renderTabs(); }
   if (state.tab === 'make' && ['bench', 'cellar'].includes(sub('make')) && ticks % 5 === 0 && !sheetOpen()) renderView();
