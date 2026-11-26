@@ -190,12 +190,12 @@
         {
           "target": "#pond",
           "title": "Cast and wait",
-          "text": "Tap Cast, then wait for the bobber to dip. When the bar appears, tap again the moment the marker is inside the green zone."
+          "text": "Tap Cast, then wait for the bobber to dip. When the bar appears, tap the button again while the marker is inside the green zone."
         },
         {
           "target": "#cast-btn",
           "title": "One button does it all",
-          "text": "This button casts, reels in and casts again. You can also tap the water itself."
+          "text": "This button casts, reels in and casts again. Tap it the moment the marker is inside the green zone."
         },
         {
           "target": ".finds",

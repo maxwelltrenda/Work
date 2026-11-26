@@ -285,7 +285,7 @@ function viewWater(sp) {
   const logHTML = mine.length ? mine.map(l => `<div class="log-line">${l.html}<span class="t">${esc(l.when)}</span></div>`).join('') : '<p class="muted">Cast, wait for the bobber to dip, then tap when the marker is in the green.</p>';
   const bait = (id, label, note) => `<button class="bait" data-act="bait" data-id="${id}" aria-pressed="${state.bait === id}">${pic(id, 28)}<span><b>${label}</b><small data-bait="${id}">${have(id)} · ${note}</small></span></button>`;
   const fish = sp.fish.slice().sort((x, y) => y[1] - x[1]);
-  const pond = `<div class="pond" id="pond" data-act="fish-btn" data-phase="idle">
+  const pond = `<div class="pond" id="pond" data-phase="idle">
       <div class="bobber" aria-hidden="true"></div>
       <div class="fish-status" id="fish-status">Pick your bait and cast.</div>
       <div class="reel" id="reel" hidden><div class="zone" id="zone"></div><div class="needle" id="needle"></div></div>
@@ -297,7 +297,7 @@ function viewWater(sp) {
       <div class="fish-head"><h2>${esc(sp.n)}</h2><p class="place-mood">${esc(placeMood(sp.id))}</p>
         <p class="place-line"><span class="place-stars">${placeStars(sp.id)}</span> ${esc(C.core.places.titles[placeRank(sp.id)])} · ${esc(season())} · ${esc(weather().n)}</p></div>
       ${pond}<button class="btn big" id="cast-btn" data-act="fish-btn">Cast line</button></div>` : placeHero(sp, 'water-back', '') + pond;
-  return `<div class="view-head"><h1>Fishing</h1><p>${esc(weather().id === 'foggy' ? 'Foggy: rare fish are biting' : 'Tap the water to cast')}</p></div>
+  return `<div class="view-head"><h1>Fishing</h1><p>${esc(weather().id === 'foggy' ? 'Foggy: rare fish are biting' : sp.n)}</p></div>
     ${scene}
     <div class="bait-row">${bait('worm', 'Worms', 'basic')}${bait('lure', 'Lures', 'bigger zone')}${bait('glowbait', 'Glow grubs', 'legends')}</div>
     ${art ? '' : '<button class="btn big" id="cast-btn" data-act="fish-btn">Cast line</button>'}

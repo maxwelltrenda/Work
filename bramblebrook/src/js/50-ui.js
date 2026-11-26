@@ -506,10 +506,14 @@ document.addEventListener('input', e => {
   setVolume(state.opts.volume);
 });
 document.addEventListener('change', e => { if (e.target.id === 'vol' && state) { play('pick'); commit(); } });
+/* Only the cast button fishes (the water is just a picture, so scrolling past it never casts). Casting waits for a
+   full tap, so starting a scroll on the button doesn't cast either; reeling in reacts on press, for tight timing. */
+let fishPressed = 0;
 document.addEventListener('pointerdown', e => {
   const b = e.target.closest('[data-act="fish-btn"]');
-  if (!b || e.button > 0 || !state) return;
-  fishButton();   // fishing reacts on press for tight timing; keyboard presses arrive as clicks with detail 0
+  if (!b || e.button > 0 || !state || fishing.phase !== 'bite') return;
+  fishPressed = performance.now();
+  fishButton();
 });
 document.addEventListener('keydown', e => {
   if (tour) return;
@@ -520,7 +524,7 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || !state) return;
   const act = el.dataset.act;
-  if (act === 'fish-btn') { if (e.detail === 0) fishButton(); return; }
+  if (act === 'fish-btn') { if (performance.now() - fishPressed > 800) fishButton(); return; }   // a reel already handled on press
   if (act === 'sheet-close') { if (e.target === el || el.tagName === 'BUTTON') closeSheet(); return; }
   const snap = fxSnap(el);
   if (handle(act, el, e)) { commit(); fxAfter(act, el, snap); }

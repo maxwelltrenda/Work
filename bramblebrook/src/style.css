@@ -252,7 +252,7 @@ p { margin: 0; }
 .spot { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 8px 14px; cursor: pointer; font-weight: 700; }
 .spot[aria-pressed="true"] { background: var(--water); color: var(--accent-ink); border-color: var(--water); }
 .spot.locked { opacity: .5; cursor: default; font-weight: 400; }
-.pond { position: relative; border-radius: 18px; min-height: 210px; overflow: hidden; display: grid; align-content: end; gap: 12px; padding: 16px; cursor: pointer; user-select: none; touch-action: manipulation;
+.pond { position: relative; border-radius: 18px; min-height: 210px; overflow: hidden; display: grid; align-content: end; gap: 12px; padding: 16px; user-select: none;
   background: var(--water-soft);
   background: repeating-radial-gradient(ellipse at 30% 40%, transparent 0 22px, color-mix(in srgb, var(--water) 18%, transparent) 22px 24px), linear-gradient(180deg, var(--water-soft), color-mix(in srgb, var(--water) 45%, var(--water-soft))); }
 .bobber { position: absolute; left: 50%; top: 34%; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%; background: linear-gradient(180deg, var(--berry) 0 50%, #FFF8EC 50%); box-shadow: 0 2px 0 rgba(0,0,0,.2); }
