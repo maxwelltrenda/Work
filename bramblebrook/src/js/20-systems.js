@@ -122,7 +122,7 @@ function buyAnimal(a) {
   return true;
 }
 /* Petting: each animal once a day, one tap each, for one bonus of what it makes. A full coop is a lot of taps
-   on purpose: petting everyone in one tap is the Animal Whisperer perk. */
+   on purpose: Animal Whisperer pets a whole pen in one tap (rank 1), then every animal on the farm (rank 2). */
 function pettedIdx(id) {
   if (state.petDay === dayKey()) return Array.from({ length: animalRec(id).n || 0 }, (_, i) => i);
   if (!state.petted || state.petted.day !== dayKey()) return [];

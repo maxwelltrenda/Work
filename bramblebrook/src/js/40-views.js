@@ -113,7 +113,8 @@ function petRowHTML(a) {
   const dots = Array.from({ length: n }, (_, i) => done.includes(i)
     ? `<span class="pet-dot done" aria-label="${esc(a.one)} ${i + 1}, petted today">${a.i}<small>♥</small></span>`
     : `<button class="pet-dot" data-act="pet-one" data-id="${a.id}" data-i="${i}" aria-label="Pet ${esc(a.one.toLowerCase())} ${i + 1}">${a.i}</button>`).join('');
-  return `<div class="pet-row"><span class="sub">${done.length >= n ? 'All petted today' : `Pet each one · ${done.length}/${n}`}</span><div class="pet-dots">${dots}</div></div>`;
+  const whole = done.length < n && perkRank('petall') >= 1 ? `<button class="btn small sun" data-act="pet-pen" data-id="${a.id}">Pet all ${n - done.length}</button>` : '';
+  return `<div class="pet-row"><div class="row between"><span class="sub">${done.length >= n ? 'All petted today' : `Pet each one · ${done.length}/${n}`}</span>${whole}</div><div class="pet-dots">${dots}</div></div>`;
 }
 function viewAnimals() {
   const cards = I.animals.map(a => {
@@ -130,10 +131,11 @@ function viewAnimals() {
   }).join('');
   const anyAnimals = I.animals.some(a => animalRec(a.id).n);
   const allDone = I.animals.every(a => !animalRec(a.id).n || pettedToday(a.id));
-  // one animal at a time until Animal Whisperer is learned; the locked button says where the shortcut is
-  const petAll = !anyAnimals ? '' : perkRank('petall')
+  // one animal at a time; Animal Whisperer pets a whole pen (rank 1), then everyone (rank 2). The locked button says where.
+  const rank = perkRank('petall');
+  const petAll = !anyAnimals ? '' : rank >= 2
     ? `<button class="btn ${allDone ? 'ghost' : 'sun'} wide" data-act="pet" ${allDone ? 'disabled' : ''}>${allDone ? 'Everyone has been petted today' : 'Pet everyone (once a day, bonus goods)'}</button>`
-    : allDone ? '' : `<button class="btn ghost wide" data-act="pet">🔒 Pet everyone in one tap · Animal Whisperer perk</button>`;
+    : allDone ? '' : `<button class="btn ghost wide" data-act="pet">🔒 ${rank ? 'Pet everyone in one tap · Animal Whisperer rank 2' : 'Pet a whole pen in one tap · Animal Whisperer perk'}</button>`;
   return `${petAll}
     ${animalsReady() > 1 ? '<button class="btn wide" data-act="collect-all">Collect everything</button>' : ''}${cards}`;
 }

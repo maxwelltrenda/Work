@@ -146,7 +146,7 @@ const ACT_SOUND = {
   craft: 'knock', cook: 'knock', 'bench-collect': 'knock', 'bench-queue': 'knock', eat: 'pick',
   sell: 'coins', 'sell-type': 'coins', 'ex-sell': 'coins', 'saffi-sell': 'coins', 'saffi-buy': 'coins', buy: 'coins', 'buy-plot': 'sow', 'buy-barn': 'knock', 'buy-animal': 'heart',
   deliver: 'chime', 'fest-deliver': 'chime', chore: 'chime', 'chore-bonus': 'chime', 'login-claim': 'chime', 'letter-gift': 'chime',
-  'gift-pick': 'heart', chat: 'pick', heart: 'heart', collect: 'pick', 'collect-all': 'pick', pet: 'heart', 'pet-one': 'heart', tree: 'pick', 'harvest-trees': 'pick',
+  'gift-pick': 'heart', chat: 'pick', heart: 'heart', collect: 'pick', 'collect-all': 'pick', pet: 'heart', 'pet-pen': 'heart', 'pet-one': 'heart', tree: 'pick', 'harvest-trees': 'pick',
   'plant-tree': 'sow', 'net-set': 'cast', 'net-collect': 'catch', 'cask-fill': 'knock', 'cask-bottle': 'clink', 'pet-collect': 'pick', 'pet-feed': 'heart', 'pet-adopt': 'heart',
   perk: 'sparkle', install: 'knock', 'charm-on': 'clink', 'charm-off': 'tick', tonic: 'sparkle', 'take-overflow': 'pick', 'fest-buy': 'coins',
 };

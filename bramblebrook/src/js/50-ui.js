@@ -296,7 +296,14 @@ function handle(act, el, e) {
     case 'collect': { const g = collectAnimal(I.animal[id]); if (g === -1) { toast(`Your barn is full of ${itemName(I.animal[id].produce)}.`); return false; } if (g) toast(`Collected ${g} ${itemName(I.animal[id].produce)}`); break; }
     case 'collect-all': { let n = 0; I.animals.forEach(a => { const g = collectAnimal(a); if (g > 0) n += g; }); if (n) toast(`Collected ${n} goods`); break; }
     case 'buy-animal': if (!buyAnimal(I.animal[id])) return false; break;
-    case 'pet': if (!perkRank('petall')) { perkSheet('petall'); return false; } if (!petAnimals()) return false; break;
+    case 'pet': if (perkRank('petall') < 2) { perkSheet('petall'); return false; } if (!petAnimals()) return false; break;
+    case 'pet-pen': {   // Animal Whisperer rank 1: a whole pen in one tap
+      if (perkRank('petall') < 1) { perkSheet('petall'); return false; }
+      const a = I.animal[id], n = a ? petPen(id) : 0;
+      if (!n) return false;
+      toast(`The ${a.n.toLowerCase()} loved the attention: +${n} ${itemName(a.produce)}`);
+      break;
+    }
     case 'pet-one': if (!petOne(id, el.dataset.i)) return false; break;
     case 'area': state.area = id; break;
     case 'explore': case 'dig': {

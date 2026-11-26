@@ -8,7 +8,7 @@
 // handle() actions that change the farm. Everything else in handle() only opens screens or talks to the
 // online services, and is neither recorded nor replayed.
 const FARM_ACTS = new Set(['seed', 'plot', 'harvest-all', 'sow-all', 'tonic', 'install', 'plant-tree', 'tree', 'harvest-trees',
-  'collect', 'collect-all', 'buy-animal', 'pet', 'pet-one', 'area', 'explore', 'dig', 'perk-learn', 'descend', 'lift',
+  'collect', 'collect-all', 'buy-animal', 'pet', 'pet-pen', 'pet-one', 'area', 'explore', 'dig', 'perk-learn', 'descend', 'lift',
   'adventure', 'quest', 'quest-go', 'charm-on', 'charm-off', 'spot', 'bait', 'craft', 'cook', 'eat', 'sell', 'sell-type', 'lock',
   'buy', 'buy-plot', 'buy-barn', 'saffi-buy', 'saffi-sell', 'chore', 'chore-bonus', 'deliver', 'chat', 'gift-pick', 'heart',
   'letter', 'letter-gift', 'story', 'class-choose', 'fight', 'fight-pal', 'fight-go', 'perk', 'perk-reset', 'bench-queue',
