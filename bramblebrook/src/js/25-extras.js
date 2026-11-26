@@ -160,13 +160,14 @@ function bottleCask(i) {
 function buyCask() {
   const k = C.core.cellar;
   if (state.casks.length >= k.maxSlots) return false;
-  const cost = k.caskCost * (state.casks.length - k.slots + 1);
+  const cost = caskCost();
   if (state.coins < cost) return false;
   state.coins -= cost; state.casks.push(null);
   toast('A new cask rolls into the cellar');
   return true;
 }
-const caskCost = () => C.core.cellar.caskCost * (state.casks.length - C.core.cellar.slots + 1);
+const caskCost = () => { const k = C.core.cellar; return Math.round(k.caskCost * Math.pow(k.caskGrow || 1, state.casks.length - k.slots) / 10) * 10; };
+const benchSlotCost = () => { const k = C.core.workbench; return Math.round(k.slotCost * Math.pow(k.slotGrow || 1, state.bench.length - k.slots)); };
 const casksReady = () => (state.casks || []).filter(c => c && caskState(c).tier > 0).length;
 
 /* Valley Exchange: a handful of goods with prices that move every few hours. */

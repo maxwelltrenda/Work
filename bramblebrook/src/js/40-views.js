@@ -103,9 +103,11 @@ function viewOrchard() {
     return `<button class="tree${q.ready ? ' ready' : ''}" data-act="tree" data-i="${i}">${pic(s.tree, 40)}<b>${esc(q.t.n)}</b>
       <small>${q.ready ? `${q.ready * q.t.yield} ready` : `next in ${fmtT(q.next)}`}</small></button>`;
   }).join('');
+  const more = state.orchard.length < (C.core.orchardMax || 0) ? `<div class="store-item"><span class="emo" style="--s:32px">🌳</span><div class="what"><b>Clear another spot</b><small>${state.orchard.length}/${C.core.orchardMax} spots</small></div>
+    <button class="btn small" data-act="orchard-buy" ${state.coins >= orchardSpotCost() ? '' : 'disabled'}>${fmtC(orchardSpotCost())}</button></div>` : '';
   return `<div class="card"><div class="row between"><h2>Orchard</h2><button class="btn small" data-act="harvest-trees" ${orchardReady() ? '' : 'disabled'}>Pick all</button></div>
     <p class="sub">Trees are planted once and keep fruiting. Each holds up to two harvests before you pick it.</p>
-    <div class="trees">${slots}</div></div>`;
+    <div class="trees">${slots}</div>${more}</div>`;
 }
 // one heart per animal: tap each to pet it (once a day each)
 function petRowHTML(a) {
@@ -125,7 +127,7 @@ function viewAnimals() {
       <div style="display:grid;gap:8px">
         <p class="sub">Each makes ${pic(a.produce, 18)} ${esc(itemName(a.produce))} every ${fmtT(a.every)}. ${s.rec.n ? (s.ready ? `<b>${s.ready} ready.</b>` : `Next in ${fmtT(s.next)}.`) : ''}</p>
         <div class="row"><button class="btn small" data-act="collect" data-id="${a.id}" ${s.ready ? '' : 'disabled'}>Collect${s.ready ? ` ${s.ready}` : ''}</button>
-        <button class="btn small ghost" data-act="buy-animal" data-id="${a.id}" ${s.rec.n < a.max && state.coins >= a.cost ? '' : 'disabled'}>Buy ${esc(a.one.toLowerCase())} · ${fmtN(a.cost)}c</button></div>
+        <button class="btn small ghost" data-act="buy-animal" data-id="${a.id}" ${s.rec.n < a.max && state.coins >= animalCost(a) ? '' : 'disabled'}>${s.rec.n < a.max ? `Buy ${esc(a.one.toLowerCase())} · ${fmtC(animalCost(a))}` : 'Pen full'}</button></div>
         ${s.rec.n ? petRowHTML(a) : ''}
       </div></div>`;
   }).join('');
@@ -352,9 +354,9 @@ function viewShops() {
   return `<div class="card" data-tour="store"><h2>Pennywhistle's General Store</h2><p class="sub">Seeds are bought as you sow. Sell your goods from the Bag.</p>
     ${rows}
     <div class="store-item"><span class="emo" style="--s:32px">🟩</span><div class="what"><b>New farm plot</b><small>${state.plots.length}/${C.core.plots.max} plots</small></div>
-      ${state.plots.length < C.core.plots.max ? `<button class="btn small" data-act="buy-plot" ${state.coins >= pc ? '' : 'disabled'}>${fmtN(pc)}c</button>` : '<span class="chip plain">All bought</span>'}</div>
+      ${state.plots.length < C.core.plots.max ? `<button class="btn small" data-act="buy-plot" ${state.coins >= pc ? '' : 'disabled'}>${fmtC(pc)}</button>` : '<span class="chip plain">All bought</span>'}</div>
     <div class="store-item"><span class="emo" style="--s:32px">🛖</span><div class="what"><b>${nextBarn ? `Upgrade to ${esc(nextBarn.n)}` : esc(C.core.barn[state.barn].n)}</b><small>Holds ${fmtN(cap())} of each item${nextBarn ? ` → ${fmtN(nextBarn.cap)}` : ''}</small></div>
-      ${nextBarn ? `<button class="btn small" data-act="buy-barn" ${state.coins >= nextBarn.cost ? '' : 'disabled'}>${fmtN(nextBarn.cost)}c</button>` : '<span class="chip plain">Maxed</span>'}</div>
+      ${nextBarn ? `<button class="btn small" data-act="buy-barn" ${state.coins >= nextBarn.cost ? '' : 'disabled'}>${fmtC(nextBarn.cost)}</button>` : '<span class="chip plain">Maxed</span>'}</div>
   </div>${featureOn('exchange') ? viewExchange() : ''}${saffi}`;
 }
 function viewBoard() {

@@ -22,6 +22,14 @@ function rand() {
 }
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtN = n => Math.floor(n).toLocaleString('en-US');
+// big numbers where space is tight: 98,765 · 1.23M · 45.6B · 789T
+const fmtShort = n => {
+  n = Math.floor(n); const a = Math.abs(n);
+  if (a < 1e6) return fmtN(n);
+  const [v, u] = [[1e15, 'Qa'], [1e12, 'T'], [1e9, 'B'], [1e6, 'M']].find(([x]) => a >= x);
+  return String(+(n / v).toPrecision(3)) + u;
+};
+const fmtC = n => fmtShort(n) + 'c';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const byId = list => Object.fromEntries((list || []).map(x => [x.id, x]));
 const plural = (n, w) => `${fmtN(n)} ${w}${n === 1 ? '' : 's'}`;

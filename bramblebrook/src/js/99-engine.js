@@ -105,6 +105,6 @@ if (ENGINE) {
   globalThis.__engine = {
     load: content => { indexContent(content); },
     fresh: () => { state = null; const s = freshState(); return s; },
-    replay, hashState, fieldHash, clampStart, freshFrom,
+    replay, hashState, fieldHash, clampStart, freshFrom, farmValue: s => farmValue(migrate(JSON.parse(JSON.stringify(s)))),
   };
 }

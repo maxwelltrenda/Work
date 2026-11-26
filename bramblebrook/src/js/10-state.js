@@ -136,12 +136,15 @@ function checkMastery(id) {
   const t = masteryTier(id);
   if (t > (state.mastery[id] || 0)) {
     state.mastery[id] = t;
-    const reward = Math.max(50, I.items[id].s * 25 * t);
+    const reward = Math.max(50, I.items[id].s * 25 * t);   // a bonus on the listed price, not the grown one
     state.coins += reward;
     toast(`Mastery: ${itemName(id)} ${'★'.repeat(t)} · +${fmtN(reward)} coins, sells for more`, 'lvl', 4200);
   }
 }
-const priceOf = id => Math.round(I.items[id].s * (1 + [0, 0.05, 0.1, 0.2][masteryTier(id)]) * (1 + perkVal('haggler') / 100) * (1 + charmFx('price') / 100) * (['crop', 'fruit'].includes(I.items[id].t) ? 1 + villageFx('sell_crop') / 100 : 1));
+// what an item is worth: cheap things as listed, dear things far dearer (core.json "value"), so that later crops,
+// deeper ores, rarer fish and finer goods are worth enormously more and the numbers keep growing
+const valueOf = id => { const s = I.items[id].s, v = C.core.value; return !v || s <= v.from ? s : Math.round(s * Math.pow(s / v.from, v.k)); };
+const priceOf = id => Math.round(valueOf(id) * (1 + [0, 0.05, 0.1, 0.2][masteryTier(id)]) * (1 + perkVal('haggler') / 100) * (1 + charmFx('price') / 100) * (['crop', 'fruit'].includes(I.items[id].t) ? 1 + villageFx('sell_crop') / 100 : 1));
 
 /* stamina and buffs */
 const maxStamina = () => C.core.stamina.base + lvl('foraging') * C.core.stamina.perLevel + perkVal('trail') + charmFx('stamina');

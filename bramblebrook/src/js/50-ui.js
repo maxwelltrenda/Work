@@ -461,7 +461,8 @@ function handle(act, el, e) {
     case 'bench-queue': if (!benchQueue(+el.dataset.i, id, el.dataset.n)) return false; closeSheet(); break;
     case 'bench-collect': { const g = benchCollect(+el.dataset.i); if (g === -1) { toast('Your barn is full of that.'); return false; } if (g) toast(`Took ${g} from the workbench`); break; }
     case 'bench-cancel': benchCancel(+el.dataset.i); break;
-    case 'bench-buy': if (state.bench.length >= C.core.workbench.maxSlots || state.coins < C.core.workbench.slotCost) return false; state.coins -= C.core.workbench.slotCost; state.bench.push(null); toast('A second pair of hands at the workbench'); break;
+    case 'bench-buy': { const c = benchSlotCost(); if (state.bench.length >= C.core.workbench.maxSlots || state.coins < c) return false; state.coins -= c; state.bench.push(null); toast('Another pair of hands at the workbench'); break; }
+    case 'orchard-buy': if (!buyOrchardSpot()) return false; break;
     case 'net-set': if (!setNet(id)) return false; break;
     case 'net-collect': { const g = collectNet(id); if (g) toast(`Hauled in ${g} from the net`); else return false; break; }
     case 'cask-slot': caskSheet(+el.dataset.i); return false;

@@ -1552,6 +1552,8 @@
   }
  ],
  "orchardSlots": 6,
+ "orchardMax": 12,
+ "orchardSpot": { "cost": 25000, "grow": 4 },
  "animals": [
   {
    "id": "chicken",
@@ -1561,7 +1563,8 @@
    "produce": "egg",
    "every": 600,
    "cost": 250,
-   "max": 10,
+   "max": 20,
+   "grow": 1.35,
    "unlock": "coop",
    "home": "Coop",
    "xp": 3
@@ -1574,7 +1577,8 @@
    "produce": "milk",
    "every": 1200,
    "cost": 900,
-   "max": 6,
+   "max": 12,
+   "grow": 1.4,
    "unlock": "barnyard",
    "home": "Barnyard",
    "xp": 6
@@ -1587,7 +1591,8 @@
    "produce": "honeycomb",
    "every": 1800,
    "cost": 1000,
-   "max": 6,
+   "max": 12,
+   "grow": 1.4,
    "unlock": "apiary",
    "home": "Apiary",
    "xp": 7
@@ -1600,7 +1605,8 @@
    "produce": "wool",
    "every": 1500,
    "cost": 1200,
-   "max": 6,
+   "max": 12,
+   "grow": 1.4,
    "unlock": "pasture",
    "home": "Pasture",
    "xp": 7
@@ -2654,11 +2660,15 @@
    "cap": 2500,
    "cost": 45000,
    "n": "Warehouse"
-  }
+  },
+  { "cap": 5000, "cost": 400000, "n": "Grain silo" },
+  { "cap": 10000, "cost": 4000000, "n": "Twin silos" },
+  { "cap": 25000, "cost": 40000000, "n": "Great storehouse" },
+  { "cap": 99999, "cost": 400000000, "n": "Valley depot" }
  ],
  "plots": {
   "start": 6,
-  "max": 24,
+  "max": 44,
   "base": 150,
   "growth": 1.42
  },
@@ -3153,6 +3163,10 @@
     }
    }
   },
+  { "id": "rich1m", "n": "Millionaire", "desc": "Earn 1,000,000 coins from selling", "stat": "earned", "goal": 1000000, "give": { "items": { "oldcoin": 3 } } },
+  { "id": "rich100m", "n": "Hundred Millionaire", "desc": "Earn 100,000,000 coins from selling", "stat": "earned", "goal": 100000000, "give": { "items": { "starshard": 2 } } },
+  { "id": "rich1b", "n": "Billionaire", "desc": "Earn 1,000,000,000 coins from selling", "stat": "earned", "goal": 1000000000, "give": { "items": { "starshard": 5 } } },
+  { "id": "rich1t", "n": "Trillionaire", "desc": "Earn 1,000,000,000,000 coins from selling", "stat": "earned", "goal": 1000000000000, "give": { "items": { "starshard": 12 } } },
   {
    "id": "deep10",
    "n": "Down Under",
@@ -3390,8 +3404,9 @@
  ],
  "workbench": {
   "slots": 2,
-  "maxSlots": 3,
+  "maxSlots": 6,
   "slotCost": 2500,
+  "slotGrow": 10,
   "unlock": "forge",
   "secs": {
    "base": 20,
@@ -3409,7 +3424,8 @@
  "cellar": {
   "unlock": "kitchen",
   "slots": 2,
-  "maxSlots": 6,
+  "maxSlots": 12,
+  "caskGrow": 2.6,
   "caskCost": 800,
   "aging": [
    {
@@ -3556,6 +3572,7 @@
    }
   }
  ],
+ "value": { "from": 50, "k": 1.2, "note": "sell value = s * (s/from)^k above from: dear items grow far dearer, cheap ones stay as they are" },
  "perks": [
   { "id": "harvestall", "n": "Big Basket", "desc": "Harvest several ready plots with one tap", "ranks": ["Harvest 3 ready plots with one tap", "Harvest 6 ready plots with one tap", "Harvest every ready plot with one tap"], "counts": [3, 6, 0], "per": 0, "max": 3, "handy": true },
   { "id": "sowall", "n": "Seed Bag", "desc": "Sow several empty plots with one tap", "ranks": ["Sow 3 empty plots with one tap", "Sow 6 empty plots with one tap", "Sow every empty plot with one tap"], "counts": [3, 6, 0], "per": 0, "max": 3, "handy": true },

@@ -124,14 +124,14 @@ function ripple(host) {
 function showCoins(v) {
   const el = $('#coins');
   if (!el) return;
-  if (FX.coins == null || reducedMotion() || Math.abs(v - FX.coins) < 2) { FX.coins = v; el.textContent = fmtN(v); return; }
+  if (FX.coins == null || reducedMotion() || Math.abs(v - FX.coins) < 2) { FX.coins = v; el.textContent = fmtShort(v); el.title = fmtN(v) + ' coins'; return; }
   const from = FX.coins, start = performance.now(), dur = 420;
   if (v > from) pulse($('.coin'));
   FX.coins = v;
   cancelAnimationFrame(FX.coinTween);
   const stepFn = ts => {
     const k = Math.min(1, (ts - start) / dur), e = 1 - Math.pow(1 - k, 3);
-    el.textContent = fmtN(Math.round(from + (v - from) * e));
+    el.textContent = fmtShort(Math.round(from + (v - from) * e)); el.title = fmtN(v) + ' coins';
     if (k < 1) FX.coinTween = requestAnimationFrame(stepFn);
   };
   FX.coinTween = requestAnimationFrame(stepFn);
@@ -167,6 +167,6 @@ function fxAfter(act, el, snap) {
   }
   if (sound && (gained.length || state.coins !== snap.coins || !['plot', 'explore', 'dig'].includes(act))) play(sound);
   gained.sort((a, b) => b[1] - a[1]).slice(0, 3).forEach(([id, n], i) => floatAt(snap.rect, `${pic(id, 24)}<span>+${fmtN(n)}</span>`, i));
-  if (!gained.length && state.coins > snap.coins) floatAt(snap.rect, `<span class="coin"></span><span>+${fmtN(state.coins - snap.coins)}</span>`);
+  if (!gained.length && state.coins > snap.coins) floatAt(snap.rect, `<span class="coin"></span><span>+${fmtShort(state.coins - snap.coins)}</span>`);
   if (act === 'plot' || act === 'sow-all') requestAnimationFrame(() => $$('.plot .sprout').forEach(s => { if (s.closest('.plot').dataset.stage === '1') s.classList.add('fx-sow'); }));
 }

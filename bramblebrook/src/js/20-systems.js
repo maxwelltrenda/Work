@@ -84,6 +84,17 @@ function harvestTree(i) {
   addXP('farming', t.xp * ready);
   return got;
 }
+// each animal in a pen costs more than the last (core.json animals[].grow)
+const animalCost = (a, n = animalRec(a.id).n) => Math.round(a.cost * Math.pow(a.grow || 1, n) / 10) * 10;
+const orchardSpotCost = () => { const k = C.core.orchardSpot; return Math.round(k.cost * Math.pow(k.grow, state.orchard.length - C.core.orchardSlots)); };
+function buyOrchardSpot() {
+  if (state.orchard.length >= (C.core.orchardMax || C.core.orchardSlots)) return false;
+  const c = orchardSpotCost();
+  if (state.coins < c) return false;
+  state.coins -= c; state.orchard.push(null);
+  toast('More room in the orchard');
+  return true;
+}
 function plantTree(i, id) {
   const t = I.tree[id];
   if (!t || state.orchard[i] || lvl('farming') < t.lvl || state.coins < t.cost) return false;
@@ -114,8 +125,9 @@ function collectAnimal(a) {
 }
 function buyAnimal(a) {
   const rec = animalRec(a.id);
-  if (!unlocked(a.unlock) || rec.n >= a.max || state.coins < a.cost) return false;
-  state.coins -= a.cost;
+  const cost = animalCost(a);
+  if (!unlocked(a.unlock) || rec.n >= a.max || state.coins < cost) return false;
+  state.coins -= cost;
   if (!rec.n) rec.at = now();
   rec.n++;
   toast(`A new ${a.one.toLowerCase()} joins the farm`);
@@ -472,6 +484,22 @@ function heartSceneReady(vid) {
 }
 
 /* Store and merchant */
+/* What a farm is worth: everything bought for it that stays (plots, barn, animals, orchard spots, casks and
+   benches), at today's prices. It's the farm's hire price as a farmhand. Works on any farm, not just this one. */
+function farmValue(s = state) {
+  const keep = state; state = s;
+  try {
+    const p = C.core.plots, o = C.core.orchardSpot, ce = C.core.cellar, wb = C.core.workbench;
+    let v = 0;
+    for (let n = p.start; n < (s.plots || []).length; n++) v += Math.round(p.base * Math.pow(p.growth, n - p.start) / 10) * 10;
+    for (let b = 1; b <= (s.barn || 0); b++) v += (C.core.barn[b] || {}).cost || 0;
+    for (const a of I.animals) for (let n = 0; n < (((s.animals || {})[a.id] || {}).n || 0); n++) v += animalCost(a, n);
+    if (o) for (let n = C.core.orchardSlots; n < (s.orchard || []).length; n++) v += Math.round(o.cost * Math.pow(o.grow, n - C.core.orchardSlots));
+    for (let n = ce.slots; n < (s.casks || []).length; n++) v += Math.round(ce.caskCost * Math.pow(ce.caskGrow || 1, n - ce.slots) / 10) * 10;
+    for (let n = wb.slots; n < (s.bench || []).length; n++) v += Math.round(wb.slotCost * Math.pow(wb.slotGrow || 1, n - wb.slots));
+    return v;
+  } finally { state = keep; }
+}
 function plotCost() { const p = C.core.plots; return Math.round(p.base * Math.pow(p.growth, state.plots.length - p.start) / 10) * 10; }
 function buyStore(id) {
   const s = C.core.store.find(x => x.id === id);

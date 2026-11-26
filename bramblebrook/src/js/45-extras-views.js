@@ -14,7 +14,7 @@ function viewBench() {
       <button class="btn small ghost" data-act="bench-cancel" data-i="${i}">${s.left ? 'Stop and refund the rest' : 'Clear'}</button></div></div>`;
   }).join('');
   const more = state.bench.length < k.maxSlots ? `<div class="card upgrade"><span class="emo" style="--s:32px">➕</span><div class="what"><b>Another workbench</b><small>Run ${state.bench.length + 1} recipes at once</small></div>
-    <button class="btn small" data-act="bench-buy" ${state.coins >= k.slotCost ? '' : 'disabled'}>${fmtN(k.slotCost)}c</button></div>` : '';
+    <button class="btn small" data-act="bench-buy" ${state.coins >= benchSlotCost() ? '' : 'disabled'}>${fmtC(benchSlotCost())}</button></div>` : '';
   return `<p class="sub">Benches use the materials up front, then make one item at a time. Crafting XP is half the usual rate.</p>${slots}${more}`;
 }
 function benchSheet(i) {
@@ -42,7 +42,7 @@ function viewCellar() {
   }).join('');
   const k = C.core.cellar;
   const more = state.casks.length < k.maxSlots ? `<div class="card upgrade"><span class="emo" style="--s:32px">➕</span><div class="what"><b>Another cask</b><small>${state.casks.length}/${k.maxSlots} casks</small></div>
-    <button class="btn small" data-act="cask-buy" ${state.coins >= caskCost() ? '' : 'disabled'}>${fmtN(caskCost())}c</button></div>` : '';
+    <button class="btn small" data-act="cask-buy" ${state.coins >= caskCost() ? '' : 'disabled'}>${fmtC(caskCost())}</button></div>` : '';
   const recipes = C.core.cellar.aging.map(a => `<div class="store-item">${pic(a.id, 28)}<div class="what"><b>${esc(itemName(a.id))}</b><small>${Object.entries(a.need).map(([id, q]) => `${q} ${itemName(id)}`).join(', ')} · ${fmtT(a.mins * 60)}${a.vintage ? ` · ${esc(itemName(a.vintage))} after ${fmtT(a.vmins * 60)}` : ''}</small></div></div>`).join('');
   return `${casks}${more}<div class="card"><h2>What ages well</h2>${recipes}</div>`;
 }
