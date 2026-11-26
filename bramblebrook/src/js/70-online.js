@@ -107,7 +107,7 @@ function onlineSignOut() {
   clearInterval(prof.timer); prof.me = null; prof.lastPublic = '';
   vil.data = null; vil.at = 0; vil.list = null; keepPerks();
   online = null; storeOnline(); onl.err = '';
-  soc.notes = 0; soc.dms = 0; soc.admin = false; soc.fbNew = 0; soc.world = []; soc.worldLoaded = false; soc.threads = null; soc.thread = null; updateSocialBadges();
+  soc.notes = 0; soc.dms = 0; soc.admin = false; soc.fbNew = 0; soc.world = []; soc.worldLoaded = false; soc.threads = null; soc.thread = null; soc.villageFor = 0; soc.dmsFor = undefined; updateSocialBadges(); renderChatbar();
   toast('Signed out. Your farm stays on this device.');
 }
 

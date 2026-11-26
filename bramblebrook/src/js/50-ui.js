@@ -39,9 +39,10 @@ function updateBadges() {
     + (featureOn('town:inn') ? innNew() : 0) + (featureOn('town:board') ? state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length : 0)
     + state.mail.filter(m => !m.read).length + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0));
   set('profile', overflowCount() ? 1 : 0);
-  set('village', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length + (socialOn() ? soc.dms : 0));
+  set('village', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length);
   set('market', featureOn('market:perks') ? perkPointsFree() : 0);
   updateSocialBadges();
+  renderChatbar();
   placeFeedbackTab();
   const st = storyStatus();
   const jb = $('#badge-journal');
@@ -417,8 +418,10 @@ function handle(act, el, e) {
     case 'note-go': noteGo(el.dataset.to, id); return false;
     case 'follow': toggleFollow(id); return false;
     case 'dm-open': openDm(id); return false;
-    case 'dm-back': soc.thread = null; soc.threads = null; renderView(); return false;
-    case 'chat-tab': soc.tab = id; soc.thread = null; socKeep(); renderView(); return false;
+    case 'dm-back': soc.thread = null; soc.threads = null; drawChat(); refreshChat(true); return false;
+    case 'chat-tab': soc.tab = id; soc.thread = null; socKeep(); drawChat(); refreshChat(false); return false;
+    case 'chat-open': openChat(id); return false;
+    case 'chat-back': openChat(null, true); return false;
     case 'raid-open': openRaid(); return false;
     case 'raid-start': raidStart(id); return false;
     case 'raid-claim': raidClaim(); return false;

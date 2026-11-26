@@ -11,7 +11,7 @@ const NAV_DEFS = [
   { id: 'village', n: 'Village', tab: 'town', svg: '<path d="M2 20h20"/><path d="M4 20v-9l5-4 5 4v9"/><path d="M14 20v-6l4-3 4 3v6"/><path d="M8 20v-4h2v4"/>' },
   { id: 'market', n: 'Market', tab: 'market', svg: '<path d="M4 9h16l-1.5-5h-13z"/><path d="M5 9v11h14V9"/><path d="M9.5 20v-6h5v6"/>' },
 ];
-const VILLAGE_SUBS = ['village', 'hands', 'chat', 'people'];
+const VILLAGE_SUBS = ['village', 'hands', 'people'];
 // which page a place belongs to
 function navOf(tab, s) {
   if (tab === 'bag') return 'profile';

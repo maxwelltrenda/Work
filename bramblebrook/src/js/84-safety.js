@@ -14,13 +14,13 @@ function msgMenuHTML(kind, id, user, name) {
   return `<button class="msg-more" data-act="msg-menu" data-kind="${esc(kind)}" data-id="${esc(String(id || ''))}" data-user="${esc(user)}" data-name="${esc(name || '')}" aria-label="Report or block">⋯</button>`;
 }
 function msgMenu(el) {
-  const d = el.dataset;
+  const d = el.dataset, fromChat = chatOpenNow();
   openSheet(`<h2>${esc(d.name || 'This player')}</h2>
     <div class="sheet-btns" style="display:grid">
       ${d.id ? `<button class="btn" data-act="report-open" data-kind="${esc(d.kind)}" data-id="${esc(d.id)}" data-user="${esc(d.user)}" data-name="${esc(d.name)}">🚩 Report this message</button>` : ''}
       <button class="btn ghost" data-act="report-open" data-kind="profile" data-id="" data-user="${esc(d.user)}" data-name="${esc(d.name)}">🚩 Report this player</button>
       <button class="btn ghost danger" data-act="block" data-user="${esc(d.user)}" data-name="${esc(d.name)}">Block ${esc(d.name || 'them')}</button>
-      <button class="btn small ghost" data-act="sheet-close">Cancel</button></div>`);
+      ${fromChat ? '<button class="btn small ghost" data-act="chat-back">Back to chat</button>' : '<button class="btn small ghost" data-act="sheet-close">Cancel</button>'}</div>`);
 }
 
 const REPORT_REASONS = [['bully', 'Bullying or harassment'], ['hate', 'Hate or slurs'], ['sexual', 'Sexual content'], ['spam', 'Spam or scams'], ['danger', 'Someone may be in danger'], ['other', 'Something else']];

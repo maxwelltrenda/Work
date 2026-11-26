@@ -7,7 +7,7 @@ const soc = { notes: 0, dms: 0, worldLast: 0, villageLast: 0, worldSeen: 0, vill
   world: [], worldLoaded: false, threads: null, thread: null, notesList: null, pinging: false, busy: false, draft: '' };
 try { Object.assign(soc, JSON.parse(localStorage.getItem(SOC_STORE) || '{}')); } catch (e) { /* storage blocked */ }
 function socKeep() { try { localStorage.setItem(SOC_STORE, JSON.stringify({ worldSeen: soc.worldSeen, villageSeen: soc.villageSeen, tab: soc.tab })); } catch (e) { /* storage blocked */ } }
-const chatOpenNow = () => state && state.tab === 'town' && sub('town') === 'chat' && !sheetOpen();
+const chatOpenNow = () => !!(state && sheetOpen() && $('#chat-panel'));
 const myId = () => online && online.user;
 
 /* The little numbers: checked about once a minute, which also tells the server you're online. */
@@ -23,6 +23,7 @@ async function socialPing() {
     if (chatOpenNow()) refreshChat(false);
   } catch (e) { /* offline: try next time */ }
   soc.pinging = false;
+  refreshPreviews();
 }
 async function freshNoteToast() {
   try {
@@ -38,7 +39,6 @@ function updateSocialBadges() {
   const b = $('#badge-notes');
   if (b) { b.hidden = !soc.notes; b.textContent = soc.notes > 99 ? '99+' : soc.notes; }
 }
-const chatDots = () => soc.dms > 0 || soc.villageLast > soc.villageSeen;
 
 /* The bell: the latest 40, newest first; opening it marks them read. */
 async function notesSheet() {
@@ -92,10 +92,23 @@ async function toggleFollow(id) {
   } catch (e) { toast(String(e.message || e)); }
 }
 
-/* Chat: Town › Chat, three rooms. */
+/* Chat: a bar just above the page buttons shows the newest line from each room; tapping one slides the chat up
+   over whatever page you're on, so you never lose your place. Three rooms: World, Village and Messages. */
+function chatPanelHTML() {
+  return `<div class="row between chat-top"><h2>Chat</h2><button class="btn small ghost" data-act="sheet-close">Close</button></div>${viewChat()}`;
+}
+function openChat(tab, keepThread) {
+  if (tab) { soc.tab = tab; socKeep(); }
+  if (!keepThread) soc.thread = null;
+  openSheet(`<div id="chat-panel" class="chat-panel">${chatPanelHTML()}</div>`);
+  const sh = $('#sheet-root .sheet'); if (sh) sh.classList.add('chat-sheet');
+  if (socialOn() && (soc.tab !== 'world' || soc.worldLoaded)) refreshChat(false);
+  renderChatbar();
+}
+function drawChat() { const p = $('#chat-panel'); if (p) p.innerHTML = chatPanelHTML(); }
 function viewChat() {
   if (!socialOn()) {
-    if (inClaude()) return `<div class="card"><h2>Chat</h2><p class="sub">${onl.link === '' || onl.link === undefined ? 'Connecting to your account…' : 'Chat is online. Link this game to your account first: Bag › Settings › Online.'}</p></div>`;
+    if (inClaude()) return `<div class="card"><h2>Chat</h2><p class="sub">${onl.link === '' || onl.link === undefined ? 'Connecting to your account…' : 'Chat is online. Link this game to your account first: Profile › Settings › Online.'}</p></div>`;
     return `<div class="card"><h2>Chat</h2><p class="sub">Talk with everyone in the valley, your village, and friends. Chat is online, so you need an account first.</p>
       <div class="row"><button class="btn small" data-act="online-open" data-id="signup">Create account</button><button class="btn small ghost" data-act="online-open" data-id="signin">Sign in</button></div></div>`;
   }
@@ -116,8 +129,8 @@ function worldChatHTML() {
     <div class="chat-list" id="chat-list">${list}</div>${chatForm('world', 'Say something to everyone', 280)}</div>`;
 }
 function villageChatHTML() {
-  if (!vil.at) { loadVillage().then(() => { if (chatOpenNow()) renderView(); }); return '<div class="card"><p class="sub">Walking to the village…</p></div>'; }
-  if (!vil.data) return `<div class="card"><p class="sub">Join a village to chat with your neighbours.</p><div class="row"><button class="btn small" data-act="sub" data-tab="town" data-sub="village">Find a village</button></div></div>`;
+  if (!vil.at) { loadVillage().then(() => { if (chatOpenNow()) drawChat(); renderChatbar(); }); return '<div class="card"><p class="sub">Walking to the village…</p></div>'; }
+  if (!vil.data) return `<div class="card"><p class="sub">Join a village to chat with your neighbours.</p><div class="row"><button class="btn small" data-act="note-go" data-to="village">Find a village</button></div></div>`;
   const lines = vil.board.filter(e => e.kind === 'chat' && !isBlocked(e.user_id)).slice().reverse().map(e => {
     const p = vil.profiles[e.user_id] || {};
     return lineHTML({ id: e.id, user_id: e.user_id, name: whoName(e.user_id), face: p.public && p.public.face, body: e.body, created_at: e.created_at }, e.user_id === myId(), 'village');
@@ -148,6 +161,7 @@ function afterChatDraw() {
   if (l) l.scrollTop = l.scrollHeight;
   if (soc.tab === 'world' && soc.worldLoaded && soc.worldSeen !== soc.worldLast) { soc.worldSeen = soc.worldLast; socKeep(); }
   if (soc.tab === 'village' && vil.data && soc.villageSeen !== soc.villageLast) { soc.villageSeen = soc.villageLast; socKeep(); updateBadges(); }
+  renderChatbar();
 }
 /* Fetch what the open room needs; redraw just the list while someone is typing. */
 async function refreshChat(full) {
@@ -155,11 +169,7 @@ async function refreshChat(full) {
   soc.busy = true;
   try {
     if (soc.tab === 'world') {
-      const after = soc.worldLoaded && soc.world.length ? soc.world[soc.world.length - 1].id : 0;
-      const r = await rpc('world_chat_recent', { p_after: after });
-      soc.world = soc.world.concat(r.messages || []).slice(-80);
-      soc.worldLoaded = true;
-      if (soc.world.length) soc.worldLast = Math.max(soc.worldLast, soc.world[soc.world.length - 1].id);
+      await fetchWorld();
     } else if (soc.tab === 'village') {
       await loadVillage();
     } else if (soc.thread) {
@@ -173,10 +183,62 @@ async function refreshChat(full) {
     }
   } catch (e) { toast(String(e.message || e)); }
   soc.busy = false;
+  renderChatbar();
   if (!chatOpenNow()) return;
   const typing = document.activeElement && document.activeElement.id === 'chat-in';
-  if (full || !typing || !$('#chat-list')) renderView();
+  if (full || !typing || !$('#chat-list')) drawChat();
   else { const fresh = document.createElement('div'); fresh.innerHTML = viewChat(); const nl = fresh.querySelector('#chat-list'); if (nl) { $('#chat-list').innerHTML = nl.innerHTML; afterChatDraw(); } }
+}
+const lastWorldId = () => soc.world.length ? soc.world[soc.world.length - 1].id : 0;
+async function fetchWorld() {
+  const after = soc.worldLoaded ? lastWorldId() : 0;
+  const r = await rpc('world_chat_recent', { p_after: after });
+  const have = lastWorldId();
+  soc.world = soc.world.concat((r.messages || []).filter(m => m.id > have)).slice(-80);
+  soc.worldLoaded = true;
+  if (soc.world.length) soc.worldLast = Math.max(soc.worldLast, lastWorldId());
+}
+
+/* The bar's previews: fetched once you're online, then only when the minute's ping says a room has something new. */
+let previewBusy = false;
+async function refreshPreviews() {
+  if (!socialOn() || previewBusy || document.visibilityState === 'hidden') { renderChatbar(); return; }
+  previewBusy = true;
+  try {
+    if (!soc.worldLoaded || soc.worldLast > lastWorldId()) await fetchWorld();
+    if (soc.villageLast && soc.villageLast !== soc.villageFor && !vil.loading) { soc.villageFor = soc.villageLast; await loadVillage(); }
+    if (!soc.threads || soc.dms !== soc.dmsFor) {
+      const r = await rpc('dm_threads');
+      soc.threads = r.threads || [];
+      soc.dmsFor = soc.dms = soc.threads.reduce((a, t) => a + (t.unread || 0), 0);
+    }
+  } catch (e) { /* offline: the bar keeps what it had */ }
+  previewBusy = false;
+  renderChatbar();
+}
+function chatbarHTML() {
+  if (!featureOn('chatbar')) return '';
+  if (!socialOn()) return `<button class="cb cb-wide" data-act="chat-open" data-id="world"><span class="cb-k">Chat</span><span class="cb-p">Talk with everyone in the valley. Tap to sign in.</span></button>`;
+  const who = (id, name) => id === myId() ? 'You' : name || 'Someone';
+  const line = (name, body) => `<b>${esc(name)}:</b> ${esc(body)}`;
+  const w = soc.world.filter(m => !isBlocked(m.user_id)).slice(-1)[0];
+  const v = vil.data ? (vil.board || []).find(e => e.kind === 'chat' && !isBlocked(e.user_id)) : null;
+  const t = (soc.threads || []).find(x => x.last_body);
+  const cell = (id, k, preview, dot) => `<button class="cb" data-act="chat-open" data-id="${id}" aria-label="Open ${k} chat"><span class="cb-k">${k}${dot ? `<i class="cb-dot">${dot === true ? '' : dot}</i>` : ''}</span><span class="cb-p">${preview}</span></button>`;
+  return cell('world', 'World', w ? line(who(w.user_id, w.name), w.body) : soc.worldLoaded ? 'Say hello to the valley' : '…', false)
+    + cell('village', 'Village', !vil.at ? '…' : !vil.data ? 'Join a village' : v ? line(who(v.user_id, whoName(v.user_id)), v.body) : 'Say hello to your neighbours', soc.villageLast > soc.villageSeen)
+    + cell('dm', 'Messages', soc.dms ? `<b>${plural(soc.dms, 'new message')}</b>` : t ? line(t.last_mine ? 'You' : t.name || 'Player', t.last_body) : 'Message your friends', soc.dms || false);
+}
+let chatbarLast = null;
+function renderChatbar() {
+  const bar = $('#chatbar');
+  if (!bar || !state) return;
+  const html = chatbarHTML();
+  if (html === chatbarLast) return;
+  chatbarLast = html;
+  bar.innerHTML = html;
+  bar.hidden = !html;
+  document.body.classList.toggle('has-chatbar', !!html);
 }
 async function sendChat(kind, text) {
   const body = String(text || '').trim();
@@ -194,9 +256,8 @@ async function sendChat(kind, text) {
 }
 async function openDm(id) {
   closeSheet();
-  soc.tab = 'dm'; socKeep();
   soc.thread = { with: id, name: '', face: '', mutual: true, messages: [] };
-  goTown('chat');
+  openChat('dm', true);
   await refreshChat(true);
 }
 async function findPlayer(name) {
@@ -216,7 +277,7 @@ document.addEventListener('submit', e => {
   else if (f.id === 'find-form') { e.preventDefault(); findPlayer(($('#find-in') || {}).value); }
 });
 document.addEventListener('input', e => { if (e.target && e.target.id === 'chat-in') soc.draft = e.target.value; });
-// chat rooms refresh every 8 seconds while open; the bell and badges once a minute
+// the open chat refreshes every 8 seconds; the bell, badges and the bar's previews once a minute
 setInterval(() => { if (chatOpenNow() && socialOn() && document.visibilityState !== 'hidden') refreshChat(false); }, 8000);
 setInterval(socialPing, 60000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') socialPing(); });
