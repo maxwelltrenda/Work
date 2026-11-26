@@ -83,7 +83,7 @@ function bossFactsHTML(d) {
   return `<ul class="boss-facts">
       <li><b>${f.level}</b> · about ${f.attacks} attacks from each neighbour over ${Math.round(d.hours / 24)} days</li>
       <li>${f.lean === 'might' ? '⚔️ Needs more Might: fighters, rogues and rangers shine' : f.lean === 'magic' ? '✨ Needs more Magic: wizards, clerics and bards shine' : '⚖️ Even: every class helps the same'}</li>
-      <li>🪙 ${d.coin_per_action} coins and 15 battle experience per attack, +${fmtN(d.victory_bonus)} coins each if it's beaten</li></ul>`;
+      <li>🪙 ${fmtShort(d.coin_per_action * rewardScale())} coins and 15 battle experience per attack, +${fmtShort(d.victory_bonus * rewardScale())} coins each if it's beaten</li></ul>`;
 }
 
 /* The boss screen: art, phase, the two bars, courage and the attack buttons. */
@@ -104,7 +104,7 @@ function drawRaid() {
   const tail = active ? `<div class="raid-courage"><span><b>${Math.floor(c)}</b>/${R.courage_max} courage</span><span id="raid-next">${c >= R.courage_max ? 'Full' : `+1 in ${mmss((1 - (c % 1)) * R.courage_secs * 1000)}`}</span></div>
       <div class="raid-btns">${btn('might', '⚔️ Strike')}${btn('magic', '✨ Cast')}</div>
       <p class="sub raid-hint">${cls ? `You're a ${esc(cls.n)}: you hit ${MIGHT_CLASSES.includes(cls.id) ? 'Might' : 'Magic'} hardest.` : 'Pick a class on your character sheet to hit one bar harder.'} Courage refills fully every hour.
-        Each attack pays ${d.coin_per_action} coins, and +${fmtN(d.victory_bonus)} each if the village wins.${R.mine && R.mine.actions ? ` You've attacked ${plural(R.mine.actions, 'time')}.` : ''}</p>`
+        Each attack pays ${fmtShort(d.coin_per_action * rewardScale())} coins, and +${fmtShort(d.victory_bonus * rewardScale())} each if the village wins.${R.mine && R.mine.actions ? ` You've attacked ${plural(R.mine.actions, 'time')}.` : ''}</p>`
     : r.status === 'won' ? `<p class="raid-text">The village did it. ${esc(d.n)} is beaten, and everyone who fought gets a share.</p>${R.reward ? '<button class="btn sun big" data-raid="claim">Collect your share</button>' : ''}`
     : `<p class="raid-text">Time ran out and ${esc(d.n)} slipped away. Everyone who fought still gets half a share.</p>${R.reward ? '<button class="btn sun big" data-raid="claim">Collect your share</button>' : ''}`;
   const html = `<div class="raid-top"><button class="raid-back" data-raid="close" aria-label="Back to the village">‹</button>

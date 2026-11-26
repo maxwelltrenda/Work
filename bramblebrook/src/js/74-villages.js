@@ -127,8 +127,8 @@ function villageHome() {
     const now = d.effect === 'members' ? `${10 + 2 * lv} neighbours` : d.effect === 'insp' ? `+${Math.floor(d.per_level * lv)} Inspiration` : `+${Math.round(d.per_level * lv)}%`;
     return `<div class="card vil-building"><div class="row between"><b>${esc(d.n)}</b><span class="chip plain">Level ${lv}/${d.max_level}</span></div>
       <p class="sub">${esc(d.blurb)}</p><p class="sub">Now: <b>${now}</b></p>
-      ${maxed ? '<p class="sub">Fully built.</p>' : elder ? `<div class="row"><button class="btn small" data-act="vil-build" data-id="${esc(d.id)}" ${blocked || v.treasury < cost ? 'disabled' : ''}>${blocked ? 'Raise the Town Hall first' : `Build · ${fmtN(cost)}c from the treasury`}</button></div>`
-        : `<p class="sub">Next level: ${fmtN(cost)} coins from the treasury. Elders build.</p>`}</div>`;
+      ${maxed ? '<p class="sub">Fully built.</p>' : elder ? `<div class="row"><button class="btn small" data-act="vil-build" data-id="${esc(d.id)}" ${blocked || v.treasury < cost ? 'disabled' : ''}>${blocked ? 'Raise the Town Hall first' : `Build · ${fmtShort(cost)}c from the treasury`}</button></div>`
+        : `<p class="sub">Next level: ${fmtShort(cost)} coins from the treasury. Elders build.</p>`}</div>`;
   }).join('');
   const members = vil.members.map(m => {
     const p = vil.profiles[m.user_id] || { username: '…', public: {} };

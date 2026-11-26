@@ -284,7 +284,8 @@ const loginReady = () => state.login && state.login.claimed !== dayKey();
 function claimLogin() {
   if (!loginReady()) return false;
   state.login.claimed = dayKey();
-  const lines = applyGive(loginReward());
+  const g = loginReward();
+  const lines = applyGive(g.coins ? Object.assign({}, g, { coins: Math.round(g.coins * rewardScale()) }) : g);
   toast(`Day ${state.login.streak} gift: ${lines.join(', ')}`, 'lvl');
   return true;
 }

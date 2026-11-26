@@ -1,7 +1,7 @@
 /* ---------- views ---------- */
 const SUBS = {
   farm: [['fields', 'Fields'], ['orchard', 'Orchard'], ['animals', 'Animals'], ['pets', 'Pets']],
-  wilds: [['explore', 'Explore'], ['mine', 'Mine']],
+  wilds: [['explore', 'Explore'], ['mine', 'Mine'], ['stair', 'Lantern Stair']],
   make: [['workshop', 'Workshop'], ['kitchen', 'Kitchen'], ['bench', 'Bench'], ['cellar', 'Cellar']],
   town: [['people', 'People'], ['village', 'Village'], ['hands', 'Farmhands'], ['chat', 'Chat'], ['inn', 'Inn'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
   bag: [['items', 'Items'], ['sheet', 'Sheet'], ['almanac', 'Almanac'], ['bestiary', 'Bestiary'], ['feats', 'Feats'], ['perks', 'Perks'], ['settings', 'Settings']],
@@ -147,6 +147,7 @@ function viewWilds() {
   const s = sub('wilds');
   const head = `<div class="view-head"><h1>The wilds</h1><p>Stamina refills 1 every ${Math.round(regenMs() / 1000)}s</p></div>${subtabs('wilds')}`;
   if (s === 'mine') return head + (unlocked('mine') ? viewMine() : lockedCard('The Mine', 'mine'));
+  if (s === 'stair') return head + viewStair();
   return head + viewExplore();
 }
 function staminaLine() {

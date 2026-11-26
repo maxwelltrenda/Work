@@ -11,7 +11,7 @@ function freshState() {
   const t = now();
   const k = C.core;
   return {
-    v: 2, created: t, savedAt: 0, name: '', vperks: null, bunk: 0, rng: { s: (Math.random() * 4294967296) >>> 0, n: 0 },
+    v: 2, created: t, savedAt: 0, name: '', vperks: null, bunk: 0, stair: 0, rng: { s: (Math.random() * 4294967296) >>> 0, n: 0 },
     coins: 80, barn: 0,
     plots: Array.from({ length: k.plots.start }, () => ({ crop: null, at: 0, ready: 0 })),
     inv: { worm: 6 }, locked: {}, seen: { worm: 1 }, got: {},
@@ -54,7 +54,8 @@ function migrate(s) {
   if (!Array.isArray(out.charms)) out.charms = [];
   if (out.bg && out.charDone === undefined) out.charDone = true;
   if (out.vperks === undefined) out.vperks = null;
-  if (typeof out.bunk !== 'number') out.bunk = 0;   // farmhand bunkhouse (75-farmhands.js)   // the village's perks (74-villages.js); null: not in one
+  if (typeof out.bunk !== 'number') out.bunk = 0;
+  if (typeof out.stair !== 'number') out.stair = 0;   // lanterns lit on the Lantern Stair (26-stair.js)   // farmhand bunkhouse (75-farmhands.js)   // the village's perks (74-villages.js); null: not in one
   if (!out.rng || typeof out.rng.s !== 'number') out.rng = { s: (Math.random() * 4294967296) >>> 0, n: 0 };   // characters made before charDone existed
   if (!I.crop[out.seed]) out.seed = 'wheat';
   if (!I.spot[out.spot]) out.spot = 'pond';
@@ -91,7 +92,7 @@ function unlocksAt(sk, l) {
 }
 
 /* inventory */
-const cap = () => Math.floor(C.core.barn[state.barn].cap * (1 + perkVal('deep') / 100));
+const cap = () => Math.floor(C.core.barn[state.barn].cap * (1 + perkVal('deep') / 100) * (1 + stairBonus('barn') / 100));
 const have = id => state.inv[id] || 0;
 function addItem(id, n) {
   if (!I.items[id] || n <= 0) return 0;
@@ -145,10 +146,10 @@ function checkMastery(id) {
 // what an item is worth: cheap things as listed, dear things far dearer (core.json "value"), so that later crops,
 // deeper ores, rarer fish and finer goods are worth enormously more and the numbers keep growing
 const valueOf = id => { const s = I.items[id].s, v = C.core.value; return !v || s <= v.from ? s : Math.round(s * Math.pow(s / v.from, v.k)); };
-const priceOf = id => Math.round(valueOf(id) * (1 + [0, 0.05, 0.1, 0.2][masteryTier(id)]) * (1 + perkVal('haggler') / 100) * (1 + charmFx('price') / 100) * (['crop', 'fruit'].includes(I.items[id].t) ? 1 + villageFx('sell_crop') / 100 : 1));
+const priceOf = id => Math.round(valueOf(id) * stairSell() * (1 + [0, 0.05, 0.1, 0.2][masteryTier(id)]) * (1 + perkVal('haggler') / 100) * (1 + charmFx('price') / 100) * (['crop', 'fruit'].includes(I.items[id].t) ? 1 + villageFx('sell_crop') / 100 : 1));
 
 /* stamina and buffs */
-const maxStamina = () => C.core.stamina.base + lvl('foraging') * C.core.stamina.perLevel + perkVal('trail') + charmFx('stamina');
+const maxStamina = () => C.core.stamina.base + lvl('foraging') * C.core.stamina.perLevel + perkVal('trail') + charmFx('stamina') + stairBonus('stamina');
 const buffOn = id => (state.buffs[id] || 0) > now();
 function setBuff(id, mins = 15) {
   if (!I.buffs[id]) return;

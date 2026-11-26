@@ -7,6 +7,7 @@ const FEATURES = {
   'farm:animals': () => unlocked('coop'),
   'farm:pets': () => (C.core.pets || []).some(p => unlocked(p.unlock)),
   'wilds:mine': () => unlocked('mine'),
+  'wilds:stair': () => stairOpen(),
   'town:inn': () => chapterDone('prologue') && dayNumber() >= 5 && (I.advs.some(a => state.advDone[a.id] || reqMet(a.req)) || openDelves().length > 0),
   'bag:bestiary': () => (chapterDone('prologue') && dayNumber() >= 7) || Object.keys(state.bestiary || {}).length > 0,
   'make:kitchen': () => unlocked('kitchen'),
@@ -32,7 +33,7 @@ const FEATURES = {
 const FEATURE_NAMES = {
   'tab:fish': 'Fishing, in the new Fish tab.', 'tab:make': 'Crafting, in the new Make tab.',
   'farm:orchard': 'The orchard, on the Farm tab.', 'farm:animals': 'Animals, on the Farm tab.', 'farm:pets': 'Pets, on the Farm tab.',
-  'wilds:mine': 'The Mine, in the Wilds.', 'town:inn': 'The Lantern & Ladle inn, in Town.', 'bag:bestiary': 'The bestiary, in your Bag.',
+  'wilds:mine': 'The Mine, in the Wilds.', 'wilds:stair': 'The Lantern Stair, in the Wilds: light lanterns to make everything sell for more.', 'town:inn': 'The Lantern & Ladle inn, in Town.', 'bag:bestiary': 'The bestiary, in your Bag.',
   'make:kitchen': 'Cooking, in the Make tab.', 'make:bench': 'The workbench, in the Make tab.', 'make:cellar': 'The cellar, in the Make tab.',
   'town:board': 'The town board: chores and daily gifts.', 'town:village': 'Villages, in Town: team up with other players.', 'town:hands': 'Farmhands, in Town: hire other players to hit bosses harder.', 'town:chat': 'Chat, in Town: talk with everyone and message friends.', 'bag:perks': 'Perks, in your Bag.',
   'festival': 'Seasonal festivals, on the town board.', 'exchange': 'The Valley Exchange, in Shops.',

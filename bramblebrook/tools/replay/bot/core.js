@@ -470,6 +470,7 @@
       });
     }
     // plots
+    while (typeof stairOpen === 'function' && stairOpen() && (state.stair || 0) < C.core.stair.max && starsHave() >= stairStarsNeed((state.stair || 0) + 1) && state.coins >= stairCost((state.stair || 0) + 1) + R) { tap('stair-light', {}, TIME.buy); did = true; log('lantern', state.stair); }
     while (state.plots.length < C.core.plots.max && (state.plots.length < 16 ? state.coins >= plotCost() + R : state.coins >= 2 * plotCost() + R)) { tap('buy-plot', {}, TIME.buy); did = true; log('bought plot', state.plots.length); }
     // animals the player needs or that pay for themselves quickly
     const wantAnimals = { chicken: 4, cow: 2, bee: 2, sheep: 0 };

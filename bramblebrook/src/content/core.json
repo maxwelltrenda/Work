@@ -3572,6 +3572,10 @@
    }
   }
  ],
+ "stair": { "cost": 250000, "grow": 1.5, "max": 60, "stars": 2, "sell": 4, "unlockValue": 100000, "every": 5,
+   "milestones": [{ "grow": 5, "text": "Crops grow 5% faster" }, { "stamina": 10, "text": "+10 max stamina" }, { "barn": 10, "text": "Your barn holds 10% more" }],
+   "note": "lantern n costs cost * grow^(n-1) coins and needs stars*n mastery stars (counted, not spent). Every lantern: everything sells for sell% more, compounding. Every 'every'th lantern also gives the next milestone in turn." },
+ "rewardScale": { "from": 20000, "k": 0.8, "note": "fixed coin rewards (chores, daily gifts) grow with your farm's value: x max(1, (value/from)^k)" },
  "farmhands": { "cap": [3, 5, 7, 9, 12, 15, 20], "bunkCost": 50000, "bunkGrow": 10, "minPrice": 100, "hourly": 30, "payout": 0.1 },
  "value": { "from": 50, "k": 1.2, "note": "sell value = s * (s/from)^k above from: dear items grow far dearer, cheap ones stay as they are" },
  "perks": [

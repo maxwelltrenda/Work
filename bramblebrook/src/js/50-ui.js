@@ -464,6 +464,7 @@ function handle(act, el, e) {
     case 'bench-buy': { const c = benchSlotCost(); if (state.bench.length >= C.core.workbench.maxSlots || state.coins < c) return false; state.coins -= c; state.bench.push(null); toast('Another pair of hands at the workbench'); break; }
     case 'orchard-buy': if (!buyOrchardSpot()) return false; break;
     case 'bunk-buy': if (!buyBunk()) return false; break;
+    case 'stair-light': if (!lightLantern()) return false; break;
     case 'hire-hand': hireHand(el.dataset); return false;
     case 'drop-hand': dropHand(el.dataset); return false;
     case 'hand-search': handSearch(); return false;

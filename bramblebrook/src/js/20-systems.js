@@ -11,6 +11,7 @@ function growFactor() {
   if (buffOn('greenthumb')) f *= 0.75;
   if (weather().id === 'rainy') f *= 0.85;
   f *= 1 - perkVal('greenthumb') / 100;
+  f *= 1 - Math.min(60, stairBonus('grow')) / 100;   // the Lantern Stair
   f *= 1 - charmFx('grow') / 100;
   return f;
 }
@@ -499,6 +500,8 @@ function farmValue(s = state) {
     for (let n = wb.slots; n < (s.bench || []).length; n++) v += Math.round(wb.slotCost * Math.pow(wb.slotGrow || 1, n - wb.slots));
     const fh = C.core.farmhands;
     if (fh) for (let n = 0; n < (s.bunk || 0); n++) v += Math.round(fh.bunkCost * Math.pow(fh.bunkGrow, n));
+    const st = C.core.stair;
+    if (st) for (let n = 1; n <= (s.stair || 0); n++) v += Math.round(st.cost * Math.pow(st.grow, n - 1));
     return v;
   } finally { state = keep; }
 }
@@ -551,7 +554,7 @@ function ensureChores() {
   const rnd = seeded('chores-' + key);
   const pool = shuffled(C.core.chores.filter(c => unlocked(c.unlock)), rnd).slice(0, 3);
   const scale = 1 + Math.floor(Object.values(state.xp).reduce((a, x) => a + levelInfo(x).lvl, 0) / 15) * 0.5;
-  state.chores = { day: key, bonus: false, list: pool.map(c => ({ id: c.id, n: Math.ceil(c.n * (c.id === 'deliver' || c.id === 'gift' ? 1 : scale)), coins: Math.round(c.coins * scale), base: state.stats[c.stat] || 0, claimed: false })) };
+  state.chores = { day: key, bonus: false, list: pool.map(c => ({ id: c.id, n: Math.ceil(c.n * (c.id === 'deliver' || c.id === 'gift' ? 1 : scale)), coins: Math.round(c.coins * scale * rewardScale()), base: state.stats[c.stat] || 0, claimed: false })) };
 }
 function choreProgress(c) { const d = C.core.chores.find(x => x.id === c.id); return Math.min(c.n, (state.stats[d.stat] || 0) - c.base); }
 function claimChore(i) {
