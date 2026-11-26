@@ -309,7 +309,11 @@ function handle(act, el, e) {
       break;
     }
     case 'pet-one': if (!petOne(id, el.dataset.i)) return false; break;
-    case 'area': state.area = id; break;
+    case 'area': state.area = id; state.sub.place = id; window.scrollTo(0, 0); break;
+    case 'place-back': state.sub.place = ''; renderView(); window.scrollTo(0, 0); return false;
+    case 'water-back':
+      if (fishing.phase === 'waiting' || fishing.phase === 'bite') { clearFishTimers(); fishing.phase = 'idle'; fishing.msg = ''; }
+      state.sub.water = ''; renderView(); window.scrollTo(0, 0); return false;
     case 'explore': case 'dig': {
       const n = el.dataset.n === 'all' ? Infinity : +el.dataset.n || 1;
       if (n > tripsMax()) { perkSheet('trips'); return false; }
@@ -325,7 +329,7 @@ function handle(act, el, e) {
     case 'charm-pick': charmSheet(); return false;
     case 'charm-on': if (!wearCharm(id)) return false; closeSheet(); break;
     case 'charm-off': if (!removeCharm(id)) return false; closeSheet(); toast(`Took off ${itemName(id)}`); break;
-    case 'spot': state.spot = id; break;
+    case 'spot': state.spot = id; state.sub.water = id; window.scrollTo(0, 0); break;
     case 'bait': state.bait = id; break;
     case 'craft': craft(id, el.dataset.n); break;
     case 'cook': cook(id, el.dataset.n); break;
@@ -510,7 +514,7 @@ document.addEventListener('pointerdown', e => {
 document.addEventListener('keydown', e => {
   if (tour) return;
   if (e.key === 'Escape' && sheetOpen()) { closeSheet(); return; }
-  if (state && state.tab === 'fish' && e.key === ' ' && !e.target.closest('button, input, textarea') && !sceneOpen && !advRun) { e.preventDefault(); fishButton(); }
+  if (state && state.tab === 'fish' && $('#pond') && e.key === ' ' && !e.target.closest('button, input, textarea') && !sceneOpen && !advRun) { e.preventDefault(); fishButton(); }
 });
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');

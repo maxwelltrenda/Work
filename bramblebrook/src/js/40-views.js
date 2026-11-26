@@ -157,24 +157,68 @@ function staminaLine() {
   return `${fmtN(s)} stamina${cap ? ` · ${fmtN(bank)}/${fmtN(cap)} saved in bed` : ''}${next}`;
 }
 function viewExplore() {
+  const at = placeOpenId();
+  if (at) return viewPlace(I.area[at]);
   if (!areaOpen(I.area[state.area])) state.area = 'meadow';
-  const a = I.area[state.area];
   const cards = I.areas.map(x => {
-    const open = areaOpen(x);
+    const open = areaOpen(x), r = placeRec(x.id);
     const lockText = !unlocked(x.unlock) ? 'Story' : `Foraging Lv ${x.lvl}`;
     const drops = Object.keys(x.drops).filter(k => k !== 'none').map(k => state.seen[k] ? `<span title="${esc(itemName(k))}">${pic(k, 24)}</span>` : '<span class="unknown" title="Not found yet">?</span>').join('');
-    return `<button class="area${open ? '' : ' locked'}" ${open ? `data-act="area" data-id="${x.id}"` : 'disabled'} aria-pressed="${x.id === state.area}">
-      <span class="area-top"><b>${esc(x.n)}</b><span class="chip plain">${open ? `${x.xp} XP a trip` : esc(lockText)}</span></span>
-      <span class="sub">${esc(open || unlocked(x.unlock) ? x.blurb : unlockHint(x.unlock))}</span><span class="drops">${drops}</span></button>`;
+    return placeCard(x, open, open ? `<span class="place-stars" aria-label="Rank ${r.rank}">${placeStars(x.id)}</span>` : esc(lockText),
+      esc(open || unlocked(x.unlock) ? x.blurb : unlockHint(x.unlock)), drops, open ? `${fmtN(r.n)} trips here · ${x.xp} XP a trip` : '', 'area');
   }).join('');
-  const log = exploreLog.length ? exploreLog.map(l => `<div class="log-line">${l.html}<span class="t">${esc(l.when)}</span></div>`).join('') : '<p class="muted">Each trip costs 1 stamina. Sometimes something unexpected happens.</p>';
+  return `<div class="card where"><div><h2>Where to?</h2><p class="sub" data-stam-line>${staminaLine()}</p></div></div>
+    <div class="areas">${cards}</div>`;
+}
+// a place on the list: tap it to go there
+function placeCard(x, open, chip, blurb, drops, meta, act) {
+  const L = x.look || {};
+  return `<button class="area place-card${open ? '' : ' locked'}" style="--a:${L.a || 'var(--accent)'};--b:${L.b || 'var(--water)'}" ${open ? `data-act="${act}" data-id="${x.id}"` : 'disabled'}>
+    <span class="area-top"><b>${esc(x.n)}</b><span class="chip plain">${chip}</span></span>
+    <span class="sub">${blurb}</span><span class="drops">${drops}</span>${meta ? `<span class="place-meta">${meta}</span>` : ''}${open ? '<span class="place-go" aria-hidden="true">›</span>' : ''}</button>`;
+}
+// the top of a place's page: its colours, a few of its finds, the season's mood
+function placeHero(x, back, body) {
+  const L = x.look || {}, w = weather();
+  const icons = (I.area[x.id] ? Object.keys(x.drops).filter(k => k !== 'none') : x.fish.map(f => f[0])).slice(0, 6);
+  const scene = icons.map((k, i) => `<span class="ps ps${i}">${state.seen[k] ? pic(k, 32) : ''}</span>`).join('');
+  return `<div class="card trail place-hero" style="--a:${L.a || 'var(--accent)'};--b:${L.b || 'var(--water)'}">
+    <div class="place-scene" aria-hidden="true">${scene}</div>
+    <button class="place-back" data-act="${back}">‹ ${I.area[x.id] ? 'All places' : 'All waters'}</button>
+    <div><h2>${esc(x.n)}</h2><p class="place-mood">${esc(placeMood(x.id))}</p>
+      <p class="place-line"><span class="place-stars">${placeStars(x.id)}</span> ${esc(C.core.places.titles[placeRank(x.id)])} · ${esc(season())} · ${esc(w.n)}</p></div>
+    ${body}</div>`;
+}
+// what turns up in a place, and how many of each you've found there
+function placeFinds(id, list, title) {
+  const r = placeRec(id);
+  const rows = list.map(([k, w, rar]) => {
+    const seen = state.seen[k], rare = rar !== undefined ? rar >= 3 : w < 3;
+    const tag = rar !== undefined ? C.core.rarity[rar].n : rare ? 'rare' : 'common';
+    return `<button class="find${seen ? '' : ' unknown-find'}" ${seen ? `data-act="item" data-id="${k}"` : 'disabled'}>${seen ? pic(k, 28) : '<span class="unknown">?</span>'}
+      <span><b>${seen ? esc(itemName(k)) : 'Not found yet'}</b><small class="${rare ? 'rare-tag' : ''}">${esc(tag)}${seen ? ` · ${fmtN(r.got[k] || 0)} here` : ''}</small></span></button>`;
+  }).join('');
+  return `<div class="card"><div class="label">${esc(title)}</div><div class="finds">${rows}</div></div>`;
+}
+// the place's rank: how far along, and what the next one brings
+function placeRankCard(id) {
+  const P = C.core.places, r = placeRec(id), steps = placeSteps(id), next = steps[r.rank], area = placeIsArea(id);
+  const what = area ? 'trips' : 'catches', rare = area ? 'rare finds' : 'rare fish';
+  return `<div class="card place-rank"><div class="row between"><h2>Getting to know ${esc(placeName(id))}</h2><span class="place-stars">${placeStars(id)}</span></div>
+    <p class="sub">${esc(P.titles[r.rank])} · ${fmtN(r.n)} ${what} here${r.rank ? ` · ${rare} +${r.rank * P.luck}% here` : ''}</p>
+    ${next ? `${progressBar(r.n, next)}<p class="sub num">${fmtN(r.n)}/${fmtN(next)} ${what} to ${esc(P.titles[r.rank + 1])}: ${rare} +${(r.rank + 1) * P.luck}% here, and ${fmtC(placeCoins(r.rank + 1))}</p>` : `<p class="sub">You know every corner of it.</p>`}</div>`;
+}
+function viewPlace(a) {
   const s = staminaLeft();
-  return `<div class="card trail"><div><h2>${esc(a.n)}</h2><p class="sub" data-stam-line>${staminaLine()}</p></div>
+  const mine = exploreLog.filter(l => l.at === a.id).slice(0, 6);
+  const log = mine.length ? mine.map(l => `<div class="log-line">${l.html}<span class="t">${esc(l.when)}</span></div>`).join('') : '<p class="muted">Each trip costs 1 stamina. Sometimes something unexpected happens.</p>';
+  const drops = Object.entries(a.drops).filter(([k]) => k !== 'none').sort((x, y) => y[1] - x[1]);
+  return placeHero(a, 'place-back', `<p class="sub" data-stam-line>${staminaLine()}</p>
       <div class="trail-btns"><button class="btn" data-act="explore" data-n="1" data-need="1" ${s >= 1 ? '' : 'disabled'}>Explore</button>
-      ${tripButtons('explore', s)}</div></div>
-    ${trailDrinkBar()}
-    <div class="card"><div class="label">Trail log</div><div class="log">${log}</div></div>
-    <div class="label">Places</div><div class="areas">${cards}</div>`;
+      ${tripButtons('explore', s)}</div>`)
+    + trailDrinkBar()
+    + `<div class="card"><div class="label">Trail log</div><div class="log">${log}</div></div>`
+    + placeFinds(a.id, drops, 'Found here') + placeRankCard(a.id);
 }
 /* Several trips at once is the Long Trips perk: each level adds a bigger button (×3, ×10, ×25, then All); none before it */
 function tripButtons(act, s) {
@@ -223,17 +267,26 @@ function placeName(w) {
 
 /* ---- Fishing ---- */
 function viewFish() {
+  const at = waterOpenId();
+  if (at) return viewWater(I.spot[at]);
   if (!spotOpen(I.spot[state.spot])) state.spot = 'pond';
-  const spots = I.spots.map(s => {
-    const open = spotOpen(s);
-    return `<button class="spot${open ? '' : ' locked'}" ${open ? `data-act="spot" data-id="${s.id}"` : 'disabled'} aria-pressed="${state.spot === s.id}">${esc(s.n)}${open ? '' : unlocked(s.unlock) ? ` · Lv ${s.lvl}` : ' · Story'}</button>`;
+  const cards = I.spots.map(sp => {
+    const open = spotOpen(sp), r = placeRec(sp.id), n = netState(sp.id);
+    const fish = sp.fish.map(([id]) => state.seen[id] ? `<span title="${esc(itemName(id))}">${pic(id, 24)}</span>` : '<span class="unknown">?</span>').join('');
+    const net = open && n ? ` · net ${n.caught}/${C.core.nets.cap}` : '';
+    return placeCard(sp, open, open ? `<span class="place-stars" aria-label="Rank ${r.rank}">${placeStars(sp.id)}</span>` : unlocked(sp.unlock) ? `Fishing Lv ${sp.lvl}` : 'Story',
+      esc(open ? placeMood(sp.id) : unlocked(sp.unlock) ? `Opens at Fishing level ${sp.lvl}` : unlockHint(sp.unlock)), fish, open ? `${fmtN(r.n)} catches here${net}` : '', 'spot');
   }).join('');
-  const sp = I.spot[state.spot];
-  const pool = sp.fish.map(([id]) => state.seen[id] ? `<span title="${esc(itemName(id))}">${pic(id, 24)}</span>` : '<span class="unknown">?</span>').join('');
-  const logHTML = catchLog.length ? catchLog.map(l => `<div class="log-line">${l}</div>`).join('') : '<p class="muted">Cast, wait for the bobber to dip, then tap when the marker is in the green.</p>';
+  return `<div class="view-head"><h1>Fishing</h1><p>${esc(weather().id === 'foggy' ? 'Foggy: rare fish are biting' : 'Where to fish?')}</p></div>
+    <div class="areas spot-list">${cards}</div>${viewNets()}`;
+}
+function viewWater(sp) {
+  const mine = catchLog.filter(l => l.at === sp.id).slice(0, 6);
+  const logHTML = mine.length ? mine.map(l => `<div class="log-line">${l.html}<span class="t">${esc(l.when)}</span></div>`).join('') : '<p class="muted">Cast, wait for the bobber to dip, then tap when the marker is in the green.</p>';
   const bait = (id, label, note) => `<button class="bait" data-act="bait" data-id="${id}" aria-pressed="${state.bait === id}">${pic(id, 28)}<span><b>${label}</b><small data-bait="${id}">${have(id)} · ${note}</small></span></button>`;
+  const fish = sp.fish.slice().sort((x, y) => y[1] - x[1]);
   return `<div class="view-head"><h1>Fishing</h1><p>${esc(weather().id === 'foggy' ? 'Foggy: rare fish are biting' : sp.n)}</p></div>
-    <div class="spots">${spots}</div>
+    ${placeHero(sp, 'water-back', '')}
     <div class="pond" id="pond" data-act="fish-btn" data-phase="idle">
       <div class="bobber" aria-hidden="true"></div>
       <div class="fish-status" id="fish-status">Pick your bait and cast.</div>
@@ -241,7 +294,9 @@ function viewFish() {
     </div>
     <div class="bait-row">${bait('worm', 'Worms', 'basic')}${bait('lure', 'Lures', 'bigger zone')}${bait('glowbait', 'Glow grubs', 'legends')}</div>
     <button class="btn big" id="cast-btn" data-act="fish-btn">Cast line</button>
-    <div class="card"><div class="row between"><div class="label">In these waters</div><div class="drops">${pool}</div></div><div class="log">${logHTML}</div></div>${castNetBar()}${viewNets()}`;
+    <div class="card"><div class="label">Caught here</div><div class="log">${logHTML}</div></div>
+    ${castNetBar()}${netsOpen() ? `<div class="card"><h2>Your net here</h2>${netRow(sp)}</div>` : ''}
+    ${placeFinds(sp.id, fish, 'In these waters')}${placeRankCard(sp.id)}`;
 }
 function updateBaitCounts() {
   const notes = { worm: 'basic', lure: 'bigger zone', glowbait: 'legends' };

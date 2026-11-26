@@ -168,8 +168,8 @@ function petAnimals() {
 /* Explore */
 let exploreLog = [];
 function areaOpen(a) { return lvl('foraging') >= a.lvl && unlocked(a.unlock); }
-function exploreTable(drops) {
-  const lucky = (buffOn('lucky') ? 2 : 1) * (1 + perkVal('keeneye') / 100) * (1 + charmFx('luck') / 100), boost = 1 + lvl('foraging') * 0.03, windy = weather().id === 'windy';
+function exploreTable(drops, at) {
+  const lucky = (buffOn('lucky') ? 2 : 1) * (1 + perkVal('keeneye') / 100) * (1 + charmFx('luck') / 100) * placeLuck(at), boost = 1 + lvl('foraging') * 0.03, windy = weather().id === 'windy';
   return Object.entries(drops).map(([k, w]) => {
     if (k !== 'none' && w < 3) w *= boost * lucky;
     if (windy && (k === 'feather' || k === 'eaglefeather')) w *= 2;
@@ -185,7 +185,7 @@ function explore(n, cider) {
   if (times <= 0) { toast('Out of stamina. It refills over time, or eat a meal.'); return; }
   const found = {}, full = new Set();
   let empty = 0;
-  const table = exploreTable(a.drops);
+  const table = exploreTable(a.drops, a.id);
   const rares = Object.entries(a.drops).filter(([k, w]) => k !== 'none' && w < 3);
   const pk = 'ex:' + a.id;
   for (let k = 0; k < times; k++) {
@@ -202,12 +202,13 @@ function explore(n, cider) {
   spendStamina(cider ? cider.cost : times, !!cider);
   addXP('foraging', a.xp * times);
   state.stats.explores += times;
+  notePlace(a.id, times, found);
   const parts = Object.entries(found).map(([id, q]) => chip(id, q > 1 ? q + '×' : null));
   let html;
   if (times === 1 && !parts.length) html = `<span>${esc(a.empty[Math.floor(Math.random() * a.empty.length)])}</span>`;
   else html = `${parts.join('') || '<span>Nothing this time.</span>'}${empty && times > 1 ? `<span class="muted">${empty} empty</span>` : ''}`;
-  exploreLog.unshift({ html, when: times > 1 ? `${times} trips` : '1 trip' });
-  exploreLog = exploreLog.slice(0, 6);
+  exploreLog.unshift({ html, at: a.id, when: times > 1 ? `${times} trips` : '1 trip' });
+  exploreLog = exploreLog.slice(0, 20);
   if (full.size) toast(`Barn is full of ${[...full].map(itemName).join(', ')}. The extra went to Lost & found in your Bag.`);
   const rare = Object.keys(found).filter(id => (a.drops[id] || 99) < 3);
   if (rare.length) toast(`Rare find: ${rare.map(itemName).join(', ')}!`, 'lvl');
@@ -319,6 +320,7 @@ function bite() {
   const table = sp.fish.map(([id, w, r]) => {
     if (r >= 2) w *= (lure ? 2 : 1) * (1 + fl * 0.02) * (fog ? 1.4 : 1);
     if (r >= 3 && glow) w *= 1.5;
+    if (r >= 3) w *= placeLuck(sp.id);
     if (r === 5 && glow) w *= 4;
     if (r === 5) w *= 1 + perkVal('luckyhook') / 100;
     return [id, w, r];
@@ -374,10 +376,11 @@ function reelResult(hit) {
       const xp = id === 'boot' ? 1 : C.core.rarity[r].xp;
       addXP('fishing', xp);
       if (I.items[id].t === 'fish' && id !== 'boot') state.stats.fish++;
+      notePlace(state.spot, 1, { [id]: 1 });
       const article = r === 5 ? 'the legendary ' : r >= 3 ? 'a rare ' : /^[AEIOU]/.test(name) ? 'an ' : 'a ';
       fishing.msg = `${pic(id, 32)}<span>Caught ${article}${esc(name)}!</span><span class="muted">+${xp} XP</span>`;
-      catchLog.unshift(`${pic(id, 24)}<span>${esc(name)}</span><span class="t">${esc(I.spot[state.spot].n)}</span>`);
-      catchLog = catchLog.slice(0, 5);
+      catchLog.unshift({ html: `${pic(id, 24)}<span>${esc(name)}</span>`, at: state.spot, when: '+' + xp + ' XP' });
+      catchLog = catchLog.slice(0, 20);
       if (firstLegend) toast(`Legendary catch: ${name}! Tobin will never believe this.`, 'lvl', 5000);
     }
     syncFishDom();
@@ -460,7 +463,7 @@ function drinkFind(id, m) {
   const a = I.area[state.area];
   if (!a || !areaOpen(a)) return false;
   takeItem(id, 1);
-  const table = exploreTable(a.drops).filter(([k]) => k !== 'none');
+  const table = exploreTable(a.drops, a.id).filter(([k]) => k !== 'none');
   const found = {}, full = new Set();
   for (let k = 0; k < m.find; k++) {
     const [f] = pickWeighted(table);
@@ -469,8 +472,9 @@ function drinkFind(id, m) {
   }
   addXP('foraging', a.xp * m.find);
   state.stats.explores += m.find;
-  exploreLog.unshift({ html: Object.entries(found).map(([f, q]) => chip(f, q > 1 ? q + '×' : null)).join(''), when: `${itemName(id)} · ${m.find} finds` });
-  exploreLog = exploreLog.slice(0, 6);
+  notePlace(a.id, m.find, found);
+  exploreLog.unshift({ html: Object.entries(found).map(([f, q]) => chip(f, q > 1 ? q + '×' : null)).join(''), at: a.id, when: `${itemName(id)} · ${m.find} finds` });
+  exploreLog = exploreLog.slice(0, 20);
   if (full.size) toast(`Barn is full of ${[...full].map(itemName).join(', ')}. The extra went to Lost & found in your Bag.`);
   else toast(`${itemName(id)}: ${fmtN(m.find)} finds in ${a.n}, no stamina used`);
   return true;
@@ -506,8 +510,9 @@ function useNet(id) {
   addXP('fishing', xp);
   state.stats.fish += r.catch;
   state.stats.netted = (state.stats.netted || 0) + r.catch;
-  catchLog.unshift(`${Object.entries(got).map(([f, q]) => chip(f, q > 1 ? q + '×' : null)).join('')}<span class="t">${esc(itemName(id))}</span>`);
-  catchLog = catchLog.slice(0, 5);
+  notePlace(state.spot, r.catch, got);
+  catchLog.unshift({ html: Object.entries(got).map(([f, q]) => chip(f, q > 1 ? q + '×' : null)).join(''), at: state.spot, when: itemName(id) });
+  catchLog = catchLog.slice(0, 20);
   toast(full.size ? `${itemName(id)}: ${fmtN(r.catch)} fish. Barn is full of ${[...full].map(itemName).join(', ')}; the extra went to Lost & found.` : `${itemName(id)}: ${fmtN(r.catch)} fish from ${sp.n}`, 'lvl');
   return true;
 }

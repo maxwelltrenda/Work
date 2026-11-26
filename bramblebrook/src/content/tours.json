@@ -119,17 +119,32 @@
         {
           "target": ".areas",
           "title": "Choose a place",
-          "text": "Each place has its own finds. The ones you haven't found yet show as a question mark. New places open with your Foraging level and the story."
+          "text": "Tap a place to go there. Each one has its own finds; the ones you haven't found yet show as a question mark. New places open with your Foraging level and the story."
         },
         {
-          "target": ".trail",
+          "target": ".place-card .place-stars",
+          "title": "Get to know it",
+          "text": "Every trip you make in a place counts toward its rank. Each rank makes rare finds likelier there, and pays coins once."
+        }
+      ]
+    },
+    "wilds-place": {
+      "title": "A place of its own",
+      "steps": [
+        {
+          "target": ".place-hero",
           "title": "Head out",
-          "text": "Each trip costs 1 stamina and finds something, or nothing. Use ×10 or All to spend your stamina in one go."
+          "text": "Each trip costs 1 stamina and finds something, or nothing. The back button takes you to the other places."
         },
         {
-          "target": ".log",
-          "title": "What you found",
-          "text": "Your last few trips show up here. Every so often something unexpected happens on the trail."
+          "target": ".finds",
+          "title": "Found here",
+          "text": "Everything this place hides, and how many of each you've found here. Tap one to see what it's for."
+        },
+        {
+          "target": ".place-rank",
+          "title": "Its rank",
+          "text": "Trips here raise this place's rank. Each rank makes rare finds a little likelier here and pays coins once."
         }
       ]
     },
@@ -158,10 +173,15 @@
       "title": "Fishing",
       "steps": [
         {
-          "target": ".spots",
+          "target": ".spot-list",
           "title": "Where to fish",
-          "text": "Each spot has its own fish. New waters open with the story and your Fishing level."
-        },
+          "text": "Tap a spot to go there. Each one has its own fish. New waters open with the story and your Fishing level."
+        }
+      ]
+    },
+    "fish-water": {
+      "title": "At the water",
+      "steps": [
         {
           "target": ".bait-row",
           "title": "Bait",
@@ -176,6 +196,11 @@
           "target": "#cast-btn",
           "title": "One button does it all",
           "text": "This button casts, reels in and casts again. You can also tap the water itself."
+        },
+        {
+          "target": ".finds",
+          "title": "In these waters",
+          "text": "Every catch here counts toward this spot's rank. Each rank makes rare fish a little likelier here and pays coins once."
         }
       ]
     },

@@ -1,7 +1,8 @@
 /* ---------- guided tours: the screen dims, the thing being explained glows, a card explains it ---------- */
 let tour = null;   // { id, steps, i }
 const tourDefs = () => (C.tours && C.tours.tours) || {};
-const screenKey = () => (state.tab === 'fish' ? 'fish' : `${state.tab}-${sub(state.tab)}`);
+const screenKey = () => (state.tab === 'fish' ? (waterOpenId() ? 'fish-water' : 'fish')
+  : state.tab === 'wilds' && sub('wilds') === 'explore' && placeOpenId() ? 'wilds-place' : `${state.tab}-${sub(state.tab)}`);
 function tourReady(id) {
   const t = tourDefs()[id];
   return !!t && (!t.unlock || unlocked(t.unlock));

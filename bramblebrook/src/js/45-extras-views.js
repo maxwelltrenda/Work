@@ -52,15 +52,16 @@ function caskSheet(i) {
     <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`);
 }
 
+function netRow(sp) {
+  const s = netState(sp.id);
+  if (!s) return `<div class="store-item">${pic('net', 28)}<div class="what"><b>${esc(sp.n)}</b><small>No net set</small></div>
+    <button class="btn small ghost" data-act="net-set" data-id="${sp.id}" ${have('net') ? '' : 'disabled'}>Set a net${have('net') ? '' : ' (craft one)'}</button></div>`;
+  return `<div class="store-item">${pic('net', 28)}<div class="what"><b>${esc(sp.n)}</b><small>${s.caught}/${C.core.nets.cap} caught${s.next ? ` · next in ${fmtT(s.next)}` : ' · full'}</small></div>
+    <button class="btn small" data-act="net-collect" data-id="${sp.id}" ${s.caught ? '' : 'disabled'}>Haul in</button></div>`;
+}
 function viewNets() {
   if (!netsOpen()) return '';
-  const rows = I.spots.filter(spotOpen).map(sp => {
-    const s = netState(sp.id);
-    if (!s) return `<div class="store-item">${pic('net', 28)}<div class="what"><b>${esc(sp.n)}</b><small>No net set</small></div>
-      <button class="btn small ghost" data-act="net-set" data-id="${sp.id}" ${have('net') ? '' : 'disabled'}>Set a net${have('net') ? '' : ' (craft one)'}</button></div>`;
-    return `<div class="store-item">${pic('net', 28)}<div class="what"><b>${esc(sp.n)}</b><small>${s.caught}/${C.core.nets.cap} caught${s.next ? ` · next in ${fmtT(s.next)}` : ' · full'}</small></div>
-      <button class="btn small" data-act="net-collect" data-id="${sp.id}" ${s.caught ? '' : 'disabled'}>Haul in</button></div>`;
-  }).join('');
+  const rows = I.spots.filter(spotOpen).map(netRow).join('');
   return `<div class="card"><div class="row between"><h2>Fishing nets</h2><span class="chip plain">${have('net')} in bag</span></div><p class="sub">A net catches common fish while you're away, one every ${fmtT(C.core.nets.every)}, up to ${C.core.nets.cap}. Craft nets in the Workshop.</p>${rows}</div>`;
 }
 

@@ -122,6 +122,7 @@ function collectNet(spotId) {
   state.nets[spotId].at = s.caught >= C.core.nets.cap ? now() : now() - (el % per);
   addXP('fishing', total * C.core.nets.xp);
   state.stats.netted = (state.stats.netted || 0) + total;
+  notePlace(spotId, total, got);
   const fishOnly = Object.entries(got).filter(([id]) => id !== 'boot').reduce((a, [, n]) => a + n, 0);
   state.stats.fish += fishOnly;
   return total;
