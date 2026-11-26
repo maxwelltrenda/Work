@@ -10,7 +10,7 @@
 const FARM_ACTS = new Set(['seed', 'plot', 'harvest-all', 'sow-all', 'tonic', 'install', 'plant-tree', 'tree', 'harvest-trees',
   'collect', 'collect-all', 'buy-animal', 'pet', 'pet-pen', 'pet-one', 'area', 'explore', 'dig', 'perk-learn', 'descend', 'lift',
   'adventure', 'quest', 'quest-go', 'charm-on', 'charm-off', 'spot', 'bait', 'craft', 'cook', 'eat', 'sell', 'sell-type', 'lock',
-  'buy', 'buy-plot', 'buy-barn', 'orchard-buy', 'saffi-buy', 'saffi-sell', 'chore', 'chore-bonus', 'deliver', 'chat', 'gift-pick', 'heart',
+  'buy', 'buy-plot', 'buy-barn', 'orchard-buy', 'bunk-buy', 'saffi-buy', 'saffi-sell', 'chore', 'chore-bonus', 'deliver', 'chat', 'gift-pick', 'heart',
   'letter', 'letter-gift', 'story', 'class-choose', 'fight', 'fight-pal', 'fight-go', 'perk', 'perk-reset', 'bench-queue',
   'bench-collect', 'bench-cancel', 'bench-buy', 'net-set', 'net-collect', 'cask-fill', 'cask-bottle', 'cask-buy', 'ex-sell',
   'pet-adopt', 'pet-feed', 'pet-collect', 'fest-deliver', 'fest-buy', 'login-claim', 'take-overflow']);
@@ -79,6 +79,18 @@ const MOVES = {
     if (srv && a.why === 'gift' && !srv.canGift) return;   // no village to give to: the coins stay
     state.coins -= c;
     if (srv) srv.effects.push({ kind: String(a.why || 'pay'), c });
+  },
+  hire: a => {   // hire another player as a farmhand (75-farmhands.js)
+    if (srv) {
+      const x = srv.hire[a.u];
+      if (!x || !x.ok || x.used || srv.handCount >= handCap() || srv.hireLeft <= 0 || state.coins < x.price) return;
+      x.used = true; srv.handCount++; srv.hireLeft--;
+      state.coins -= x.price;
+      srv.effects.push({ kind: 'hire', u: String(a.u), c: x.price });
+      return;
+    }
+    const c = Math.floor(+a.c || 0);
+    if (c > 0 && c <= state.coins) state.coins -= c;
   },
   grant: a => {
     let g = { c: +a.c || 0, xp: +a.xp || 0 };

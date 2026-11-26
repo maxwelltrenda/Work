@@ -497,6 +497,8 @@ function farmValue(s = state) {
     if (o) for (let n = C.core.orchardSlots; n < (s.orchard || []).length; n++) v += Math.round(o.cost * Math.pow(o.grow, n - C.core.orchardSlots));
     for (let n = ce.slots; n < (s.casks || []).length; n++) v += Math.round(ce.caskCost * Math.pow(ce.caskGrow || 1, n - ce.slots) / 10) * 10;
     for (let n = wb.slots; n < (s.bench || []).length; n++) v += Math.round(wb.slotCost * Math.pow(wb.slotGrow || 1, n - wb.slots));
+    const fh = C.core.farmhands;
+    if (fh) for (let n = 0; n < (s.bunk || 0); n++) v += Math.round(fh.bunkCost * Math.pow(fh.bunkGrow, n));
     return v;
   } finally { state = keep; }
 }

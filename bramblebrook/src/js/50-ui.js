@@ -463,6 +463,10 @@ function handle(act, el, e) {
     case 'bench-cancel': benchCancel(+el.dataset.i); break;
     case 'bench-buy': { const c = benchSlotCost(); if (state.bench.length >= C.core.workbench.maxSlots || state.coins < c) return false; state.coins -= c; state.bench.push(null); toast('Another pair of hands at the workbench'); break; }
     case 'orchard-buy': if (!buyOrchardSpot()) return false; break;
+    case 'bunk-buy': if (!buyBunk()) return false; break;
+    case 'hire-hand': hireHand(el.dataset); return false;
+    case 'drop-hand': dropHand(el.dataset); return false;
+    case 'hand-search': handSearch(); return false;
     case 'net-set': if (!setNet(id)) return false; break;
     case 'net-collect': { const g = collectNet(id); if (g) toast(`Hauled in ${g} from the net`); else return false; break; }
     case 'cask-slot': caskSheet(+el.dataset.i); return false;

@@ -28,6 +28,7 @@ async function engine(want?: string) {
   return eng;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const okMove = (m: any) => m && typeof m === "object" && typeof m.n === "string" && m.n.length <= 16 &&
   Number.isFinite(m.t) && Number.isInteger(m.q) && m.q > 0 &&
   (m.a === undefined || (typeof m.a === "object" && !Array.isArray(m.a) && JSON.stringify(m.a).length <= MAX_ARGS));
@@ -72,16 +73,37 @@ export async function syncFarm(admin: SupabaseClient, userId: string, body: any,
       admin.from("farm_grants").select("id, coins, xp").eq("user_id", userId).is("applied_at", null),
       admin.rpc("svc_farm_village", { p_user: userId }),
     ]);
+    // farmhands hired in these moves: each one's price is its farm's value on the server, never what the phone says
+    const hireIds = [...new Set(fresh.filter((m: any) => m.n === "hire" && UUID.test(String(m.a?.u || ""))).map((m: any) => String(m.a.u)))];
+    const hire: Record<string, { price: number; ok: boolean }> = {};
+    let handCount = 0, hireLeft = 30;
+    if (hireIds.length) {
+      const hourAgo = new Date(Date.now() - 3600_000).toISOString();
+      const [{ data: targets }, { data: mine }, { data: blocks }, { count: recent }] = await Promise.all([
+        admin.from("farms").select("user_id, value, state->>name").in("user_id", hireIds as string[]),
+        admin.from("farmhands").select("hand").eq("owner", userId),
+        admin.from("blocks").select("blocker, blocked").or(`blocker.eq.${userId},blocked.eq.${userId}`),
+        admin.from("farm_grants").select("id", { count: "exact", head: true }).eq("kind", "hired").eq("ref", userId).gte("created_at", hourAgo),
+      ]);
+      const owned = new Set((mine || []).map((h: any) => h.hand));
+      const blocked = new Set((blocks || []).map((b: any) => (b.blocker === userId ? b.blocked : b.blocker)));
+      handCount = owned.size; hireLeft = Math.max(0, 30 - (recent || 0));
+      for (const t of targets || []) {
+        hire[t.user_id] = { price: Math.max(100, Math.floor(Number(t.value) || 0)), ok: t.user_id !== userId && !owned.has(t.user_id) && !blocked.has(t.user_id) && !!t.name };
+      }
+    }
     const grants: Record<string, { coins: number; xp: number }> = {};
     for (const g of grantRows || []) grants[String(g.id)] = { coins: g.coins, xp: g.xp };
 
     const now = Date.now(), at = Math.min(Number(body.at) || now, now + SKEW), from = Number(row?.last_t || 0);
-    const r = e.replay(base, fresh, { from, notAfter: now + SKEW, at, server: { grants, vperks: vperks || null, canGift: !!vperks } });
+    const r = e.replay(base, fresh, { from, notAfter: now + SKEW, at, server: { grants, vperks: vperks || null, canGift: !!vperks, hire, handCount, hireLeft } });
+    const hires = (r.effects || []).filter((x: any) => x.kind === "hire").map((x: any) => ({ u: x.u, c: x.c }));
     const gift = (r.effects || []).filter((x: any) => x.kind === "gift").reduce((a: number, x: any) => a + x.c, 0);
 
     const { data: nv, error } = await admin.rpc("svc_farm_save", {
       p_user: userId, p_v: row ? row.v : 0, p_state: r.state, p_hash: r.hash, p_last: Math.max(r.last, at, from), p_seqs: seqs,
       p_build: engBuild, p_origin: origin, p_grants: (r.used || []).map(Number), p_gift: gift, p_summary: summary(r.state), p_device: deviceName,
+      p_value: Math.floor(e.farmValue(r.state) || 0), p_hires: hires,
     });
     if (error || !nv) continue;   // another device saved in between (or a reward was taken): start again from its farm
 

@@ -11,17 +11,29 @@ globalThis.fetch = async (url) => {
 };
 const { syncFarm } = await import('../../supabase/functions/_shared/farm.ts');
 
-const db = { farms: {}, saves: {}, grants: [], flags: [], village: null, treasury: 0, failSave: 0 };
+const db = { farms: {}, saves: {}, grants: [], flags: [], village: null, treasury: 0, failSave: 0, hands: [], blocks: [] };
 let gid = 1;
 const q = (table) => {
-  const f = {}; let isNull = null;
+  const f = {}; let inList = null, orStr = null, head = false, gte = null;
+  const rows = () => {
+    if (table === 'farm_grants') return db.grants.filter(g => (f.user_id == null || g.user_id === f.user_id) && (f.kind == null || g.kind === f.kind) && (f.ref == null || g.ref === f.ref) && (f.user_id == null || !g.applied_at || head));
+    if (table === 'farms') return Object.entries(db.farms).filter(([u]) => !inList || inList.includes(u)).map(([u, r]) => ({ user_id: u, value: r.value || 0, name: r.state && r.state.name }));
+    if (table === 'farmhands') return db.hands.filter(h => f.owner == null || h.owner === f.owner);
+    if (table === 'blocks') return db.blocks;
+    return [];
+  };
   const api = {
-    select() { return api; }, eq(k, v) { f[k] = v; return api; }, is(k) { isNull = k; return api; },
+    select(_c, o) { if (o && o.head) head = true; return api; }, eq(k, v) { f[k] = v; return api; }, is() { return api; },
+    in(_k, v) { inList = v; return api; }, or(s2) { orStr = s2; return api; }, gte(_k, v) { gte = v; return api; },
     async maybeSingle() {
       if (table === 'farms') return { data: db.farms[f.user_id] ? structuredClone(db.farms[f.user_id]) : null };
       if (table === 'saves') return { data: db.saves[f.user_id] ? { data: structuredClone(db.saves[f.user_id].data) } : null };
     },
-    then(res) { if (table === 'farm_grants') res({ data: db.grants.filter(g => g.user_id === f.user_id && !g.applied_at).map(g => ({ id: g.id, coins: g.coins, xp: g.xp })) }); else res({ data: null }); },
+    then(res) {
+      if (head) return res({ count: rows().length });
+      if (table === 'farm_grants') return res({ data: db.grants.filter(g => g.user_id === f.user_id && !g.applied_at).map(g => ({ id: g.id, coins: g.coins, xp: g.xp })) });
+      res({ data: rows() });
+    },
     async insert(row) { if (table === 'farm_flags') db.flags.push(row); return { error: null }; },
   };
   return api;
@@ -37,9 +49,11 @@ const admin = {
       const gs = db.grants.filter(g => g.user_id === a.p_user && a.p_grants.includes(g.id) && !g.applied_at);
       if (gs.length !== a.p_grants.length) return { error: { message: 'farm_grant_taken' } };
       if (a.p_gift > 0 && !db.village) return { error: { message: 'farm_no_village' } };
+      for (const h of a.p_hires || []) if (db.hands.some(x => x.owner === a.p_user && x.hand === h.u)) return { error: { message: 'duplicate' } };
       gs.forEach(g => { g.applied_at = 1; });
       db.treasury += a.p_gift;
-      db.farms[a.p_user] = { state: a.p_state, hash: a.p_hash, last_t: a.p_last, v: (cur ? cur.v : 0) + 1, seqs: a.p_seqs };
+      for (const h of a.p_hires || []) { db.hands.push({ owner: a.p_user, hand: h.u, price: h.c }); db.grants.push({ id: ++gid, user_id: h.u, kind: 'hired', ref: a.p_user, coins: Math.floor(h.c * 0.1), xp: 0 }); }
+      db.farms[a.p_user] = { state: a.p_state, hash: a.p_hash, last_t: a.p_last, v: (cur ? cur.v : 0) + 1, seqs: a.p_seqs, value: a.p_value };
       db.saves[a.p_user] = { data: a.p_state };
       return { data: db.farms[a.p_user].v };
     }
@@ -134,4 +148,25 @@ ok(r4.origin === 'reset' && r4.state.coins === 80 && !r4.state.name, 'start over
 // 11. old games are told to reload
 const r5 = (await syncFarm(admin, 'u1', { moves: [] })).body;
 ok(r5.reload, 'an old game is told to reload');
+
+// 12. farmhands: the price is the server's, the hand is paid a tenth, no doubles, no blocked players, a full bunkhouse says no
+const H = ['11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444', '55555555-5555-4555-8555-555555555555'];
+for (const [i, u] of H.entries()) db.farms[u] = { state: Object.assign(E.fresh(), { name: 'Hand' + i }), hash: 'x', last_t: 0, v: 1, seqs: {}, value: 5000 * (i + 1) };
+const rich = db.farms.u1.state; rich.coins = 1e6;
+db.farms.u1.state = rich; db.farms.u1.hash = E.hashState(rich);
+let st = rich, hr; T = Date.now() + 5000;   // after test 7 moved this farm's clock to now
+const hireSend = async (u, c) => { const m = [mv('hire', { u, c })]; const pp = phone(st, m); hr = await send({ base_hash: db.farms.u1.hash, moves: m, hash: pp.hash, at: T + 1000 }); st = hr.state || pp.state; return hr; };
+await hireSend(H[0], 1)
+ok(st.coins === 1e6 - 5000 && db.hands.length === 1 && db.grants.some(g => g.user_id === H[0] && g.coins === 500), `hire charges the server's price (${1e6 - st.coins}) and pays the hand a tenth`);
+await hireSend(H[0], 5000);
+ok(db.hands.length === 1 && st.coins === 1e6 - 5000, 'the same farmhand cannot be hired twice');
+db.blocks.push({ blocker: H[1], blocked: 'u1' });
+await hireSend(H[1], 10000);
+ok(db.hands.length === 1, 'a player who blocked you cannot be hired');
+await hireSend(H[2], 15000); await hireSend(H[3], 20000);
+ok(db.hands.length === 3, 'two more hired (bunkhouse holds 3)');
+await hireSend(H[4], 25000);
+ok(db.hands.length === 3, 'a full bunkhouse says no');
+await hireSend('not-a-user', 1);
+ok(db.hands.length === 3, 'a made-up player is ignored');
 console.log('flags', db.flags.map(f => f.kind).join(' '));

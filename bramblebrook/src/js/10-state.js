@@ -11,7 +11,7 @@ function freshState() {
   const t = now();
   const k = C.core;
   return {
-    v: 2, created: t, savedAt: 0, name: '', vperks: null, rng: { s: (Math.random() * 4294967296) >>> 0, n: 0 },
+    v: 2, created: t, savedAt: 0, name: '', vperks: null, bunk: 0, rng: { s: (Math.random() * 4294967296) >>> 0, n: 0 },
     coins: 80, barn: 0,
     plots: Array.from({ length: k.plots.start }, () => ({ crop: null, at: 0, ready: 0 })),
     inv: { worm: 6 }, locked: {}, seen: { worm: 1 }, got: {},
@@ -53,7 +53,8 @@ function migrate(s) {
   if (!Array.isArray(out.casks) || !out.casks.length) out.casks = base.casks;
   if (!Array.isArray(out.charms)) out.charms = [];
   if (out.bg && out.charDone === undefined) out.charDone = true;
-  if (out.vperks === undefined) out.vperks = null;   // the village's perks (74-villages.js); null: not in one
+  if (out.vperks === undefined) out.vperks = null;
+  if (typeof out.bunk !== 'number') out.bunk = 0;   // farmhand bunkhouse (75-farmhands.js)   // the village's perks (74-villages.js); null: not in one
   if (!out.rng || typeof out.rng.s !== 'number') out.rng = { s: (Math.random() * 4294967296) >>> 0, n: 0 };   // characters made before charDone existed
   if (!I.crop[out.seed]) out.seed = 'wheat';
   if (!I.spot[out.spot]) out.spot = 'pond';

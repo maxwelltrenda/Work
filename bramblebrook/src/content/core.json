@@ -3572,6 +3572,7 @@
    }
   }
  ],
+ "farmhands": { "cap": [3, 5, 7, 9, 12, 15, 20], "bunkCost": 50000, "bunkGrow": 10, "minPrice": 100, "hourly": 30, "payout": 0.1 },
  "value": { "from": 50, "k": 1.2, "note": "sell value = s * (s/from)^k above from: dear items grow far dearer, cheap ones stay as they are" },
  "perks": [
   { "id": "harvestall", "n": "Big Basket", "desc": "Harvest several ready plots with one tap", "ranks": ["Harvest 3 ready plots with one tap", "Harvest 6 ready plots with one tap", "Harvest every ready plot with one tap"], "counts": [3, 6, 0], "per": 0, "max": 3, "handy": true },

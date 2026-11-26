@@ -111,7 +111,7 @@ function drawRaid() {
       <div class="raid-title"><small>Village boss · 2 days</small><b>${esc(d.n)}</b></div><div class="raid-ends">${ends}</div></div>
     <div class="raid-phases">${d.phases.map((p, i) => `<i class="${r.status === 'won' || i < r.phase ? 'done' : i === r.phase ? 'now' : ''}"></i>`).join('')}</div>
     <div class="raid-stage${fl ? ' hit' : ''}">${bossArtHTML(d, 'big')}<span class="raid-banner">${esc(banner)}</span>
-      ${fl ? `<span class="raid-float${fl.strong ? ' strong' : ''}">−${fl.dmg}${fl.strong ? ' strong!' : ''}</span>` : ''}</div>
+      ${fl ? `<span class="raid-float${fl.strong ? ' strong' : ''}">−${fmtShort(fl.dmg)}${fl.strong ? ' strong!' : ''}${fl.bonus ? `<small> farmhands +${fl.bonus}%</small>` : ''}</span>` : ''}</div>
     <div class="raid-body">
       <div class="raid-row"><b>Boss beaten</b><span>${pctText(n.total)}</span></div><div class="raid-bar gold"><i style="--p:${n.total.toFixed(3)}"></i></div>
       ${active ? `<p class="raid-text">${esc(n.ph.text)}</p>` : ''}
@@ -150,7 +150,7 @@ async function raidHit(kind) {
   if (res) {
     const hit = takeRaid(res);
     if (hit) {
-      raidUI.float = { dmg: hit.dmg, strong: hit.matched, at: Date.now() };
+      raidUI.float = { dmg: hit.dmg, strong: hit.matched, bonus: +hit.bonus || 0, at: Date.now() };
       play(hit.matched ? 'crit' : 'thud');
       if (hit.won) { play('feat', 0.3); toast('The boss is beaten! Collect your share.', 'lvl', 5000); }
       else if (hit.phase_done) { play('level', 0.2); toast('Phase cleared! On to the next one.', 'lvl', 3500); }

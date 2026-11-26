@@ -29,7 +29,8 @@ function replay(s0, moves, opt = {}) {
   resetTransient();
   mv.replaying++;
   let last = +opt.from || 0, applied = 0;
-  srv = opt.server ? { grants: opt.server.grants || {}, vperks: opt.server.vperks || null, canGift: !!opt.server.canGift, effects: [] } : null;
+  srv = opt.server ? { grants: opt.server.grants || {}, vperks: opt.server.vperks || null, canGift: !!opt.server.canGift, hire: opt.server.hire || {},
+    handCount: +opt.server.handCount || 0, hireLeft: opt.server.hireLeft == null ? 30 : +opt.server.hireLeft, effects: [] } : null;
   if (srv && moves && moves.length) state.vperks = srv.vperks;   // the village's real perks, from the first move on
   try {
     for (const m of moves || []) {

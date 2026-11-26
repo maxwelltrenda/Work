@@ -62,6 +62,7 @@ function goTown(s) { state.tab = 'town'; state.sub.town = s; renderTabs(); rende
 function noteGo(to, id) {
   closeSheet();
   if (to === 'village') goTown('village');
+  else if (to === 'hands') { goTown('hands'); loadHands(true); }
   else if (to === 'boss') { goTown('village'); loadVillage().then(() => { if (vil.raid && vil.raid.raid) openRaid(); else renderView(); }); }
   else if (to === 'profile' && id) openProfile(id);
   else if (to === 'dm' && id) openDm(id);

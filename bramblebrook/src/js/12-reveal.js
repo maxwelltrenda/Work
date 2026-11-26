@@ -14,6 +14,7 @@ const FEATURES = {
   'make:cellar': () => unlocked(C.core.cellar.unlock),
   'town:board': () => chapterDone('prologue') && dayNumber() >= 2,
   'town:village': () => ONLINE.social && chapterDone('prologue'),
+  'town:hands': () => ONLINE.social && chapterDone('prologue'),
   'town:chat': () => ONLINE.social && chapterDone('prologue'),
   'town:mail': () => state.mail.length > 0,
   'bag:almanac': () => chapterDone('prologue') && dayNumber() >= 3,
@@ -33,7 +34,7 @@ const FEATURE_NAMES = {
   'farm:orchard': 'The orchard, on the Farm tab.', 'farm:animals': 'Animals, on the Farm tab.', 'farm:pets': 'Pets, on the Farm tab.',
   'wilds:mine': 'The Mine, in the Wilds.', 'town:inn': 'The Lantern & Ladle inn, in Town.', 'bag:bestiary': 'The bestiary, in your Bag.',
   'make:kitchen': 'Cooking, in the Make tab.', 'make:bench': 'The workbench, in the Make tab.', 'make:cellar': 'The cellar, in the Make tab.',
-  'town:board': 'The town board: chores and daily gifts.', 'town:village': 'Villages, in Town: team up with other players.', 'town:chat': 'Chat, in Town: talk with everyone and message friends.', 'bag:perks': 'Perks, in your Bag.',
+  'town:board': 'The town board: chores and daily gifts.', 'town:village': 'Villages, in Town: team up with other players.', 'town:hands': 'Farmhands, in Town: hire other players to hit bosses harder.', 'town:chat': 'Chat, in Town: talk with everyone and message friends.', 'bag:perks': 'Perks, in your Bag.',
   'festival': 'Seasonal festivals, on the town board.', 'exchange': 'The Valley Exchange, in Shops.',
 };
 const featureOn = k => !FEATURES[k] || !!FEATURES[k]();

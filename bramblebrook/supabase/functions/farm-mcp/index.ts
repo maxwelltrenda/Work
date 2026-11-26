@@ -19,7 +19,9 @@ const VILLAGE_ACTIONS = ["create_village", "join_village", "leave_village", "don
   // feedback: players send it; the game's owner reads and answers it in the game
   "send_feedback", "feedback_inbox", "feedback_mark",
   // safety: report, block, moderation by the game's owner, and deleting the account
-  "block_player", "unblock_player", "blocked_list", "report_content", "mod_action", "delete_my_account"];
+  "block_player", "unblock_player", "blocked_list", "report_content", "mod_action", "delete_my_account",
+  // farmhands: who you could hire, who you have, letting one go (hiring itself is a farm move, through save_farm)
+  "farmhand_market", "my_farmhands", "drop_farmhand"];
 
 const TOOLS = [
   {
