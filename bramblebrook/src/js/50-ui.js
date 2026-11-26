@@ -154,6 +154,8 @@ function itemSheet(id) {
   if (I.recipe[id]) where.push(`Workshop (Crafting ${I.recipe[id].lvl})`);
   if (I.meal[id]) where.push(`Kitchen (Cooking ${I.meal[id].lvl})`);
   if (C.core.store.some(s => s.item === id)) where.push('General store');
+  if (it.t === 'gear') { const T = C.core.raidTiers[it.tier - 1]; where.push(`Village bosses in tier ${it.tier}, ${T.n} (about 1 win in ${Math.round(1 / T.drop)}, sure by your ${ordinal(T.pity)} win)`); }
+  if (id === 'boss_rune') where.push('Every village boss you fight (more from higher tiers)');
   const uses = [];
   I.recipes.concat(I.meals).forEach(r => { if (r.need[id]) uses.push(itemName(r.id)); });
   I.vils.forEach(v => { const q = curRequest(v.id); if (q && q.want[id] && vilAvailable(v)) uses.push(`${vilShort(v.id)} wants ${q.want[id]}`); });
@@ -166,6 +168,8 @@ function itemSheet(id) {
     <dl>${key ? '' : `<dt>Sells for</dt><dd class="num">${priceOf(id)} coins${t ? ` (${'★'.repeat(t)} mastery)` : ''}</dd>`}
       ${meal && edible(id) ? `<dt>${isDrink(id) ? 'Drink it' : 'Eat it'}</dt><dd>${esc(meal.use || [meal.stamina ? `+${meal.stamina} stamina` : '', meal.buff ? `${I.buffs[meal.buff].n}: ${I.buffs[meal.buff].desc} (${meal.mins} min)` : ''].filter(Boolean).join(' · '))}</dd>` : ''}
       ${netRec ? `<dt>Cast it</dt><dd>${esc(netRec.use)}</dd>` : ''}
+      ${it.t === 'gear' ? (() => { const g = gearLines(id); return `<dt>Wear it</dt><dd>${esc(g.slot)} · ${esc(g.on)}${g.fx ? ` · ${esc(g.fx)} in the training yard` : ''}</dd>
+        <dt>Enchanted</dt><dd>${g.lv ? `Level ${g.lv} of ${GEARC().enchant.costs.length}` : 'Not yet'}${g.lv < enchantCap() ? ` · next level ${enchantCost(id)} Battle Runes (you have ${have('boss_rune')})` : g.lv < GEARC().enchant.costs.length ? ` · Crafting ${(g.lv) * GEARC().enchant.perCrafting} allows the next level` : ''}</dd>`; })() : ''}
       <dt>Found</dt><dd>${esc([...new Set(where)].join(', ') || (key ? 'A keepsake from the story' : 'Rewards'))}</dd>
       <dt>Used for</dt><dd>${esc(uses.join(', ') || (key ? 'Remembering' : 'Selling'))}</dd>
       ${lovers.length ? `<dt>Loved by</dt><dd>${esc(lovers.join(', '))}</dd>` : ''}
@@ -173,6 +177,8 @@ function itemSheet(id) {
     <div class="sheet-btns">
       ${meal && edible(id) && n ? `<button class="btn small sun" data-act="eat" data-id="${id}">${isDrink(id) ? 'Drink one' : 'Eat one'}</button>` : ''}
       ${netRec && n ? `<button class="btn small sun" data-act="use-net" data-id="${id}">Cast where you fish</button>` : ''}
+      ${it.t === 'gear' && n ? (gearOf(it.slot) === id ? `<button class="btn small ghost" data-act="gear-off" data-slot="${it.slot}">Take it off</button>` : `<button class="btn small sun" data-act="gear-on" data-id="${id}">Wear it</button>`) : ''}
+      ${it.t === 'gear' && n && gearLv(id) < enchantCap() ? `<button class="btn small" data-act="gear-enchant" data-id="${id}" ${have('boss_rune') >= enchantCost(id) ? '' : 'disabled'}>Enchant · ${enchantCost(id)} 🔷</button>` : ''}
       ${id === 'tonic' && n ? '<button class="btn small sun" data-act="tonic">Use on the farm</button>' : ''}
       ${it.t === 'charm' && n ? (state.charms.includes(id) ? `<button class="btn small ghost" data-act="charm-off" data-id="${id}">Take it off</button>` : `<button class="btn small sun" data-act="charm-on" data-id="${id}">Wear it</button>`) : ''}
       ${key || !n ? '' : `<button class="btn small" data-act="sell" data-id="${id}" data-n="1">Sell 1 · ${priceOf(id)}c</button>
@@ -335,6 +341,7 @@ function handle(act, el, e) {
     case 'cook': cook(id, el.dataset.n); break;
     case 'eat': if (!eat(id)) return false; if (sheetOpen()) closeSheet(); break;
     case 'item': itemSheet(id); return false;
+    case 'noop': return false;
     case 'sell': { const c = sell(id, el.dataset.n); if (c) toast(`Sold for ${fmtN(c)} coins`); closeSheet(); break; }
     case 'sell-type': {
       let c = 0;
@@ -473,6 +480,10 @@ function handle(act, el, e) {
     case 'orchard-buy': if (!buyOrchardSpot()) return false; break;
     case 'bunk-buy': if (!buyBunk()) return false; break;
     case 'bed-buy': if (!buyBed()) return false; break;
+    case 'gear-on': if (!gearOn(id)) return false; if (sheetOpen()) closeSheet(); break;
+    case 'gear-off': if (!gearOff(el.dataset.slot || (I.items[id] && I.items[id].slot))) return false; if (sheetOpen()) closeSheet(); break;
+    case 'gear-enchant': if (!enchantGear(id)) return false; if (sheetOpen()) itemSheet(id); break;
+    case 'gear-pick': gearSheet(el.dataset.slot); return false;
     case 'use-net': if (!useNet(id)) return false; if (sheetOpen()) closeSheet(); break;
     case 'stair-light': if (!lightLantern()) return false; break;
     case 'hire-hand': hireHand(el.dataset); return false;

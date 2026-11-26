@@ -31,7 +31,7 @@ const q = (table) => {
     },
     then(res) {
       if (head) return res({ count: rows().length });
-      if (table === 'farm_grants') return res({ data: db.grants.filter(g => g.user_id === f.user_id && !g.applied_at).map(g => ({ id: g.id, coins: g.coins, xp: g.xp })) });
+      if (table === 'farm_grants') return res({ data: db.grants.filter(g => g.user_id === f.user_id && !g.applied_at).map(g => ({ id: g.id, coins: g.coins, xp: g.xp, items: g.items || null })) });
       res({ data: rows() });
     },
     async insert(row) { if (table === 'farm_flags') db.flags.push(row); return { error: null }; },
@@ -169,4 +169,19 @@ await hireSend(H[4], 25000);
 ok(db.hands.length === 3, 'a full bunkhouse says no');
 await hireSend('not-a-user', 1);
 ok(db.hands.length === 3, 'a made-up player is ignored');
+
+// 13. boss loot: items come from the server's record (the phone can't add a better piece), then wear and enchant it
+db.grants.push({ id: ++gid, user_id: 'u1', kind: 'raid', coins: 0, xp: 0, items: { boss_rune: 30, gear_brambleblade: 1 } });
+{
+  let m = [mv('grant', { g: String(gid), c: 0, xp: 0, items: { boss_rune: 9999, gear_dragontooth: 1 } })];
+  let pp = phone(st, m);
+  hr = await send({ base_hash: db.farms.u1.hash, moves: m, hash: pp.hash, at: T + 2000 });
+  st = hr.state || pp.state;
+  ok((st.inv.boss_rune || 0) === 30 && st.inv.gear_brambleblade === 1 && !st.inv.gear_dragontooth, `loot comes from the server's record (${st.inv.boss_rune} runes, blade ${st.inv.gear_brambleblade}, tooth ${st.inv.gear_dragontooth || 0})`);
+  m = [mv('h', { act: 'gear-on', d: { id: 'gear_brambleblade' } }), mv('h', { act: 'gear-enchant', d: { id: 'gear_brambleblade' } })];
+  pp = phone(st, m);
+  hr = await send({ base_hash: db.farms.u1.hash, moves: m, hash: pp.hash, at: T + 3000 });
+  st = hr.state || pp.state;
+  ok(hr.match && st.gear.weapon === 'gear_brambleblade' && st.gearLv.gear_brambleblade === 1 && st.inv.boss_rune === 10, `wearing and enchanting replay the same (worn ${st.gear.weapon}, level ${st.gearLv.gear_brambleblade}, ${st.inv.boss_rune} runes left)`);
+}
 console.log('flags', db.flags.map(f => f.kind).join(' '));

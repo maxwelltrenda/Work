@@ -42,7 +42,7 @@
   "crafted": "Crafted goods",
   "meal": "Meals",
   "key": "Keepsakes",
-  "charm": "Charms"
+  "charm": "Charms", "gear": "Battle gear"
  },
  "items": {
   "wheat": {
@@ -1291,7 +1291,48 @@
     "check:all": 1,
     "insp": 1
    }
-  }
+  },
+  "gear_brambleblade": {"n": "Bramble Blade", "i": "🗡️", "t": "gear", "s": 500, "rar": "rare", "desc": "A sword with a thorn-green edge, cut from the Bramble Wyrm's den", "slot": "weapon", "bar": "might", "tier": 1, "raid": 10, "fx": {"dmg": 1}, "f": "hue-rotate(60deg) saturate(1.4)"},
+  "gear_tidebook": {"n": "Book of Tides", "i": "📘", "t": "gear", "s": 500, "rar": "rare", "desc": "Its pages are always damp and always turning", "slot": "weapon", "bar": "magic", "tier": 1, "raid": 10, "fx": {"power": 1}},
+  "gear_strawhat": {"n": "Warden's Straw Hat", "i": "👒", "t": "gear", "s": 350, "rar": "rare", "desc": "Woven by the mill, stitched with wyrm-thread", "slot": "head", "bar": "both", "tier": 1, "raid": 4, "fx": {"ac": 1}},
+  "gear_quarryboots": {"n": "Quarry Boots", "i": "🥾", "t": "gear", "s": 350, "rar": "rare", "desc": "Soled with the Colossus's stone", "slot": "feet", "bar": "both", "tier": 1, "raid": 4, "fx": {"ac": 1}},
+  "gear_woodaxe": {"n": "Woodcutter's Axe", "i": "🪓", "t": "gear", "s": 800, "rar": "rare", "desc": "It has felled trees older than the village", "slot": "weapon", "bar": "might", "tier": 2, "raid": 15, "fx": {"hit": 1, "dmg": 1}},
+  "gear_oakstaff": {"n": "Hollow-Oak Staff", "i": "🪄", "t": "gear", "s": 800, "rar": "rare", "desc": "Cut from the old bear's oak, still smelling of honey", "slot": "weapon", "bar": "magic", "tier": 2, "raid": 15, "fx": {"hit": 1, "power": 1}},
+  "gear_bearcoat": {"n": "Bearskin Coat", "i": "🧥", "t": "gear", "s": 560, "rar": "rare", "desc": "Warm in any winter, and it still growls a little", "slot": "body", "bar": "both", "tier": 2, "raid": 6, "fx": {"ac": 1}, "f": "sepia(.6) hue-rotate(-20deg)"},
+  "gear_tuskshield": {"n": "Tusk-Rim Shield", "i": "🛡️", "t": "gear", "s": 560, "rar": "rare", "desc": "A round shield ringed with the Thornback Boar's tusks", "slot": "offhand", "bar": "both", "tier": 2, "raid": 6, "fx": {"ac": 1}},
+  "gear_antlersword": {"n": "Antler-King Sword", "i": "⚔️", "t": "gear", "s": 1300, "rar": "rare", "desc": "A blade with a crown of antler for a hilt", "slot": "weapon", "bar": "might", "tier": 3, "raid": 22, "fx": {"hit": 1, "dmg": 1}, "f": "hue-rotate(60deg) saturate(1.2)"},
+  "gear_greengrimoire": {"n": "The Green Grimoire", "i": "📗", "t": "gear", "s": 1300, "rar": "rare", "desc": "Written in sap by the Greatwood itself", "slot": "weapon", "bar": "magic", "tier": 3, "raid": 22, "fx": {"hit": 1, "power": 1}},
+  "gear_leafcloak": {"n": "Cloak of Falling Leaves", "i": "🍂", "t": "gear", "s": 910, "rar": "rare", "desc": "Sewn from leaves that never finish falling", "slot": "cloak", "bar": "both", "tier": 3, "raid": 9, "fx": {"ac": 1}},
+  "gear_willowcrown": {"n": "Willow Crown", "i": "🌿", "t": "gear", "s": 910, "rar": "rare", "desc": "Woven from the Weeping Willow; it never wilts", "slot": "head", "bar": "both", "tier": 3, "raid": 9, "fx": {"ac": 1}},
+  "gear_golempick": {"n": "Golem-Breaker Pick", "i": "⛏️", "t": "gear", "s": 2000, "rar": "very rare", "desc": "The pick that cracked the Amethyst Golem", "slot": "weapon", "bar": "might", "tier": 4, "raid": 30, "fx": {"hit": 1, "dmg": 1}},
+  "gear_amethystwand": {"n": "Amethyst Wand", "i": "🪄", "t": "gear", "s": 2000, "rar": "very rare", "desc": "A shard of the golem's crystal heart", "slot": "weapon", "bar": "magic", "tier": 4, "raid": 30, "fx": {"hit": 1, "power": 1}, "f": "hue-rotate(250deg) saturate(1.4)"},
+  "gear_silkboots": {"n": "Cave-Silk Boots", "i": "🥾", "t": "gear", "s": 1400, "rar": "very rare", "desc": "Silent on any stone, light as a web", "slot": "feet", "bar": "both", "tier": 4, "raid": 12, "fx": {"ac": 1}, "f": "grayscale(.8) brightness(1.3)"},
+  "gear_crystalmail": {"n": "Amethyst Mail", "i": "🥋", "t": "gear", "s": 1400, "rar": "very rare", "desc": "Rings of purple crystal that turn a blade", "slot": "body", "bar": "both", "tier": 4, "raid": 12, "fx": {"ac": 1}, "f": "hue-rotate(240deg) saturate(1.5)"},
+  "gear_emberhammer": {"n": "Ember Hammer", "i": "🔨", "t": "gear", "s": 3200, "rar": "very rare", "desc": "Its head never cools", "slot": "weapon", "bar": "might", "tier": 5, "raid": 40, "fx": {"hit": 1, "dmg": 2}, "f": "sepia(1) hue-rotate(-30deg) saturate(3)"},
+  "gear_hoardorb": {"n": "Dragon-Hoard Orb", "i": "🔮", "t": "gear", "s": 3200, "rar": "very rare", "desc": "A golden orb from the bottom of the dragon's hoard", "slot": "weapon", "bar": "magic", "tier": 5, "raid": 40, "fx": {"hit": 1, "power": 2}, "f": "hue-rotate(160deg) saturate(1.6)"},
+  "gear_magmashield": {"n": "Magma Shield", "i": "🛡️", "t": "gear", "s": 2240, "rar": "very rare", "desc": "Cast from the Magma Golem's crust", "slot": "offhand", "bar": "both", "tier": 5, "raid": 16, "fx": {"ac": 1}, "f": "sepia(1) hue-rotate(-40deg) saturate(3)"},
+  "gear_dragoncloak": {"n": "Dragonhide Cloak", "i": "🧣", "t": "gear", "s": 2240, "rar": "very rare", "desc": "Cut from a scale the Hoard Dragon shed", "slot": "cloak", "bar": "both", "tier": 5, "raid": 16, "fx": {"ac": 1}, "f": "hue-rotate(20deg) saturate(1.6)"},
+  "gear_cutlass": {"n": "Crab-Claw Cutlass", "i": "🗡️", "t": "gear", "s": 5000, "rar": "very rare", "desc": "Curved like the Crab King's claw, and as sharp", "slot": "weapon", "bar": "might", "tier": 6, "raid": 52, "fx": {"hit": 2, "dmg": 2}, "f": "hue-rotate(-30deg) saturate(1.8)"},
+  "gear_trident": {"n": "Tidecaller's Trident", "i": "🔱", "t": "gear", "s": 5000, "rar": "very rare", "desc": "Salt water drips from its points, even on dry land", "slot": "weapon", "bar": "magic", "tier": 6, "raid": 52, "fx": {"hit": 2, "power": 2}},
+  "gear_conchhelm": {"n": "Conch Helm", "i": "🐚", "t": "gear", "s": 3500, "rar": "very rare", "desc": "Hold it to your ear and you hear the sea", "slot": "head", "bar": "both", "tier": 6, "raid": 21, "fx": {"ac": 1, "hit": 1}},
+  "gear_serpentboots": {"n": "Sea-Serpent Boots", "i": "🥾", "t": "gear", "s": 3500, "rar": "very rare", "desc": "Scaled in blue, and they never get wet", "slot": "feet", "bar": "both", "tier": 6, "raid": 21, "fx": {"ac": 1, "hit": 1}, "f": "hue-rotate(180deg) saturate(1.5)"},
+  "gear_leviathanbow": {"n": "Leviathan-Bone Bow", "i": "🏹", "t": "gear", "s": 8000, "rar": "legendary", "desc": "Strung with a sea dragon's sinew", "slot": "weapon", "bar": "might", "tier": 7, "raid": 66, "fx": {"hit": 2, "dmg": 2}},
+  "gear_inktome": {"n": "Kraken-Ink Tome", "i": "📓", "t": "gear", "s": 8000, "rar": "legendary", "desc": "Written in the Kraken's ink; the words move when you are not looking", "slot": "weapon", "bar": "magic", "tier": 7, "raid": 66, "fx": {"hit": 2, "power": 2}, "f": "hue-rotate(180deg) saturate(1.2)"},
+  "gear_krakencoat": {"n": "Kraken-Scale Coat", "i": "🥋", "t": "gear", "s": 5600, "rar": "legendary", "desc": "Shimmers green and blue like deep water", "slot": "body", "bar": "both", "tier": 7, "raid": 26, "fx": {"ac": 2}, "f": "hue-rotate(150deg) saturate(1.5)"},
+  "gear_isleshield": {"n": "Shield of the Wandering Isle", "i": "🛡️", "t": "gear", "s": 5600, "rar": "legendary", "desc": "A slab of the island turtle's shell, castle and all", "slot": "offhand", "bar": "both", "tier": 7, "raid": 26, "fx": {"ac": 2}, "f": "hue-rotate(-60deg) saturate(.8) brightness(1.2)"},
+  "gear_yetimaul": {"n": "Yeti-Bone Maul", "i": "🔨", "t": "gear", "s": 12000, "rar": "legendary", "desc": "Heavy enough to start an avalanche", "slot": "weapon", "bar": "might", "tier": 8, "raid": 82, "fx": {"hit": 2, "dmg": 3}, "f": "grayscale(1) brightness(1.5)"},
+  "gear_icestaff": {"n": "Ice-Wyrm Staff", "i": "🪄", "t": "gear", "s": 12000, "rar": "legendary", "desc": "Frost creeps along the floor wherever it is carried", "slot": "weapon", "bar": "magic", "tier": 8, "raid": 82, "fx": {"hit": 2, "power": 3}, "f": "hue-rotate(170deg) saturate(.7) brightness(1.3)"},
+  "gear_furcloak": {"n": "Yeti-Fur Cloak", "i": "🧣", "t": "gear", "s": 8400, "rar": "legendary", "desc": "The warmest thing in the valley", "slot": "cloak", "bar": "both", "tier": 8, "raid": 33, "fx": {"ac": 2, "hit": 1}, "f": "grayscale(1) brightness(1.6)"},
+  "gear_frostcrown": {"n": "Frost Crown", "i": "👑", "t": "gear", "s": 8400, "rar": "legendary", "desc": "Carved from the Frost Giant's helm", "slot": "head", "bar": "both", "tier": 8, "raid": 33, "fx": {"ac": 2, "hit": 1}, "f": "hue-rotate(170deg) saturate(.6) brightness(1.4)"},
+  "gear_thundersword": {"n": "Thunder Greatsword", "i": "⚔️", "t": "gear", "s": 18000, "rar": "legendary", "desc": "It hums before a storm", "slot": "weapon", "bar": "might", "tier": 9, "raid": 100, "fx": {"hit": 3, "dmg": 3}, "f": "hue-rotate(200deg) saturate(1.5) brightness(1.2)"},
+  "gear_stormbook": {"n": "Book of Storms", "i": "📕", "t": "gear", "s": 18000, "rar": "legendary", "desc": "Every page crackles when it is turned", "slot": "weapon", "bar": "magic", "tier": 9, "raid": 100, "fx": {"hit": 3, "power": 3}, "f": "hue-rotate(220deg) saturate(1.5)"},
+  "gear_griffinboots": {"n": "Griffin-Feather Boots", "i": "🥾", "t": "gear", "s": 12600, "rar": "legendary", "desc": "Every step is half a leap", "slot": "feet", "bar": "both", "tier": 9, "raid": 40, "fx": {"ac": 2, "hit": 1}, "f": "hue-rotate(30deg) saturate(1.8) brightness(1.2)"},
+  "gear_thunderplate": {"n": "Thunder Plate", "i": "🥋", "t": "gear", "s": 12600, "rar": "legendary", "desc": "Armour that rings like the Thunder Giant's", "slot": "body", "bar": "both", "tier": 9, "raid": 40, "fx": {"ac": 2, "hit": 1}, "f": "sepia(1) saturate(2) brightness(1.1)"},
+  "gear_dragontooth": {"n": "Dragon-Tooth Blade", "i": "🗡️", "t": "gear", "s": 26000, "rar": "legendary", "desc": "A single fang of the White Dragon, honed to an edge", "slot": "weapon", "bar": "might", "tier": 10, "raid": 125, "fx": {"hit": 3, "dmg": 4}, "f": "grayscale(1) brightness(1.7)"},
+  "gear_phoenixstaff": {"n": "Phoenix Staff", "i": "🪄", "t": "gear", "s": 26000, "rar": "legendary", "desc": "Topped with a feather that is always burning", "slot": "weapon", "bar": "magic", "tier": 10, "raid": 125, "fx": {"hit": 3, "power": 4}, "f": "hue-rotate(-20deg) saturate(3) brightness(1.1)"},
+  "gear_dragonshield": {"n": "White Dragon Shield", "i": "🛡️", "t": "gear", "s": 18200, "rar": "legendary", "desc": "One scale from the oldest dragon of all, big enough to hide behind", "slot": "offhand", "bar": "both", "tier": 10, "raid": 50, "fx": {"ac": 2, "hit": 1}, "f": "grayscale(1) brightness(1.6)"},
+  "gear_titancloak": {"n": "Cloak of the Sky Titan", "i": "🧣", "t": "gear", "s": 18200, "rar": "legendary", "desc": "It billows with a wind from the roof of the world", "slot": "cloak", "bar": "both", "tier": 10, "raid": 50, "fx": {"ac": 2, "hit": 1}, "f": "hue-rotate(190deg) saturate(1.2) brightness(1.3)"},
+  "boss_rune": {"n": "Battle Rune", "i": "🔷", "t": "crafted", "s": 60, "rar": "uncommon", "desc": "Carved from what a village boss leaves behind. Enchant battle gear with it at the Forge."}
  },
  "crops": [
   {
@@ -4072,7 +4113,7 @@
   "inspirationMax": 3
  },
  "companionHearts": 3,
- "charmSlots": 3,
+ "charmSlots": 3, "raidTiers": [{"n": "The Valley", "blurb": "Trouble close to home: the mill, the quarry, the pond and the cove.", "drop": 0.3, "pity": 4}, {"n": "The Wild Woods", "blurb": "Past the Mossy Woods the trees get older, and so do the things that live under them.", "drop": 0.26, "pity": 5}, {"n": "The Old Forest", "blurb": "Deep in the woods the trees are older than the valley, and they remember everything.", "drop": 0.22, "pity": 6}, {"n": "The Deep Caves", "blurb": "Below the bottom of the Mine there are caves nobody has mapped.", "drop": 0.19, "pity": 7}, {"n": "The Fire Below", "blurb": "Deeper still, the rock gets warm, then hot, then it glows.", "drop": 0.16, "pity": 8}, {"n": "The Far Shore", "blurb": "Out past the cove, where the rocks go down into deep water.", "drop": 0.13, "pity": 9}, {"n": "The Open Sea", "blurb": "Beyond the last island the water is deep enough to hide anything.", "drop": 0.11, "pity": 10}, {"n": "The Snowfields", "blurb": "Above the highlands the snow never melts and the wind never stops.", "drop": 0.09, "pity": 12}, {"n": "The Storm Peaks", "blurb": "Where the mountains stab the clouds and the thunder lives.", "drop": 0.07, "pity": 14}, {"n": "The Roof of the World", "blurb": "The highest place there is. Only the oldest and strongest live here.", "drop": 0.05, "pity": 16}], "gear": {"slots": [["weapon", "Weapon"], ["offhand", "Off-hand"], ["head", "Head"], ["body", "Body"], ["feet", "Feet"], ["cloak", "Cloak"]], "setSize": 3, "setBonus": 10, "enchant": {"costs": [20, 50, 100, 200, 400], "step": 10, "perCrafting": 5}, "note": "raid: % more village-boss damage (a weapon on its own bar; half on the other; armour on both). Set: setSize pieces of one tier worn = +setBonus%. Enchant: each level +step% of the piece; levels allowed = 1 + crafting level / perCrafting, up to 5."},
  "cropCurve": {
   "xp": 1.15,
   "exp": 0.8,

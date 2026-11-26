@@ -29,13 +29,13 @@ function statBlock(clsId, lvl, extra = {}) {
   const s = scoresAt(c, lvl), prof = profBonus(lvl), w = c.weapon;
   return {
     cls: c.id, lvl, scores: s, hp: maxHpOf(c, lvl, s), ac: c.armor + (extra.ac || 0), prof,
-    init: abilityMod(s.dex), attack: abilityMod(s[w.stat]) + prof + (extra.hit || 0), damage: w.dice, damageMod: abilityMod(s[w.stat]),
-    power: abilityMod(s[c.primary]), saveDc: 8 + prof + abilityMod(s[c.primary]), moves: c.moves.slice(), weapon: w, role: c.role,
+    init: abilityMod(s.dex), attack: abilityMod(s[w.stat]) + prof + (extra.hit || 0), damage: w.dice, damageMod: abilityMod(s[w.stat]) + (extra.dmg || 0),
+    power: abilityMod(s[c.primary]) + (extra.power || 0), saveDc: 8 + prof + abilityMod(s[c.primary]), moves: c.moves.slice(), weapon: w, role: c.role,
   };
 }
 const myClass = () => clsDef(state.combat && state.combat.cls);
 const myClassLevel = () => classLevel((state.combat && state.combat.xp) || 0).lvl;
-function myBlock() { const c = myClass(); return c ? statBlock(c.id, myClassLevel(), { ac: charmFx('ac'), hit: charmFx('hit') }) : null; }
+function myBlock() { const c = myClass(); return c ? statBlock(c.id, myClassLevel(), { ac: charmFx('ac') + gearFx('ac'), hit: charmFx('hit') + gearFx('hit'), dmg: gearFx('dmg'), power: gearFx('power') }) : null; }
 /* Villagers who come along fight with their own class, a level behind you, catching up as you grow closer. */
 function folkBlock(vid) {
   const cid = (C.classes.folk || {})[vid];

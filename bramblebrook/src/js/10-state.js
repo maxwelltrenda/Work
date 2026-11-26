@@ -11,7 +11,7 @@ function freshState() {
   const t = now();
   const k = C.core;
   return {
-    v: 2, created: t, savedAt: 0, name: '', vperks: null, bunk: 0, stair: 0, bed: 0, bank: 0, drinks: null, places: {}, rng: { s: (Math.random() * 4294967296) >>> 0, n: 0 },
+    v: 2, created: t, savedAt: 0, name: '', vperks: null, bunk: 0, stair: 0, bed: 0, bank: 0, drinks: null, places: {}, gear: { weapon: '', offhand: '', head: '', body: '', feet: '', cloak: '' }, gearLv: {}, rng: { s: (Math.random() * 4294967296) >>> 0, n: 0 },
     coins: 80, barn: 0,
     plots: Array.from({ length: k.plots.start }, () => ({ crop: null, at: 0, ready: 0 })),
     inv: { worm: 6 }, locked: {}, seen: { worm: 1 }, got: {},
@@ -40,7 +40,7 @@ function migrate(s) {
   const base = freshState();
   if (!s || typeof s !== 'object' || s.v !== 2) return base;
   const out = Object.assign({}, base, s);
-  for (const key of ['inv', 'locked', 'seen', 'got', 'xp', 'upgrades', 'buffs', 'mine', 'story', 'flags', 'unlocks', 'pages', 'friends', 'gifted', 'chatted', 'reqs', 'heartSeen', 'advDone', 'encDone', 'ach', 'mastery', 'stats', 'animals', 'sub', 'nets', 'pets', 'perks', 'toursSeen', 'revealed', 'visited', 'opts', 'overflow', 'pity', 'bestiary', 'delvesDone', 'combat', 'places']) {
+  for (const key of ['inv', 'locked', 'seen', 'got', 'xp', 'upgrades', 'buffs', 'mine', 'story', 'flags', 'unlocks', 'pages', 'friends', 'gifted', 'chatted', 'reqs', 'heartSeen', 'advDone', 'encDone', 'ach', 'mastery', 'stats', 'animals', 'sub', 'nets', 'pets', 'perks', 'toursSeen', 'revealed', 'visited', 'opts', 'overflow', 'pity', 'bestiary', 'delvesDone', 'combat', 'places', 'gear', 'gearLv']) {
     out[key] = Object.assign({}, base[key], s[key] || {});
   }
   out.story.queue = Array.isArray(out.story.queue) ? out.story.queue : [];

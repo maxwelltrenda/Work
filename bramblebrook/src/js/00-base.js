@@ -30,6 +30,7 @@ const fmtShort = n => {
   return String(+(n / v).toPrecision(3)) + u;
 };
 const fmtC = n => fmtShort(n) + (Math.abs(n) < 1e6 ? 'c' : '');
+const ordinal = n => { const x = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (x[(v - 20) % 10] || x[v] || x[0]); };
 const fmtCoins = n => fmtShort(n) + ' coins';
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const byId = list => Object.fromEntries((list || []).map(x => [x.id, x]));

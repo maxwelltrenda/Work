@@ -70,7 +70,7 @@ export async function syncFarm(admin: SupabaseClient, userId: string, body: any,
 
     // the server's own records: unpaid rewards, the village (perks, and whether there is one to give to)
     const [{ data: grantRows }, { data: vperks }] = await Promise.all([
-      admin.from("farm_grants").select("id, coins, xp").eq("user_id", userId).is("applied_at", null),
+      admin.from("farm_grants").select("id, coins, xp, items").eq("user_id", userId).is("applied_at", null),
       admin.rpc("svc_farm_village", { p_user: userId }),
     ]);
     // farmhands hired in these moves: each one's price is its farm's value on the server, never what the phone says
@@ -92,8 +92,8 @@ export async function syncFarm(admin: SupabaseClient, userId: string, body: any,
         hire[t.user_id] = { price: Math.max(100, Math.floor(Number(t.value) || 0)), ok: t.user_id !== userId && !owned.has(t.user_id) && !blocked.has(t.user_id) && !!t.name };
       }
     }
-    const grants: Record<string, { coins: number; xp: number }> = {};
-    for (const g of grantRows || []) grants[String(g.id)] = { coins: g.coins, xp: g.xp };
+    const grants: Record<string, { coins: number; xp: number; items: Record<string, number> | null }> = {};
+    for (const g of grantRows || []) grants[String(g.id)] = { coins: Number(g.coins), xp: g.xp, items: g.items || null };
 
     const now = Date.now(), at = Math.min(Number(body.at) || now, now + SKEW), from = Number(row?.last_t || 0);
     const r = e.replay(base, fresh, { from, notAfter: now + SKEW, at, server: { grants, vperks: vperks || null, canGift: !!vperks, hire, handCount, hireLeft } });

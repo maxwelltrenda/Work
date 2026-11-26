@@ -10,7 +10,7 @@
 const FARM_ACTS = new Set(['seed', 'plot', 'harvest-all', 'sow-all', 'tonic', 'install', 'plant-tree', 'tree', 'harvest-trees',
   'collect', 'collect-all', 'buy-animal', 'pet', 'pet-pen', 'pet-one', 'area', 'explore', 'dig', 'perk-learn', 'descend', 'lift',
   'adventure', 'quest', 'quest-go', 'charm-on', 'charm-off', 'spot', 'bait', 'craft', 'cook', 'eat', 'sell', 'sell-type', 'lock',
-  'buy', 'buy-plot', 'buy-barn', 'orchard-buy', 'bunk-buy', 'bed-buy', 'use-net', 'stair-light', 'saffi-buy', 'saffi-sell', 'chore', 'chore-bonus', 'deliver', 'chat', 'gift-pick', 'heart',
+  'buy', 'buy-plot', 'buy-barn', 'orchard-buy', 'bunk-buy', 'bed-buy', 'use-net', 'gear-on', 'gear-off', 'gear-enchant', 'stair-light', 'saffi-buy', 'saffi-sell', 'chore', 'chore-bonus', 'deliver', 'chat', 'gift-pick', 'heart',
   'letter', 'letter-gift', 'story', 'class-choose', 'fight', 'fight-pal', 'fight-go', 'perk', 'perk-reset', 'bench-queue',
   'bench-collect', 'bench-cancel', 'bench-buy', 'net-set', 'net-collect', 'cask-fill', 'cask-bottle', 'cask-buy', 'ex-sell',
   'pet-adopt', 'pet-feed', 'pet-collect', 'fest-deliver', 'fest-buy', 'login-claim', 'take-overflow']);
@@ -93,12 +93,17 @@ const MOVES = {
     if (c > 0 && c <= state.coins) state.coins -= c;
   },
   grant: a => {
-    let g = { c: +a.c || 0, xp: +a.xp || 0 };
-    if (srv) { const x = srv.grants[a.g]; if (!x || x.used) return; x.used = true; g = { c: x.coins, xp: x.xp }; }
+    let g = { c: +a.c || 0, xp: +a.xp || 0, items: a.items };
+    if (srv) { const x = srv.grants[a.g]; if (!x || x.used) return; x.used = true; g = { c: x.coins, xp: x.xp, items: x.items }; }
     giveGrant(g);
   },
 };
-function giveGrant(g) { const c = Math.floor(+g.c || 0); if (c > 0) state.coins += c; if (+g.xp > 0) addCombatXP(Math.floor(+g.xp)); }
+// a reward the server issued: coins, battle experience, and items (Battle Runes, a piece of gear)
+function giveGrant(g) {
+  const c = Math.floor(+g.c || 0); if (c > 0) state.coins += c;
+  if (+g.xp > 0) addCombatXP(Math.floor(+g.xp));
+  if (g.items && typeof g.items === 'object') for (const [id, n] of Object.entries(g.items)) { const q = Math.floor(+n || 0); if (I.items[id] && q > 0 && q <= 10000) addOrStash(id, q); }
+}
 // the server's records for the replay in progress (null on the phone)
 let srv = null;
 // record a move and run it, for inputs that don't already pass through a recorded function

@@ -3,7 +3,7 @@
    phase to win. Attacks cost courage, which refills over the hour. Your class hits its own bar harder.
    The server keeps the bars, the courage and everyone's hits (raid_* in supabase/village_raids.sql); inside
    Claude the same calls go through the player's connector (rpc() in 74-villages.js routes them). */
-const BOSS_CELLS = 4;   // pictures in assets/boss.webp
+const BOSS_CELLS = 31;   // pictures in assets/boss.webp (tools/boss_ladder.py)
 const raidUI = { open: false, busy: false, at: 0, float: null };
 const MIGHT_CLASSES = ['fighter', 'rogue', 'ranger'], MAGIC_CLASSES = ['wizard', 'cleric', 'bard'];
 const raidDef = id => ((vil.raid && vil.raid.defs) || []).find(d => d.id === id) || null;
@@ -38,13 +38,29 @@ function raidNumbers(r, d) {
 }
 const pctText = f => `${Math.floor(f * 100)}%`;
 
+/* Ten tiers, lowest to highest (tools/boss_ladder.py): every boss in a tier is open once the tier below is beaten.
+   Each tier drops its own set of battle gear (77-gear.js) and Battle Runes; the higher the tier, the rarer the gear. */
+const tierOf = d => d.tier || 1;
+const tierInfo = t => { const R = vil.raid || {}, s = (R.tiers || []).find(x => x.tier === t), c = C.core.raidTiers[t - 1] || {};
+  return { n: (s && s.n) || c.n || `Tier ${t}`, blurb: (s && s.blurb) || c.blurb || '', drop: s ? +s.drop_chance : c.drop, pity: s ? s.pity : c.pity }; };
+const tierGear = t => Object.keys(I.items).filter(id => isGear(id) && I.items[id].tier === t);
+const xpPerAttack = d => 15 + 4 * (tierOf(d) - 1);
+const runesFor = (d, won) => (won ? 2 : 1) * tierOf(d);
+/* about how hard you hit each bar now: level, class, farmhands and gear, capped at 500 like the server */
+function myHits() {
+  const R = vil.raid || {}, f = R.fighter || {}, lv = Math.max(1, f.lvl || 1), base = 25 + 3 * (lv - 1), hands = +R.bonus || 0;
+  const cls = f.cls || '', mightCls = MIGHT_CLASSES.includes(cls), magicCls = MAGIC_CLASSES.includes(cls);
+  const one = (k, matched) => Math.min(500, Math.round(base * (matched ? 1.5 : 1) * (1 + hands + gearRaid(k) / 100)));
+  return { might: one('might', mightCls), magic: one('magic', magicCls) };
+}
+
 /* The card on the village screen: fight the boss, summon one, or collect a share. */
 function bossCardHTML() {
   const R = vil.raid;
   if (!R || !R.in_village) return '';
   const rw = R.reward;
   const reward = rw ? `<div class="card boss-reward"><b>${rw.status === 'won' ? `🏆 ${esc(rw.boss_name)} is beaten!` : `${esc(rw.boss_name)} got away this time.`}</b>
-      <p class="sub">Your share for ${plural(rw.actions, 'attack')}: ${fmtN(rw.coins)} coins${myClass() ? ` and ${fmtN(rw.xp)} battle experience` : ''}.</p>
+      <p class="sub">Your share for ${plural(rw.actions, 'attack')}: ${fmtN(rw.coins)} coins${myClass() ? ` and ${fmtN(rw.xp)} battle experience` : ''}, Battle Runes${rw.status === 'won' && rw.actions >= 3 ? ', and a chance at battle gear' : ''}.</p>
       <div class="row"><button class="btn small sun" data-act="raid-claim">Collect</button></div></div>` : '';
   const r = R.raid, d = r && raidDef(r.boss);
   if (r && d && r.status === 'active') {
@@ -55,35 +71,58 @@ function bossCardHTML() {
         <span class="bar"><i style="--p:${n.total.toFixed(3)}"></i></span><span class="btn small">Fight</span></span></button>`;
   }
   const last = r && d ? `<p class="sub">${r.status === 'won' ? `The village beat ${esc(d.n)}!` : `${esc(d.n)} got away.`}</p>` : '';
-  const ladder = bossLadder(), next = ladder.find(x => x.state === 'open' && !x.beaten);
-  const progress = `<p class="sub">${ladder.filter(x => x.beaten).length} of ${ladder.length} bosses beaten.${next ? ` Next: <b>${esc(next.d.n)}</b>.` : ladder.length ? ' The village has beaten them all!' : ''}</p>`;
-  if (R.role !== 'elder') return `${reward}<div class="label">Village boss</div><div class="card"><p class="sub">No boss right now. When an elder summons one, the whole village fights it together for two days, and everyone who joins in shares the reward.</p>${progress}${last}</div>`;
-  return `${reward}<div class="label">Village boss</div><div class="card"><p class="sub">Summon a boss and the whole village fights it together for two days. Everyone who joins in shares the reward. Bosses unlock one at a time: beat each to face the next.</p>${progress}${last}</div>
-    ${ladder.map(({ d: b, state, beaten, prev }) => state === 'locked'
-      ? `<div class="card boss-pick locked">${bossArtHTML(b)}<div><b>🔒 ${esc(b.n)}</b><p class="sub">Beat ${esc(prev.n)} to unlock.</p></div></div>`
-      : `<div class="card boss-pick">${bossArtHTML(b)}<div><b>${esc(b.n)}${beaten ? ' <span class="chip plain">Beaten ✓</span>' : ''}</b><p class="sub">${esc(b.blurb)}</p>
-      ${bossFactsHTML(b)}<button class="btn small${beaten ? ' ghost' : ''}" data-act="raid-start" data-id="${esc(b.id)}">${beaten ? 'Summon again' : 'Summon'}</button></div></div>`).join('')}`;
+  const ladder = bossLadder(), beaten = ladder.filter(x => x.beaten).length, topOpen = Math.max(1, ...ladder.filter(x => x.state === 'open').map(x => tierOf(x.d)));
+  const progress = `<p class="sub">${beaten} of ${ladder.length} bosses beaten · tier ${topOpen} of 10 open.</p>`;
+  const intro = R.role === 'elder' ? 'Summon a boss and the whole village fights it together over a few days. Everyone who joins in shares the reward.'
+    : 'No boss right now. When an elder summons one, the whole village fights it together over a few days, and everyone who joins in shares the reward.';
+  return `${reward}<div class="label">Village bosses</div><div class="card"><p class="sub">${intro} Ten tiers, lowest to highest: beat every boss in a tier to open the next. Each tier drops its own set of battle gear.</p>${progress}${last}</div>
+    ${bossTiersHTML(ladder, R.role === 'elder')}`;
 }
-/* Bosses unlock in order, smallest to largest: each one opens once the village has beaten the one before it. */
+/* The ladder by tier: open tiers show their bosses, the next locked one says what opens it, and the rest wait. */
+function bossTiersHTML(ladder, elder) {
+  const byTier = {};
+  for (const x of ladder) (byTier[tierOf(x.d)] = byTier[tierOf(x.d)] || []).push(x);
+  const tiers = Object.keys(byTier).map(Number).sort((a, b) => a - b);
+  const R = vil.raid || {}, pity = R.pity || {};
+  let shownLocked = false;
+  return tiers.map(t => {
+    const list = byTier[t], open = list.some(x => x.state === 'open'), done = list.filter(x => x.beaten).length, T = tierInfo(t);
+    const gear = tierGear(t), got = gear.filter(id => have(id) > 0 || (state.got[id] || 0) > 0).length;
+    const left = Math.max(1, (T.pity || 1) - (pity[t] || 0));
+    const drops = `<div class="tier-drops">${gear.map(id => `<button class="tier-gear${have(id) ? ' have' : ''}" data-act="${state.seen[id] ? 'item' : 'noop'}" data-id="${id}" title="${esc(itemName(id))}">${state.seen[id] || have(id) ? pic(id, 26) : '<span class="unknown">?</span>'}</button>`).join('')}
+      <small>${got}/${gear.length} found · about 1 win in ${Math.round(1 / T.drop)} drops one${open ? `, sure within ${plural(left, 'more win')}` : `, sure by the ${ordinal(T.pity)}`}</small></div>`;
+    const head = `<div class="tier-head"><b>Tier ${t} · ${esc(T.n)}</b><span class="chip plain">${done}/${list.length} beaten</span></div><p class="sub">${esc(T.blurb)}</p>${drops}`;
+    if (!open) {
+      if (shownLocked) return '';
+      shownLocked = true;
+      const above = tiers.filter(x => x > t).length;
+      return `<div class="card tier locked">${head}<p class="sub">🔒 Beat every boss in tier ${t - 1} to open it.${above ? ` ${plural(above, 'more tier')} above.` : ''}</p></div>`;
+    }
+    return `<div class="card tier">${head}</div>${list.map(({ d: b, beaten }) => `<div class="card boss-pick">${bossArtHTML(b)}<div><b>${esc(b.n)}${beaten ? ' <span class="chip plain">Beaten ✓</span>' : ''}</b><p class="sub">${esc(b.blurb)}</p>
+      ${bossFactsHTML(b)}${elder ? `<button class="btn small${beaten ? ' ghost' : ''}" data-act="raid-start" data-id="${esc(b.id)}">${beaten ? 'Summon again' : 'Summon'}</button>` : ''}</div></div>`).join('')}`;
+  }).join('');
+}
+/* A tier is open once every boss in the tier below has been beaten; tier 1 always is. */
 function bossLadder() {
   const R = vil.raid || {}, won = new Set(R.beaten || []);
   const defs = (R.defs || []).slice().sort((a, b) => a.sort - b.sort);
-  return defs.map((d, i) => ({ d, beaten: won.has(d.id), prev: defs[i - 1] || null, state: i === 0 || won.has(defs[i - 1].id) ? 'open' : 'locked' }));
+  const tierDone = t => defs.filter(d => tierOf(d) === t).every(d => won.has(d.id));
+  return defs.map((d, i) => ({ d, beaten: won.has(d.id), prev: defs[i - 1] || null, state: tierOf(d) === 1 || tierDone(tierOf(d) - 1) ? 'open' : 'locked' }));
 }
 /* What a boss asks of each neighbour and what it pays, so the four can be told apart before summoning. */
 function bossFacts(d) {
   const per = d.phases.reduce((a, p) => ({ might: a.might + p.might, magic: a.magic + p.magic }), { might: 0, magic: 0 });
-  const attacks = Math.round((per.might + per.magic) / 15);   // a typical hit is about 15 (12 plain, 19 with your class's bar)
-  const level = attacks <= 36 ? 'Easy' : attacks <= 46 ? 'Medium' : 'Hard';
+  const h = myHits(), attacks = Math.ceil(per.might / h.might + per.magic / h.magic);   // each neighbour's share of both bars
+  const level = attacks <= 40 ? 'Easy' : attacks <= 120 ? 'Medium' : attacks <= 300 ? 'Hard' : 'Very hard';
   const lean = per.might > per.magic * 1.15 ? 'might' : per.magic > per.might * 1.15 ? 'magic' : '';
   return { attacks, level, lean };
 }
 function bossFactsHTML(d) {
-  const f = bossFacts(d);
+  const f = bossFacts(d), days = d.hours >= 72 ? 'three days' : d.hours >= 60 ? 'two and a half days' : 'two days';
   return `<ul class="boss-facts">
-      <li><b>${f.level}</b> · about ${f.attacks} attacks from each neighbour over ${Math.round(d.hours / 24)} days</li>
+      <li><b>${f.level}</b> · about ${fmtN(f.attacks)} of your attacks from each neighbour, over ${days}</li>
       <li>${f.lean === 'might' ? '⚔️ Needs more Might: fighters, rogues and rangers shine' : f.lean === 'magic' ? '✨ Needs more Magic: wizards, clerics and bards shine' : '⚖️ Even: every class helps the same'}</li>
-      <li>🪙 ${fmtShort(d.coin_per_action * rewardScale())} coins and 15 battle experience per attack, +${fmtShort(d.victory_bonus * rewardScale())} coins each if it's beaten</li></ul>`;
+      <li>🪙 ${fmtShort(d.coin_per_action * rewardScale())} coins and ${xpPerAttack(d)} battle experience per attack, +${fmtShort(d.victory_bonus * rewardScale())} coins each and ${runesFor(d, true)} 🔷 if it's beaten</li></ul>`;
 }
 
 /* The boss screen: art, phase, the two bars, courage and the attack buttons. */
@@ -99,19 +138,19 @@ function drawRaid() {
   const btn = (k, label) => `<button class="btn raid-${k}" data-raid="${k}" ${!active || raidUI.busy || c < 1 || (k === 'might' ? fullM : fullG) ? 'disabled' : ''}>
       <b>${label}</b><small>${(k === 'might' ? fullM : fullG) ? 'Full this phase' : `−1 courage${strong(k) ? ' · strong' : ''}`}</small></button>`;
   const top = (R.top || []).slice(0, 5).map((t, i) => `<li><span>${i + 1}. ${esc(whoName(t.user_id))}${t.user_id === (online && online.user) ? ' (you)' : ''}</span><span>${plural(t.actions, 'attack')}</span></li>`).join('');
-  const banner = r.status === 'won' ? 'Beaten!' : r.status === 'lost' ? 'It got away' : `Phase ${['I', 'II', 'III', 'IV', 'V'][r.phase] || r.phase + 1} · ${n.ph.n}`;
+  const banner = r.status === 'won' ? 'Beaten!' : r.status === 'lost' ? 'It got away' : `Phase ${['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][r.phase] || r.phase + 1} · ${n.ph.n}`;
   const ends = active ? `<small>Ends in</small><b id="raid-ends">${hms(Date.parse(r.ends_at) - serverNow())}</b>` : '<small>Over</small><b>—</b>';
   const tail = active ? `<div class="raid-courage"><span><b>${Math.floor(c)}</b>/${R.courage_max} courage</span><span id="raid-next">${c >= R.courage_max ? 'Full' : `+1 in ${mmss((1 - (c % 1)) * R.courage_secs * 1000)}`}</span></div>
       <div class="raid-btns">${btn('might', '⚔️ Strike')}${btn('magic', '✨ Cast')}</div>
       <p class="sub raid-hint">${cls ? `You're a ${esc(cls.n)}: you hit ${MIGHT_CLASSES.includes(cls.id) ? 'Might' : 'Magic'} hardest.` : 'Pick a class on your character sheet to hit one bar harder.'} Courage refills fully every hour.
-        Each attack pays ${fmtShort(d.coin_per_action * rewardScale())} coins, and +${fmtShort(d.victory_bonus * rewardScale())} each if the village wins.${R.mine && R.mine.actions ? ` You've attacked ${plural(R.mine.actions, 'time')}.` : ''}</p>`
+        ${gearWorn().length ? `Your gear adds ⚔️ +${gearRaid('might')}% · ✨ +${gearRaid('magic')}%. ` : ''}Each attack pays ${fmtShort(d.coin_per_action * rewardScale())} coins, and +${fmtShort(d.victory_bonus * rewardScale())} each if the village wins.${R.mine && R.mine.actions ? ` You've attacked ${plural(R.mine.actions, 'time')}.` : ''}</p>`
     : r.status === 'won' ? `<p class="raid-text">The village did it. ${esc(d.n)} is beaten, and everyone who fought gets a share.</p>${R.reward ? '<button class="btn sun big" data-raid="claim">Collect your share</button>' : ''}`
     : `<p class="raid-text">Time ran out and ${esc(d.n)} slipped away. Everyone who fought still gets half a share.</p>${R.reward ? '<button class="btn sun big" data-raid="claim">Collect your share</button>' : ''}`;
   const html = `<div class="raid-top"><button class="raid-back" data-raid="close" aria-label="Back to the village">‹</button>
-      <div class="raid-title"><small>Village boss · 2 days</small><b>${esc(d.n)}</b></div><div class="raid-ends">${ends}</div></div>
+      <div class="raid-title"><small>Tier ${tierOf(d)} · ${esc(tierInfo(tierOf(d)).n)}</small><b>${esc(d.n)}</b></div><div class="raid-ends">${ends}</div></div>
     <div class="raid-phases">${d.phases.map((p, i) => `<i class="${r.status === 'won' || i < r.phase ? 'done' : i === r.phase ? 'now' : ''}"></i>`).join('')}</div>
     <div class="raid-stage${fl ? ' hit' : ''}">${bossArtHTML(d, 'big')}<span class="raid-banner">${esc(banner)}</span>
-      ${fl ? `<span class="raid-float${fl.strong ? ' strong' : ''}">−${fmtShort(fl.dmg)}${fl.strong ? ' strong!' : ''}${fl.bonus ? `<small> farmhands +${fl.bonus}%</small>` : ''}</span>` : ''}</div>
+      ${fl ? `<span class="raid-float${fl.strong ? ' strong' : ''}">−${fmtShort(fl.dmg)}${fl.strong ? ' strong!' : ''}${fl.bonus ? `<small> farmhands &amp; gear +${fl.bonus}%</small>` : ''}</span>` : ''}</div>
     <div class="raid-body">
       <div class="raid-row"><b>Boss beaten</b><span>${pctText(n.total)}</span></div><div class="raid-bar gold"><i style="--p:${n.total.toFixed(3)}"></i></div>
       ${active ? `<p class="raid-text">${esc(n.ph.text)}</p>` : ''}
@@ -170,9 +209,11 @@ async function raidStart(id) {
 async function raidClaim() {
   const rw = await raidCall('claim_raid_reward');
   if (!rw) return;
-  doMove('grant', { g: String(rw.grant || ''), c: rw.coins || 0, xp: rw.xp || 0, why: 'raid' });   // the server pays it from its own record
+  doMove('grant', { g: String(rw.grant || ''), c: rw.coins || 0, xp: rw.xp || 0, items: rw.items || null, why: 'raid' });   // the server pays it from its own record
   play('coins');
-  toast(`+${fmtN(rw.coins)} coins from ${rw.boss_name}${myClass() && rw.xp ? ` · +${fmtN(rw.xp)} battle experience` : ''}`, 'lvl', 4500);
+  const runes = (rw.items || {}).boss_rune || 0, gear = Object.keys(rw.items || {}).find(isGear);
+  toast(`+${fmtN(rw.coins)} coins from ${rw.boss_name}${myClass() && rw.xp ? ` · +${fmtN(rw.xp)} battle experience` : ''}${runes ? ` · +${runes} 🔷` : ''}`, 'lvl', 4500);
+  if (gear) setTimeout(() => { play('feat'); toast(`Battle gear! ${itemName(gear)} (tier ${I.items[gear].tier}). Wear it from your Bag.`, 'lvl', 6000); }, 600);
   commit();
   await loadVillage();
   if (raidUI.open) drawRaid(); else if (villageOpenNow()) renderView();
