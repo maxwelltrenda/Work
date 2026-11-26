@@ -3,7 +3,9 @@
    for it that stays), worked out by the server from its own copy. They are paid a tenth of it. Each farmhand
    makes your hits on village bosses stronger, more so the more their farm is worth (supabase/farmhands.sql).
    Hiring spends coins, so it is a farm move (MOVES.hire) that the server checks: the price, room in your
-   bunkhouse, nobody blocked, nobody hired twice. Letting one go costs nothing and refunds nothing. */
+   bunkhouse, nobody blocked, nobody hired twice. Letting one go costs nothing and refunds nothing.
+   Their help is capped (supabase/farmhand_caps.sql): a hit can be at most four times as strong, and never over 500.
+   Past that, bigger means more coins: farmhands worth as much as your farm double what bosses pay you. */
 const hf = { data: null, market: null, q: '', at: 0, loading: false, err: '', busy: '' };
 const handCap = () => { const k = C.core.farmhands; return k.cap[Math.min(state.bunk || 0, k.cap.length - 1)]; };
 const bunkMaxed = () => (state.bunk || 0) >= C.core.farmhands.cap.length - 1;
@@ -55,13 +57,14 @@ function viewHands() {
   if (hf.err && !hf.data) return `<div class="card"><p class="sub">${esc(hf.err)}</p><button class="btn small" data-act="hand-search">Try again</button></div>`;
   loadHands(false);
   const me = hf.data, hands = me.hands || [], cap = handCap(), full = hands.length >= cap;
-  const bonus = Math.round((+me.bonus || 0) * 100);
+  const bonus = Math.round((+me.bonus || 0) * 100), bonusMax = Math.round((+me.bonus_max || 3) * 100), plunder = Math.round((+me.plunder || 0) * 100);
   const intro = `<div class="card"><h2>Farmhands</h2>
-    <p class="sub">Hire other players to help you. You pay what their farm is worth, and they get a tenth of it. Each farmhand makes your hits on village bosses stronger, more so the more their farm is worth.</p>
-    <div class="row between"><span class="sub">Your farm is worth <b>${fmtCoins(+me.value || farmValue())}</b>: that's your price if someone hires you.</span>
-    <span class="chip plain">${bonus ? `+${bonus}% boss damage` : 'No farmhands yet'}</span></div></div>`;
+    <p class="sub">Hire other players to help you. You pay what their farm is worth, and they get a tenth of it.</p>
+    <p class="sub">Farmhands make your hits on village bosses stronger, up to four times as strong. Past that, bigger pays: farmhands whose farms add up to as much as yours double the coins bosses pay you.</p>
+    <p class="sub">Your farm is worth <b>${fmtCoins(+me.value || farmValue())}</b>: that's your price if someone hires you.</p>
+    <div class="row"><span class="chip plain">⚔️ +${bonus}% damage${bonus >= bonusMax ? ' (the most)' : ` (up to +${bonusMax}%)`}</span><span class="chip plain">🪙 +${plunder}% boss coins${plunder >= 100 ? ' (the most)' : ''}</span></div></div>`;
   const mine = `<div class="card"><div class="row between"><h2>Your farmhands</h2><span class="chip plain">${hands.length}/${cap}</span></div>
-    ${hands.length ? hands.map(h => `<div class="store-item"><span class="emo" style="--s:28px">🧑‍🌾</span><div class="what"><b>${esc(h.name)}</b><small>@${esc(h.username || '')} · farm worth ${fmtCoins(+h.value)} · +${Math.round(Math.log10(1 + Math.max(0, +h.value)) * 10)}% damage</small></div>
+    ${hands.length ? hands.map(h => `<div class="store-item"><span class="emo" style="--s:28px">🧑‍🌾</span><div class="what"><b>${esc(h.name)}</b><small>@${esc(h.username || '')} · farm worth ${fmtCoins(+h.value)} · +${Math.round(Math.log10(1 + Math.max(0, +h.value)) * 2.5)}% damage</small></div>
       <button class="btn small ghost" data-act="drop-hand" data-id="${esc(h.id)}" data-name="${esc(h.name)}">Let go</button></div>`).join('') : '<p class="sub">Nobody yet. Hire someone below.</p>'}
     <div class="store-item"><span class="emo" style="--s:28px">🛏️</span><div class="what"><b>Bunkhouse</b><small>Room for ${cap} farmhands${bunkMaxed() ? ' (the most there can be)' : ` → ${C.core.farmhands.cap[(state.bunk || 0) + 1]}`}</small></div>
       ${bunkMaxed() ? '<span class="chip plain">Full size</span>' : `<button class="btn small" data-act="bunk-buy" ${state.coins >= bunkCost() ? '' : 'disabled'}>${fmtC(bunkCost())}</button>`}</div></div>`;
