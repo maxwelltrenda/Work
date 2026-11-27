@@ -74,8 +74,12 @@ function viewHome() {
   const chores = state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0);
   const unread = state.mail.filter(m => !m.read).length;
   const R = typeof vil !== 'undefined' ? vil.raid : null, raid = R && R.raid;
+  // the dot means there is something to do: a share to claim, or a boss up and courage to hit it with
+  const fighting = !!(raid && raid.status === 'active' && raidDef(raid.boss)), c = fighting ? courageNow() : 0;
   const bossLine = !socialOn() ? 'Sign in to fight bosses with a village' : !R || !R.in_village ? 'Join a village to fight bosses together'
-    : raid && raid.status === 'active' && raidDef(raid.boss) ? `${esc(raidDef(raid.boss).n)} · ${pctText(raidNumbers(raid, raidDef(raid.boss)).total)} beaten` : R.reward ? 'Your share is waiting' : 'No boss right now';
+    : R.reward ? 'Your share is waiting'
+    : fighting ? `${esc(raidDef(raid.boss).n)} · ${pctText(raidNumbers(raid, raidDef(raid.boss)).total)} beaten${c >= 1 ? ` · ${Math.floor(c)} courage` : ` · courage back in ${mmss((1 - (c % 1)) * R.courage_secs * 1000)}`}` : 'No boss right now';
+  const bossDot = !!(R && (R.reward || (fighting && c >= 1)));
   const groups = [
     ['Your farm', [
       tile('farm', 'fields', emo('🌾'), 'Fields', ready ? `${ready} ready to harvest${growing ? `, ${growing} growing` : ''}` : growing ? `${growing} growing` : 'Ready to sow', ready),
@@ -96,7 +100,7 @@ function viewHome() {
       tile('make', 'cellar', emo('🛢️'), 'Cellar', casksReady() ? `${casksReady()} ready` : 'Age goods into vintages', casksReady(), 'make:cellar'),
     ]],
     ['Battles and adventures', [
-      tile('town', 'village', emo('🐉'), 'Village boss', bossLine, !!(R && (R.reward || (raid && raid.status === 'active'))), 'town:village'),
+      tile('town', 'village', emo('🐉'), 'Village boss', bossLine, bossDot, 'town:village'),
       tile('town', 'inn', emo('🍺'), 'The inn', `Adventures, delves and the training yard${innNew() ? ` · ${innNew()} new` : ''}`, innNew(), 'town:inn'),
     ]],
     ['Every day', [
