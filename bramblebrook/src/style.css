@@ -807,7 +807,10 @@ textarea.fb-text { font: 15px/1.45 var(--body); min-height: 110px; margin: 10px 
 .hub-tile { background: linear-gradient(180deg, var(--surface-2), var(--surface)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), 0 2px 0 rgba(0, 0, 0, .35); }
 .hub-tile.ready { border-color: var(--accent); }
 .hub-tile .emo { --s: 40px !important; font-size: 22px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, var(--medal-a), var(--medal-b));
-  box-shadow: inset 0 0 0 1.5px var(--sun), inset 0 0 0 4px var(--medal-b), 0 2px 4px rgba(0, 0, 0, .5); filter: saturate(.55) sepia(.25) brightness(.92) contrast(1.05); }
+  box-shadow: inset 0 0 0 1.5px var(--sun), inset 0 0 0 4px var(--medal-b), 0 2px 4px rgba(0, 0, 0, .5); }
+.hub-tile .emo:not(.hub-ic) { filter: saturate(.55) sepia(.25) brightness(.92) contrast(1.05); }
+.hub-ic svg { width: 24px; height: 24px; color: var(--sun); fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, .6)); }
+.hub-ic .ic-red { fill: var(--accent); stroke: var(--accent); }
 .tabs { background: linear-gradient(180deg, var(--surface-2), var(--surface)); box-shadow: 0 -6px 20px rgba(0, 0, 0, .45); }
 .cb { background: var(--surface); }
 /* Pirata One runs narrow and small, so display text is a size up, never bold */

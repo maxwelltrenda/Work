@@ -1,11 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#1B1E3A"/>
-  <rect x="0" y="340" width="512" height="172" fill="#8A5D3B"/>
-  <rect x="0" y="372" width="512" height="18" fill="#66432A"/>
-  <rect x="0" y="420" width="512" height="18" fill="#66432A"/>
-  <rect x="0" y="468" width="512" height="18" fill="#66432A"/>
-  <path d="M256 352V214" stroke="#E7F3C8" stroke-width="26" stroke-linecap="round" fill="none"/>
-  <path d="M256 236c0-72-48-112-120-112 0 72 48 112 120 112z" fill="#B6DE7A"/>
-  <path d="M256 204c0-58 38-96 104-96 0 58-38 96-104 96z" fill="#CDEB9E"/>
-  <circle cx="392" cy="112" r="40" fill="#F4C873"/><circle cx="410" cy="100" r="34" fill="#1B1E3A"/><circle cx="110" cy="90" r="5" fill="#E8E7F6"/><circle cx="200" cy="60" r="4" fill="#E8E7F6"/><circle cx="300" cy="150" r="3" fill="#E8E7F6"/>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#09060A"/><stop offset="1" stop-color="#3A0F1A"/></linearGradient>
+    <linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE3A0"/><stop offset="1" stop-color="#C98E2E"/></linearGradient>
+    <clipPath id="c"><rect width="512" height="512" rx="112"/></clipPath>
+  </defs>
+  <g clip-path="url(#c)">
+    <rect width="512" height="512" fill="url(#sky)"/>
+    <circle cx="392" cy="112" r="44" fill="#D23B48"/><circle cx="412" cy="98" r="38" fill="#170910"/>
+    <circle cx="392" cy="112" r="80" fill="#D23B48" opacity=".12"/>
+    <rect x="0" y="340" width="512" height="172" fill="#1E0E12"/>
+    <rect x="0" y="372" width="512" height="14" fill="#2E141B"/><rect x="0" y="420" width="512" height="14" fill="#2E141B"/><rect x="0" y="468" width="512" height="14" fill="#2E141B"/>
+    <path d="M256 352V214" stroke="#E3AE4F" stroke-width="22" stroke-linecap="round" fill="none"/>
+    <path d="M256 236c0-72-48-112-120-112 0 72 48 112 120 112z" fill="url(#leaf)"/>
+    <path d="M256 204c0-58 38-96 104-96 0 58-38 96-104 96z" fill="url(#leaf)" opacity=".85"/>
+    <circle cx="110" cy="90" r="4" fill="#F1E4E6" opacity=".6"/><circle cx="200" cy="60" r="3" fill="#F1E4E6" opacity=".5"/>
+  </g>
+  <rect x="10" y="10" width="492" height="492" rx="104" fill="none" stroke="#E3AE4F" stroke-width="6" opacity=".6"/>
 </svg>
