@@ -80,7 +80,7 @@ p { margin: 0; }
 .skill b { font-family: var(--display); font-size: 15px; line-height: 1; font-variant-numeric: tabular-nums; }
 .skill .bar { height: 3px; }
 .buffs { display: flex; gap: 6px; flex-wrap: wrap; }
-.buff { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--sun-soft); color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.buff { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--sun-soft); color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; border: 1px solid color-mix(in srgb, var(--sun) 35%, transparent); cursor: pointer; }
 
 /* Views */
 .view { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; padding-top: 14px; }

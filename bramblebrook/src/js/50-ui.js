@@ -59,7 +59,7 @@ function updateHeader(force) {
   const bankEl = $('#stam-bank');
   if (bankEl) { bankEl.hidden = !bankCap(); bankEl.textContent = ` +${fmtShort(state.bank || 0)}`; bankEl.title = `${fmtN(state.bank || 0)} stamina saved in your bed`; }
   $('#almanac').textContent = `Day ${dayNumber()} · ${season()} · ${weather().n}`;
-  const buffs = Object.keys(I.buffs).filter(buffOn).map(b => `<span class="buff">${esc(I.buffs[b].n)} ${fmtT((state.buffs[b] - now()) / 1000)}</span>`).join('');
+  const buffs = Object.keys(I.buffs).filter(buffOn).map(b => `<button class="buff" data-act="buff" data-id="${b}" aria-label="${esc(I.buffs[b].n)}: what it does">${esc(I.buffs[b].n)} ${fmtT((state.buffs[b] - now()) / 1000)}</button>`).join('');
   const bEl = $('#buffs');
   bEl.innerHTML = buffs; bEl.hidden = !buffs;
   const sig = I.skills.map(s => (skillOn(s.id) ? '' : '-') + state.xp[s.id]).join(',');
@@ -132,6 +132,21 @@ function openSheet(html, refresh) {
 function closeSheet() { sheetFn = null; $('#sheet-root').innerHTML = ''; $('#sheet-root').classList.remove('over-scene'); placeToasts(); }
 const sheetOpen = () => !!$('#sheet-root').innerHTML;
 
+/* A buff in the header: what it does, how long is left (ticking), and what gives more of it. */
+function buffSheet(id) {
+  const b = I.buffs[id];
+  if (!b) return;
+  const meals = I.meals.filter(m => m.buff === id);
+  const draw = () => {
+    const left = (state.buffs[id] || 0) - now();
+    return `<div class="sheet-head"><span class="emo" style="--s:44px">✨</span><div><h2>${esc(b.n)}</h2><p class="muted">${left > 0 ? `${fmtT(left / 1000)} left` : 'Worn off'}</p></div></div>
+      <p>${esc(b.desc)}.</p>
+      ${meals.length ? `<div class="label">Get more from</div><div class="row">${meals.map(m => `<button class="chip plain" data-act="item" data-id="${m.id}">${pic(m.id, 20)} ${esc(itemName(m.id))} · +${m.mins || 15} min${have(m.id) ? ` · you have ${fmtN(have(m.id))}` : ''}</button>`).join('')}</div>` : ''}
+      <p class="sub">${meals.length ? 'Eating or drinking another adds its time on top. ' : ''}It sometimes comes as a reward too.</p>
+      <div class="sheet-btns"><button class="btn small ghost" data-act="sheet-close">Close</button></div>`;
+  };
+  openSheet(draw(), draw);
+}
 function itemSheet(id) {
   const it = I.items[id];
   if (!state.seen[id]) return;
@@ -335,6 +350,7 @@ function handle(act, el, e) {
     case 'cook': cook(id, el.dataset.n); break;
     case 'eat': if (!eat(id)) return false; if (sheetOpen()) closeSheet(); break;
     case 'item': itemSheet(id); return false;
+    case 'buff': buffSheet(id); return false;
     case 'noop': return false;
     case 'sell': { const c = sell(id, el.dataset.n); if (c) toast(`Sold for ${fmtN(c)} coins`); closeSheet(); break; }
     case 'sell-type': {
