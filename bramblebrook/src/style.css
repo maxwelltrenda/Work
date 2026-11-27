@@ -1,31 +1,35 @@
 /* Layout: one phone-width column. Sticky ledger header, one swappable view with sub-tabs, fixed tab bar.
-   Look: "Moonlit Valley", a single dark theme. Indigo night, faint stars, mint highlights and gold coins. */
+   Look: "Blood Moon", a single dark theme. Black and crimson, gold trim, a red glow at the top of the screen.
+   Headings and place names are in Pirata One (gothic); everything you read or count stays in Atkinson Hyperlegible. */
 :root {
-  --bg: #0E0F1E;
-  --surface: #171A2D;
-  --surface-2: #22253F;
-  --ink: #E8E7F6;
-  --muted: #9C9DC2;
-  --line: #2C2F50;
-  --accent: #86DCC2;
-  --accent-ink: #0A1914;
-  --sun: #F4C873;
-  --sun-soft: #3A3020;
-  --berry: #F38DB6;
-  --soil: #3C2E3E;
-  --soil-dark: #2A2030;
+  --bg: #09060A;
+  --surface: #150C11;
+  --surface-2: #1F1219;
+  --ink: #F1E4E6;
+  --muted: #B4979D;
+  --line: #3A1C27;
+  --accent: #D23B48;
+  --accent-ink: #FFF1F2;
+  --dark-ink: #1A0B0E;
+  --sun: #E3AE4F;
+  --sun-soft: #33231A;
+  --berry: #FF6B7A;
+  --soil: #38202A;
+  --soil-dark: #22121A;
   --water: #6B97F2;
   --water-soft: #172347;
-  --stone: #33354C;
-  --stone-dark: #17182A;
-  --story-a: #2B2F5E;
-  --story-b: #1C1F3D;
-  --story-line: #3B4080;
-  --star: rgba(255, 255, 255, .34);
-  --scrim: rgba(4, 4, 16, .7);
+  --stone: #2A1E24;
+  --stone-dark: #140C10;
+  --story-a: #3A101C;
+  --story-b: #18080E;
+  --story-line: #6A1E30;
+  --glow: rgba(210, 59, 72, .18);
+  --medal-a: #3A1822;
+  --medal-b: #170A10;
+  --scrim: rgba(6, 2, 4, .74);
   --pk-l: 22%;
   --pk-band: 52%;
-  --display: 'Bricolage Grotesque', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+  --display: 'Pirata One', 'Iowan Old Style', Georgia, serif;
   --body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --r: 14px;
   --r-sm: 10px;
@@ -35,7 +39,8 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { min-height: 100%; }
-body { background: radial-gradient(1px 1px at 12% 18%, var(--star) 50%, transparent 51%) 0 0 / 180px 160px, radial-gradient(1px 1px at 68% 42%, var(--star) 50%, transparent 51%) 0 0 / 220px 190px, radial-gradient(1.5px 1.5px at 40% 75%, var(--star) 50%, transparent 51%) 0 0 / 260px 240px, var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+body { background: radial-gradient(120% 70% at 50% -10%, var(--glow) 0%, transparent 60%) fixed, radial-gradient(140% 100% at 50% 120%, rgba(0, 0, 0, .65), transparent 60%) fixed, var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; -webkit-tap-highlight-color: transparent; }
+html { font-synthesis-weight: none; }   /* Pirata One has one weight; a faked bold smears it */
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
 button, input { font: inherit; color: inherit; }
 h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
@@ -101,7 +106,7 @@ p { margin: 0; }
 .btn { border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--accent-ink); display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; touch-action: manipulation; text-align: center; }
 .btn:disabled { opacity: .42; cursor: not-allowed; }
 .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
-.btn.sun { background: var(--sun); color: var(--accent-ink); }
+.btn.sun { background: var(--sun); color: var(--dark-ink); }
 .btn.small { padding: 6px 12px; min-height: 34px; font-size: 13px; }
 .btn.danger { background: transparent; color: var(--berry); box-shadow: inset 0 0 0 1.5px var(--berry); }
 .btn.big { width: 100%; min-height: 54px; font-size: 18px; font-family: var(--display); font-weight: 800; letter-spacing: -0.01em; }
@@ -117,7 +122,7 @@ p { margin: 0; }
 .story .label { color: inherit; opacity: .7; }
 .story b { font-family: var(--display); font-size: 17px; font-weight: 800; }
 .story p { font-size: 14px; opacity: .9; }
-.story .go { justify-self: start; background: var(--sun); color: var(--accent-ink); border-radius: 99px; padding: 5px 12px; font-weight: 700; font-size: 13px; }
+.story .go { justify-self: start; background: var(--sun); color: var(--dark-ink); border-radius: 99px; padding: 5px 12px; font-weight: 700; font-size: 13px; }
 
 /* Farm */
 .packets { max-width: 100%; display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x proximity; }
@@ -140,7 +145,7 @@ p { margin: 0; }
 .plot-bar i { display: block; height: 100%; width: calc(var(--g) * 100%); background: #CDEB9E; }
 .plot.ready { box-shadow: inset 0 0 0 3px var(--sun), inset 0 -4px 0 rgba(0,0,0,.14); }
 .plot.ready .sprout { animation: bob 1.6s ease-in-out infinite; }
-.plot.ready .plot-label { color: var(--accent-ink); background: var(--sun); border-radius: 99px; left: 50%; right: auto; transform: translateX(-50%); padding: 0 10px; text-shadow: none; bottom: 5px; }
+.plot.ready .plot-label { color: var(--dark-ink); background: var(--sun); border-radius: 99px; left: 50%; right: auto; transform: translateX(-50%); padding: 0 10px; text-shadow: none; bottom: 5px; }
 .plot.ready .plot-bar { display: none; }
 @keyframes bob { 50% { transform: translateY(-3px) rotate(-3deg); } }
 .farm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -189,10 +194,10 @@ p { margin: 0; }
 .place-go { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 26px; color: var(--muted); line-height: 1; }
 .place-meta { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .place-stars { color: var(--sun); letter-spacing: 1px; white-space: nowrap; }
-.place-hero { position: relative; overflow: hidden; background: linear-gradient(150deg, var(--a), var(--b)); color: var(--accent-ink); }
+.place-hero { position: relative; overflow: hidden; background: linear-gradient(150deg, var(--a), var(--b)); color: var(--dark-ink); }
 .place-hero .place-stars { color: #6A4A00; }
 .place-hero > *:not(.place-scene) { position: relative; z-index: 1; }
-.place-back { justify-self: start; border: 0; background: rgba(10, 25, 20, .12); color: var(--accent-ink); font-weight: 700; border-radius: 99px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+.place-back { justify-self: start; border: 0; background: rgba(10, 25, 20, .12); color: var(--dark-ink); font-weight: 700; border-radius: 99px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
 .place-mood { font-style: italic; opacity: .85; margin-top: 2px; }
 .place-line { font-size: 13px; opacity: .8; margin-top: 4px; }
 .place-scene { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
@@ -250,7 +255,7 @@ p { margin: 0; }
 /* Fishing */
 .spots { display: flex; gap: 8px; flex-wrap: wrap; }
 .spot { border: 1px solid var(--line); background: var(--surface); border-radius: 99px; padding: 8px 14px; cursor: pointer; font-weight: 700; }
-.spot[aria-pressed="true"] { background: var(--water); color: var(--accent-ink); border-color: var(--water); }
+.spot[aria-pressed="true"] { background: var(--water); color: var(--dark-ink); border-color: var(--water); }
 .spot.locked { opacity: .5; cursor: default; font-weight: 400; }
 .pond { position: relative; border-radius: 18px; min-height: 210px; overflow: hidden; display: grid; align-content: end; gap: 12px; padding: 16px; user-select: none;
   background: var(--water-soft);
@@ -319,7 +324,7 @@ p { margin: 0; }
 .feat { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px dashed var(--line); }
 .feat:last-child { border-bottom: 0; }
 .feat .medal { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); font-weight: 800; flex: none; }
-.feat.got .medal { background: var(--sun); color: var(--accent-ink); }
+.feat.got .medal { background: var(--sun); color: var(--dark-ink); }
 .feat .what { flex: 1; min-width: 0; }
 .feat .what small { display: block; color: var(--muted); font-size: 12px; }
 .online-form { display: grid; gap: 6px; }
@@ -362,7 +367,7 @@ textarea { min-height: 70px; resize: vertical; font: 12px/1.4 ui-monospace, Menl
 .cb-k { font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 5px; }
 .cb-p { font-size: 11.5px; line-height: 1.3; min-height: 2.6em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; color: var(--muted); }
 .cb-p b { color: var(--ink); font-weight: 700; }
-.cb-dot { display: inline-grid; place-items: center; min-width: 7px; height: 7px; border-radius: 99px; background: var(--berry); color: var(--accent-ink); font-size: 9px; font-style: normal; }
+.cb-dot { display: inline-grid; place-items: center; min-width: 7px; height: 7px; border-radius: 99px; background: var(--berry); color: var(--dark-ink); font-size: 9px; font-style: normal; }
 .cb-dot:not(:empty) { min-width: 15px; height: 15px; padding: 0 4px; }
 body.has-chatbar .app { padding-bottom: calc(170px + env(safe-area-inset-bottom, 0px)); }
 .sheet.chat-sheet { display: grid; gap: 10px; }
@@ -371,9 +376,9 @@ body.has-chatbar .app { padding-bottom: calc(170px + env(safe-area-inset-bottom,
 .tabs-in { max-width: 600px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .tab { border: 0; background: transparent; cursor: pointer; display: grid; justify-items: center; gap: 2px; padding: 9px 0 8px; color: var(--muted); font-size: 11px; font-weight: 700; position: relative; }
 .tab svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.tab[aria-current="page"] { color: var(--accent); }
-.tab[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 3px 3px; background: var(--accent); }
-.badge { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 4px; border-radius: 99px; background: var(--berry); color: var(--accent-ink); font-size: 10px; line-height: 17px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
+.tab[aria-current="page"] { color: var(--sun); }
+.tab[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 3px 3px; background: var(--sun); }
+.badge { position: absolute; top: 4px; left: calc(50% + 6px); min-width: 17px; height: 17px; padding: 0 4px; border-radius: 99px; background: var(--berry); color: var(--dark-ink); font-size: 10px; line-height: 17px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
 
 /* Toasts, sheets, scenes */
 .toasts { position: fixed; left: 0; right: 0; top: var(--toast-top, 64px); transition: top .2s ease; z-index: 12; display: grid; justify-items: center; gap: 6px; pointer-events: none; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -383,7 +388,7 @@ body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hi
 .toast.multi { display: grid; gap: 3px; text-align: left; font-size: 13px; font-weight: 600; max-width: 340px; }
 .toast.multi b { font-size: 14px; }
 .toast.multi span::before { content: "• "; opacity: .6; }
-.toast.lvl { background: var(--sun); color: var(--accent-ink); }
+.toast.lvl { background: var(--sun); color: var(--dark-ink); }
 @keyframes rise { from { transform: translateY(8px); opacity: 0; } }
 .sheet-wrap { position: fixed; inset: 0; z-index: 9; background: var(--scrim); display: grid; align-items: end; }
 .sheet { background: var(--surface); width: 100%; max-width: 600px; margin: 0 auto; border-radius: 20px 20px 0 0; display: grid; gap: 12px; align-content: start;
@@ -686,13 +691,13 @@ body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hi
 .bell-btn[hidden] { display: none; }
 .notes { display: grid; gap: 6px; }
 .note { display: flex; gap: 10px; align-items: flex-start; text-align: left; width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; cursor: pointer; }
-.note.unread { border-color: rgba(134, 220, 194, .5); background: var(--surface-2); }
+.note.unread { border-color: rgba(210, 59, 72, .55); background: var(--surface-2); }
 .note-ic { font-size: 20px; line-height: 1.2; flex: none; }
 .note-body { display: grid; gap: 2px; font-size: 14px; line-height: 1.35; } .note-body small { color: var(--muted); font-size: 12px; }
 .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
 .seg-b { position: relative; padding: 9px 6px; border: 0; border-radius: 10px; background: none; color: var(--muted); font: inherit; font-weight: 700; cursor: pointer; }
 .seg-b.on { background: var(--surface-2); color: var(--ink); }
-.seg-dot { display: inline-grid; place-items: center; min-width: 8px; height: 8px; margin-left: 5px; border-radius: 99px; background: var(--berry); color: var(--accent-ink); font-size: 10px; vertical-align: 2px; }
+.seg-dot { display: inline-grid; place-items: center; min-width: 8px; height: 8px; margin-left: 5px; border-radius: 99px; background: var(--berry); color: var(--dark-ink); font-size: 10px; vertical-align: 2px; }
 .seg-dot:not(:empty) { min-width: 17px; height: 17px; padding: 0 4px; vertical-align: 1px; }
 .chat-card { display: grid; gap: 10px; }
 .chat-note { margin: 0; font-size: 12.5px; }
@@ -701,7 +706,7 @@ body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hi
 .chat-line.mine { justify-content: flex-end; }
 .chat-pic { padding: 0; border: 0; background: none; cursor: pointer; flex: none; } .chat-pic .mono { width: 30px; height: 30px; }
 .chat-bubble { max-width: 78%; padding: 7px 11px; border-radius: 14px 14px 14px 4px; background: var(--surface-2); display: grid; gap: 2px; }
-.chat-line.mine .chat-bubble { border-radius: 14px 14px 4px 14px; background: rgba(134, 220, 194, .16); }
+.chat-line.mine .chat-bubble { border-radius: 14px 14px 4px 14px; background: rgba(210, 59, 72, .2); }
 .chat-bubble p { margin: 0; font-size: 14.5px; line-height: 1.4; overflow-wrap: anywhere; } .chat-bubble small { color: var(--muted); font-size: 11px; }
 .chat-name { justify-self: start; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
 .chat-form { display: flex; gap: 8px; } .chat-form input { flex: 1; min-width: 0; }
@@ -712,7 +717,7 @@ body.touring .toasts, body:has(#scene-root .scene-wrap) .toasts { visibility: hi
 .thread:hover { background: var(--surface-2); } .thread .mono { width: 36px; height: 36px; }
 .thread-text { flex: 1; min-width: 0; display: grid; } .thread-text small { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .thread.unread .thread-text b { color: var(--accent); }
-.thread-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--berry); color: var(--accent-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.thread-badge { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--berry); color: var(--dark-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; }
 .thread-t { color: var(--muted); font-size: 11px; flex: none; }
 .linkish.who { font-weight: 700; color: var(--ink); }
 .boss-facts { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
@@ -734,7 +739,7 @@ textarea.fb-text { font: 15px/1.45 var(--body); min-height: 110px; margin: 10px 
 .fb-item { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); display: grid; gap: 6px; }
 .fb-head { display: flex; gap: 8px; align-items: center; }
 .fb-who { display: grid; flex: 1; min-width: 0; line-height: 1.25; } .fb-who small { color: var(--muted); font-size: 12px; }
-.fb-st.new { border-color: rgba(134, 220, 194, .6); color: var(--mint, #86dcc2); }
+.fb-st.new { border-color: rgba(210, 59, 72, .6); color: var(--accent); }
 .fb-st.fixed { color: var(--sun); }
 .fb-body { margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 1.4; }
 .fb-ctx { font-size: 12px; color: var(--muted); }
@@ -791,6 +796,32 @@ textarea.fb-text { font: 15px/1.45 var(--body); min-height: 110px; margin: 10px 
 .hub-tile.ready small { color: var(--accent); }
 .hub-dot { position: absolute; top: 8px; right: 8px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: var(--accent); color: var(--accent-ink); font-style: normal; font-size: 11px; font-weight: 800; display: grid; place-items: center; }
 .hub-dot:empty { min-width: 10px; width: 10px; height: 10px; padding: 0; }
-.hub-new { position: absolute; top: 8px; right: 8px; font-style: normal; font-size: 10px; font-weight: 800; color: var(--accent-ink); background: var(--sun); border-radius: 99px; padding: 1px 6px; }
+.hub-new { position: absolute; top: 8px; right: 8px; font-style: normal; font-size: 10px; font-weight: 800; color: var(--dark-ink); background: var(--sun); border-radius: 99px; padding: 1px 6px; }
 .home-back { border: 0; background: var(--surface-2); color: inherit; font-weight: 700; border-radius: 99px; padding: 7px 14px; cursor: pointer; margin: 2px 0 10px; }
 .hub-tile:active, .home-back:active { transform: scale(.97); }
+
+/* ---------- Blood Moon: gold trim, medallion icons, and sizes that suit Pirata One ---------- */
+.label { color: var(--sun); letter-spacing: .14em; }
+.card, .story { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .03), 0 2px 0 rgba(0, 0, 0, .35); }
+.story { border-left: 3px solid var(--sun); }
+.hub-tile { background: linear-gradient(180deg, var(--surface-2), var(--surface)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), 0 2px 0 rgba(0, 0, 0, .35); }
+.hub-tile.ready { border-color: var(--accent); }
+.hub-tile .emo { --s: 40px !important; font-size: 22px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, var(--medal-a), var(--medal-b));
+  box-shadow: inset 0 0 0 1.5px var(--sun), inset 0 0 0 4px var(--medal-b), 0 2px 4px rgba(0, 0, 0, .5); filter: saturate(.55) sepia(.25) brightness(.92) contrast(1.05); }
+.tabs { background: linear-gradient(180deg, var(--surface-2), var(--surface)); box-shadow: 0 -6px 20px rgba(0, 0, 0, .45); }
+.cb { background: var(--surface); }
+/* Pirata One runs narrow and small, so display text is a size up, never bold */
+h1, h2, h3, .brand b, .btn.big, .story b, .packet .band, .plot-empty, .pen-head b, .area-top b, .adv b, .recipe-name b, .npc-head b, .speaker b, .tour-title,
+.bg-card b, .beast b, .raid-title b, .tier-head b, .stair-step b, .hub-tile b { font-weight: 400; letter-spacing: .01em; }
+.view-head h1 { font-size: 40px; line-height: 1.05; }
+.card h2 { font-size: 21px; }
+.brand b { font-size: 25px; }
+.btn.big { font-size: 22px; }
+.story b, .pen-head b, .area-top b, .adv b, .npc-head b, .bg-card b, .beast b, .tier-head b, .stair-step b, .hub-tile b { font-size: 20px; }
+.recipe-name b { font-size: 19px; }
+.speaker b, .raid-title b { font-size: 23px; }
+.tour-title { font-size: 22px; }
+.packet .band { font-size: 16px; }
+.plot-empty { font-size: 18px; }
+/* numbers and small capitals read better in the body face */
+.skill b, .stat b, .d20-n, .check-row b, .scene-title { font-family: var(--body); font-weight: 700; }
