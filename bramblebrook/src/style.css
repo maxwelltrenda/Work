@@ -828,3 +828,36 @@ h1, h2, h3, .brand b, .btn.big, .story b, .packet .band, .plot-empty, .pen-head 
 .plot-empty { font-size: 18px; }
 /* numbers and small capitals read better in the body face */
 .skill b, .stat b, .d20-n, .check-row b, .scene-title { font-family: var(--body); font-weight: 700; }
+
+/* ---------- village wars ---------- */
+.war-sides { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; text-align: center; }
+.war-side { display: grid; justify-items: center; gap: 2px; min-width: 0; }
+.war-side b { font-family: var(--display); font-weight: 400; font-size: 21px; line-height: 1.1; overflow-wrap: anywhere; }
+.war-side small { color: var(--muted); font-size: 12px; }
+.war-crest { font-size: 34px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .6)); }
+.war-vs { font-family: var(--display); color: var(--sun); font-size: 24px; }
+.war-bar { height: 10px; border-radius: 99px; background: var(--accent); overflow: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .4); }
+.war-bar i { display: block; height: 100%; width: calc(var(--p) * 100%); background: linear-gradient(90deg, #b8913f, var(--sun)); border-right: 2px solid var(--bg); }
+.war-meters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.war-meters > div { display: grid; gap: 1px; padding: 8px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line); }
+.war-meters small { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+.war-meters b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.war-meters span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.war-foe { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); }
+.war-foe:first-of-type { border-top: 0; }
+.war-foe-ic { font-size: 24px; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(circle at 50% 35%, var(--medal-a), var(--medal-b)); box-shadow: inset 0 0 0 1.5px var(--sun); }
+.war-foe-txt { display: grid; min-width: 0; }
+.war-foe-txt b { font-size: 16px; }
+.war-foe-txt small { color: var(--muted); font-size: 12px; }
+.war-foe-btns { display: flex; gap: 6px; }
+.war-foe-btns .btn { min-width: 64px; font-variant-numeric: tabular-nums; }
+.war-scouted { color: var(--sun); font-weight: 700; }
+.war-log-row { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.war-log-row:first-of-type { border-top: 0; }
+.war-log-row b { font-variant-numeric: tabular-nums; }
+.war-log-row.good b { color: var(--sun); }
+.war-log-row.bad b { color: var(--berry); }
+.war-log-row small { color: var(--muted); font-size: 11px; white-space: nowrap; }
+.war-last.won { border-color: var(--sun); }
+.war-last.lost { border-color: var(--accent); }
+.raid-apple { width: 100%; margin-top: 8px; }

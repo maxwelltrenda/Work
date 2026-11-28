@@ -142,6 +142,7 @@ function drawRaid() {
   const ends = active ? `<small>Ends in</small><b id="raid-ends">${hms(Date.parse(r.ends_at) - serverNow())}</b>` : '<small>Over</small><b>—</b>';
   const tail = active ? `<div class="raid-courage"><span><b>${Math.floor(c)}</b>/${R.courage_max} courage</span><span id="raid-next">${c >= R.courage_max ? 'Full' : `+1 in ${mmss((1 - (c % 1)) * R.courage_secs * 1000)}`}</span></div>
       <div class="raid-btns">${btn('might', '⚔️ Strike')}${btn('magic', '✨ Cast')}</div>
+      ${warApples() && c < R.courage_max ? `<button class="btn small ghost raid-apple" data-raid="apple" ${raidUI.busy ? 'disabled' : ''}>🍎 Eat a Blood Apple: courage full (you have ${warApples()})</button>` : ''}
       <p class="sub raid-hint">${cls ? `You're a ${esc(cls.n)}: you hit ${MIGHT_CLASSES.includes(cls.id) ? 'Might' : 'Magic'} hardest.` : 'Pick a class on your character sheet to hit one bar harder.'} Courage refills fully every hour.
         ${gearWorn().length ? `Your gear adds ⚔️ +${gearRaid('might')}% · ✨ +${gearRaid('magic')}%. ` : ''}Each attack pays ${fmtShort(d.coin_per_action * rewardScale())} coins, and +${fmtShort(d.victory_bonus * rewardScale())} each if the village wins.${R.mine && R.mine.actions ? ` You've attacked ${plural(R.mine.actions, 'time')}.` : ''}</p>`
     : r.status === 'won' ? `<p class="raid-text">The village did it. ${esc(d.n)} is beaten, and everyone who fought gets a share.</p>${R.reward ? '<button class="btn sun big" data-raid="claim">Collect your share</button>' : ''}`
@@ -166,6 +167,7 @@ function drawRaid() {
 function openRaid() {
   if (!vil.raid || !vil.raid.raid) return;
   raidUI.open = true;
+  if (!wv.data) loadWar().then(() => { if (raidUI.open) drawRaid(); });
   holdToasts();
   drawRaid();
   setTimeout(() => maybeTourNow('raid'), 400);
@@ -212,7 +214,8 @@ async function raidClaim() {
   doMove('grant', { g: String(rw.grant || ''), c: rw.coins || 0, xp: rw.xp || 0, items: rw.items || null, why: 'raid' });   // the server pays it from its own record
   play('coins');
   const runes = (rw.items || {}).boss_rune || 0, gear = Object.keys(rw.items || {}).find(isGear);
-  toast(`+${fmtN(rw.coins)} coins from ${rw.boss_name}${myClass() && rw.xp ? ` · +${fmtN(rw.xp)} battle experience` : ''}${runes ? ` · +${runes} 🔷` : ''}`, 'lvl', 4500);
+  toast(`+${fmtN(rw.coins)} coins from ${rw.boss_name}${myClass() && rw.xp ? ` · +${fmtN(rw.xp)} battle experience` : ''}${runes ? ` · +${runes} 🔷` : ''}${rw.apples ? ` · +${rw.apples} 🍎 Blood Apple` : ''}`, 'lvl', 4500);
+  if (rw.apples) loadWar();
   if (gear) setTimeout(() => { play('feat'); toast(`Battle gear! ${itemName(gear)} (tier ${I.items[gear].tier}). Wear it from your Bag.`, 'lvl', 6000); }, 600);
   commit();
   await loadVillage();
@@ -225,6 +228,7 @@ document.addEventListener('click', e => {
   const k = b.dataset.raid;
   if (k === 'close') closeRaid();
   else if (k === 'claim') raidClaim();
+  else if (k === 'apple') warApple('courage').then(() => loadVillage()).then(() => { if (raidUI.open) drawRaid(); });
   else if (k === 'might' || k === 'magic') raidHit(k);
 });
 // while the boss screen is open: the clock and courage tick every second, and news comes every 15

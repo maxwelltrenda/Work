@@ -52,7 +52,7 @@ async function setShowOnline(on) {
 function startPresence() {
   clearInterval(prof.timer);
   if (!socialOn()) return;
-  socialPing(); loadMyProfile().then(refreshOnlineCard); pushPublicCard(); loadVillage();   // socialPing also marks you online, every minute
+  socialPing(); loadMyProfile().then(refreshOnlineCard); pushPublicCard(); loadVillage(); loadWar();   // socialPing also marks you online, every minute
 }
 
 /* "Online now", "Last online 3 h ago", or private. */

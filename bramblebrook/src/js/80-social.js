@@ -24,6 +24,7 @@ async function socialPing() {
   } catch (e) { /* offline: try next time */ }
   soc.pinging = false;
   refreshPreviews();
+  loadWar();   // the war's score and your raids, for the Home tile and the Village button
 }
 async function freshNoteToast() {
   try {
@@ -63,6 +64,7 @@ function noteGo(to, id) {
   closeSheet();
   if (to === 'village') goTown('village');
   else if (to === 'hands') { goTown('hands'); loadHands(true); }
+  else if (to === 'war') { goTown('war'); loadWar(); }
   else if (to === 'boss') { goTown('village'); loadVillage().then(() => { if (vil.raid && vil.raid.raid) openRaid(); else renderView(); }); }
   else if (to === 'profile' && id) openProfile(id);
   else if (to === 'dm' && id) openDm(id);

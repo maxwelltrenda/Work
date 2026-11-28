@@ -10,6 +10,8 @@
 const GEARC = () => C.core.gear;
 const GEAR_SLOTS = () => GEARC().slots.map(s => s[0]);
 const isGear = id => !!I.items[id] && I.items[id].t === 'gear';
+// a set's name: a boss tier's, or the Blood Moon Warband (war-only gear, tier 11, from the war shop)
+const gearTierName = t => (GEARC().warSet && +t === GEARC().warSet.tier) ? GEARC().warSet.n : ((C.core.raidTiers[t - 1] || {}).n || `Tier ${t}`);
 const gearLv = id => Math.max(0, Math.min(GEARC().enchant.costs.length, ((state.gearLv || {})[id] | 0)));
 const gearSlotName = slot => (GEARC().slots.find(s => s[0] === slot) || [slot, slot])[1];
 const gearWorn = () => GEAR_SLOTS().map(s => (state.gear || {})[s]).filter(id => isGear(id) && have(id) > 0);
@@ -75,10 +77,10 @@ function gearCard() {
   const sets = gearSets(), worn = gearWorn();
   const tiers = {};
   for (const id of worn) tiers[I.items[id].tier] = (tiers[I.items[id].tier] || 0) + 1;
-  const setLine = Object.entries(tiers).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${esc(C.core.raidTiers[t - 1].n)} ${n}/${GEARC().setSize}${n >= GEARC().setSize ? ' ✓' : ''}`).join(' · ');
+  const setLine = Object.entries(tiers).sort((a, b) => b[1] - a[1]).map(([t, n]) => `${esc(gearTierName(t))} ${n}/${GEARC().setSize}${n >= GEARC().setSize ? ' ✓' : ''}`).join(' · ');
   const m = gearRaid('might'), g = gearRaid('magic');
   return `<div class="card"><div class="row between"><h2>Battle gear</h2><span class="chip plain">${worn.length}/6 worn</span></div>
-    <p class="sub">${worn.length ? `On village bosses: ⚔️ Strike +${m}% · ✨ Cast +${g}%${sets.length ? ` (with a +${GEARC().setBonus * sets.length}% set bonus)` : ''}.` : 'Village bosses drop battle gear. Each tier has its own set; wear three pieces of one set for a bonus.'}${setLine ? ` Sets: ${setLine}.` : ''}</p>
+    <p class="sub">${worn.length ? `On village bosses: ⚔️ Strike +${m}% · ✨ Cast +${g}%${sets.length ? ` (with a +${GEARC().setBonus * sets.length}% set bonus)` : ''}.` : 'Village bosses drop battle gear, and the war shop sells the Blood Moon Warband. Each set is its own; wear three pieces of one set for a bonus.'}${setLine ? ` Sets: ${setLine}.` : ''}</p>
     <div class="gear-grid">${slots}</div>
     ${have('boss_rune') || owned.length ? `<p class="sub">🔷 ${fmtN(have('boss_rune'))} Battle Runes for enchanting (tap a piece). Enchanting goes up to level ${enchantCap()} at your Crafting level.</p>` : ''}</div>`;
 }

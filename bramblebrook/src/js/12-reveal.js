@@ -15,6 +15,7 @@ const FEATURES = {
   'make:cellar': () => unlocked(C.core.cellar.unlock),
   'town:board': () => chapterDone('prologue') && dayNumber() >= 2,
   'town:village': () => ONLINE.social && chapterDone('prologue'),
+  'town:war': () => ONLINE.social && chapterDone('prologue'),
   'town:hands': () => ONLINE.social && chapterDone('prologue'),
   'chatbar': () => ONLINE.social && chapterDone('prologue'),
   'town:mail': () => state.mail.length > 0,
@@ -35,6 +36,7 @@ const FEATURE_NAMES = {
   'farm:orchard': 'The orchard, on your Home page.', 'farm:animals': 'Animals, on your Home page.', 'farm:pets': 'Pets, on your Home page.',
   'wilds:mine': 'The Mine, on your Home page.', 'wilds:stair': 'The Lantern Stair, on your Home page: light lanterns to make everything sell for more.', 'town:inn': 'The Lantern & Ladle inn, on your Home page.', 'bag:bestiary': 'The bestiary, on your Profile.',
   'make:kitchen': 'Cooking, on your Home page.', 'make:bench': 'The workbench, on your Home page.', 'make:cellar': 'The cellar, on your Home page.',
+  'town:war': 'Village wars, on the Village page: raid other villages with your neighbours for coins and War Spoils.',
   'town:board': 'Chores and daily gifts, on your Home page.', 'town:village': 'Villages, on the Village page: team up with other players.', 'town:hands': 'Farmhands, on the Village page: hire other players to hit bosses harder.', 'chatbar': 'Chat, just above the page buttons: the newest from the world, your village and your messages. Tap one to talk.', 'market:perks': 'Perks, in the Market: spend points on bonuses.',
   'festival': 'Seasonal festivals, under Chores on your Home page.', 'exchange': 'The Valley Exchange, in the Market.',
 };

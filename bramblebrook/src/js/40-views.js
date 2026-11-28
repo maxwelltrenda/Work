@@ -3,7 +3,7 @@ const SUBS = {
   farm: [['fields', 'Fields'], ['orchard', 'Orchard'], ['animals', 'Animals'], ['pets', 'Pets']],
   wilds: [['explore', 'Explore'], ['mine', 'Mine'], ['stair', 'Lantern Stair']],
   make: [['workshop', 'Workshop'], ['kitchen', 'Kitchen'], ['bench', 'Bench'], ['cellar', 'Cellar']],
-  town: [['people', 'People'], ['village', 'Village'], ['hands', 'Farmhands'], ['inn', 'Inn'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
+  town: [['people', 'People'], ['village', 'Village'], ['war', 'War'], ['hands', 'Farmhands'], ['inn', 'Inn'], ['shops', 'Shops'], ['board', 'Board'], ['mail', 'Mail']],
   bag: [['sheet', 'Character'], ['items', 'Bag'], ['almanac', 'Almanac'], ['bestiary', 'Bestiary'], ['feats', 'Feats'], ['settings', 'Settings']],
   market: [['sell', 'Sell'], ['shops', 'Shops'], ['perks', 'Perks']],
 };
@@ -367,6 +367,7 @@ function viewTown() {
   const people = I.vils.some(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id)));
   const head = `<div class="view-head"><h1>Bramblebrook</h1><p>The village down the lane</p></div>${subtabs('town', { mail: unread > 0, board: choresReady, people, inn: innNew() > 0 })}`;
   if (s === 'village') return head + viewVillage();
+  if (s === 'war') return head + viewWar();
   if (s === 'hands') return head + viewHands();
   if (s === 'inn') return head + viewInn();
   if (s === 'shops') return head + viewShops();

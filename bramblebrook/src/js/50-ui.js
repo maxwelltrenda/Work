@@ -39,7 +39,7 @@ function updateBadges() {
     + (featureOn('town:inn') ? innNew() : 0) + (featureOn('town:board') ? state.chores.list.filter(c => !c.claimed && choreProgress(c) >= c.n).length : 0)
     + state.mail.filter(m => !m.read).length + (featureOn('daily') && loginReady() ? 1 : 0) + (featureOn('festival') ? festivalOpenCount() : 0));
   set('profile', overflowCount() ? 1 : 0);
-  set('village', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length);
+  set('village', I.vils.filter(v => vilAvailable(v) && (canDeliver(v.id) || heartSceneReady(v.id))).length + (featureOn('town:war') && warReady() ? 1 : 0));
   set('market', featureOn('market:perks') ? perkPointsFree() : 0);
   updateSocialBadges();
   renderChatbar();
@@ -163,7 +163,8 @@ function itemSheet(id) {
   if (I.recipe[id]) where.push(`Workshop (Crafting ${I.recipe[id].lvl})`);
   if (I.meal[id]) where.push(`Kitchen (Cooking ${I.meal[id].lvl})`);
   if (C.core.store.some(s => s.item === id)) where.push('General store');
-  if (it.t === 'gear') { const T = C.core.raidTiers[it.tier - 1]; where.push(`Village bosses in tier ${it.tier}, ${T.n} (about 1 win in ${Math.round(1 / T.drop)}, sure by your ${ordinal(T.pity)} win)`); }
+  if (it.t === 'gear' && it.war) where.push('The war shop in the Market, for War Spoils');
+  else if (it.t === 'gear') { const T = C.core.raidTiers[it.tier - 1]; where.push(`Village bosses in tier ${it.tier}, ${T.n} (about 1 win in ${Math.round(1 / T.drop)}, sure by your ${ordinal(T.pity)} win)`); }
   if (id === 'boss_rune') where.push('Every village boss you fight (more from higher tiers)');
   const uses = [];
   I.recipes.concat(I.meals).forEach(r => { if (r.need[id]) uses.push(itemName(r.id)); });
@@ -437,6 +438,12 @@ function handle(act, el, e) {
     case 'dm-back': soc.thread = null; soc.threads = null; drawChat(); refreshChat(true); return false;
     case 'chat-tab': soc.tab = id; soc.thread = null; socKeep(); drawChat(); refreshChat(false); return false;
     case 'chat-open': openChat(id); return false;
+    case 'war-raid': closeSheet(); warRaid(id); return false;
+    case 'war-scout': warScout(id); return false;
+    case 'war-declare': warDeclareSheet(id); return false;
+    case 'war-declare-go': warDeclare(id); return false;
+    case 'war-apple': warApple(id); return false;
+    case 'war-buy': warBuy(id); return false;
     case 'chat-back': openChat(null, true); return false;
     case 'raid-open': openRaid(); return false;
     case 'raid-start': raidStart(id); return false;

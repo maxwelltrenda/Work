@@ -21,7 +21,10 @@ const VILLAGE_ACTIONS = ["create_village", "join_village", "leave_village", "don
   // safety: report, block, moderation by the game's owner, and deleting the account
   "block_player", "unblock_player", "blocked_list", "report_content", "mod_action", "delete_my_account",
   // farmhands: who you could hire, who you have, letting one go (hiring itself is a farm move, through save_farm)
-  "farmhand_market", "my_farmhands", "drop_farmhand"];
+  "farmhand_market", "my_farmhands", "drop_farmhand",
+  // village wars: the war page, declaring (p_target: a village id, or none for a raider camp), raiding and scouting
+  // (p_target: a player id or a camp fighter id), Blood Apples (p_kind: raids, scouts or courage), the war shop (p_item)
+  "war_status", "war_declare", "war_raid", "war_scout", "war_apple", "war_buy"];
 
 const TOOLS = [
   {
@@ -53,13 +56,13 @@ const TOOLS = [
   },
   {
     name: "village",
-    description: "This player's village: buildings, treasury, neighbours, notice board, their profiles and the village boss. If they have no village, the list of villages to join.",
+    description: "This player's village: buildings, treasury, neighbours, notice board, their profiles, the village boss and any village war. If they have no village, the list of villages to join.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: { readOnlyHint: true },
   },
   {
     name: "village_action",
-    description: "Do something in villages as this player: found, join, leave, give coins, raise a building, post on the board, promote a neighbour, set the motto, summon or attack the village boss, collect a boss reward; also world chat, follows, direct messages, notifications, sending feedback to the game's maker, reporting or blocking a player, and deleting this account.",
+    description: "Do something in villages as this player: found, join, leave, give coins, raise a building, post on the board, promote a neighbour, set the motto, summon or attack the village boss, collect a boss reward; declare a village war, raid or scout the other side, eat a Blood Apple, buy from the war shop; also world chat, follows, direct messages, notifications, sending feedback to the game's maker, reporting or blocking a player, and deleting this account.",
     inputSchema: {
       type: "object",
       properties: {
@@ -128,8 +131,9 @@ async function villageState(userId: string) {
   ]);
   const ids = [...new Set([...(members ?? []).map((m) => m.user_id), ...(board ?? []).map((b) => b.user_id)].filter(Boolean))];
   const ps = ids.length ? await act(userId, "get_profiles", { p_ids: ids }) : { ok: true, result: [] };
-  const raid = await act(userId, "raid_status");
-  return { defs: defs ?? [], mine, village: v, buildings: buildings ?? [], members: members ?? [], board: board ?? [], profiles: ps.ok ? ps.result : [], raid: raid.ok ? raid.result : null };
+  const [raid, war] = await Promise.all([act(userId, "raid_status"), act(userId, "war_status")]);
+  return { defs: defs ?? [], mine, village: v, buildings: buildings ?? [], members: members ?? [], board: board ?? [], profiles: ps.ok ? ps.result : [],
+    raid: raid.ok ? raid.result : null, war: war.ok ? war.result : null };
 }
 
 async function callTool(userId: string, name: string, args: Record<string, unknown>) {

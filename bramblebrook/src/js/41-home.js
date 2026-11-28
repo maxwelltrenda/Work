@@ -11,7 +11,7 @@ const NAV_DEFS = [
   { id: 'village', n: 'Village', tab: 'town', svg: '<path d="M2 20h20"/><path d="M4 20v-9l5-4 5 4v9"/><path d="M14 20v-6l4-3 4 3v6"/><path d="M8 20v-4h2v4"/>' },
   { id: 'market', n: 'Market', tab: 'market', svg: '<path d="M4 9h16l-1.5-5h-13z"/><path d="M5 9v11h14V9"/><path d="M9.5 20v-6h5v6"/>' },
 ];
-const VILLAGE_SUBS = ['village', 'hands', 'people'];
+const VILLAGE_SUBS = ['village', 'war', 'hands', 'people'];
 // which page a place belongs to
 function navOf(tab, s) {
   if (tab === 'bag') return 'profile';
@@ -56,6 +56,7 @@ const HOME_ICONS = {
   'make:kitchen': '<path d="M4 10.4h16"/><path d="M5.2 10.4h13.6l-.8 5.6c-.4 2.8-2.8 4-6 4s-5.6-1.2-6-4z"/><path d="M8.2 20 7 22.2M15.8 20l1.2 2.2"/><path d="M9.4 7.6c-1-1 0-2 0-3.2M12 7.6c-1-1 0-2 0-3.2M14.6 7.6c-1-1 0-2 0-3.2"/>',
   'make:bench': '<path d="M6.6 21.4 16.8 4.6"/><path d="M14.2 3.4c3.4-.4 6.4 1.8 6.6 5.2l-4.2.8-3.8-2.4z"/><path d="M5 22.2l2.6-1.6"/>',
   'make:cellar': '<path d="M7.2 2.8h9.6c1.8 3.8 1.8 14.6 0 18.4H7.2c-1.8-3.8-1.8-14.6 0-18.4z"/><path d="M5.6 7.6h12.8M5.6 16.4h12.8"/><path d="M12 10.6v2.8"/>',
+  'town:war': '<path d="M12 2.6 4.6 5.4v6c0 4.6 3.1 8.2 7.4 9.9 4.3-1.7 7.4-5.3 7.4-9.9v-6z"/><path d="M8.4 8.4l7.2 7.2M15.6 8.4l-7.2 7.2"/>',
   'town:village': '<path d="M4 3.6l11 11M20 3.6l-11 11"/><path d="M13 16.8l3.8-3.8M11 16.8l-3.8-3.8"/><path d="M15.6 15.6l4 4M8.4 15.6l-4 4"/><circle cx="20.2" cy="20.2" r="1"/><circle cx="3.8" cy="20.2" r="1"/>',
   'town:inn': '<path d="M5 7.6h10V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M15 10h2.2a2 2 0 0 1 2 2v3.2a2 2 0 0 1-2 2H15"/><path d="M5 7.6c-.4-2 1.4-3.4 3-2.4 1-2 4-2 5 0 1.4-.8 2.6.4 2 2.4"/><path d="M8.4 11.4v6M11.6 11.4v6"/>',
   'town:board': '<path d="M7 4.4h10.6a2 2 0 0 1 2 2v1H16.6"/><path d="M7 4.4a2 2 0 0 0-2 2v1h3"/><path d="M8 6.4v11.2a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-1H10"/><path d="M10.6 9.6h5.4M10.6 12.4h5.4"/>',
@@ -80,6 +81,10 @@ function viewHome() {
     : R.reward ? 'Your share is waiting'
     : fighting ? `${esc(raidDef(raid.boss).n)} · ${pctText(raidNumbers(raid, raidDef(raid.boss)).total)} beaten${c >= 1 ? ` · ${Math.floor(c)} courage` : ` · courage back in ${mmss((1 - (c % 1)) * R.courage_secs * 1000)}`}` : 'No boss right now';
   const bossDot = !!(R && (R.reward || (fighting && c >= 1)));
+  const W = wv.data, Wr = W && W.war;
+  const warLine = !socialOn() ? 'Sign in to fight other villages' : !W ? 'Village against village' : !W.in_village ? 'Join a village to go to war'
+    : Wr ? `vs ${esc(Wr.enemy.name)} · ${Wr.score.my_head > Wr.score.their_head ? 'you lead' : Wr.score.my_head < Wr.score.their_head ? 'they lead' : 'all square'} · ${Math.floor(warEnergy('raids'))} raids`
+    : W.role === 'elder' ? 'At peace · declare a war or fight raiders' : 'At peace';
   const groups = [
     ['Your farm', [
       tile('farm', 'fields', emo('🌾'), 'Fields', ready ? `${ready} ready to harvest${growing ? `, ${growing} growing` : ''}` : growing ? `${growing} growing` : 'Ready to sow', ready),
@@ -101,6 +106,7 @@ function viewHome() {
     ]],
     ['Battles and adventures', [
       tile('town', 'village', emo('🐉'), 'Village boss', bossLine, bossDot, 'town:village'),
+      tile('town', 'war', emo('🛡️'), 'Village war', warLine, warReady(), 'town:war'),
       tile('town', 'inn', emo('🍺'), 'The inn', `Adventures, delves and the training yard${innNew() ? ` · ${innNew()} new` : ''}`, innNew(), 'town:inn'),
     ]],
     ['Every day', [
@@ -141,7 +147,7 @@ function viewMarket() {
   const s = sub('market');
   const head = `<div class="view-head"><h1>Market</h1><p>${s === 'perks' ? 'Bonuses you learn with points' : s === 'shops' ? 'Seeds, upgrades and traders' : 'Sell anything you own'}</p></div>${subtabs('market', { perks: perkPointsFree() > 0 })}`;
   if (s === 'perks') return head + viewPerks();
-  if (s === 'shops') return head + viewShops()
+  if (s === 'shops') return head + viewShops() + warShopHTML()
     + (featureOn('town:hands') ? `<div class="card"><h2>Farmhands</h2><p class="sub">Hire other players to hit village bosses harder.</p><button class="btn wide ghost" data-act="go" data-tab="town" data-sub="hands">Hire farmhands ›</button></div>` : '');
   return head + viewMarketSell();
 }
